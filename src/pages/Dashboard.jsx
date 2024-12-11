@@ -84,7 +84,7 @@ const Dashboard = () => {
         navigate("/login");
         return;
       }
-      await axios.post("http://10.1.34.162:5001/api/sync-clients",{},
+      await axios.post("http://42.96.42.197:5001/api/sync-clients",{},
         {
           method: "POST",
           headers: {
@@ -108,7 +108,7 @@ const Dashboard = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("http://10.1.34.162:5001/api/users/me", {
+      const response = await fetch("http://42.96.42.197:5001/api/users/me", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -137,7 +137,7 @@ const Dashboard = () => {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch('http://10.1.34.162:5001/api/users', {
+      const response = await fetch('http://42.96.42.197:5001/api/users', {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -187,7 +187,7 @@ const Dashboard = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("http://10.1.34.162:5001/api/users/me", {
+      const response = await fetch("http://42.96.42.197:5001/api/users/me", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,

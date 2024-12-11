@@ -81,7 +81,7 @@ const DesktopTable = () => {
           try {
             const token = localStorage.getItem("authToken");
             const response = await axios.delete(
-              `http://10.1.34.162:5001/api/desktops/${desktopId}/repairs/${repairId}`,
+              `http://42.96.42.197:5001/api/desktops/${desktopId}/repairs/${repairId}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
         
@@ -115,7 +115,7 @@ const DesktopTable = () => {
                 };
 
                 console.log("Payload:", payload);
-                console.log("Gửi yêu cầu tới:", `http://10.1.34.162:5001/api/desktops/${selectedDesktop._id}/repairs`);
+                console.log("Gửi yêu cầu tới:", `http://42.96.42.197:5001/api/desktops/${selectedDesktop._id}/repairs`);
                 console.log("Payload:", repairData);
                 console.log("Selected desktop:", selectedDesktop);
                 console.log("Payload:", {
@@ -124,7 +124,7 @@ const DesktopTable = () => {
                   updatedBy: currentUser.fullname,
                 });
                 console.log("Token:", localStorage.getItem("authToken"));
-                const response = await fetch(`http://10.1.34.162:5001/api/desktops/${selectedDesktop._id}/repairs`, {
+                const response = await fetch(`http://42.96.42.197:5001/api/desktops/${selectedDesktop._id}/repairs`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -163,7 +163,7 @@ const DesktopTable = () => {
             }}
             onAddRepair={(repair) => {
                     // Gọi API thêm nhật ký sửa chữa
-                    fetch(`http://10.1.34.162:5001/api/desktops/${selectedDesktop._id}/repairs`, {
+                    fetch(`http://42.96.42.197:5001/api/desktops/${selectedDesktop._id}/repairs`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify(repair),
@@ -191,7 +191,7 @@ const DesktopTable = () => {
           const fetchDesktops = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://10.1.34.162:5001/api/desktops", {
+              const response = await axios.get("http://42.96.42.197:5001/api/desktops", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -216,7 +216,7 @@ const DesktopTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://10.1.34.162:5001/api/users", {
+              const response = await axios.get("http://42.96.42.197:5001/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               if (response.data && Array.isArray(response.data)) {
@@ -241,7 +241,7 @@ const DesktopTable = () => {
             if (!desktopToDelete) return;
 
               try {
-                await axios.delete(`http://10.1.34.162:5001/api/desktops/${desktopToDelete._id}`, {
+                await axios.delete(`http://42.96.42.197:5001/api/desktops/${desktopToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -322,7 +322,7 @@ const DesktopTable = () => {
               console.log("Dữ liệu gửi đi:", newDesktop);
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("http://10.1.34.162:5001/api/desktops", payload, {
+              const response = await axios.post("http://42.96.42.197:5001/api/desktops", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -491,7 +491,7 @@ const DesktopTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "http://10.1.34.162:5001/api/desktops/bulk-upload",
+                  "http://42.96.42.197:5001/api/desktops/bulk-upload",
                   { desktops: parsedData },
                   {
                       headers: {
@@ -1007,7 +1007,7 @@ const DesktopTable = () => {
                         console.log("Payload gửi lên server:", payload);
 
                       await axios.put(
-                        `http://10.1.34.162:5001/api/desktops/${editingDesktop._id}`,
+                        `http://42.96.42.197:5001/api/desktops/${editingDesktop._id}`,
                         payload,
                         {
                           headers: {

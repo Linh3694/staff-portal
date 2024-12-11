@@ -14,7 +14,7 @@ const ClientTable = ({ handleSyncClients }) => {
   // Lấy dữ liệu từ /api/users
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://10.1.34.162:5001/api/users", {
+      const response = await fetch("http://42.96.42.197:5001/api/users", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`, // Đảm bảo token đúng
@@ -109,7 +109,7 @@ const ClientTable = ({ handleSyncClients }) => {
           formData.append("avatar", avatarFile); // Thêm file avatar nếu có
         }
   
-      const response = await fetch(`http://10.1.34.162:5001/api/users/${updatedUser._id}`, {
+      const response = await fetch(`http://42.96.42.197:5001/api/users/${updatedUser._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

@@ -87,7 +87,7 @@ const Admin = () => {
     }
   
     try {
-      const response = await fetch(`http://10.1.34.162:5001/api/users/${formData.id}`, {
+      const response = await fetch(`http://42.96.42.197:5001/api/users/${formData.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -119,7 +119,7 @@ const Admin = () => {
   // Delete User
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`http://10.1.34.162:5001/api/users/${id}`, { method: "DELETE" });
+      const response = await fetch(`http://42.96.42.197:5001/api/users/${id}`, { method: "DELETE" });
       if (response.ok) {
         fetchUsers();
       } else {
