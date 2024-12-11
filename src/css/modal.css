@@ -1,0 +1,78 @@
+.modal {
+    background: #ffffff; /* Nền trắng */
+    border-radius: 12px; /* Bo góc */
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); /* Hiệu ứng đổ bóng 3D */
+    padding: 24px; /* Khoảng cách bên trong modal */
+    width: 600px; /* Chiều rộng modal */
+    max-width: 90%; /* Đảm bảo không vượt quá chiều rộng màn hình nhỏ */
+    position: fixed; /* Cố định modal */
+    top: 50%; /* Căn giữa dọc */
+    left: 50%; /* Căn giữa ngang */
+    transform: translate(-50%, -50%); /* Đưa modal về đúng vị trí */
+    z-index: 1050; /* Đảm bảo modal nổi trên các thành phần khác */
+    animation: fadeIn 0.3s ease-in-out; /* Hiệu ứng xuất hiện */
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -45%);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%);
+    }
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between; /* Căn đều tiêu đề và nút đóng */
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0; /* Đường kẻ nhẹ */
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .modal-header h2 {
+    font-size: 20px; /* Kích thước tiêu đề */
+    font-weight: bold;
+    color: #002147; /* Màu tiêu đề */
+  }
+  
+  .modal-close {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #888; /* Màu nút đóng */
+    cursor: pointer;
+  }
+  
+  .modal-close:hover {
+    color: #555; /* Màu nút đóng khi hover */
+  }
+  
+  .modal-content {
+    display: grid;
+    gap: 16px; /* Khoảng cách giữa các phần tử */
+  }
+  
+  .modal-content .info-section {
+    display: flex;
+    justify-content: space-between; /* Căn đều các thông tin */
+    gap: 16px;
+  }
+  
+  .modal-content .info-card {
+    flex: 1; /* Mỗi thẻ chiếm không gian bằng nhau */
+    background: #f9f9f9; /* Màu nền nhẹ */
+    border-radius: 8px; /* Bo góc */
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Hiệu ứng đổ bóng nhẹ */
+  }
+  
+  .modal-content .info-card p {
+    font-size: 14px; /* Kích thước chữ */
+    color: #555;
+    margin: 8px 0 0;
+  }
