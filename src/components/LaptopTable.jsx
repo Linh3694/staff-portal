@@ -96,6 +96,7 @@ const LaptopTable = () => {
           try {
             const token = localStorage.getItem("authToken");
             const response = await axios.delete(
+              `http://42.96.42.197:5001/api/laptops/${laptopId}/repairs/${repairId}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
         
@@ -129,6 +130,7 @@ const LaptopTable = () => {
                 };
 
                 console.log("Payload:", payload);
+                console.log("Gửi yêu cầu tới:", `http://42.96.42.197:5001/api/laptops/${selectedLaptop._id}/repairs`);
                 console.log("Payload:", repairData);
                 console.log("Selected laptop:", selectedLaptop);
                 console.log("Payload:", {
@@ -137,6 +139,7 @@ const LaptopTable = () => {
                   updatedBy: currentUser.fullname,
                 });
                 console.log("Token:", localStorage.getItem("authToken"));
+                const response = await fetch(`http://42.96.42.197:5001/api/laptops/${selectedLaptop._id}/repairs`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -175,6 +178,7 @@ const LaptopTable = () => {
             }}
             onAddRepair={(repair) => {
                     // Gọi API thêm nhật ký sửa chữa
+                    fetch(`http://42.96.42.197:5001/api/laptops/${selectedLaptop._id}/repairs`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify(repair),
@@ -202,6 +206,7 @@ const LaptopTable = () => {
           const fetchLaptops = async () => {
             try {
               const token = localStorage.getItem("authToken");
+              const response = await axios.get("http://42.96.42.197:5001/api/laptops", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -227,6 +232,7 @@ const LaptopTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
+              const response = await axios.get("http://42.96.42.197:5001/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               console.log("Dữ liệu từ API users:", response.data);
@@ -255,6 +261,7 @@ const LaptopTable = () => {
             if (!laptopToDelete) return;
 
               try {
+                await axios.delete(`http://42.96.42.197:5001/api/laptops/${laptopToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -333,6 +340,7 @@ const LaptopTable = () => {
         
           
               // Gửi dữ liệu lên API
+              const response = await axios.post("http://42.96.42.197:5001/api/laptops", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -501,6 +509,7 @@ const LaptopTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
+                  "http://42.96.42.197:5001/api/laptops/bulk-upload",
                   { laptops: parsedData },
                   {
                       headers: {
@@ -1157,6 +1166,7 @@ const LaptopTable = () => {
                         console.log("Payload gửi lên server:", payload);
 
                       await axios.put(
+                        `http://42.96.42.197:5001/api/laptops/${editingLaptop._id}`,
                         payload,
                         {
                           headers: {
