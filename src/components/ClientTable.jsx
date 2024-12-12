@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { MdCancel, MdCheckCircle, } from "react-icons/md";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 
 const ClientTable = ({ handleSyncClients }) => {
   const [clients, setClients] = useState([]);
@@ -9,12 +12,13 @@ const ClientTable = ({ handleSyncClients }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [avatar, setAvatar] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState('');
 
 
   // Lấy dữ liệu từ /api/users
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://42.96.42.197:5001/api/users", {
+      const response = await fetch("http://localhost:5001/api/users", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`, // Đảm bảo token đúng
@@ -47,6 +51,32 @@ const ClientTable = ({ handleSyncClients }) => {
   const statusLabels = {
     Active: "Active",
     Inactive: "Inactive",
+  };
+
+  const handleExportToExcel = () => {
+    // Tạo dữ liệu export
+    const dataToExport = clients.map((client) => ({
+      Tên: client.fullname,
+      Email: client.email || "Không có",
+      Chức_Vụ: client.jobTitle || "Không có",
+      Phòng_Ban: client.department || "Không có",
+      Vai_Trò: client.role,
+      Tình_Trạng: client.disabled ? "Inactive" : "Active",
+    }));
+  
+    // Tạo worksheet từ dữ liệu
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+  
+    // Tạo workbook và thêm worksheet
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách người dùng");
+  
+    // Ghi workbook ra file Excel
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  
+    // Tải file xuống
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(blob, "Danh_sach_nguoi_dung.xlsx");
   };
 
   // Lọc clients theo từ khóa tìm kiếm
@@ -109,7 +139,7 @@ const ClientTable = ({ handleSyncClients }) => {
           formData.append("avatar", avatarFile); // Thêm file avatar nếu có
         }
   
-      const response = await fetch(`http://42.96.42.197:5001/api/users/${updatedUser._id}`, {
+      const response = await fetch(`http://localhost:5001/api/users/${updatedUser._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -142,10 +172,37 @@ const ClientTable = ({ handleSyncClients }) => {
     }
   };
 
-  // Xử lý thay đổi số lượng items hiển thị
-  const handleItemsPerPageChange = (e) => {
-    setItemsPerPage(Number(e.target.value));
-    setCurrentPage(1); // Reset về trang đầu tiên
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    setAvatar(file);
+    const fileUrl = URL.createObjectURL(file);
+    setAvatarUrl(fileUrl);
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatar) return;
+
+
+    const formData = new FormData();
+    formData.append('avatar', avatar);
+    formData.append('userId', selectedUser._id); // Include the user ID
+    try {
+      const response = await fetch('http://localhost:5001/upload-avatar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAvatarUrl(data.avatarUrl); // Assuming the server returns the URL of the uploaded avatar
+        alert('Avatar uploaded successfully!');
+      } else {
+        alert('Failed to upload avatar.');
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      alert('Error uploading avatar.');
+    }
   };
 
   // Xử lý thay đổi trang
@@ -168,12 +225,21 @@ const ClientTable = ({ handleSyncClients }) => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <button
-          onClick={handleSyncClients}
-          className="px-4 py-2 text-sm font-bold text-white bg-[#FF5733] hover:bg-[#002147] rounded shadow"
-        >
-          Đồng bộ
-        </button>
+        <div className="flex justify-between items-right space-x-2 ">
+              <button
+                onClick={handleSyncClients}
+                className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]"
+              >
+                Đồng bộ
+              </button>
+              <button
+                onClick={handleExportToExcel}
+                className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635]"
+              >
+                Xuất Excel
+              </button>
+        </div>
+
       </div>
 
       {/* Bảng */}
@@ -246,15 +312,6 @@ const ClientTable = ({ handleSyncClients }) => {
 
                   <form onSubmit={(e) => e.preventDefault()}>
                     <label className="block mt-4">
-                        Ảnh đại diện (Avatar):
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => setAvatar(e.target.files[0])}
-                          className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                        />
-                      </label>
-                    <label className="block mt-4">
                       Họ và tên:
                       <input
                         type="text"
@@ -293,15 +350,26 @@ const ClientTable = ({ handleSyncClients }) => {
                             </select>
                           </label>
                     </label>
-                    <label className="block mt-4">
-                      Email:
-                      <input
-                        type="email"
-                        value={selectedUser.email}
-                        readOnly
-                        className="border border-gray-300 rounded-md px-4 py-2 w-full bg-gray-100 mt-1 cursor-not-allowed"
-                      />
-                    </label>
+                    <div>
+                          Ảnh đại diện (Avatar):
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                          />
+                        </div>
+                        {avatarUrl && (
+                          <div className="mt-4">
+                            <img src={avatarUrl} alt="Avatar Preview" className="w-32 h-32 rounded-full" />
+                          </div>
+                        )}
+                        <button
+                          onClick={handleAvatarUpload}
+                          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md"
+                        >
+                          Upload Avatar
+                        </button>
 
                     <div className="flex items-center justify-between mt-4">
                       <label htmlFor="activateAccount" className="text-sm font-bold">
