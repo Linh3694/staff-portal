@@ -8,6 +8,7 @@ import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import "../css/table.css"
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
+import Dropdown from "./function/dropdown";
 
 
 const LaptopTable = () => {
@@ -55,6 +56,9 @@ const LaptopTable = () => {
         const [isUploading, setIsUploading] = useState(false);
         const [showDropdown, setShowDropdown] = useState(false);
         const [selectedOption, setSelectedOption] = useState("Tất cả trạng thái");
+        const [selectedDepartment, setSelectedDepartment] = useState("Tất cả phòng ban");
+        const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
+        const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
 
         
 
@@ -92,7 +96,6 @@ const LaptopTable = () => {
           try {
             const token = localStorage.getItem("authToken");
             const response = await axios.delete(
-              `http://42.96.42.197:5001/api/laptops/${laptopId}/repairs/${repairId}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
         
@@ -126,7 +129,6 @@ const LaptopTable = () => {
                 };
 
                 console.log("Payload:", payload);
-                console.log("Gửi yêu cầu tới:", `http://42.96.42.197:5001/api/laptops/${selectedLaptop._id}/repairs`);
                 console.log("Payload:", repairData);
                 console.log("Selected laptop:", selectedLaptop);
                 console.log("Payload:", {
@@ -135,7 +137,6 @@ const LaptopTable = () => {
                   updatedBy: currentUser.fullname,
                 });
                 console.log("Token:", localStorage.getItem("authToken"));
-                const response = await fetch(`http://42.96.42.197:5001/api/laptops/${selectedLaptop._id}/repairs`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -174,7 +175,6 @@ const LaptopTable = () => {
             }}
             onAddRepair={(repair) => {
                     // Gọi API thêm nhật ký sửa chữa
-                    fetch(`http://42.96.42.197:5001/api/laptops/${selectedLaptop._id}/repairs`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify(repair),
@@ -202,7 +202,6 @@ const LaptopTable = () => {
           const fetchLaptops = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://42.96.42.197:5001/api/laptops", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -228,7 +227,6 @@ const LaptopTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://42.96.42.197:5001/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               console.log("Dữ liệu từ API users:", response.data);
@@ -237,9 +235,10 @@ const LaptopTable = () => {
                 setUsers(
                   response.data.map((user) => ({
                     value: user._id,
-                    label: user.fullname || user.email,
+                    label: user.fullname,
                     title: user.jobTitle || "Không xác định",
                     departmentName: user.department || "Unknown",
+                    emailAddress : user.email,
                   }))
                 );
               } else {
@@ -256,7 +255,6 @@ const LaptopTable = () => {
             if (!laptopToDelete) return;
 
               try {
-                await axios.delete(`http://42.96.42.197:5001/api/laptops/${laptopToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -335,7 +333,6 @@ const LaptopTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("http://42.96.42.197:5001/api/laptops", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -504,7 +501,6 @@ const LaptopTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "http://42.96.42.197:5001/api/laptops/bulk-upload",
                   { laptops: parsedData },
                   {
                       headers: {
@@ -580,15 +576,15 @@ const LaptopTable = () => {
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
-      {/* Header */}
-       <div className="flex flex-col justify-between items-start mb-4">
+        {/* Header */}
+        <div className="flex flex-col justify-between items-start mb-4">
               {/* Search Input */}
                     <div className="relative w-full mb-4">
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                           <input
                           type="text"
                           placeholder="Tìm kiếm laptop..."
-                          className="pl-10 pr-4 py-2 border rounded-md w-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="pl-10 pr-4 py-2 border rounded-md w-100 focus:outline-none focus:ring-2 focus:ring-[#002147]"
                           onChange={(e) => {
                             const query = e.target.value.toLowerCase();
                             if (query === "") {
@@ -606,90 +602,164 @@ const LaptopTable = () => {
                         />
                       </div>
            
-                      <div className="flex items-center justify-between w-full space-x-4">
-                      <div className="relative inline-block w-full text-left" >
-                      {/* Nút dropdown */}
-                      <button
-                          className="inline-flex justify-between w-100 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          onClick={() => {
-                            setShowDropdown(!showDropdown); // Chuyển đổi trạng thái
-                          }}
-                        >
-                            {selectedOption || "Tất cả trạng thái"}
-                            <svg
-                              className="w-5 h-5 ml-2 -mr-1 text-gray-400"
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                              aria-hidden="true"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M5.293 9.293a1 1 0 011.414 0L10 12.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </button>
+                <div className="flex items-center justify-between w-full space-x-4">
+                     <div className="flex space-x-4">
+                     <Dropdown
+                          button={
+                            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
+                              {selectedOption === "Tất cả"
+                                ? "Trạng thái: Tất cả trạng thái"
+                                : `Trạng thái: ${selectedOption}`}
+                            </button>
+                          }
+                          children={
+                            <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                              {/* Option "Tất cả trạng thái" */}
+                              <button
+                                key="all"
+                                className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                onClick={() => {
+                                  setSelectedOption("Tất cả");
+                                  fetchLaptops(); // Lấy lại toàn bộ dữ liệu
+                                  setShowDropdown(false); // Đóng dropdown
+                                }}
+                              >
+                                Tất cả trạng thái
+                              </button>
 
-                          {/* Danh sách dropdown */}
-                          {showDropdown && (
-                            <div
-                            className={`absolute right-100 z-10 w-100 mt-2 origin-top-right bg-white border border-gray-300 rounded-md shadow-lg transform ${
-                              showDropdown 
-                            } transition-all duration-150`}
-                          >
-                              <div className="py-1">
+                              {/* Các trạng thái */}
+                              {[
+                                { value: "Active", label: "Đang sử dụng" },
+                                { value: "In Repair", label: "Chờ sửa chữa" },
+                                { value: "Lưu kho", label: "Lưu kho" },
+                              ].map((option) => (
                                 <button
-                                  className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-blue-500 hover:text-white"
-                                  onClick={() => handleOptionChange("Tất cả")}
+                                  key={option.value}
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedOption(option.label);
+                                    setData(data.filter((item) => item.status === option.value)); // Lọc theo trạng thái
+                                    setShowDropdown(false); // Đóng dropdown
+                                  }}
                                 >
-                                  Tất cả trạng thái
+                                  {option.label}
                                 </button>
-                                {[
-                                  { value: "Active", label: "Đang sử dụng" },
-                                  { value: "In Repair", label: "Chờ sửa chữa" },
-                                  { value: "Lưu kho", label: "Lưu kho" },
-                                ].map((option) => (
-                                  <button
-                                    key={option.value}
-                                    className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-blue-500 hover:text-white"
-                                    onClick={() => handleOptionChange(option.value)}
-                                  >
-                                    {option.label}
-                                  </button>
-                                ))}
-                              </div>
+                              ))}
                             </div>
-                          )}
-                        </div>
+                          }
+                        />
+                            <Dropdown
+                                button={
+                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
+                                    {selectedManufacturer === "Tất cả"
+                                      ? "Nhà sản xuất: Tất cả nhà sản xuất"
+                                      : `Nhà sản xuất: ${selectedManufacturer}`}
+                                  </button>
+                                }
+                                children={
+                                  <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
+                                    {/* Option "Tất cả nhà sản xuất" */}
+                                    <button
+                                      key="all"
+                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                      onClick={() => {
+                                        setSelectedManufacturer("Tất cả");
+                                        fetchLaptops(); // Lấy lại toàn bộ dữ liệu
+                                        setShowDropdown(false); // Đóng dropdown
+                                      }}
+                                    >
+                                      Tất cả nhà sản xuất
+                                    </button>
 
-                          {/* Các nút hành động */}
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => {
-                                setNewLaptop({
-                                  name: "",
-                                  manufacturer: "",
-                                  serial: "",
-                                  assigned: [],
-                                  status: "Active",
-                                }); // Reset lại form
-                                setShowAddModal(true);
-                              }}
-                              className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635]"
-                            >
-                              Thêm mới
-                            </button>
-                            <button
-                              className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]"
-                              onClick={() => setShowUploadModal(true)}
-                            >
-                              Upload
-                            </button>
-                          </div>
+                                    {/* Các nhà sản xuất */}
+                                    {Array.from(new Set(data.map((item) => item.manufacturer))).map(
+                                      (manufacturer) => (
+                                        <button
+                                          key={manufacturer}
+                                          className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                          onClick={() => {
+                                            setSelectedManufacturer(manufacturer);
+                                            setData(data.filter((item) => item.manufacturer === manufacturer)); // Lọc theo nhà sản xuất
+                                            setShowDropdown(false); // Đóng dropdown
+                                          }}
+                                        >
+                                          {manufacturer}
+                                        </button>
+                                      )
+                                    )}
+                                  </div>
+                                }
+                              />
+                              <Dropdown
+                                button={
+                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
+                                    {selectedYear === "Tất cả"
+                                      ? "Năm sản xuất: Tất cả năm sản xuất"
+                                      : `Năm sản xuất: ${selectedYear}`}
+                                  </button>
+                                }
+                                children={
+                                  <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
+                                    {/* Option "Tất cả năm sản xuất" */}
+                                    <button
+                                      key="all"
+                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                      onClick={() => {
+                                        setSelectedYear("Tất cả");
+                                        fetchLaptops(); // Lấy lại toàn bộ dữ liệu
+                                        setShowDropdown(false); // Đóng dropdown
+                                      }}
+                                    >
+                                      Tất cả năm sản xuất
+                                    </button>
+
+                                    {/* Các năm sản xuất */}
+                                    {Array.from(new Set(data.map((item) => item.releaseYear)))
+                                      .sort()
+                                      .map((year) => (
+                                        <button
+                                          key={year}
+                                          className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                          onClick={() => {
+                                            setSelectedYear(year);
+                                            setData(data.filter((item) => item.releaseYear === year)); // Lọc theo năm
+                                            setShowDropdown(false); // Đóng dropdown
+                                          }}
+                                        >
+                                          {year}
+                                        </button>
+                                      ))}
+                                  </div>
+                                }
+                              />
                         </div>
-                      </div>
-  
+                             {/* Các nút hành động */}
+                                <div className="flex space-x-2">
+                                        <button
+                                          onClick={() => {
+                                            setNewLaptop({
+                                              name: "",
+                                              manufacturer: "",
+                                              serial: "",
+                                              assigned: [],
+                                              status: "Active",
+                                            });
+                                            setShowAddModal(true);
+                                          }}
+                                          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635]"
+                                        >
+                                          Thêm mới
+                                        </button>
+                                        <button
+                                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]"
+                                          onClick={() => setShowUploadModal(true)}
+                                        >
+                                          Upload
+                                        </button>
+                               
+                                        </div>
+                        </div>
+                    </div>
 
       {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
   <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
@@ -1087,7 +1157,6 @@ const LaptopTable = () => {
                         console.log("Payload gửi lên server:", payload);
 
                       await axios.put(
-                        `http://42.96.42.197:5001/api/laptops/${editingLaptop._id}`,
                         payload,
                         {
                           headers: {
@@ -1312,7 +1381,7 @@ const LaptopTable = () => {
                                     setShowSuggestions(false);
                                   }}
                                 >
-                                  {user.label}
+                                  {user.label} <br/> <i>{user.emailAddress}</i>
                                 </li>
                               ))}
                             </ul>

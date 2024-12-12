@@ -10,6 +10,7 @@ import { FiHome, FiPackage, FiUser, FiBook, FiClock, FiFileText } from "react-ic
 import axios from "axios";
 import Profile from "../components/Profile";
 import { FiLogOut } from 'react-icons/fi';
+import Dropdown from "../components/function/dropdown";
 
 
 
@@ -84,7 +85,6 @@ const Dashboard = () => {
         navigate("/login");
         return;
       }
-      await axios.post("http://42.96.42.197:5001/api/sync-clients",{},
         {
           method: "POST",
           headers: {
@@ -108,7 +108,6 @@ const Dashboard = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("http://42.96.42.197:5001/api/users/me", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -137,7 +136,6 @@ const Dashboard = () => {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch('http://42.96.42.197:5001/api/users', {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -187,7 +185,6 @@ const Dashboard = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("http://42.96.42.197:5001/api/users/me", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -337,24 +334,49 @@ const Dashboard = () => {
                         <span className="text-[#002147] text-sm mr-2">
                               Hi, {currentUser.fullname || "User"}
                         </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-300 hover:border-gray-400"
-                          onClick={toggleProfileMenu}
-                        >
-                          <img
-                          src={currentUser.avatar || "https://via.placeholder.com/150"}
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                          />
-                        </button>
-                        <button
-                          className="w-8 h-8 flex items-center justify-center rounded-full border-1 border-gray-400 bg-white hover:bg-"
-                          onClick={handleLogout} // Define this function to handle logout
-                         >
-                        <FiLogOut size={16} className="text-orange-red hover:text-orange-red-dark" />
-                        </button>
-                    </div>
+                        <Dropdown
+                              button={
+                                <img
+                                  className="h-10 w-10 rounded-full"
+                                  src={currentUser.avatar || "https://via.placeholder.com/150"}
+                                  alt="Elon Musk"
+                                />
+                              }
+                              children={
+                                <div className="flex w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
+                                  <div className="p-4">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-bold text-navy-700 dark:text-white">
+                                        👋 Hey, Adela
+                                      </p>{" "}
+                                    </div>
+                                  </div>
+                                  <div className="h-px w-full bg-gray-200 dark:bg-white/20 " />
+
+                                  <div className="flex flex-col p-4">
+                                    <a
+                                      href=" "
+                                      className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
+                                    >
+                                      Profile Settings
+                                    </a>
+                                    <a
+                                      href=" "
+                                      className="mt-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
+                                    >
+                                      Newsletter Settings
+                                    </a>
+                                    <a
+                                      href=" "
+                                      className="mt-3 text-sm font-medium text-red-500 hover:text-red-500 transition duration-150 ease-out hover:ease-in"
+                                    >
+                                      Log Out
+                                    </a>
+                                  </div>
+                                </div>
+                              }
+                              classNames={"py-2 top-8 -left-[180px] w-max"}
+                            />
              </div>
       </nav>  
 
