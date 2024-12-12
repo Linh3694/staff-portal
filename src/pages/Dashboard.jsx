@@ -27,7 +27,7 @@ const Dashboard = () => {
   const [currentUser, setCurrentUser] = useState({
     fullname: "",
     role: "",
-    avatar: "",
+    avatarUrl: "",
     email: "",
     title: "",
   });
@@ -54,7 +54,7 @@ const Dashboard = () => {
   const tabs = [
     { name: "Laptop", disabled: false },
     { name: "Desktop", disabled: false },
-    { name: "Accessories", disabled: true }, 
+    { name: "Accessories", disabled: false }, 
     { name: "Printer", disabled: true },
     { name: "Projector", disabled: true }
   ];
@@ -85,7 +85,7 @@ const Dashboard = () => {
         navigate("/login");
         return;
       }
-      await axios.post("http://42.96.42.197:5001/api/sync-clients",{},
+      await axios.post("http://localhost:5001/api/sync-clients",{},
         {
           method: "POST",
           headers: {
@@ -106,39 +106,11 @@ const Dashboard = () => {
     fetchClients();
   }, []);
 
-  const fetchCurrentUser = async () => {
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch("http://42.96.42.197:5001/api/users/me", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-  
-      if (!response.ok) {
-        throw new Error("Failed to fetch user data");
-      }
-  
-      const data = await response.json();
-      setCurrentUser({
-        fullname: data.fullname || "Không xác định",
-        title: data.jobTitle || "Không xác định",
-        avatar: data.avatar || "https://via.placeholder.com/150",
-        email: data.email || "",
-      });
-  
-      // Update localStorage
-      localStorage.setItem("currentUser", JSON.stringify(data));
-    } catch (error) {
-      console.error("Error fetching current user:", error.message);
-    }
-  };
 
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch('http://42.96.42.197:5001/api/users', {
+      const response = await fetch('http://localhost:5001/api/users', {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -188,7 +160,7 @@ const Dashboard = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("http://42.96.42.197:5001/api/users/me", {
+      const response = await fetch("http://localhost:5001/api/users/me", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -203,7 +175,7 @@ const Dashboard = () => {
       setCurrentUser({
         fullname: data.fullname || "Không xác định",
         title: data.jobTitle || "Không xác định",
-        avatar: data.avatar || "https://via.placeholder.com/150",
+        avatarUrl: data.avatarUrl || "http://via.placeholder.com/150",
         email: data.email || "",
       });
 
@@ -234,14 +206,14 @@ const Dashboard = () => {
               {/* <h2 className="text-2xl font-semibold mb-6 text-[#002147]">
                 Danh sách {selectedSubCategory}
               </h2>  */}
-          <div className=" grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6 px-6">
+          <div className=" grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6 px-6 ">
             {tabs.map((tab, index) => (
               <button
                 key={tab.name}
                 disabled={tab.disabled}
                 className={`${
                   activeTab === tab.name
-                    ? "text-xl text-semibold border-b-2 border-[#002147] text-[#002147]"
+                    ? "text-xl text-semibold border-b-2 border-[#002147] text-[#002147] "
                     : "text-gray"
                 } ${
                   tab.disabled 
@@ -317,7 +289,7 @@ const Dashboard = () => {
   
   return (
     
-    <div className="ml-64 min-h-screen bg-gray-50 ">
+    <div className="ml-64 min-h-screen bg-grey-100" >
       <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl">
              <div className="ml-6 flex flex-col items-start">
                       {/* Dòng đầu: Pages / <category> */}
@@ -341,8 +313,8 @@ const Dashboard = () => {
                         <Dropdown
                               button={
                                 <img
-                                  className="h-10 w-10 rounded-full"
-                                  src={currentUser.avatar || "https://via.placeholder.com/150"}
+                                  className="h-10 w-10 rounded-full object-cover"
+                                  src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
                                   alt="Elon Musk"
                                 />
                               }
@@ -415,19 +387,19 @@ const Dashboard = () => {
         {/* Sidebar giữ nguyên */}
         <div className="p-6 text-center border-b border-gray-200 dark:border-gray-700">
           <div className="relative inline-block">
-            <img
-              src={currentUser.avatar || "https://via.placeholder.com/150"}
+          <img
+              src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
               alt="User profile"
-              className="w-20 h-20 rounded-full mx-auto ring-2 ring-blue-500"
+              className="w-20 h-20 rounded-full mx-auto ring-2 ring-[#002417] object-cover"
               onError={(e) => {
-                e.target.src = "https://via.placeholder.com/150";
-                }}
-              />
+                e.target.src = "http://via.placeholder.com/150";
+              }}
+            />
               </div>
               <h2 className="mt-4 font-semibold text-lg" style={{ fontFamily: 'Mulish, sans-serif' }}>
               {currentUser.fullname || "Chưa đăng nhập"}
               </h2>
-              <p className={`text-sm italic "text-gray-300" : "text-gray-600"`} style={{ fontFamily: 'Mulish, sans-serif' }}>
+              <p className={`text-xs italic "text-gray-300" : "text-gray-600"`} style={{ fontFamily: 'Mulish, sans-serif' }}>
               {currentUser.title || "Chưa xác định"}
               </p>
             </div>
@@ -436,7 +408,7 @@ const Dashboard = () => {
           {menuItems.map((item) => (
             <button
               key={item.label}
-              className={`flex items-center w-full px-3 py-2 rounded-md transition-colors duration-200 ${
+              className={`flex items-center w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105  ${
                 selectedCategory === item.label
                   ? darkMode
                     ? "bg-gray-800 text-white"
@@ -456,7 +428,7 @@ const Dashboard = () => {
             {/* Users Section */}
             <button
               onClick={() => setSelectedCategory("User")}
-              className={`flex items-center w-full px-3 py-2 rounded-md transition-colors duration-200 ${
+              className={`flex items-center w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105 ${
                 selectedCategory === "User"
                   ? "bg-[#002147] text-white"
                   : "hover:bg-[#002147] hover:text-white text-gray-700"

@@ -1,21 +1,20 @@
 const express = require("express");
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const mongoose = require("mongoose");
 const cors = require("cors");
+const User = require("./models/Users");
 const authRoutes = require("./routes/auth");
 const laptopRoutes = require("./routes/laptops");
 const desktopRoutes = require("./routes/desktops"); // Import route desktops
 const userRoutes = require("./routes/users");
 const validateToken = require("./middleware/validateToken");
 const clientsSync = require('./routes/clientsSync'); // Import the clientsSync router
-
-
+const app = express();
 const Laptop = require("./models/Laptop");
 const Desktop = require("./models/Desktop"); // Import model Desktop
-
-// Load biến môi trường
 require("dotenv").config();
-
-// Kết nối MongoDB
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
@@ -28,11 +27,25 @@ const connectDB = async () => {
     process.exit(1);
   }
 };
-
 connectDB();
 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const upload = multer({ storage });
+
 // Tạo app Express
-const app = express();
+
 app.use(express.json());
 app.use(cors());
 
@@ -139,6 +152,40 @@ app.use(express.static('build', {
     }
   }
 }));
+
+app.post('/upload-avatar', upload.single('avatar'), async (req, res) => {
+  console.log('File:', req.file);
+  console.log('Body:', req.body);
+  if (!req.file) {
+    return res.status(400).send('No file uploaded.');
+  }
+
+  const avatarUrl = `${req.protocol}://${req.get('host')}/${req.file.path}`; // Đường dẫn avatar
+  const userId = req.body.userId; // Lấy userId từ request body
+
+  try {
+    // Tìm user theo ID
+    const user = await User.findById(userId);
+    console.log('User found:', user);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Cập nhật avatarUrl
+    user.avatarUrl = avatarUrl;
+    await user.save(); // Lưu lại vào database
+    console.log('User updated:', user);
+
+    res.json({ avatarUrl });
+  } catch (error) {
+    console.error('Error updating user avatar:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+});
+
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Khởi động server
 const PORT = process.env.PORT || 3000;

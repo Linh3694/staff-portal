@@ -34,10 +34,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false, // Tài khoản có thể bị vô hiệu hóa bởi admin
   },
-  avatar: {
-    type: String,
-    default: "https://via.placeholder.com/150",
-  },
+  avatarUrl: { 
+    type: String 
+  }, // Add this field for the avatar URL
+
   lastLogin: {
     type: Date,
   },

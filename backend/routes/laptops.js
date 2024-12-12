@@ -79,7 +79,7 @@ router.get("/:id/repairs", async (req, res) => {
 });
 
 router.post("/:id/repairs", async (req, res) => {
-  const { description, date, updatedBy } = req.body;
+  const { description, date, updatedBy, details } = req.body;
 
   if (!description || !updatedBy) {
     return res.status(400).json({ message: "Thông tin không hợp lệ" });
@@ -91,7 +91,7 @@ router.post("/:id/repairs", async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy thiết bị" });
     }
 
-    const newRepair = { description, date: date || Date.now(), updatedBy };
+    const newRepair = { description, date: date || Date.now(), updatedBy, details };
     laptop.repairs.push(newRepair);
     await laptop.save();
 
@@ -102,7 +102,7 @@ router.post("/:id/repairs", async (req, res) => {
 });
 
 router.put("/:id/repairs/:repairId", async (req, res) => {
-  const { description, date, updatedBy } = req.body;
+  const { description, date, updatedBy, details } = req.body;
 
   try {
     const laptop = await Laptop.findById(req.params.id);
@@ -118,6 +118,7 @@ router.put("/:id/repairs/:repairId", async (req, res) => {
     repair.description = description || repair.description;
     repair.date = date || repair.date;
     repair.updatedBy = updatedBy || repair.updatedBy;
+    repair.details = details || repair.details;
 
     await laptop.save();
 
@@ -127,26 +128,6 @@ router.put("/:id/repairs/:repairId", async (req, res) => {
   }
 });
 
-// router.delete("/:id/repairs/:repairId", async (req, res) => {
-//   try {
-//     const laptop = await Laptop.findById(req.params.id);
-//     if (!laptop) {
-//       return res.status(404).json({ message: "Không tìm thấy thiết bị" });
-//     }
-
-//     const repair = laptop.repairs.id(req.params.repairId);
-//     if (!repair) {
-//       return res.status(404).json({ message: "Không tìm thấy nhật ký sửa chữa" });
-//     }
-
-//     repair.remove();
-//     await laptop.save();
-
-//     res.status(200).json({ message: "Đã xóa nhật ký sửa chữa thành công" });
-//   } catch (error) {
-//     res.status(500).json({ message: "Lỗi máy chủ", error });
-//   }
-// });
 
 router.delete("/:id/repairs/:repairId", async (req, res) => {
   const { id, repairId } = req.params;

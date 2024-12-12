@@ -8,11 +8,12 @@ import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import "../css/table.css"
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
+import Dropdown from "./function/dropdown";
 
 
 const DesktopTable = () => {
-          
-        const [data, setData] = useState([]); // State cho danh sách desktops
+        
+        const [data, setData] = useState([]); // State cho danh sách Desktops
         const [users, setUsers] = useState([]); // Lưu danh sách users từ API
         const [showAddModal, setShowAddModal] = useState(false); // State để điều khiển modal 
         const [newDesktop, setNewDesktop] = useState({
@@ -47,19 +48,18 @@ const DesktopTable = () => {
         const [filteredUsers, setFilteredUsers] = useState([]); // Lưu danh sách gợi ý tạm thời
         const [showSuggestions, setShowSuggestions] = useState(false); // Kiểm soát hiển thị gợi ý
         const [showConfirmModal, setShowConfirmModal] = useState(false);
-        const [desktopToDelete, setDesktopToDelete] = useState(null);
+        const [DesktopToDelete, setDesktopToDelete] = useState(null);
         const [selectedDesktop, setSelectedDesktop] = useState(null);
         const [showDetailModal, setShowDetailModal] = useState(false); // Kiểm soát hiển thị modal
         const [showUploadModal, setShowUploadModal] = useState(false);
         const [parsedData, setParsedData] = useState([]);
-        const [isUploading, setIsUploading] = useState(false);
+        const [isUploading] = useState(false);
+        const [setShowDropdown] = useState(false);
+        const [selectedOption, setSelectedOption] = useState("Tất cả trạng thái");
+        const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
+        const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
 
-        const statusClasses = {
-          Active: "bg-green-100 text-green-800",
-          "In Repair": "bg-yellow-100 text-yellow-800",
-          "Lưu kho": "bg-red-600 text-white",
-          default: "bg-gray-100 text-gray-700",
-        };
+      
         
         const statusLabels = {
           Active: "Đang sử dụng",
@@ -67,21 +67,16 @@ const DesktopTable = () => {
           "Lưu kho": "Lưu kho",
           default: "Không xác định",
         };
-
       
-        const handleDeleteRepair = async (desktopId, repairId) => {
-          console.log("Desktop ID:", desktopId);
-          console.log("Repair ID:", repairId);
-        
+        const handleDeleteRepair = async (DesktopId, repairId) => {
           if (!repairId) {
-            console.error("repairId không hợp lệ.");
             return Promise.reject("repairId không hợp lệ");
           }
         
           try {
             const token = localStorage.getItem("authToken");
             const response = await axios.delete(
-              `http://localhost:5001/api/desktops/${desktopId}/repairs/${repairId}`,
+              `http://localhost:5001/api/Desktops/${DesktopId}/repairs/${repairId}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
         
@@ -115,16 +110,16 @@ const DesktopTable = () => {
                 };
 
                 console.log("Payload:", payload);
-                console.log("Gửi yêu cầu tới:", `http://localhost:5001/api/desktops/${selectedDesktop._id}/repairs`);
+                console.log("Gửi yêu cầu tới:", `http://localhost:5001/api/Desktops/${selectedDesktop._id}/repairs`);
                 console.log("Payload:", repairData);
-                console.log("Selected desktop:", selectedDesktop);
+                console.log("Selected Desktop:", selectedDesktop);
                 console.log("Payload:", {
                   description: repairData.description,
                   date: repairData.date || new Date().toISOString(),
                   updatedBy: currentUser.fullname,
                 });
                 console.log("Token:", localStorage.getItem("authToken"));
-                const response = await fetch(`http://localhost:5001/api/desktops/${selectedDesktop._id}/repairs`, {
+                const response = await fetch(`http://localhost:5001/api/Desktops/${selectedDesktop._id}/repairs`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -151,19 +146,19 @@ const DesktopTable = () => {
               }
           };
           
-          console.log("Props truyền vào desktopProductCard:", {
-            desktopData: selectedDesktop,
+          console.log("Props truyền vào DesktopProductCard:", {
+            DesktopData: selectedDesktop,
             onDeleteRepair: handleDeleteRepair,
           });
 
-          <desktopProductCard
-            desktopData={{
+          <DesktopProductCard
+            DesktopData={{
               ...selectedDesktop,
               repairs: selectedDesktop?.repairs || [], // Đảm bảo repairs là mảng
             }}
             onAddRepair={(repair) => {
                     // Gọi API thêm nhật ký sửa chữa
-                    fetch(`http://localhost:5001/api/desktops/${selectedDesktop._id}/repairs`, {
+                    fetch(`http://localhost:5001/api/Desktops/${selectedDesktop._id}/repairs`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify(repair),
@@ -182,32 +177,33 @@ const DesktopTable = () => {
             onDeleteRepair={handleDeleteRepair}
             />
           
-          const handleViewDetails = (desktop) => {
-            setSelectedDesktop(desktop); // Lưu thiết bị được chọn
+          const handleViewDetails = (Desktop) => {
+            setSelectedDesktop(Desktop); // Lưu thiết bị được chọn
             setShowDetailModal(true); // Hiển thị modal
           };
 
-          // Hàm gọi API để lấy danh sách desktops
+          // Hàm gọi API để lấy danh sách Desktops
           const fetchDesktops = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/desktops", {
+              const response = await axios.get("http://localhost:5001/api/Desktops", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
               // Map dữ liệu `assigned` để phù hợp với định dạng giao diện
-              const desktops = response.data.map((desktop) => ({
-                ...desktop,
-                assigned: desktop.assigned.map((user) => ({
+              const Desktops = response.data.map((Desktop) => ({
+                ...Desktop,
+                assigned: Desktop.assigned.map((user) => ({
                   value: user._id,
                   label: user.name,
                   title: user.jobTitle || "Không xác định",
+                  departmentName: user.department || "Không xác định",
                 })),
               }));
-              setData(desktops);
+              setData(Desktops);
               console.log("Desktops fetched:", response.data); // Log dữ liệu
             } catch (error) {
-              console.error("Error fetching desktops:", error);
+              console.error("Error fetching Desktops:", error);
             }
           };
 
@@ -219,12 +215,16 @@ const DesktopTable = () => {
               const response = await axios.get("http://localhost:5001/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
+              console.log("Dữ liệu từ API users:", response.data);
+
               if (response.data && Array.isArray(response.data)) {
                 setUsers(
                   response.data.map((user) => ({
                     value: user._id,
-                    label: user.fullname || user.email,
+                    label: user.fullname,
                     title: user.jobTitle || "Không xác định",
+                    departmentName: user.department || "Unknown",
+                    emailAddress : user.email,
                   }))
                 );
               } else {
@@ -238,10 +238,10 @@ const DesktopTable = () => {
           };
 
           const handleDelete = async (id) => {
-            if (!desktopToDelete) return;
+            if (!DesktopToDelete) return;
 
               try {
-                await axios.delete(`http://localhost:5001/api/desktops/${desktopToDelete._id}`, {
+                await axios.delete(`http://localhost:5001/api/Desktops/${DesktopToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -254,15 +254,15 @@ const DesktopTable = () => {
                   }
                 );
               } catch (error) {
-                console.error("Error deleting desktop:", error);
-                toast.error("Có lỗi xảy ra khi xóa desktop!",
+                console.error("Error deleting Desktop:", error);
+                toast.error("Có lỗi xảy ra khi xóa Desktop!",
                   {
                     className: "toast-error",
                   }
                 );
               } finally {
                 setShowConfirmModal(false); // Đóng modal
-                setDesktopToDelete(null); // Reset desktop cần xóa
+                setDesktopToDelete(null); // Reset Desktop cần xóa
               }
           };
 
@@ -286,8 +286,8 @@ const DesktopTable = () => {
               setShowEditModal(true); // Hiển thị modal chỉnh sửa
           };
 
-          const confirmDelete = (desktop) => {
-            setDesktopToDelete(desktop); // Đặt desktop cần xóa
+          const confirmDelete = (Desktop) => {
+            setDesktopToDelete(Desktop); // Đặt Desktop cần xóa
             setShowConfirmModal(true); // Hiển thị modal xác nhận
           };
           
@@ -317,26 +317,24 @@ const DesktopTable = () => {
                 },
                 assigned: newDesktop.assigned?.map((user) => user.value) || [], // Xử lý danh sách người dùng
               };
-          
-              console.log("Payload gửi lên:", payload);
-              console.log("Dữ liệu gửi đi:", newDesktop);
+        
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("http://localhost:5001/api/desktops", payload, {
+              const response = await axios.post("http://localhost:5001/api/Desktops", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
               });
           
               if (response.status === 201) {
-                toast.success("Thêm desktop thành công!",
+                toast.success("Thêm Desktop thành công!",
                   {
                     className: "toast-success",
                     progressClassName: "Toastify__progress-bar",
                   }
                 );
           
-                // Cập nhật danh sách desktops và đóng modal
+                // Cập nhật danh sách Desktops và đóng modal
                 fetchDesktops();
                 setShowAddModal(false);
                 setNewDesktop({
@@ -355,8 +353,8 @@ const DesktopTable = () => {
                 });
               }
             } catch (error) {
-              console.error("Lỗi khi thêm desktop:", error);
-              toast.error("Có lỗi xảy ra khi thêm desktop. Vui lòng thử lại!",
+              console.error("Lỗi khi thêm Desktop:", error);
+              toast.error("Có lỗi xảy ra khi thêm Desktop. Vui lòng thử lại!",
                 {
                   className: "toast-error",
                   progressClassName: "Toastify__progress-bar",
@@ -491,8 +489,8 @@ const DesktopTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "http://localhost:5001/api/desktops/bulk-upload",
-                  { desktops: parsedData },
+                  "http://localhost:5001/api/Desktops/bulk-upload",
+                  { Desktops: parsedData },
                   {
                       headers: {
                           "Content-Type": "application/json",
@@ -502,7 +500,7 @@ const DesktopTable = () => {
               );
       
               if (response.status === 201) {
-                  toast.success(`${response.data.addedDesktops} desktop(s) đã được thêm thành công!`,
+                  toast.success(`${response.data.addedDesktops} Desktop(s) đã được thêm thành công!`,
                     {
                       className: "toast-success",
                       progressClassName: "Toastify__progress-bar",
@@ -567,147 +565,288 @@ const DesktopTable = () => {
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
-      {/* Header */}
-       <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-         {/* Search Input */}
-         <div className="relative w-full sm:w-1/2 mb-4 sm:mb-0">
-         <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-         <input
-        type="text"
-        placeholder="Tìm kiếm desktop..."
-        className="pl-10 pr-4 py-2 border rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-        onChange={(e) => {
-          const query = e.target.value.toLowerCase();
-          if (query === "") {
-            // Nếu ô tìm kiếm rỗng, khôi phục dữ liệu gốc
-            fetchDesktops();
-          } else {
-            const filteredData = data.filter((item) =>
-              item.name.toLowerCase().includes(query) ||
-              item.manufacturer.toLowerCase().includes(query) ||
-              item.serial.toLowerCase().includes(query)
-            );
-            setData(filteredData); // Cập nhật danh sách được hiển thị
-          }
-        }}
-      />
-    </div> 
-    {/* Buttons */}
-    <div className="flex space-x-2">
-      <button
-        onClick={() => {
-          setNewDesktop({
-            name: "",
-            manufacturer: "",
-            serial: "",
-            assigned: [],
-            status: "Active",
-          }); // Reset lại form
-          setShowAddModal(true);
-        }}
-        className="px-3 py-2 bg-oxford-blue text-sm font-bold text-white rounded-lg shadow-md hover:bg-oxford-blue-dark"
-      >
-        Thêm mới
-      </button>
-      <button
-        className="bg-orange-red text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-orange-red-dark"
-        onClick={() => setShowUploadModal(true)}
-      >
-        Upload
-      </button>
-    </div>
-  </div>
+        {/* Header */}
+        <div className="flex flex-col justify-between items-start mb-4">
+              {/* Search Input */}
+                    <div className="relative w-full mb-4">
+                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                          <input
+                          type="text"
+                          placeholder="Tìm kiếm Desktop..."
+                          className="pl-10 pr-4 py-2 border rounded-md w-100 focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          onChange={(e) => {
+                            const query = e.target.value.toLowerCase();
+                            if (query === "") {
+                              // Nếu ô tìm kiếm rỗng, khôi phục dữ liệu gốc
+                              fetchDesktops();
+                            } else {
+                              const filteredData = data.filter((item) =>
+                                item.name.toLowerCase().includes(query) ||
+                                item.manufacturer.toLowerCase().includes(query) ||
+                                item.serial.toLowerCase().includes(query)
+                              );
+                              setData(filteredData); // Cập nhật danh sách được hiển thị
+                            }
+                          }}
+                        />
+                      </div>
+           
+                <div className="flex items-center justify-between w-full space-x-4">
+                     <div className="flex space-x-4">
+                     <Dropdown
+                          button={
+                            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
+                              {selectedOption === "Tất cả"
+                                ? "Trạng thái: Tất cả trạng thái"
+                                : `Trạng thái: ${selectedOption}`}
+                            </button>
+                          }
+                          children={
+                            <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                              {/* Option "Tất cả trạng thái" */}
+                              <button
+                                key="all"
+                                className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                onClick={() => {
+                                  setSelectedOption("Tất cả");
+                                  fetchDesktops(); // Lấy lại toàn bộ dữ liệu
+                                  setShowDropdown(false); // Đóng dropdown
+                                }}
+                              >
+                                Tất cả trạng thái
+                              </button>
+
+                              {/* Các trạng thái */}
+                              {[
+                                { value: "Active", label: "Đang sử dụng" },
+                                { value: "In Repair", label: "Chờ sửa chữa" },
+                                { value: "Lưu kho", label: "Lưu kho" },
+                              ].map((option) => (
+                                <button
+                                  key={option.value}
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedOption(option.label);
+                                    setData(data.filter((item) => item.status === option.value)); // Lọc theo trạng thái
+                                    setShowDropdown(false); // Đóng dropdown
+                                  }}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          }
+                        />
+                            <Dropdown
+                                button={
+                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
+                                    {selectedManufacturer === "Tất cả"
+                                      ? "Nhà sản xuất: Tất cả nhà sản xuất"
+                                      : `Nhà sản xuất: ${selectedManufacturer}`}
+                                  </button>
+                                }
+                                children={
+                                  <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
+                                    {/* Option "Tất cả nhà sản xuất" */}
+                                    <button
+                                      key="all"
+                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                      onClick={() => {
+                                        setSelectedManufacturer("Tất cả");
+                                        fetchDesktops(); // Lấy lại toàn bộ dữ liệu
+                                        setShowDropdown(false); // Đóng dropdown
+                                      }}
+                                    >
+                                      Tất cả nhà sản xuất
+                                    </button>
+
+                                    {/* Các nhà sản xuất */}
+                                    {Array.from(new Set(data.map((item) => item.manufacturer))).map(
+                                      (manufacturer) => (
+                                        <button
+                                          key={manufacturer}
+                                          className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                          onClick={() => {
+                                            setSelectedManufacturer(manufacturer);
+                                            setData(data.filter((item) => item.manufacturer === manufacturer)); // Lọc theo nhà sản xuất
+                                            setShowDropdown(false); // Đóng dropdown
+                                          }}
+                                        >
+                                          {manufacturer}
+                                        </button>
+                                      )
+                                    )}
+                                  </div>
+                                }
+                              />
+                              <Dropdown
+                                button={
+                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
+                                    {selectedYear === "Tất cả"
+                                      ? "Năm sản xuất: Tất cả năm sản xuất"
+                                      : `Năm sản xuất: ${selectedYear}`}
+                                  </button>
+                                }
+                                children={
+                                  <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
+                                    {/* Option "Tất cả năm sản xuất" */}
+                                    <button
+                                      key="all"
+                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                      onClick={() => {
+                                        setSelectedYear("Tất cả");
+                                        fetchDesktops(); // Lấy lại toàn bộ dữ liệu
+                                        setShowDropdown(false); // Đóng dropdown
+                                      }}
+                                    >
+                                      Tất cả năm sản xuất
+                                    </button>
+
+                                    {/* Các năm sản xuất */}
+                                    {Array.from(new Set(data.map((item) => item.releaseYear)))
+                                      .sort()
+                                      .map((year) => (
+                                        <button
+                                          key={year}
+                                          className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                          onClick={() => {
+                                            setSelectedYear(year);
+                                            setData(data.filter((item) => item.releaseYear === year)); // Lọc theo năm
+                                            setShowDropdown(false); // Đóng dropdown
+                                          }}
+                                        >
+                                          {year}
+                                        </button>
+                                      ))}
+                                  </div>
+                                }
+                              />
+                        </div>
+                             {/* Các nút hành động */}
+                                <div className="flex space-x-2">
+                                        <button
+                                          onClick={() => {
+                                            setNewDesktop({
+                                              name: "",
+                                              manufacturer: "",
+                                              serial: "",
+                                              assigned: [],
+                                              status: "Active",
+                                            });
+                                            setShowAddModal(true);
+                                          }}
+                                          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635]"
+                                        >
+                                          Thêm mới
+                                        </button>
+                                        <button
+                                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]"
+                                          onClick={() => setShowUploadModal(true)}
+                                        >
+                                          Upload
+                                        </button>
+                               
+                                        </div>
+                        </div>
+                    </div>
 
       {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
   <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
     <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
       <table className="w-full">
         <thead>
-          <tr className="!border-px !border-gray-400" >
-            <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-500">TÊN THIẾT BỊ
-                </p>
-            </th>
-            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-500">SERIAL
-                </p>
-            </th>
-            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-500">NGƯỜI SỬ DỤNG
-                </p>
-            </th>
-            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-500">TRẠNG THÁI
-                </p>
-            </th>
-            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-500">HÀNH ĐỘNG
-                </p>
-            </th>
-          </tr>
+                  <tr className="!border-px !border-gray-400" >
+                    <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                        <p className="text-sm font-bold text-gray-500">TÊN THIẾT BỊ
+                        </p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                        <p className="text-sm font-bold text-gray-500">SERIAL
+                        </p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                        <p className="text-sm font-bold text-gray-500">NGƯỜI SỬ DỤNG
+                        </p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                        <p className="text-sm font-bold text-gray-500">TRẠNG THÁI
+                        </p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                        <p className="text-sm font-bold text-gray-500">HÀNH ĐỘNG
+                        </p>
+                    </th>
+                  </tr>
         </thead>
         <tbody>
-  {data.map((item, index) => (
-    <tr key={index} className="border-b border-gray-200">
-      <td
-        onClick={() => handleViewDetails(item)} 
-        className="cursor-pointer text-[#002147] min-w-[150px] border-white/0 py-3 pr-4"
-      >
-        <p className="text-sm font-bold text-navy-700">
-        {item.name}
-        </p>
-        <span className="text-sm italic bold text-gray-500">
-          {item.manufacturer || "Không xác định"} - {item.releaseYear || "N/A"}
-        </span>
-      </td>
-      <td className="min-w-[150px] border-white/0 py-3 pr-4">
-         <p className="text-sm font-bold text-navy-700">{item.serial}
-         </p>
-         </td>
-      <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
-        {Array.isArray(item.assigned) && item.assigned.length > 0
-          ? item.assigned.map((user) => (
-              <span
-                key={user.value || user._id}
-                className="text-sm font-bold text-navy-700"
-              >
-                {user.label || user.name}
-              </span>
-            ))
-          : "Chưa bàn giao"}
-      </td>
-      <td className="min-w-[150px] border-white/0 py-3 pr-4">
-        <div className="flex items-center">
-          {item.status === "Active" ? (
-            <MdCheckCircle className="text-green-500 me-1" />
-          ) : item.status === "Lưu kho" ? (
-            <MdCancel className="text-red-500 me-1" />
-          ) : item.status === "In Repair" ? (
-            <MdOutlineError className="text-amber-500 me-1" />
-          ) : null}
-          <p className="text-sm font-bold text-navy-700">
-            {statusLabels[item.status] || statusLabels.default}
-          </p>
-        </div>
-      </td>
-      <td className="min-w-[150px] border-white/0 py-3 pr-4">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => handleEdit(item)}
-              className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg hover:bg-oxford-blue-dark"
-            >
-              <FiEdit size={14} />
-            </button>
-            <button
-              onClick={() => confirmDelete(item)}
-              className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg hover:bg-orange-red-dark"
-            >
-              <FiTrash2 size={14} />
-            </button>
-          </div>
-        </td>
-    </tr>
-  ))}
+              {data.map((item, index) => (
+                
+                <tr key={index} className="border-b border-gray-200">
+                  <td
+                    onClick={() => handleViewDetails(item)} 
+                    className="cursor-pointer text-[#002147] min-w-[150px] border-white/0 py-3 pr-4"
+                  >
+                    {console.log("Item Object:", item)}
+                    {console.log("Assigned Users:", item.assigned)}
+                    <p className="text-sm font-bold text-navy-700">
+                    {item.name}
+                    </p>
+                    <span className="text-sm italic bold text-gray-500">
+                      {item.manufacturer || "Không xác định"} - {item.releaseYear || "N/A"}
+                    </span>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <p className="text-sm font-bold text-navy-700">{item.serial}
+                    </p>
+                    </td>
+                    <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
+                      {Array.isArray(item.assigned) && item.assigned.length > 0 ? (
+                      item.assigned.map((user) => (
+                        <div key={user.value || user._id}>
+                          <p className="font-bold">{user.label}</p>
+                          <span className="italic text-gray-400">
+                            {user.departmentName ? user.departmentName : "SS"}
+                          </span>
+                          {console.log("User Object:", user)}
+                        {console.log("User Department Name:", user.departmentName)}
+                        </div>
+                      ))
+                    ) : (
+                      "Chưa bàn giao"
+                    )}
+                   </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <div className="flex items-center">
+                      {item.status === "Active" ? (
+                        <MdCheckCircle className="text-green-500 me-1" />
+                      ) : item.status === "Lưu kho" ? (
+                        <MdCancel className="text-red-500 me-1" />
+                      ) : item.status === "In Repair" ? (
+                        <MdOutlineError className="text-amber-500 me-1" />
+                      ) : null}
+                      <p className="text-sm font-bold text-navy-700">
+                        {statusLabels[item.status] || statusLabels.default}
+                      </p>
+                    </div>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg hover:bg-oxford-blue-dark"
+                        >
+                          <FiEdit size={14} />
+                        </button>
+                        <button
+                          onClick={() => confirmDelete(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg hover:bg-orange-red-dark"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                </tr>
+              ))}
      </tbody>
     </table>
   </div>
@@ -726,7 +865,7 @@ const DesktopTable = () => {
                   className="bg-white rounded-lg shadow-lg p-6 w-[50%]"
                   onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
                 >
-                  <h3 className="text-2xl font-bold mb-6 text-[#002147]">Thêm mới desktop</h3>
+                  <h3 className="text-2xl font-bold mb-6 text-[#002147]">Thêm mới Desktop</h3>
                   <form onSubmit={handleAddDesktop}>
                     {/* Thông tin chung */}
                     <div
@@ -1007,7 +1146,7 @@ const DesktopTable = () => {
                         console.log("Payload gửi lên server:", payload);
 
                       await axios.put(
-                        `http://localhost:5001/api/desktops/${editingDesktop._id}`,
+                        `http://localhost:5001/api/Desktops/${editingDesktop._id}`,
                         payload,
                         {
                           headers: {
@@ -1017,15 +1156,15 @@ const DesktopTable = () => {
                       );
                       setShowEditModal(false);
                       fetchDesktops(); // Cập nhật danh sách sau khi sửa
-                      toast.success("Cập nhật desktop thành công!",
+                      toast.success("Cập nhật Desktop thành công!",
                         {
                           className: "toast-succes",
                           progressClassName: "Toastify__progress-bar",
                         }
                       );
                     } catch (error) {
-                      console.error("Error updating desktop:", error);
-                      toast.error("Không thể cập nhật desktop!",
+                      console.error("Error updating Desktop:", error);
+                      toast.error("Không thể cập nhật Desktop!",
                         {
                           className: "toast-error",
                           progressClassName: "Toastify__progress-bar",
@@ -1232,7 +1371,7 @@ const DesktopTable = () => {
                                     setShowSuggestions(false);
                                   }}
                                 >
-                                  {user.label}
+                                  {user.label} <br/> <i>{user.emailAddress}</i>
                                 </li>
                               ))}
                             </ul>
@@ -1269,7 +1408,7 @@ const DesktopTable = () => {
                         style={{ zIndex: 1050 }}>
               <h3 className="text-lg text-center font-semibold mb-4 text-[#002147]">Xác nhận xóa</h3>
               <p className="text-gray-600 mb-4">
-                Bạn có chắc chắn muốn xóa desktop <strong>{desktopToDelete?.name}</strong> không?
+                Bạn có chắc chắn muốn xóa Desktop <strong>{DesktopToDelete?.name}</strong> không?
               </p>
               <div className="flex justify-end space-x-2">
                 <button
@@ -1304,7 +1443,7 @@ const DesktopTable = () => {
             style={{ zIndex: 1050 }}
             onClick={(e) => e.stopPropagation()}>
               <DesktopProductCard
-                desktopData={{
+                DesktopData={{
                   ...selectedDesktop,
                   assigned: selectedDesktop?.assigned.map((user) => ({
                     ...user,
@@ -1315,7 +1454,7 @@ const DesktopTable = () => {
                 onAddRepair={handleAddRepair} // Truyền hàm vào đây
                 onDeleteRepair={handleDeleteRepair}
                 onCloseModal={() => {
-                  setSelectedDesktop(null); // Reset desktop đã chọn
+                  setSelectedDesktop(null); // Reset Desktop đã chọn
                   setShowDetailModal(false); // Đóng modal
                 }} // Truyền hàm đóng modal
               />

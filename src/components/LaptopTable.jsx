@@ -61,30 +61,11 @@ const LaptopTable = () => {
         const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
 
         
-
-        const statusClasses = {
-          Active: "bg-green-100 text-green-800",
-          "In Repair": "bg-yellow-100 text-yellow-800",
-          "Lưu kho": "bg-red-600 text-white",
-          default: "bg-gray-100 text-gray-700",
-        };
-        
         const statusLabels = {
           Active: "Đang sử dụng",
           "In Repair": "Chờ sửa chữa",
           "Lưu kho": "Lưu kho",
           default: "Không xác định",
-        };
-
-        const handleOptionChange = (option) => {
-          setSelectedOption(option);
-          setShowDropdown(false);
-        
-          if (option === "Tất cả") {
-            fetchLaptops();
-          } else {
-            setData(data.filter((item) => item.status === option));
-          }
         };
 
       
@@ -96,7 +77,7 @@ const LaptopTable = () => {
           try {
             const token = localStorage.getItem("authToken");
             const response = await axios.delete(
-              `http://42.96.42.197:5001/api/laptops/${laptopId}/repairs/${repairId}`,
+              `http://localhost:5001/api/laptops/${laptopId}/repairs/${repairId}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
         
@@ -126,20 +107,12 @@ const LaptopTable = () => {
                 const payload = {
                   description: repairData.description || "Không có mô tả",
                   date: repairData.date || new Date().toISOString(),
+                  details: repairData.details,
                   updatedBy: currentUser.fullname,
                 };
-
-                console.log("Payload:", payload);
-                console.log("Gửi yêu cầu tới:", `http://42.96.42.197:5001/api/laptops/${selectedLaptop._id}/repairs`);
-                console.log("Payload:", repairData);
-                console.log("Selected laptop:", selectedLaptop);
-                console.log("Payload:", {
-                  description: repairData.description,
-                  date: repairData.date || new Date().toISOString(),
-                  updatedBy: currentUser.fullname,
-                });
+                console.log(payload);
                 console.log("Token:", localStorage.getItem("authToken"));
-                const response = await fetch(`http://42.96.42.197:5001/api/laptops/${selectedLaptop._id}/repairs`, {
+                const response = await fetch(`http://localhost:5001/api/laptops/${selectedLaptop._id}/repairs`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -178,7 +151,7 @@ const LaptopTable = () => {
             }}
             onAddRepair={(repair) => {
                     // Gọi API thêm nhật ký sửa chữa
-                    fetch(`http://42.96.42.197:5001/api/laptops/${selectedLaptop._id}/repairs`, {
+                    fetch(`http://localhost:5001/api/laptops/${selectedLaptop._id}/repairs`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify(repair),
@@ -206,7 +179,7 @@ const LaptopTable = () => {
           const fetchLaptops = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://42.96.42.197:5001/api/laptops", {
+              const response = await axios.get("http://localhost:5001/api/laptops", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -232,7 +205,7 @@ const LaptopTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://42.96.42.197:5001/api/users", {
+              const response = await axios.get("http://localhost:5001/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               console.log("Dữ liệu từ API users:", response.data);
@@ -261,7 +234,7 @@ const LaptopTable = () => {
             if (!laptopToDelete) return;
 
               try {
-                await axios.delete(`http://42.96.42.197:5001/api/laptops/${laptopToDelete._id}`, {
+                await axios.delete(`http://localhost:5001/api/laptops/${laptopToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -340,7 +313,7 @@ const LaptopTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("http://42.96.42.197:5001/api/laptops", payload, {
+              const response = await axios.post("http://localhost:5001/api/laptops", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -509,7 +482,7 @@ const LaptopTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "http://42.96.42.197:5001/api/laptops/bulk-upload",
+                  "http://localhost:5001/api/laptops/bulk-upload",
                   { laptops: parsedData },
                   {
                       headers: {
@@ -588,12 +561,12 @@ const LaptopTable = () => {
         {/* Header */}
         <div className="flex flex-col justify-between items-start mb-4">
               {/* Search Input */}
-                    <div className="relative w-full mb-4">
+                    <div className="relative w-full mb-4 ">
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                           <input
                           type="text"
                           placeholder="Tìm kiếm laptop..."
-                          className="pl-10 pr-4 py-2 border rounded-md w-100 focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          className="pl-10 pr-4 py-2 border rounded-md w-100 "
                           onChange={(e) => {
                             const query = e.target.value.toLowerCase();
                             if (query === "") {
@@ -615,7 +588,7 @@ const LaptopTable = () => {
                      <div className="flex space-x-4">
                      <Dropdown
                           button={
-                            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
+                            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">
                               {selectedOption === "Tất cả"
                                 ? "Trạng thái: Tất cả trạng thái"
                                 : `Trạng thái: ${selectedOption}`}
@@ -657,9 +630,51 @@ const LaptopTable = () => {
                             </div>
                           }
                         />
+                        <Dropdown
+                              button={
+                                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                                  {selectedDepartment === "Tất cả"
+                                    ? "Phòng ban: Tất cả phòng ban"
+                                    : `Phòng ban: ${selectedDepartment}`}
+                                </button>
+                              }
+                              children={
+                                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                                  {/* Option "Tất cả phòng ban" */}
+                                  <button
+                                    key="all"
+                                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                    onClick={() => {
+                                      setSelectedDepartment("Tất cả");
+                                      fetchLaptops(); // Lấy lại toàn bộ dữ liệu
+                                      setShowDropdown(false); // Đóng dropdown
+                                    }}
+                                  >
+                                    Tất cả phòng ban
+                                  </button>
+
+                                  {/* Các phòng ban */}
+                                  {Array.from(new Set(users.map(user => user.departmentName))).map(department => (
+                                    <button
+                                      key={department}
+                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                      onClick={() => {
+                                        setSelectedDepartment(department);
+                                        setData(data.filter((item) =>
+                                          item.assigned.some((user) => user.departmentName === department)
+                                        )); // Lọc theo phòng ban
+                                        setShowDropdown(false); // Đóng dropdown
+                                      }}
+                                    >
+                                      {department}
+                                    </button>
+                                  ))}
+                                </div>
+                              }
+                            />
                             <Dropdown
                                 button={
-                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
+                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                     {selectedManufacturer === "Tất cả"
                                       ? "Nhà sản xuất: Tất cả nhà sản xuất"
                                       : `Nhà sản xuất: ${selectedManufacturer}`}
@@ -701,7 +716,7 @@ const LaptopTable = () => {
                               />
                               <Dropdown
                                 button={
-                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
+                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                     {selectedYear === "Tất cả"
                                       ? "Năm sản xuất: Tất cả năm sản xuất"
                                       : `Năm sản xuất: ${selectedYear}`}
@@ -712,7 +727,7 @@ const LaptopTable = () => {
                                     {/* Option "Tất cả năm sản xuất" */}
                                     <button
                                       key="all"
-                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                      className="text-left px-4 py-2 hover:bg-[gray-100] rounded-lg"
                                       onClick={() => {
                                         setSelectedYear("Tất cả");
                                         fetchLaptops(); // Lấy lại toàn bộ dữ liệu
@@ -755,12 +770,12 @@ const LaptopTable = () => {
                                             });
                                             setShowAddModal(true);
                                           }}
-                                          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635]"
+                                          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
                                         >
                                           Thêm mới
                                         </button>
                                         <button
-                                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]"
+                                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
                                           onClick={() => setShowUploadModal(true)}
                                         >
                                           Upload
@@ -773,7 +788,7 @@ const LaptopTable = () => {
       {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
   <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
     <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
-      <table className="w-full">
+      <table className="w-full ">
         <thead>
                   <tr className="!border-px !border-gray-400" >
                     <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
@@ -804,10 +819,8 @@ const LaptopTable = () => {
                 <tr key={index} className="border-b border-gray-200">
                   <td
                     onClick={() => handleViewDetails(item)} 
-                    className="cursor-pointer text-[#002147] min-w-[150px] border-white/0 py-3 pr-4"
+                    className="cursor-pointer text-[#002147] min-w-[150px] border-white/0 py-3 pr-4 "
                   >
-                    {console.log("Item Object:", item)}
-                    {console.log("Assigned Users:", item.assigned)}
                     <p className="text-sm font-bold text-navy-700">
                     {item.name}
                     </p>
@@ -853,13 +866,13 @@ const LaptopTable = () => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleEdit(item)}
-                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg hover:bg-oxford-blue-dark"
+                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg hover:bg-oxford-blue-dark transform transition-transform duration-300 hover:scale-105"
                         >
                           <FiEdit size={14} />
                         </button>
                         <button
                           onClick={() => confirmDelete(item)}
-                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg hover:bg-orange-red-dark"
+                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg hover:bg-orange-red-dark transform transition-transform duration-300 hover:scale-105"
                         >
                           <FiTrash2 size={14} />
                         </button>
@@ -1166,7 +1179,7 @@ const LaptopTable = () => {
                         console.log("Payload gửi lên server:", payload);
 
                       await axios.put(
-                        `http://42.96.42.197:5001/api/laptops/${editingLaptop._id}`,
+                        `http://localhost:5001/api/laptops/${editingLaptop._id}`,
                         payload,
                         {
                           headers: {
@@ -1366,7 +1379,8 @@ const LaptopTable = () => {
 
                                   // Lọc danh sách người dùng phù hợp
                                   const filtered = users.filter((user) =>
-                                    user.label.toLowerCase().includes(query)
+                                    user.label.toLowerCase().includes(query) ||
+                                    user.emailAddress.toLowerCase().includes(query)
                                   );
 
                                   setFilteredUsers(filtered);
@@ -1391,9 +1405,14 @@ const LaptopTable = () => {
                                     setShowSuggestions(false);
                                   }}
                                 >
-                                  {user.label} <br/> <i>{user.emailAddress}</i>
+                                 <span className="font-bold">{user.label}</span>
+                                  <br />
+                                  <span className="italic text-gray-500">{user.emailAddress}</span>
                                 </li>
                               ))}
+                              {filteredUsers.length === 0 && (
+                                <li className="px-4 py-2 text-gray-500 italic">Không tìm thấy kết quả</li>
+                              )}
                             </ul>
                           )}
                         </div>

@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const repairSchema = new mongoose.Schema({
   description: { type: String, required: true },
   date: { type: Date, default: Date.now }, // Gán mặc định
+  details: { type: String }, // Thêm trường nội dung chi tiết
   updatedBy: {
     type: mongoose.Schema.Types.String, // Hoặc ObjectId nếu liên kết với User
     required: true,

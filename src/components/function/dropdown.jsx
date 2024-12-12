@@ -27,14 +27,14 @@ const Dropdown = (props) => {
 
   return (
     <div ref={wrapperRef} className="relative flex">
-      <div className="flex" onMouseDown={() => setOpenWrapper(!openWrapper)}>
+      <div onMouseDown={() => setOpenWrapper(!openWrapper)}>
         {button}
       </div>
       <div
         className={`${classNames} absolute z-10 ${
           animation
             ? animation
-            : "origin-top-right transition-all duration-300 ease-in-out"
+            : "origin-top transition-all duration-300 ease-in-out mt-2"
         } ${openWrapper ? "scale-100" : "scale-0"}`}
       >
         {children}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FiEdit, FiCpu, FiHardDrive, FiMonitor, FiTrash2 } from "react-icons/fi";
-import { FaTools, FaMemory, FaUserCog } from "react-icons/fa";
+import { FaTools, FaMemory, FaUserCog, FaUser } from "react-icons/fa";
 import { MdSystemUpdate } from "react-icons/md";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
@@ -17,9 +17,11 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
   const [activeTab, setActiveTab] = useState("repairs");
   const [showRepairModal, setShowRepairModal] = useState(false); // Control Repair Modal
   const [repairs, setRepairs] = useState([]); // Quản lý danh sách sửa chữa cục bộ
+  const [showRepairDetails, setShowRepairDetails] = useState(null);
   const [repairData, setRepairData] = useState({
     description: "",
     date: "",
+    details: "",
   });
   useEffect(() => {
     if (laptopData.repairs) {
@@ -30,7 +32,6 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
   if (!laptopData) {
     return <p>Loading laptop details...</p>;
   }
-
       // const assignedUsers = Array.isArray(laptopData.assigned) ? laptopData.assigned : [];
       const repairHistory = Array.isArray(laptopData.repairs) ? laptopData.repairs : [];
       const updateHistory = Array.isArray(laptopData.updates) ? laptopData.updates : [];
@@ -48,12 +49,18 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
         if (onAddRepair) {
           onAddRepair({
             description: repairData.description,
+            details: repairData.details,
             date: repairData.date || new Date().toISOString(),
             updatedBy: currentUser.fullname || "Không xác định", // Lấy fullname từ currentUser
           });
+          console.error(onAddRepair);
           toast.success("Thêm lịch sử sửa chữa thành công!", );
           setShowRepairModal(false);
-          setRepairData({ description: "", date: "", updatedBy: "" });
+          setRepairData({ 
+            description: "", 
+            date: "", 
+            details: "", 
+            updatedBy: "" });
         } else {
           console.error("onAddRepair không được truyền vào ITProductCard.");
           toast.error("Không thể thêm lịch sử!",);
@@ -143,7 +150,7 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
                 onClick={onCloseModal}
                  // Hàm đóng modal
                 
-                className="ml-2 px-2 py-1 bg-[#FF5733] text-white text-sm rounded-lg shadow-md hover:bg-[#cc4529] transition"
+                className="ml-2 px-2 py-1 bg-[#FF5733] text-white text-sm rounded-lg shadow-md hover:bg-[#cc4529] transform transition-transform duration-300 hover:scale-105"
               >
                 Đóng
               </button>
@@ -211,7 +218,7 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
               <div className="flex justify-between">
                 <div className="flex space-x-4">
                   <button
-                    className={`flex items-center space-x-2 pb-2 ${
+                    className={`flex items-center space-x-2 pb-2 transform transition-transform duration-300 hover:scale-105 ${
                       activeTab === "repairs"
                         ? "border-b-2 border-theme-color-base text-[#FF5733]"
                         : "text-theme-color-neutral"
@@ -222,7 +229,7 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
                     <span>Sửa chữa</span>
                   </button>
                   <button
-                    className={`flex items-center space-x-2 pb-2 ${
+                    className={`flex items-center space-x-2 pb-2 transform transition-transform duration-300 hover:scale-105 ${
                       activeTab === "updates"
                         ? "border-b-2 border-theme-color-base text-[#FF5733]"
                         : "text-theme-color-neutral"
@@ -243,7 +250,7 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
             </div>
 
           {/* Repair or Update History */}
-          <div className="space-y-4 space-y-4 max-h-40 overflow-y-auto">
+          <div className="space-y-4 space-y-4 max-h-40 overflow-y-auto ">
                     {activeTab === "repairs" && (
                     <>
                       {Array.isArray(repairHistory) &&
@@ -251,9 +258,12 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
                           .slice() // Tạo một bản sao để không thay đổi thứ tự gốc của mảng
                           .reverse() // Đảo ngược thứ tự
                           .map((repair, index) => (
-                            <div key={repair._id} className="bg-gray-200 p-4 rounded-md">
-                              <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-bold">{repair?.description || "Không có mô tả"}</h4>
+                            <div key={repair._id} className="bg-gray-200 p-4 rounded-md ">
+                              <div className="flex justify-between items-start mb-2 ">
+                                <button className="text-[#002417] font-bold text-lg hover:underline"
+                                    onClick={() => setShowRepairDetails(repair)}>
+                                  {repair?.description || "Không có mô tả"}
+                                </button>
                               <div>
                                 <span className="text-sm text-theme-color-neutral-content">
                                  {dayjs(repair.date).format("HH:mm:ss | DD-MM-YYYY")}
@@ -292,8 +302,8 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
       {showRepairModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h3 className="text-lg font-semibold mb-4">Thêm nhật ký</h3>
-            <span>Mô tả</span>
+            <h3 className="text-lg font-bold mb-4">Thêm nhật ký sửa chữa</h3>
+            <span classname="font-bold">Mô tả</span>
             <input
               type="text"
               placeholder="Mô tả sửa chữa"
@@ -301,6 +311,15 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
               onChange={(e) => setRepairData({ ...repairData, description: e.target.value })}
               className="w-full mb-4 p-2 border rounded"
             />
+            <div>
+            <span classname="font-semibold">Nội dung chi tiết</span>
+            <textarea
+              placeholder="Nhập nội dung chi tiết"
+              value={repairData.details} // Thêm giá trị mới cho trường 'details'
+              onChange={(e) => setRepairData({ ...repairData, details: e.target.value })} // Cập nhật giá trị vào state
+              className="w-full mb-4 p-2 border rounded h-24" // Hộp textarea lớn hơn
+            ></textarea>
+          </div>
             <div className="flex justify-end space-x-4">
               <button
                 onClick={() => setShowRepairModal(false)}
@@ -319,6 +338,44 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
           </div>
         </div>
       )}
+
+        {showRepairDetails && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+                  onClick={() => setShowRepairDetails(null)}>
+             <div className="flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full transform transition-transform duration-300 hover:scale-105"
+                  onClick={(e) => e.stopPropagation()}>
+                  <h2 className="text-[#002147] text-2xl md:text-3xl font-bold mb-4 font-sans">
+                    {showRepairDetails.description}
+                  </h2>
+                  <p className="text-[#002147] text-base md:text-lg mb-6 font-sans leading-relaxed">
+                     {showRepairDetails.details || "Không có chi tiết nào được cung cấp."}
+                  </p>
+          
+                  <div className="border-t border-gray-600 pt-4">
+                    <div className="flex items-center mb-3">
+                      <FaUser className="text-[#002147] mr-2" />
+                      <p className="text-[#002147] italic font-sans text-xs">
+                        Cập nhật bởi: <span className="font-medium">{showRepairDetails.updatedBy}</span>
+                      </p>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <p className="text-#002147 text-xs italic font-sans">
+                        Cập nhật lúc: {new Date(showRepairDetails.date).toLocaleDateString("vi", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "numeric",
+                            second: "numeric",
+                          })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          </div>
+        )}
     </div>
   );
 };

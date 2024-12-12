@@ -209,9 +209,9 @@ exports.bulkUploadLaptops = async (req, res) => {
 exports.addRepairLog = async (req, res) => {
   try {
     const { id } = req.params;
-    const { description, date, updatedBy } = req.body; // Lấy thông tin từ request
+    const { description, date, updatedBy, details } = req.body; // Lấy thông tin từ request
 
-    const repairLog = { description, date, updatedBy };
+    const repairLog = { description, date, details, updatedBy };
 
     const laptop = await Laptop.findById(id);
     if (!laptop) {
