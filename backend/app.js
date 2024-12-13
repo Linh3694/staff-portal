@@ -31,13 +31,17 @@ connectDB();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = 'uploads/';
+    const uploadDir = '/var/www/uploads/';
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
+// Loại bỏ ký tự đặc biệt và thay thế khoảng trắng bằng dấu gạch dưới
+    const sanitizedFilename = file.originalname
+      .replace(/[^a-zA-Z0-9.]/g, '_')  // Chỉ giữ lại ký tự chữ, số và dấu chấm
+      .replace(/\s+/g, '_');           // Thay thế khoảng trắng bằng gạch dưới
     cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
@@ -160,7 +164,7 @@ app.post('/upload-avatar', upload.single('avatar'), async (req, res) => {
     return res.status(400).send('No file uploaded.');
   }
 
-  const avatarUrl = `${req.protocol}://${req.get('host')}/${req.file.path}`; // Đường dẫn avatar
+  const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`; // Đường dẫn avatar
   const userId = req.body.userId; // Lấy userId từ request body
 
   try {

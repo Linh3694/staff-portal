@@ -8,6 +8,7 @@ const ClientTable = ({ handleSyncClients }) => {
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,7 +19,7 @@ const ClientTable = ({ handleSyncClients }) => {
   // Lấy dữ liệu từ /api/users
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://localhost:5001/api/users", {
+      const response = await fetch("/api/users", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`, // Đảm bảo token đúng
@@ -139,7 +140,7 @@ const ClientTable = ({ handleSyncClients }) => {
           formData.append("avatar", avatarFile); // Thêm file avatar nếu có
         }
   
-      const response = await fetch(`http://localhost:5001/api/users/${updatedUser._id}`, {
+      const response = await fetch(`/api/users/${updatedUser._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -187,7 +188,7 @@ const ClientTable = ({ handleSyncClients }) => {
     formData.append('avatar', avatar);
     formData.append('userId', selectedUser._id); // Include the user ID
     try {
-      const response = await fetch('http://localhost:5001/upload-avatar', {
+      const response = await fetch('https://staff-portal.wellspring.edu.vn/upload-avatar', {
         method: 'POST',
         body: formData,
       });
@@ -197,6 +198,8 @@ const ClientTable = ({ handleSyncClients }) => {
         setAvatarUrl(data.avatarUrl); // Assuming the server returns the URL of the uploaded avatar
         alert('Avatar uploaded successfully!');
       } else {
+	const errorText = await response.text();
+	console.error('Failed:', errorText);
         alert('Failed to upload avatar.');
       }
     } catch (error) {

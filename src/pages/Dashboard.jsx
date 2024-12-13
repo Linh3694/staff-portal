@@ -85,7 +85,7 @@ const Dashboard = () => {
         navigate("/login");
         return;
       }
-      await axios.post("http://localhost:5001/api/sync-clients",{},
+      await axios.post("/api/sync-clients",{},
         {
           method: "POST",
           headers: {
@@ -110,7 +110,7 @@ const Dashboard = () => {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch('http://localhost:5001/api/users', {
+      const response = await fetch('/api/users', {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -160,7 +160,7 @@ const Dashboard = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("http://localhost:5001/api/users/me", {
+      const response = await fetch("/api/users/me", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,

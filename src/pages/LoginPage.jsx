@@ -73,7 +73,7 @@ import "./login.css";
     try {
       setIsLoading(true);
     
-      const response = await axios.post(`http://42.96.42.197:5001/api/auth/login`, {
+      const response = await axios.post(`/api/auth/login`, {
         email: formData.email,
         password: formData.password,
       });
