@@ -15,10 +15,10 @@ const RoomTable = ({ handleSyncClients }) => {
   const [avatarUrl, setAvatarUrl] = useState('');
 
 
-  // Lấy dữ liệu từ http://localhost:5001/api/users
+  // Lấy dữ liệu từ /api/users
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://localhost:5001/api/users", {
+      const response = await fetch("/api/users", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`, // Đảm bảo token đúng
@@ -139,7 +139,7 @@ const RoomTable = ({ handleSyncClients }) => {
           formData.append("avatar", avatarFile); // Thêm file avatar nếu có
         }
   
-      const response = await fetch(`http://localhost:5001/api/users/${updatedUser._id}`, {
+      const response = await fetch(`/api/users/${updatedUser._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

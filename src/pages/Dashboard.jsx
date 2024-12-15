@@ -88,7 +88,7 @@ const Dashboard = () => {
   const fetchLatestNotifications = async () => {
     setLoadingNotifications(true);
     try {
-      const response = await axios.get('http://localhost:5001/api/notifications/latest', {
+      const response = await axios.get('/api/notifications/latest', {
         headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
       });
       setNotifications(response.data.notifications); // Update notifications
@@ -101,7 +101,7 @@ const Dashboard = () => {
 
   const markAllAsRead = async () => {
     try {
-      await axios.post('http://localhost:5001/api/notifications/mark-all-as-read', {}, {
+      await axios.post('/api/notifications/mark-all-as-read', {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
       });
       setNotifications(notifications.map(notification => ({ ...notification, isRead: true }))); // Mark all as read
@@ -112,7 +112,7 @@ const Dashboard = () => {
 
  const markNotificationAsRead = async (notificationId) => {
     try {
-      await axios.post(`http://localhost:5001/api/notifications/${notificationId}/mark-as-read`, {}, {
+      await axios.post(`/api/notifications/${notificationId}/mark-as-read`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
       });
       setNotifications(notifications.map(notification =>
@@ -141,7 +141,7 @@ const Dashboard = () => {
         navigate("/login");
         return;
       }
-      await axios.post("http://localhost:5001/api/sync-clients",{},
+      await axios.post("/api/sync-clients",{},
         {
           method: "POST",
           headers: {
@@ -165,7 +165,7 @@ const Dashboard = () => {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch('http://localhost:5001/api/users', {
+      const response = await fetch('/api/users', {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -215,7 +215,7 @@ const Dashboard = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("http://localhost:5001/api/users/me", {
+      const response = await fetch("/api/users/me", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,

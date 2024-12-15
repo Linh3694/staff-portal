@@ -39,7 +39,7 @@ const Attendance = ({ currentUser, view }) => {
     setMessage('');
 
     try {
-      const response = await axios.post('http://localhost:5001/api/sync-attendance');
+      const response = await axios.post('/api/sync-attendance');
       if (response.status === 200) {
         setMessage('Đồng bộ thành công.');
       } else {
