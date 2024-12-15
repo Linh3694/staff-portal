@@ -121,7 +121,7 @@ const LaptopProductCard = ({ laptopData, onAddRepair, onDeleteRepair, onCloseMod
           {/* --------------- Info--------------- */}
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-[#002147]">{laptopData.name}</h2>
+              <h2 className="text-2xl font-bold text-[#002147]">{laptopData.name} - {laptopData.type}</h2>
               <p className="text-theme-color-neutral-content">
                 Năm sản xuất: {laptopData.releaseYear || "N/A"}
               </p>

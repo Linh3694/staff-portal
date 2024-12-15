@@ -7,14 +7,18 @@ const cors = require("cors");
 const User = require("./models/Users");
 const authRoutes = require("./routes/auth");
 const laptopRoutes = require("./routes/laptops");
-const desktopRoutes = require("./routes/desktops"); // Import route desktops
 const userRoutes = require("./routes/users");
+const notificationRoutes = require('./routes/notifications');
+const Notification = require('./models/notification'); // Adjust the path as necessary
 const validateToken = require("./middleware/validateToken");
 const clientsSync = require('./routes/clientsSync'); // Import the clientsSync router
 const app = express();
 const Laptop = require("./models/Laptop");
-const Desktop = require("./models/Desktop"); // Import model Desktop
+const { exec } = require('child_process');
+const AcsEvent = require('./models/AcsEvent');
+
 require("dotenv").config();
+
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
@@ -54,15 +58,12 @@ app.use(express.json());
 app.use(cors());
 
 app.use("/api/laptops", laptopRoutes);
-app.use("/api/desktops", desktopRoutes); // Sử dụng route desktops
 app.use("/uploads", express.static("uploads"));
-
-// Routes
 app.use("/api/auth", authRoutes); // Route xác thực
 app.use("/api/laptops", laptopRoutes); // Route laptops
-app.use("/api/desktops", desktopRoutes); // Route desktops
 app.use("/api/users", userRoutes); // Route users
-app.use("/api", clientsSync.router); // Use the clientsSync router
+app.use("/api/clients-sync", clientsSync.router); // Use the clientsSync router
+app.use("/api/notifications", notificationRoutes); // Route notifications
 
 const syncClientsFromAzure = require("./routes/clientsSync").syncClientsFromAzure;
 app.get("/api/sync-clients", async (req, res) => {
@@ -84,14 +85,6 @@ app.post("/api/sync-clients", validateToken, async (req, res) => {
   }
 });
 
-// const cron = require("node-cron");
-
-// cron.schedule("0 * * * *", async () => {
-//   console.log("Running scheduled client sync...");
-//   await syncClientsFromAzure();
-// });
-
-// Bulk upload Laptops
 app.post("/api/laptops/bulk-upload", async (req, res) => {
   try {
     const laptops = req.body.laptops;
@@ -120,42 +113,42 @@ app.post("/api/laptops/bulk-upload", async (req, res) => {
   }
 });
 
-// Bulk upload Desktops
-app.post("/api/desktops/bulk-upload", async (req, res) => {
+app.post('/api/attendances/save', async (req, res) => {
   try {
-    const desktops = req.body.desktops;
+    const attendanceData = req.body;
 
-    if (!desktops || !Array.isArray(desktops)) {
-      return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
+    // Kiểm tra nếu không có dữ liệu
+    if (!attendanceData || !attendanceData.name || !attendanceData.time) {
+      return res.status(400).json({ message: 'Missing required fields: name or time.' });
     }
 
-    const invalidDesktops = desktops.filter(
-      (desktop) =>
-        !desktop.name || !desktop.manufacturer || !desktop.serial || !desktop.status
-    );
+    // Tạo một sự kiện mới và lưu vào MongoDB
+    const acsEvent = new AcsEvent(attendanceData);
+    await acsEvent.save();
 
-    if (invalidDesktops.length > 0) {
-      return res.status(400).json({
-        message: "Có desktop không hợp lệ, kiểm tra lại dữ liệu!",
-        invalidDesktops,
-      });
-    }
-
-    await Desktop.insertMany(desktops);
-    res.status(201).json({ message: "Tải dữ liệu lên thành công!" });
+    res.status(200).json({ message: 'Attendance data saved successfully.' });
   } catch (error) {
-    console.error("Lỗi khi tải dữ liệu lên:", error);
-    res.status(500).json({ message: "Lỗi máy chủ", error });
+    console.error('Error saving attendance data:', error);
+    res.status(500).json({ message: 'Failed to save attendance data.', error });
   }
 });
 
-app.use(express.static('build', {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js') || path.endsWith('.css')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+app.post('/api/sync-attendance', (req, res) => {
+  const scriptPath = path.join(__dirname, 'scripts', 'hikcon.py');
+  const venvPath = path.join(__dirname, 'venv', 'bin', 'python3'); // Adjust the path if necessary
+  exec(`${venvPath} ${scriptPath}`, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error executing script: ${error.message}`);
+      return res.status(500).json({ message: 'Đồng bộ thất bại.' });
     }
-  }
-}));
+    if (stderr) {
+      console.error(`Script stderr: ${stderr}`);
+      return res.status(500).json({ message: 'Đồng bộ thất bại.' });
+    }
+    console.log(`Script stdout: ${stdout}`);
+    res.status(200).json({ message: 'Đồng bộ thành công.' });
+  });
+});
 
 app.post('/upload-avatar', upload.single('avatar'), async (req, res) => {
   console.log('File:', req.file);
@@ -184,6 +177,50 @@ app.post('/upload-avatar', upload.single('avatar'), async (req, res) => {
     res.json({ avatarUrl });
   } catch (error) {
     console.error('Error updating user avatar:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+});
+
+// Endpoint to fetch unread notifications
+app.get('/api/notifications/unread', async (req, res) => {
+  try {
+    const notifications = await Notification.find({ isRead: false });
+    res.json({ notifications, count: notifications.length });
+  } catch (error) {
+    console.error('Error fetching unread notifications:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+});
+
+// Endpoint to mark all notifications as read
+app.post('/api/notifications/mark-all-as-read', async (req, res) => {
+  try {
+    await Notification.updateMany({ isRead: false }, { isRead: true });
+    res.json({ message: 'All notifications marked as read' });
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+});
+
+// Endpoint to mark a single notification as read
+app.post('/api/notifications/:id/mark-as-read', async (req, res) => {
+  try {
+    await Notification.findByIdAndUpdate(req.params.id, { isRead: true });
+    res.json({ message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+});
+
+// Endpoint to fetch the latest 5 notifications
+app.get('/api/notifications/latest', async (req, res) => {
+  try {
+    const notifications = await Notification.find().sort({ timestamp: -1 }).limit(5);
+    res.json({ notifications });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
     res.status(500).json({ message: 'Server error', error });
   }
 });

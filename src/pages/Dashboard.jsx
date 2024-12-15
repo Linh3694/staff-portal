@@ -1,37 +1,50 @@
 import React, { useState, useEffect, useRef } from "react";
 import LaptopTable from "../components/LaptopTable";
-import DesktopTable from "../components/DesktopTable";
 import AccessoriesTable from "../components/AccessoriesTable";
 import PrinterTable from "../components/PrinterTable";
 import ProjectorTable from "../components/ProjectorTable";
-import ClientTable from "../components/ClientTable";
+import MonitorTable from "../components/MonitorTable";
+import UserTable from "../components/UserTable";
+import DepartmentTable from '../components/DepartmentTable'; 
+import RoomTable from '../components/RoomTable'; 
+import Attendance from '../components/Attendance'; // Adjust the path as necessary
 import { useNavigate } from "react-router-dom";
-import { FiHome, FiPackage, FiUser, FiBook, FiClock, FiFileText } from "react-icons/fi";
+import { FiHome, FiPackage, FiUser, FiBook, FiClock, FiFileText, FiBriefcase } from "react-icons/fi";
+import {IoMdNotificationsOutline} from "react-icons/io";
 import axios from "axios";
 import Profile from "../components/Profile";
-import { FiLogOut } from 'react-icons/fi';
 import Dropdown from "../components/function/dropdown";
 
 
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("Laptop");
+  const tabMapping = {
+    "Quản lý thiết bị": ["Laptop || Desktop", "Màn hình", "Máy in", "Máy chiếu/ Tivi tương tác", "Khác"],
+    "Quản lý chấm công": ["Chấm công theo ngày", "Báo cáo tuần", "Lịch sử chấm công"],
+    "Quản lý người dùng": ["Tài khoản", "Quyền hạn", "Hoạt động gần đây"],
+  };
+
+  const [activeTab, setActiveTab] = useState("Laptop || Desktop");
+  const [tabs, setTabs] = useState(tabMapping["Quản lý thiết bị"]); // Mặc định là tabs của "Quản lý kho"
   const [selectedCategory, setSelectedCategory] = useState("Dashboard");
-  const [selectedSubCategory] = useState("Laptop");
   const [clients, setClients] = useState([]);
   const navigate = useNavigate();
-  const role = localStorage.getItem("role");
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode] = useState(false);
   const [currentUser, setCurrentUser] = useState({
     fullname: "",
     role: "",
     avatarUrl: "",
     email: "",
     title: "",
+    department: "",
   });
   const profileMenuRef = useRef(null);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  
+  // Chỉ thông báo chưa đọc
   const darkModeColors = {
     background: "#FFFFFF", // Nền tối hơn hiện tại
     text: "#F1F5F9", // Text trắng xám để dịu mắt
@@ -50,16 +63,67 @@ const Dashboard = () => {
     tableHeader: "#E2E8F0", // Header table
     tableRow: "#F1F5F9", // Row màu nhạt hơn
   };
-
-  const tabs = [
-    { name: "Laptop", disabled: false },
-    { name: "Desktop", disabled: false },
-    { name: "Accessories", disabled: false }, 
-    { name: "Printer", disabled: true },
-    { name: "Projector", disabled: true }
-  ];
+  
+  useEffect(() => {
+    if (tabMapping[selectedCategory]) {
+      const newTabs = tabMapping[selectedCategory];
+      setTabs(newTabs);
+      setActiveTab(newTabs[0]); // Tab đầu tiên là mặc định
+    } else {
+      setTabs([]); // Nếu không tìm thấy, đặt tabs là mảng rỗng
+      setActiveTab(""); // Xóa giá trị tab đang hoạt động
+    }
+  }, [selectedCategory]);
 
   const colors = darkMode ? darkModeColors : lightModeColors;
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  useEffect(() => {
+    // Fetch unread notifications when the component mounts
+    fetchLatestNotifications();
+  }, []);
+
+  // Hàm fetch notifications
+  const fetchLatestNotifications = async () => {
+    setLoadingNotifications(true);
+    try {
+      const response = await axios.get('http://localhost:5001/api/notifications/latest', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+      });
+      setNotifications(response.data.notifications); // Update notifications
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await axios.post('http://localhost:5001/api/notifications/mark-all-as-read', {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+      });
+      setNotifications(notifications.map(notification => ({ ...notification, isRead: true }))); // Mark all as read
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+ const markNotificationAsRead = async (notificationId) => {
+    try {
+      await axios.post(`http://localhost:5001/api/notifications/${notificationId}/mark-as-read`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+      });
+      setNotifications(notifications.map(notification =>
+        notification._id === notificationId ? { ...notification, isRead: true } : notification
+      ));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+  
+  const unreadCount = notifications.filter(notification => !notification.isRead).length;
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -68,15 +132,7 @@ const Dashboard = () => {
     navigate("/login");
   };
 
-  const toggleProfileMenu = () => {
-    setIsProfileMenuOpen(!isProfileMenuOpen);
-  };
-
-  const toggleTheme = () => {
-    setDarkMode(!darkMode);
-  };
-
-  // Hàm đồng bộ client
+// Hàm đồng bộ client
   const handleSyncClients = async () => {
     try {
       const token = localStorage.getItem("authToken");
@@ -85,7 +141,7 @@ const Dashboard = () => {
         navigate("/login");
         return;
       }
-      await axios.post("/api/sync-clients",{},
+      await axios.post("http://localhost:5001/api/sync-clients",{},
         {
           method: "POST",
           headers: {
@@ -106,11 +162,10 @@ const Dashboard = () => {
     fetchClients();
   }, []);
 
-
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch('/api/users', {
+      const response = await fetch('http://localhost:5001/api/users', {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -160,7 +215,7 @@ const Dashboard = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("/api/users/me", {
+      const response = await fetch("http://localhost:5001/api/users/me", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -177,6 +232,7 @@ const Dashboard = () => {
         title: data.jobTitle || "Không xác định",
         avatarUrl: data.avatarUrl || "http://via.placeholder.com/150",
         email: data.email || "",
+        department: data.department || "Không xác định",
       });
 
       // Cập nhật localStorage
@@ -189,127 +245,197 @@ const Dashboard = () => {
   fetchCurrentUser();
 }, []);
 
-  const renderContent = () => {
-    switch (selectedCategory) {
-      case "Dashboard":
-        return (
-          <div>
-            <h2 className="text-2xl font-semibold mb-4 text-[#002147]">
-              Welcome to the Dashboard
-            </h2>
-            <p>Choose a category from the sidebar to view details.</p>
-          </div>
-        );
-      case "Inventory":
-        return (
-          <div>
-              {/* <h2 className="text-2xl font-semibold mb-6 text-[#002147]">
-                Danh sách {selectedSubCategory}
-              </h2>  */}
-          <div className=" grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6 px-6 ">
-            {tabs.map((tab, index) => (
-              <button
-                key={tab.name}
-                disabled={tab.disabled}
-                className={`${
-                  activeTab === tab.name
-                    ? "text-xl text-semibold border-b-2 border-[#002147] text-[#002147] "
-                    : "text-gray"
-                } ${
-                  tab.disabled 
-                    ? "opacity-50 cursor-not-allowed" 
-                    : "hover:text-[#002147] cursor-pointer"
-                } py-4 px-4 text-sm font-medium`}
-                onClick={() => !tab.disabled && setActiveTab(tab.name)}
-              >
-                {tab.name}
-              </button>
-            ))}
-          </div>
-          {/* Table Content */}
-          {activeTab === "Laptop" && <LaptopTable />}
-          {activeTab === "Desktop" && <DesktopTable />}
-          {activeTab === "Accessories" && <AccessoriesTable />}
-          {activeTab === "Printer" && <PrinterTable />}
-          {activeTab === "Projector" && <ProjectorTable />}
-        </div>
-        );
-      case "Attendance":
-        return (
-          <div>
-            <h2 className="text-2xl font-semibold mb-4 text-[#002147]">
-              Attendance Management
-            </h2>
-            <p>Chức năng quản lý điểm danh hiện tại chưa được triển khai.</p>
-          </div>
-        );
-      case "User":
-        return (
-          <div>
-            <ClientTable clients={clients} setClients={setClients} handleSyncClients={handleSyncClients} />
-          </div>
-        );
-      case "Logs":
-        return (
-          <div>
-            <h2 className="text-2xl font-semibold mb-4 text-[#002147]">Logs</h2>
-            <p>Chức năng quản lý logs hiện tại chưa được triển khai.</p>
-          </div>
-        );
-      case "Documentation":
-        return (
-          <div>
-            <h2 className="text-2xl font-semibold mb-4 text-[#002147]">
-              Documentation
-            </h2>
-            <p>Chức năng quản lý tài liệu hiện tại chưa được triển khai.</p>
-          </div>
-        );
-      default:
-        return (
-          <div>
-            <h2 className="text-2xl font-semibold mb-4 text-[#002147]">
-              Page Not Found
-            </h2>
-            <p>Danh mục bạn chọn không tồn tại.</p>
-          </div>
-        );
-    }
-  };
+const renderContent = () => {
+            switch (selectedCategory) {
+              case "Dashboard":
+                return (
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-4 text-[#002147]">
+                      Welcome to the Dashboard
+                    </h2>
+                    <p>Choose a category from the sidebar to view details.</p>
+                  </div>
+                );
+
+              case "Quản lý thiết bị":
+                return (
+                  <div>
+                    {activeTab === "Laptop || Desktop" && <LaptopTable />}
+                    {activeTab === "Màn hình" && <MonitorTable />}
+                    {activeTab === "Máy in" && <PrinterTable />}
+                    {activeTab === "Máy chiếu/ Tivi tương tác" && <ProjectorTable />}
+                    {activeTab === "Khác" && <AccessoriesTable />}
+                  </div>
+                );
+
+              case "Quản lý chấm công":
+                return (
+                  <div>
+                    {activeTab === "Chấm công theo ngày" && <Attendance currentUser={currentUser} view="daily"/>}
+                    {activeTab === "Báo cáo tuần" && <Attendance view="weekly" />}
+                    {activeTab === "Lịch sử chấm công" && <Attendance view="history" />}
+                  </div>
+                );
+
+              case "Quản lý người dùng":
+                return (
+                  <div>
+                    {activeTab === "Tài khoản" && (
+                      <UserTable clients={clients} setClients={setClients} handleSyncClients={handleSyncClients} />
+                    )}
+                    {activeTab === "Quyền hạn" && <p>Hiển thị quản lý quyền hạn</p>}
+                    {activeTab === "Hoạt động gần đây" && <p>Hiển thị hoạt động gần đây</p>}
+                  </div>
+                );
+
+              case "Nhật ký hệ thống":
+                return (
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-4 text-[#002147]">Logs</h2>
+                    <p>Chức năng quản lý logs hiện tại chưa được triển khai.</p>
+                  </div>
+                );
+
+              case "Tài liệu":
+                return (
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-4 text-[#002147]">
+                      Documentation
+                    </h2>
+                    <p>Chức năng quản lý tài liệu hiện tại chưa được triển khai.</p>
+                  </div>
+                );
+
+              case "User":
+                return (
+                  <div>
+                    <UserTable clients={clients} setClients={setClients} handleSyncClients={handleSyncClients} />
+                  </div>
+                );
+
+              case "Department":
+                return (
+                  <div>
+                    <DepartmentTable clients={clients} setClients={setClients} handleSyncClients={handleSyncClients} />
+                  </div>
+                );
+
+              case "Room":
+                return (
+                  <div>
+                    <RoomTable clients={clients} setClients={setClients} handleSyncClients={handleSyncClients} />
+                  </div>
+                );
+
+              default:
+                return (
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-4 text-[#002147]">
+                      Page Not Found
+                    </h2>
+                    <p>Danh mục bạn chọn không tồn tại.</p>
+                  </div>
+                );
+            }
+          };
 
   const menuItems = [
-    { label: "Dashboard", icon: <FiHome /> },
-    { label: "Inventory", icon: <FiPackage /> },
-    { label: "Attendance", icon: <FiClock />},
-    // { label: "User", icon: <FiUser /> },
-    { label: "Logs", icon: <FiFileText /> },
-    { label: "Documentation", icon: <FiBook /> },
-
+    // { label: "Bảng tin", icon: <FiHome /> },
+    { label: "Quản lý thiết bị", icon: <FiPackage /> },
+    { label: "Quản lý chấm công", icon: <FiClock /> },
+    // { label: "Nhật ký hệ thống", icon: <FiFileText /> },
+    { label: "Quản lý tài liệu", icon: <FiBook /> },
+    // { label: "User Management", icon: <FiUser /> },
+    // { label: "Departments", icon: <FiBriefcase /> },
   ];
+
   
   return (
     
     <div className="ml-64 min-h-screen bg-grey-100" >
-      <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl">
-             <div className="ml-6 flex flex-col items-start">
-                      {/* Dòng đầu: Pages / <category> */}
-                      <p className="text-sm font-normal text-navy-700 dark:text-white">
-                        Home /
-                        <span className="font-medium capitalize text-navy-700 dark:text-white">
-                          {selectedCategory}
-                        </span>
-                      </p>
-                      
-                      {/* Dòng thứ hai: <category> lớn hơn */}
-                      <h1 className="text-xl font-bold capitalize text-navy-700 dark:text-white">
-                        {selectedCategory}
-                      </h1>
-                      </div>
-
-                  <div className="relative flex items-center justify-between gap-4 h-[61px] w-[300px] rounded-full bg-white px-4 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800">
+      <nav className="sticky top-4 z-40 flex items-center justify-between rounded-full bg-white/10 p-2 backdrop-blur-xl">
+        <div className="flex-1 flex justify-center">
+           {tabs.length > 0 && ( 
+                <div className="flex items-center gap-1 h-[61px] bg-white p-4 rounded-full shadow-xl border">
+                    {tabs.map((tab) => (
+                      <button
+                        key={tab}
+                        // disabled={tab.disabled}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full transform transition-colors transition-transform duration-300  hover:scale-105 ${
+                          activeTab === tab
+                            ? "bg-[#002147] text-white"
+                            : "bg-transparent text-gray-600 hover:bg-gray-200 hover:text-gray-800"
+                        } ${
+                          tab.disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                        }`}
+                        onClick={() => setActiveTab(tab)}
+                      >
+                        {/* Thêm biểu tượng nếu cần */}
+                        <span className="text-sm font-medium">{tab}</span>
+                      </button>
+                    ))}
+                  </div>
+                   )}
+              </div> 
+             
+                  <div className="flex items-center justify-end space-x-4 sm:w-auto gap-1 h-[61px] w-300 rounded-full bg-white px-4 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 border">
                         <span className="text-[#002147] text-sm mr-2">
                               Hi, {currentUser.fullname || "User"}
                         </span>
+                        <Dropdown
+                              button={
+                                <div className="relative cursor-pointer">
+                                  <IoMdNotificationsOutline className="h-6 w-6 text-gray-600 dark:text-white" />
+                                  {unreadCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
+                                      {unreadCount}
+                                    </span>
+                                  )}
+                                </div>
+                              }
+                              animation="origin-[65%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
+                              children={
+                                <div className="flex w-[360px] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none sm:w-[460px]">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-base font-bold text-navy-700 dark:text-white">Thông báo</p>
+                                    <p
+                                      onClick={markAllAsRead}
+                                      className="text-sm font-bold text-navy-700 dark:text-white cursor-pointer"
+                                    >
+                                      Đánh dấu là đã đọc
+                                    </p>
+                                  </div>
+                                  <div className="mt-4">
+                                    {loadingNotifications ? (
+                                      <p>Đang tải thông báo...</p>
+                                    ) : notifications.length === 0 ? (
+                                      <p>Không có thông báo nào.</p>
+                                    ) : (
+                                      <ul className="flex flex-col gap-3">
+                                        {notifications.map((notification) => (
+                                          <li
+                                            key={notification._id}
+                                            className={`flex justify-between items-center rounded-md px-3 py-2 cursor-pointer ${
+                                              notification.isRead ? 'bg-gray-100 dark:bg-gray-800' : 'bg-blue-100 dark:bg-blue-800'
+                                            }`}onClick={() => markNotificationAsRead(notification._id)}
+                                          >
+                                            <div>
+                                              <p className="text-sm font-semibold text-navy-700 dark:text-white">
+                                                {notification.message}
+                                              </p>
+                                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                {new Date(notification.timestamp).toLocaleString()}
+                                              </p>
+                                            </div>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                </div>
+                              }
+                              classNames={"py-2 top-4 -left-[230px] md:-left-[440px] w-max"}
+                            />
                         <Dropdown
                               button={
                                 <img
@@ -376,9 +502,10 @@ const Dashboard = () => {
                     </button>
                   </div>
                 )}
-               
+    <div className="flex">
+      
       {/* Sidebar */}
-      <div className="w-64 fixed left-0 top-0 h-full shadow-lg z-50 flex flex-col"
+      <div className="w-64 fixed left-0 top-0 h-full shadow-lg z-50 flex flex-col border"
         style={{
           zIndex: 1100,
           backgroundColor: colors.cardBackground,
@@ -404,31 +531,32 @@ const Dashboard = () => {
               </p>
             </div>
              {/* Navigation */}
-        <nav className="flex-1 px-6 py-4 space-y-3 overflow-y-auto">
-          {menuItems.map((item) => (
-            <button
-              key={item.label}
-              className={`flex items-center w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105  ${
-                selectedCategory === item.label
-                  ? darkMode
-                    ? "bg-gray-800 text-white"
-                    : "bg-[#002147] text-white"
-                  : darkMode
-                  ? "hover:bg-gray-700 text-gray-400"
-                  : "hover:bg-gray-100 text-gray-700"
-              }`}
-              onClick={() => setSelectedCategory(item.label)}
-            >
-              <span className="mr-3">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
+              <nav className="flex-1 px-6 py-4 space-y-3 overflow-y-auto">
+                {menuItems.map((item) => (
+                  <button
+                    key={item.label}
+                    className={`flex items-center w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105  ${
+                      selectedCategory === item.label
+                        ? darkMode
+                          ? "bg-gray-800 text-white"
+                          : "bg-[#002147] text-white"
+                        : darkMode
+                        ? "hover:bg-gray-700 text-gray-400"
+                        : "hover:bg-gray-100 text-gray-700"
+                    }`}
+                    onClick={() => setSelectedCategory(item.label)}
+                  >
+                    <span className="mr-3">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+        
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
             {/* Users Section */}
             <button
               onClick={() => setSelectedCategory("User")}
-              className={`flex items-center w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105 ${
+              className={`flex items-center w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105 mb-4 ${
                 selectedCategory === "User"
                   ? "bg-[#002147] text-white"
                   : "hover:bg-[#002147] hover:text-white text-gray-700"
@@ -437,9 +565,21 @@ const Dashboard = () => {
               <FiUser size={16} className="mr-3" />
               <span>Quản lý người dùng</span>
             </button>
+            {/* Room Section */}
+            <button
+              onClick={() => setSelectedCategory("Room")}
+              className={`flex items-center w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105 mb-4 ${
+                selectedCategory === "Room"
+                  ? "bg-[#002147] text-white"
+                  : "hover:bg-[#002147] hover:text-white text-gray-700"
+              }`}
+            >
+              <FiHome size={16} className="mr-3" />
+              <span>Quản lý lớp học</span>
+            </button>
           </div>
       </div>
-  
+    </div>
       {/* Main Content */}
       <div className="flex-1 p-8 z-10">
         {renderContent()}

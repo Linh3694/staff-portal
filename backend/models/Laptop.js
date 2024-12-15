@@ -13,6 +13,7 @@ const repairSchema = new mongoose.Schema({
 
 const laptopSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  type: { type: String, enum: ['Laptop', 'Desktop'], default: 'Laptop' }, // Thêm trường phân loại
   manufacturer: { type: String, required: true },
   serial: { type: String, required: true },
   releaseYear: { type: Number },

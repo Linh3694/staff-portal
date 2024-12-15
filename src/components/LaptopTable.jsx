@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FiEdit, FiTrash2 } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import { FaSearch } from "react-icons/fa";
 import { toast } from "react-toastify";
 import LaptopProductCard from "./productcard/laptopProductCard";
 import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import "../css/table.css"
-import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
+import { MdCancel, MdCheckCircle, MdOutlineError,MdOutlinePending } from "react-icons/md";
 import Dropdown from "./function/dropdown";
 
 
@@ -18,6 +18,7 @@ const LaptopTable = () => {
         const [showAddModal, setShowAddModal] = useState(false); // State để điều khiển modal 
         const [newLaptop, setNewLaptop] = useState({
             name: "",
+            type: "Laptop",
             manufacturer: "",
             serial: "",
             assigned: [],
@@ -32,6 +33,7 @@ const LaptopTable = () => {
           }); 
         const [editingLaptop, setEditingLaptop] = useState({
             name: "",
+            type: "Laptop",
             manufacturer: "",
             serial: "",
             assigned: [],
@@ -59,12 +61,14 @@ const LaptopTable = () => {
         const [selectedDepartment, setSelectedDepartment] = useState("Tất cả phòng ban");
         const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
         const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
+        const [selectedType, setSelectedType] = useState("Tất cả"); // Mặc định là Tất cả
 
         
         const statusLabels = {
           Active: "Đang sử dụng",
-          "In Repair": "Chờ sửa chữa",
-          "Lưu kho": "Lưu kho",
+                  "Standby": "Chờ Cấp Phát",
+                  "Broken": "Hỏng",
+
           default: "Không xác định",
         };
 
@@ -77,7 +81,7 @@ const LaptopTable = () => {
           try {
             const token = localStorage.getItem("authToken");
             const response = await axios.delete(
-              `/api/laptops/${laptopId}/repairs/${repairId}`,
+              `http://localhost:5001/api/laptops/${laptopId}/repairs/${repairId}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
         
@@ -112,7 +116,7 @@ const LaptopTable = () => {
                 };
                 console.log(payload);
                 console.log("Token:", localStorage.getItem("authToken"));
-                const response = await fetch(`/api/laptops/${selectedLaptop._id}/repairs`, {
+                const response = await fetch(`http://localhost:5001/api/laptops/${selectedLaptop._id}/repairs`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -151,7 +155,7 @@ const LaptopTable = () => {
             }}
             onAddRepair={(repair) => {
                     // Gọi API thêm nhật ký sửa chữa
-                    fetch(`/api/laptops/${selectedLaptop._id}/repairs`, {
+                    fetch(`http://localhost:5001/api/laptops/${selectedLaptop._id}/repairs`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify(repair),
@@ -179,7 +183,7 @@ const LaptopTable = () => {
           const fetchLaptops = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/laptops", {
+              const response = await axios.get("http://localhost:5001/api/laptops", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -205,7 +209,7 @@ const LaptopTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/users", {
+              const response = await axios.get("http://localhost:5001/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               console.log("Dữ liệu từ API users:", response.data);
@@ -230,11 +234,48 @@ const LaptopTable = () => {
             }
           };
 
+          const handleClone = async (laptop) => {
+            try {
+              // Payload giữ nguyên thông tin laptop, chỉ thay đổi serial
+              const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
+              const userId = currentUser ? currentUser._id : null; // Lấy ID người dùng
+              const clonedLaptop = {
+                ...laptop,
+                serial: `${laptop.serial}_copy`,
+                assigned: laptop.assigned?.map((user) => user.value),
+                userId,
+              };
+          
+              // Gửi yêu cầu POST để tạo laptop mới
+              const response = await axios.post(
+                "http://localhost:5001/api/laptops",
+                clonedLaptop,
+                {
+                  headers: {
+                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                  },
+                }
+              );
+          
+              if (response.status === 201) {
+                toast.success("Nhân bản laptop thành công!", {
+                  className: "toast-success",
+                });
+                fetchLaptops(); // Cập nhật lại danh sách
+              }
+            } catch (error) {
+              console.error("Error cloning laptop:", error);
+              toast.error("Không thể nhân bản laptop!", {
+                className: "toast-error",
+              });
+            }
+          };
+
           const handleDelete = async (id) => {
             if (!laptopToDelete) return;
 
               try {
-                await axios.delete(`/api/laptops/${laptopToDelete._id}`, {
+                await axios.delete(`http://localhost:5001/api/laptops/${laptopToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -297,23 +338,34 @@ const LaptopTable = () => {
                 );
                 return;
               }
+              const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Assuming currentUser is stored in localStorage
+              const userId = currentUser ? currentUser._id : null; // Retrieve the user's ID
+              console.log("Current User từ localStorage:", localStorage.getItem("currentUser"));
+
+              if (!userId) {
+                toast.error('User is not logged in. Please log in and try again.');
+                return;
+              }
           
               // Chuẩn bị payload
               const payload = {
                 ...newLaptop,
                 releaseYear: newLaptop.releaseYear || "",
+                type: newLaptop.type || "Laptop",
                 specs: {
                   processor: newLaptop.specs?.processor || "",
                   ram: newLaptop.specs?.ram || "",
                   storage: newLaptop.specs?.storage || "",
                   display: newLaptop.specs?.display || "",
                 },
-                assigned: newLaptop.assigned?.map((user) => user.value) || [], // Xử lý danh sách người dùng
+                assigned: newLaptop.assigned?.map((user) => user.value) || [],
+                userId,
+                 // Xử lý danh sách người dùng
               };
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("/api/laptops", payload, {
+              const response = await axios.post("http://localhost:5001/api/laptops", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -326,7 +378,7 @@ const LaptopTable = () => {
                     progressClassName: "Toastify__progress-bar",
                   }
                 );
-          
+                
                 // Cập nhật danh sách laptops và đóng modal
                 fetchLaptops();
                 setShowAddModal(false);
@@ -343,6 +395,7 @@ const LaptopTable = () => {
                   },
                   assigned: [],
                   status: "Active",
+                  userId,
                 });
               }
             } catch (error) {
@@ -414,14 +467,15 @@ const LaptopTable = () => {
         
                         return {
                             name: row["Tên Thiết Bị (name)"] || "",
+                            type: row["Loại (type)"] || "Laptop",
                             manufacturer: row["Nhà Sản Xuất (manufacturer)"] || "",
                             serial: row["Serial (serial)"] || "",
                             status: row["Trạng Thái (status)"] === "Đang sử dụng"
                                   ? "Active"
-                                  : row["Trạng Thái (status)"] === "Chờ sửa chữa"
-                                  ? "In Repair"
-                                  : row["Trạng Thái (status)"] === "Lưu kho"
-                                  ? "Lưu kho"
+                                  : row["Trạng Thái (status)"] === "Chờ Cấp Phát"
+                                  ? "Standby"
+                                  : row["Trạng Thái (status)"] === "Hỏng"
+                                  ? "Broken"
                                   : "Không xác định",
                             specs: {
                                 processor: row["Bộ Xử Lý (processor)"] || "",
@@ -482,7 +536,7 @@ const LaptopTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "/api/laptops/bulk-upload",
+                  "http://localhost:5001/api/laptops/bulk-upload",
                   { laptops: parsedData },
                   {
                       headers: {
@@ -559,14 +613,16 @@ const LaptopTable = () => {
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
         {/* Header */}
-        <div className="flex flex-col justify-between items-start mb-4">
-              {/* Search Input */}
-                    <div className="relative w-full mb-4 ">
+        <div className="flex flex-col justify-between items-start mb-2">
+                   {/* Search Input */}
+            <div className="flex items-center justify-between w-full mb-4">
+    
+                <div className="relative w-1/3">
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                           <input
                           type="text"
                           placeholder="Tìm kiếm laptop..."
-                          className="pl-10 pr-4 py-2 border rounded-md w-100 "
+                          className="pl-10 pr-4 py-2 rounded-md w-100 px-3 "
                           onChange={(e) => {
                             const query = e.target.value.toLowerCase();
                             if (query === "") {
@@ -583,14 +639,38 @@ const LaptopTable = () => {
                           }}
                         />
                       </div>
+                  <div className="flex space-x-2">
+                        <button
+                            onClick={() => {
+                            setNewLaptop({
+                            name: "",
+                            manufacturer: "",
+                            serial: "",
+                            assigned: [],
+                            status: "Active",
+                      });
+                                            setShowAddModal(true);
+                                          }}
+                                          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
+                                        >
+                                          Thêm mới
+                                        </button>
+                                        <button
+                                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
+                                          onClick={() => setShowUploadModal(true)}
+                                        >
+                                          Upload
+                                        </button>
+                      </div>  
+                </div>
            
-                <div className="flex items-center justify-between w-full space-x-4">
-                     <div className="flex space-x-4">
+                <div className="flex items-center justify-evenly w-full space-x-4 mb-4">
+                    
                      <Dropdown
                           button={
                             <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">
                               {selectedOption === "Tất cả"
-                                ? "Trạng thái: Tất cả trạng thái"
+                                ? "Trạng thái"
                                 : `Trạng thái: ${selectedOption}`}
                             </button>
                           }
@@ -612,8 +692,8 @@ const LaptopTable = () => {
                               {/* Các trạng thái */}
                               {[
                                 { value: "Active", label: "Đang sử dụng" },
-                                { value: "In Repair", label: "Chờ sửa chữa" },
-                                { value: "Lưu kho", label: "Lưu kho" },
+                                { value: "Standby", label: "Chờ Cấp Phát" },
+                                { value: "Broken", label: "Hỏng" },
                               ].map((option) => (
                                 <button
                                   key={option.value}
@@ -631,52 +711,101 @@ const LaptopTable = () => {
                           }
                         />
                         <Dropdown
-                              button={
-                                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                                  {selectedDepartment === "Tất cả"
-                                    ? "Phòng ban: Tất cả phòng ban"
-                                    : `Phòng ban: ${selectedDepartment}`}
+                            button={
+                              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                                {selectedType === "Tất cả" ? "Loại: Tất cả" : `Loại: ${selectedType}`}
+                              </button>
+                            }
+                            children={
+                              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                                {/* Tùy chọn Tất cả */}
+                                <button
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedType("Tất cả");
+                                    fetchLaptops(); // Hiển thị toàn bộ dữ liệu
+                                  }}
+                                >
+                                  Tất cả
                                 </button>
-                              }
-                              children={
-                                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                                  {/* Option "Tất cả phòng ban" */}
+
+                                {/* Tùy chọn Laptop */}
+                                <button
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedType("Laptop");
+                                    setData(data.filter((item) => item.type === "Laptop")); // Lọc theo Laptop
+                                  }}
+                                >
+                                  Laptop
+                                </button>
+
+                                {/* Tùy chọn Desktop */}
+                                <button
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedType("Desktop");
+                                    setData(data.filter((item) => item.type === "Desktop")); // Lọc theo Desktop
+                                  }}
+                                >
+                                  Desktop
+                                </button>
+                              </div>
+                            }
+                          />
+                        <Dropdown
+                            button={
+                              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                                {selectedDepartment === "Tất cả"
+                                  ? "Phòng ban"
+                                  : `Phòng ban: ${selectedDepartment}`}
+                              </button>
+                            }
+                            children={
+                              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                                {/* Tùy chọn "Tất cả phòng ban" */}
+                                <button
+                                  key="all"
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedDepartment("Tất cả");
+                                    fetchLaptops(); // Hiển thị toàn bộ dữ liệu
+                                  }}
+                                >
+                                  Tất cả phòng ban
+                                </button>
+
+                                {/* Lọc phòng ban từ cột Người sử dụng */}
+                                {Array.from(
+                                  new Set(
+                                    data.flatMap((item) =>
+                                      item.assigned?.map((user) => user.departmentName || "Unknown")
+                                    )
+                                  )
+                                ).map((department) => (
                                   <button
-                                    key="all"
+                                    key={department}
                                     className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                     onClick={() => {
-                                      setSelectedDepartment("Tất cả");
-                                      fetchLaptops(); // Lấy lại toàn bộ dữ liệu
-                                      setShowDropdown(false); // Đóng dropdown
+                                      setSelectedDepartment(department);
+                                      setData(
+                                        data.filter((item) =>
+                                          item.assigned.some((user) => user.departmentName === department)
+                                        )
+                                      );
                                     }}
                                   >
-                                    Tất cả phòng ban
+                                    {department}
                                   </button>
-
-                                  {/* Các phòng ban */}
-                                  {Array.from(new Set(users.map(user => user.departmentName))).map(department => (
-                                    <button
-                                      key={department}
-                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                      onClick={() => {
-                                        setSelectedDepartment(department);
-                                        setData(data.filter((item) =>
-                                          item.assigned.some((user) => user.departmentName === department)
-                                        )); // Lọc theo phòng ban
-                                        setShowDropdown(false); // Đóng dropdown
-                                      }}
-                                    >
-                                      {department}
-                                    </button>
-                                  ))}
-                                </div>
-                              }
-                            />
+                                ))}
+                              </div>
+                            }
+                          />
                             <Dropdown
                                 button={
                                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                     {selectedManufacturer === "Tất cả"
-                                      ? "Nhà sản xuất: Tất cả nhà sản xuất"
+                                      ? "Nhà sản xuất"
                                       : `Nhà sản xuất: ${selectedManufacturer}`}
                                   </button>
                                 }
@@ -718,7 +847,7 @@ const LaptopTable = () => {
                                 button={
                                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                     {selectedYear === "Tất cả"
-                                      ? "Năm sản xuất: Tất cả năm sản xuất"
+                                      ? "Năm sản xuất"
                                       : `Năm sản xuất: ${selectedYear}`}
                                   </button>
                                 }
@@ -756,43 +885,22 @@ const LaptopTable = () => {
                                   </div>
                                 }
                               />
-                        </div>
-                             {/* Các nút hành động */}
-                                <div className="flex space-x-2">
-                                        <button
-                                          onClick={() => {
-                                            setNewLaptop({
-                                              name: "",
-                                              manufacturer: "",
-                                              serial: "",
-                                              assigned: [],
-                                              status: "Active",
-                                            });
-                                            setShowAddModal(true);
-                                          }}
-                                          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
-                                        >
-                                          Thêm mới
-                                        </button>
-                                        <button
-                                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
-                                          onClick={() => setShowUploadModal(true)}
-                                        >
-                                          Upload
-                                        </button>
-                               
-                                        </div>
-                        </div>
+                        
                     </div>
+                 </div>
 
       {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
-  <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
+  <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
     <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
       <table className="w-full ">
         <thead>
                   <tr className="!border-px !border-gray-400" >
                     <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                         <p className="text-sm font-bold text-gray-500">TÊN THIẾT BỊ
+                        </p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                        <p className="text-sm font-bold text-gray-500">LOẠI
                         </p>
                     </th>
                     <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
@@ -829,6 +937,9 @@ const LaptopTable = () => {
                     </span>
                   </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <p className="text-sm font-bold text-navy-700">{item.type}</p>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">{item.serial}
                     </p>
                     </td>
@@ -851,10 +962,10 @@ const LaptopTable = () => {
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <div className="flex items-center">
                       {item.status === "Active" ? (
-                        <MdCheckCircle className="text-green-500 me-1" />
-                      ) : item.status === "Lưu kho" ? (
-                        <MdCancel className="text-red-500 me-1" />
-                      ) : item.status === "In Repair" ? (
+                        <MdCheckCircle className="text-[#009483] me-1" />
+                      ) : item.status === "Broken" ? (
+                        <MdCancel className="text-orange-red me-1" />
+                      ) : item.status === "Standby" ? (
                         <MdOutlineError className="text-amber-500 me-1" />
                       ) : null}
                       <p className="text-sm font-bold text-navy-700">
@@ -866,15 +977,21 @@ const LaptopTable = () => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleEdit(item)}
-                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg hover:bg-oxford-blue-dark transform transition-transform duration-300 hover:scale-105"
+                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
                         >
                           <FiEdit size={14} />
                         </button>
                         <button
                           onClick={() => confirmDelete(item)}
-                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg hover:bg-orange-red-dark transform transition-transform duration-300 hover:scale-105"
+                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
                         >
                           <FiTrash2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleClone(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-[#009483] rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiCopy size={14} />
                         </button>
                       </div>
                     </td>
@@ -928,6 +1045,17 @@ const LaptopTable = () => {
                             value={newLaptop.name}
                             onChange={(e) => setNewLaptop({ ...newLaptop, name: e.target.value })}
                           />
+                        </div>
+                        <div>
+                          <label className="block text-gray-600 font-medium mb-2">Phân loại</label>
+                          <select
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                            value={newLaptop.type}
+                            onChange={(e) => setNewLaptop({ ...newLaptop, type: e.target.value })}
+                          >
+                            <option value="Laptop">Laptop</option>
+                            <option value="Desktop">Desktop</option>
+                          </select>
                         </div>
                         <div>
                           <label className="block text-gray-600 font-medium mb-2">Nhà sản xuất</label>
@@ -1058,8 +1186,8 @@ const LaptopTable = () => {
                         onChange={(e) => setNewLaptop({ ...newLaptop, status: e.target.value })}
                       >
                         <option value="Active">Đang sử dụng</option>
-                        <option value="In Repair">Chờ sửa chữa</option>
-                        <option value="Lưu kho">Lưu kho</option>
+                        <option value="Standby">Chờ Cấp Phát</option>
+                        <option value="Broken">Hỏng</option>
                       </select>
                     </div>
 
@@ -1115,7 +1243,7 @@ const LaptopTable = () => {
                     <a
                       href="/sample-template.xlsx"
                       download
-                      className="bg-[#002147] text-white px-4 py-2 rounded-md hover:bg-[#001635]"
+                      className="bg-[#009483] text-white px-4 py-2 rounded-md hover:bg-[#001635]"
                     >
                       Tải file mẫu
                     </a>
@@ -1164,6 +1292,7 @@ const LaptopTable = () => {
                       const payload = {
                         ...editingLaptop,
                         releaseYear: editingLaptop.releaseYear || "",
+                        type: editingLaptop.type || "Laptop",
                         specs: {
                           processor: editingLaptop.specs?.processor || "",
                           ram: editingLaptop.specs?.ram || "",
@@ -1179,7 +1308,7 @@ const LaptopTable = () => {
                         console.log("Payload gửi lên server:", payload);
 
                       await axios.put(
-                        `/api/laptops/${editingLaptop._id}`,
+                        `http://localhost:5001/api/laptops/${editingLaptop._id}`,
                         payload,
                         {
                           headers: {
@@ -1244,6 +1373,17 @@ const LaptopTable = () => {
                           onChange={(e) => setEditingLaptop({ ...editingLaptop, manufacturer: e.target.value })}
                         />
                       </div>
+                      <div>
+                          <label className="block text-gray-600 font-medium mb-2">Phân loại</label>
+                          <select
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                            value={editingLaptop.type}
+                            onChange={(e) => setEditingLaptop({ ...editingLaptop, type: e.target.value })}
+                          >
+                            <option value="Laptop">Laptop</option>
+                            <option value="Desktop">Desktop</option>
+                          </select>
+                        </div>
                       <div>
                         <label className="block text-gray-600 font-medium mb-2">Serial</label>
                         <input
@@ -1363,8 +1503,8 @@ const LaptopTable = () => {
                             onChange={(e) => setEditingLaptop({ ...editingLaptop, status: e.target.value })}
                           >
                             <option value="Active">Đang sử dụng</option>
-                            <option value="In Repair">Chờ sửa chữa</option>
-                            <option value="Lưu kho">Lưu kho</option>
+                            <option value="Standby">Chờ Cấp Phát</option>
+                            <option value="Broken">Hỏng</option>
                           </select>
                         </div>
                         <div>

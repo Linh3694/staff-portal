@@ -1,6 +1,7 @@
 const Laptop = require("../models/Laptop");
 const User = require("../models/Users");
 const mongoose = require("mongoose");
+const Notification = require('../models/notification'); 
 
 // Lấy danh sách laptop
 exports.getLaptops = async (req, res) => {
@@ -51,7 +52,8 @@ exports.createLaptop = async (req, res) => {
   try {
     console.log("Request Body:", req.body); // Log dữ liệu nhận từ frontend
 
-    const { name, manufacturer, serial, assigned, status, specs } = req.body;
+    const { name, manufacturer, serial, assigned, status, specs, type } = req.body;
+    const userId = req.body.userId || req.headers['user-id'];
 
     if (!name || !manufacturer || !serial) {
       return res.status(400).json({ message: "Thiếu thông tin bắt buộc!" });
@@ -67,8 +69,20 @@ exports.createLaptop = async (req, res) => {
       return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
 
-    const laptop = new Laptop({ name, manufacturer, serial, assigned, specs, status });
+    const laptop = new Laptop({ name, manufacturer, serial, assigned, specs, status, type });
     await laptop.save();
+
+      
+          const user = await User.findById(userId);
+          if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+          }
+          const userFullname = user.fullname; // Lấy fullname của người dùng
+          const notification = new Notification({
+            message: `Laptop mới "${name}" đã được thêm bởi ${userFullname}.`,
+            type: 'info',
+          });
+          await notification.save(); // Lưu thông báo vào database
 
     res.status(201).json(laptop);
   } catch (error) {
@@ -80,7 +94,7 @@ exports.createLaptop = async (req, res) => {
 exports.updateLaptop = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, manufacturer, serial, assigned, status, releaseYear, specs } = req.body;
+    const { name, manufacturer, serial, assigned, status, releaseYear, specs, type } = req.body;
 
     // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
     if (assigned && !Array.isArray(assigned)) {
@@ -89,7 +103,7 @@ exports.updateLaptop = async (req, res) => {
 
     const laptop = await Laptop.findByIdAndUpdate(
       id,
-      { name, manufacturer, serial, assigned, status, releaseYear, specs  },
+      { name, manufacturer, serial, assigned, status, releaseYear, specs, type  },
       { new: true } // Trả về tài liệu đã cập nhật
     );
 

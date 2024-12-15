@@ -5,6 +5,8 @@ const User = require("../models/Users");
 const upload = require("../middleware/upload");
 const validateToken = require("../middleware/validateToken");
 const userController = require('../controllers/userController'); // Controller xử lý logic
+const Notification = require('../models/notification'); // Model cho thông báo (cần tạo)
+
 
 
 // Lấy danh sách người dùng
@@ -17,8 +19,6 @@ router.get("/", async (req, res) => {
     res.status(500).json({ message: "Error fetching users", error });
   }
 });
-
-
 
 router.get('/:id', validateToken, async (req, res) => {
   try {
@@ -33,6 +33,41 @@ router.get('/:id', validateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching user by ID:', error.message);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Endpoint cập nhật thông tin người dùng
+router.put('/users/:id', async (req, res) => {
+  const userId = req.params.id;
+  const updatedFields = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Lưu lịch sử cập nhật (nếu cần)
+    const originalData = user.toObject();
+    Object.keys(updatedFields).forEach((field) => {
+      user[field] = updatedFields[field];
+    });
+    await user.save();
+
+    // Gửi thông báo nếu có thay đổi
+    const updatedFieldsList = Object.keys(updatedFields).join(', ');
+    const notification = new Notification({
+      message: `User ${user.fullname} (ID: ${userId}) updated fields: ${updatedFieldsList}`,
+      type: 'info',
+      timestamp: new Date(),
+      updatedBy: req.user._id, // Lấy ID người cập nhật
+    });
+    await notification.save();
+
+    res.status(200).json({ message: 'User updated successfully', user });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ message: 'Server error', error });
   }
 });
 
@@ -67,6 +102,35 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Error adding user:", error.message);
     res.status(500).json({ message: "Error adding user", error });
+  }
+});
+
+router.post('/bulk-update', async (req, res) => {
+  try {
+    const { users } = req.body;
+    if (!Array.isArray(users)) {
+      return res.status(400).json({ message: 'Invalid data format. "users" should be an array.' });
+    }
+
+    // Tạo danh sách thao tác bulkWrite dựa trên fullname
+    const bulkOps = users.map((user) => ({
+      updateOne: {
+        filter: { fullname: user.fullname }, // Tìm kiếm bằng fullname
+        update: {
+          department: user.department, // Cập nhật department
+          jobTitle: user.title,        // Cập nhật title
+        },
+        upsert: false, // Không tạo mới nếu không tìm thấy fullname
+      },
+    }));
+
+    // Thực hiện cập nhật hàng loạt
+    await User.bulkWrite(bulkOps);
+
+    res.status(200).json({ message: 'Bulk update successful' });
+  } catch (error) {
+    console.error('Error in bulk update:', error);
+    res.status(500).json({ message: 'Server error', error });
   }
 });
 

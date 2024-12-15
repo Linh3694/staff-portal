@@ -10,6 +10,7 @@ import Profile from "./components/Profile";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import './App.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 
 function App() {
