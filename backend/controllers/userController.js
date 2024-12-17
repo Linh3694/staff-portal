@@ -116,6 +116,11 @@ exports.updateUser = async (req, res) => {
     const { fullname, email, role, status, password, employeeCode } = req.body;
     const updates = { fullname, email, role, status, employeeCode };
 
+
+    if (employeeCode) {
+      updates.employeeCode = employeeCode; // Chỉ thêm khi employeeCode tồn tại
+    }
+    
     // Validate required fields
     if (!fullname || !email) {
       return res.status(400).json({ message: "Missing required information." });

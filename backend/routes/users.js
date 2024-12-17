@@ -163,7 +163,7 @@ router.post('/bulk-update', async (req, res) => {
 });
 
 router.put("/:id", async (req, res) => {
-  const { fullname, disabled, department, jobTitle, role, password, newPassword } = req.body; // Bao gồm tất cả các trường cần cập nhật
+  const { fullname, disabled, department, jobTitle, role, password, employeeCode, newPassword } = req.body; // Bao gồm tất cả các trường cần cập nhật
   const { id } = req.params;
 
   try {
@@ -181,7 +181,7 @@ router.put("/:id", async (req, res) => {
     if (department) user.department = department;
     if (jobTitle) user.jobTitle = jobTitle;
     if (role) user.role = role;
-
+    if (employeeCode) user.employeeCode = employeeCode;
 
     console.log("Cập nhật thông tin người dùng:", {
       fullname: user.fullname,
@@ -189,6 +189,7 @@ router.put("/:id", async (req, res) => {
       department: user.department,
       jobTitle: user.jobTitle,
       role: user.role,
+      employeeCode : user.employeeCode
     });
 
     // Xử lý cập nhật mật khẩu
