@@ -113,13 +113,19 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullname, email, role, status, password } = req.body;
-    const updates = { fullname, email, role, status };
+    const { fullname, email, role, status, password, employeeCode } = req.body;
+    const updates = { fullname, email, role, status, employeeCode };
 
     // Validate required fields
     if (!fullname || !email) {
       return res.status(400).json({ message: "Missing required information." });
     }
+
+      // Kiểm tra mã nhân viên đã tồn tại với người dùng khác
+    const existingUser = await User.findOne({ employeeCode, _id: { $ne: id } });
+      if (existingUser) {
+        return res.status(400).json({ message: "Mã nhân viên đã tồn tại với người dùng khác." });
+      }
 
     // Hash new password if provided
     if (password) {
