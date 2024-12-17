@@ -1,5 +1,49 @@
 const User = require("../models/Users"); // Correct import path for User model
+const Laptop = require("../models/Laptop"); // Import model Laptop
 const bcrypt = require("bcryptjs"); // Import bcrypt for password hashing
+
+// Gán thiết bị cho người dùng
+exports.assignDeviceToUser = async (req, res) => {
+  try {
+    const { laptopId, userId } = req.body;
+
+    // Kiểm tra input
+    if (!laptopId || !userId) {
+      return res.status(400).json({ message: "Thiếu thông tin gán thiết bị." });
+    }
+
+    // Tìm thiết bị và người dùng
+    const laptop = await Laptop.findById(laptopId);
+    const user = await User.findById(userId);
+
+    if (!laptop) {
+      return res.status(404).json({ message: "Không tìm thấy thiết bị." });
+    }
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng." });
+    }
+
+    // Cập nhật thông tin thiết bị
+    laptop.assignedTo = { userId: user._id, fullname: user.fullname };
+    await laptop.save();
+
+    // Cập nhật danh sách thiết bị được gán trong User
+    user.assignedDevices = user.assignedDevices || [];
+    if (!user.assignedDevices.includes(laptop._id)) {
+      user.assignedDevices.push(laptop._id);
+      await user.save();
+    }
+
+    res.status(200).json({
+      message: "Gán thiết bị cho người dùng thành công.",
+      laptop,
+      user,
+    });
+  } catch (error) {
+    console.error("Error assigning device to user:", error.message);
+    res.status(500).json({ message: "Lỗi khi gán thiết bị.", error: error.message });
+  }
+};
 
 exports.updateAvatar = async (req, res) => {
   const { id } = req.params;

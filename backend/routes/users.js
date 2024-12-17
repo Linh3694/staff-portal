@@ -6,6 +6,8 @@ const upload = require("../middleware/upload");
 const validateToken = require("../middleware/validateToken");
 const userController = require('../controllers/userController'); // Controller xử lý logic
 const Notification = require('../models/notification'); // Model cho thông báo (cần tạo)
+const Laptop = require("../models/Laptop"); // Model Laptop
+
 
 
 
@@ -302,5 +304,27 @@ router.get("/attendance/:employeeCode", async (req, res) => {
 // Cập nhật avatar người dùng
 router.put('/:id/avatar', upload.single('avatar'), userController.updateAvatar);
 
+router.post("/assign-device", userController.assignDeviceToUser);
+
+router.get("/:userId/assigned-items", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Kiểm tra user có tồn tại không
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Lấy danh sách thiết bị (ví dụ: Laptop) được gán cho user
+    const assignedItems = await Laptop.find({ assigned: userId });
+
+    // Trả về kết quả
+    res.status(200).json(assignedItems);
+  } catch (error) {
+    console.error("Error fetching assigned items:", error.message);
+    res.status(500).json({ message: "Lỗi khi lấy danh sách thiết bị." });
+  }
+});
 
 module.exports = router;

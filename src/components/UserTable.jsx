@@ -2,6 +2,11 @@ import React, { useState, useEffect, useMemo } from "react";
 import { MdCancel, MdCheckCircle, } from "react-icons/md";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { MdEmail, MdWork, MdPerson, MdBusiness } from "react-icons/md";
+import LaptopProductCard from "./productcard/laptopProductCard";
 
 
 const UserTable = ({ handleSyncClients }) => {
@@ -13,6 +18,14 @@ const UserTable = ({ handleSyncClients }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [avatar, setAvatar] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userIdToDelete, setUserIdToDelete] = useState(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [assignedItems, setAssignedItems] = useState([]);
+  const [isLaptopModalOpen, setIsLaptopModalOpen] = useState(false);
+  const [selectedLaptopData, setSelectedLaptopData] = useState(null);
+  
 
 
   // Lấy dữ liệu từ /api//users
@@ -24,6 +37,8 @@ const UserTable = ({ handleSyncClients }) => {
           Authorization: `Bearer ${localStorage.getItem("token")}`, // Đảm bảo token đúng
         },
       });
+      console.error("Token không tồn tại, vui lòng đăng nhập lại.");
+      toast.error("Phiên làm việc đã hết hạn, vui lòng đăng nhập lại.");
   
       if (!response.ok) {
         const errorText = await response.text(); // Đọc nội dung lỗi từ backend
@@ -34,7 +49,7 @@ const UserTable = ({ handleSyncClients }) => {
       setClients(data);
     } catch (error) {
       console.error("Error fetching users:", error.message);
-      alert(`Lỗi khi tải danh sách người dùng: ${error.message}`);
+      toast.error(`Lỗi khi tải danh sách người dùng: ${error.message}`);
     }
   };
 
@@ -51,6 +66,77 @@ const UserTable = ({ handleSyncClients }) => {
   const statusLabels = {
     Active: "Active",
     Inactive: "Inactive",
+  };
+
+  const handleDeleteUser = (userId) => {
+    setUserIdToDelete(userId); // Lưu ID người dùng cần xóa
+    setIsDeleteModalOpen(true); // Hiển thị modal
+  };
+
+  const handleOpenLaptopModal = async (laptopData) => {
+    console.log("Laptop Data Truyền vào:", laptopData);
+  
+    // Nếu `laptopData.assigned` chứa ID, fetch thêm thông tin chi tiết
+    const assignedDetails = await Promise.all(
+      laptopData.assigned.map(async (userId) => {
+        try {
+          console.log(localStorage.getItem("token"));
+          const response = await fetch(`/api/users/${userId}`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          });
+          console.log("Response Status:", response.status);
+          console.log("Response Text:", await response.text());
+  
+          if (!response.ok) throw new Error("Không thể tải thông tin người dùng.");
+  
+          const userData = await response.json();
+          return {
+            id: userData._id,
+            fullname: userData.fullname || "Không xác định",
+            jobTitle: userData.jobTitle || "Không xác định",
+            department: userData.department || "Không xác định",
+          };
+        } catch (error) {
+          console.error("Error fetching user details:", error.message);
+          return { id: userId, fullname: "Không xác định", jobTitle: "-", department: "-" };
+        }
+      })
+    );
+  
+    setSelectedLaptopData({
+      ...laptopData,
+      name: laptopData.name || "Không xác định",
+      serial: laptopData.serial || "N/A",
+      manufacturer: laptopData.manufacturer || "N/A",
+      status: laptopData.status || "N/A",
+      specs: laptopData.specs || { processor: "N/A", ram: "N/A", storage: "N/A", display: "N/A" },
+      assigned: assignedDetails, // Thêm thông tin mở rộng
+    });
+  
+    setIsLaptopModalOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    try {
+      const response = await fetch(`/api/users/${userIdToDelete}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+  
+      toast.success("Xóa người dùng thành công!");
+      setClients((prevClients) => prevClients.filter((client) => client._id !== userIdToDelete));
+      setIsDeleteModalOpen(false); // Đóng modal
+    } catch (error) {
+      console.error("Error deleting user:", error.message);
+      toast.error("Lỗi khi xóa người dùng.");
+    }
   };
 
   const uploadDataToServer = async (data) => {
@@ -73,14 +159,34 @@ const UserTable = ({ handleSyncClients }) => {
       fetchUsers();
     } catch (error) {
       console.error('Error uploading data to server:', error.message);
-      alert('Lỗi khi tải dữ liệu lên server.');
+      toast.error('Lỗi khi tải dữ liệu lên server.');
     }
+  };
+
+
+  const handleShowProfile = async (user) => {
+    setSelectedUser(user);
+  
+    try {
+      const response = await fetch(`/api/users/${user._id}/assigned-items`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (!response.ok) throw new Error("Không thể tải danh sách thiết bị.");
+  
+      const data = await response.json();
+      setAssignedItems(data); // Cập nhật danh sách thiết bị
+    } catch (error) {
+      console.error("Error fetching assigned items:", error.message);
+      setAssignedItems([]); // Nếu lỗi, set danh sách rỗng
+    }
+  
+    setIsProfileModalOpen(true);
   };
 
   const handleUploadExcel = async (e) => {
     const file = e.target.files[0];
     if (!file) {
-      alert('Vui lòng chọn file!');
+      toast.error('Vui lòng chọn file!');
       return;
     }
   
@@ -104,10 +210,10 @@ const UserTable = ({ handleSyncClients }) => {
       await uploadDataToServer(filteredData);
   
       // Hiển thị thông báo thành công
-      alert('Dữ liệu đã được tải lên và xử lý thành công!');
+      toast.success('Dữ liệu đã được tải lên và xử lý thành công!');
     } catch (error) {
       console.error('Error reading Excel file:', error);
-      alert('Lỗi khi xử lý file Excel. Vui lòng thử lại.');
+      toast.error('Lỗi khi xử lý file Excel. Vui lòng thử lại.');
     }
   };
   
@@ -148,12 +254,26 @@ const UserTable = ({ handleSyncClients }) => {
     });
   }, [clients, searchTerm]);
 
+  const sortedClients = useMemo(() => {
+    let sortableClients = [...filteredClients];
+    if (sortConfig.key) {
+      sortableClients.sort((a, b) => {
+        const aValue = a[sortConfig.key] || "";
+        const bValue = b[sortConfig.key] || "";
+        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableClients;
+  }, [filteredClients, sortConfig]);
+
   // Phân trang dữ liệu
   const paginatedClients = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage;
-    return filteredClients.slice(start, end);
-  }, [filteredClients, currentPage, itemsPerPage]);
+    return sortedClients.slice(start, end);
+  }, [sortedClients, currentPage, itemsPerPage]);
 
   // Tổng số trang
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
@@ -162,7 +282,7 @@ const UserTable = ({ handleSyncClients }) => {
   const handleEditUser = (user) => {
     if (!user || !user._id) {
       console.error("Người dùng không hợp lệ:", user);
-      alert("Không thể chỉnh sửa người dùng này.");
+      toast.error("Không thể chỉnh sửa người dùng này.");
       return;
     }
     console.log("User to edit:", user); // Debug giá trị user
@@ -174,7 +294,7 @@ const UserTable = ({ handleSyncClients }) => {
     try {
       // Kiểm tra nếu tài khoản được kích hoạt nhưng chưa nhập mật khẩu
       if (!updatedUser.disabled && !updatedUser.newPassword) {
-        alert("Vui lòng nhập mật khẩu mới để kích hoạt tài khoản!");
+        toast.error("Vui lòng nhập mật khẩu mới để kích hoạt tài khoản!");
         return;
       }
       if (!updatedUser._id) {
@@ -207,16 +327,16 @@ const UserTable = ({ handleSyncClients }) => {
       });
   
       if (response.status === 400) {
-        alert("Dữ liệu không hợp lệ. Vui lòng kiểm tra và thử lại!");
+        toast.error("Dữ liệu không hợp lệ. Vui lòng kiểm tra và thử lại!");
         return;
       } else if (response.status === 404) {
-        alert("Người dùng không tồn tại!");
+        toast.error("Người dùng không tồn tại!");
         return;
       } else if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
   
-      alert("Cập nhật người dùng thành công!");
+      toast.error("Cập nhật người dùng thành công!");
       const updatedClient = await response.json(); // Lấy dữ liệu cập nhật từ backend
       setClients((prevClients) =>
         prevClients.map((client) =>
@@ -226,9 +346,11 @@ const UserTable = ({ handleSyncClients }) => {
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error updating user:", error.message);
-      alert("Lỗi khi cập nhật người dùng.");
+      toast.error("Lỗi khi cập nhật người dùng.");
     }
   };
+
+  
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -253,13 +375,13 @@ const UserTable = ({ handleSyncClients }) => {
       if (response.ok) {
         const data = await response.json();
         setAvatarUrl(data.avatarUrl); // Assuming the server returns the URL of the uploaded avatar
-        alert('Avatar uploaded successfully!');
+        toast.success('Avatar uploaded successfully!');
       } else {
-        alert('Failed to upload avatar.');
+        toast.error('Failed to upload avatar.');
       }
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      alert('Error uploading avatar.');
+      toast.error('Error uploading avatar.');
     }
   };
 
@@ -284,15 +406,15 @@ const UserTable = ({ handleSyncClients }) => {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <div className="flex justify-between items-right space-x-2 ">
-              <button
+              {/* <button
                 onClick={handleSyncClients}
                 className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]"
               >
                 Đồng bộ
-              </button>
+              </button> */}
               <button
                 onClick={handleExportToExcel}
-                className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635]"
+                className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
               >
                 Xuất Excel
               </button>
@@ -306,7 +428,7 @@ const UserTable = ({ handleSyncClients }) => {
               />
               <label
                 htmlFor="upload-excel"
-                className="px-3 py-2 bg-[#228B22] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#196619] cursor-pointer"
+                className="px-3 py-2 bg-[#009483] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#196619] cursor-pointer transform transition-transform duration-300 hover:scale-105"
               >
                 Tải lên Excel
               </label>
@@ -317,11 +439,35 @@ const UserTable = ({ handleSyncClients }) => {
       {/* Bảng */}
       <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
         <table className="w-full">
+        
           <thead>
             <tr className="!border-px !border-gray-400">
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-600">TÊN</p>
-              </th>
+              <th
+                  className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start cursor-pointer"
+                  onClick={() =>
+                    setSortConfig({
+                      key: "fullname",
+                      direction: sortConfig.direction === "asc" ? "desc" : "asc",
+                    })
+                  }
+                >
+                  <p className="text-sm font-bold text-gray-600">
+                    TÊN {sortConfig.key === "fullname" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
+                  </p>
+                </th>
+                <th
+                  className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start cursor-pointer"
+                  onClick={() =>
+                    setSortConfig({
+                      key: "employeeCode",
+                      direction: sortConfig.direction === "asc" ? "desc" : "asc",
+                    })
+                  }
+                >
+                  <p className="text-sm font-bold text-gray-600">
+                    MÃ NHÂN VIÊN {sortConfig.key === "employeeCode" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
+                  </p>
+                </th>
               <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                 <p className="text-sm font-bold text-gray-600">CHỨC VỤ</p>
               </th>
@@ -331,6 +477,9 @@ const UserTable = ({ handleSyncClients }) => {
               <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                 <p className="text-sm font-bold text-gray-600">TÌNH TRẠNG</p>
               </th>
+              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
+                <p className="text-sm font-bold text-gray-600">HÀNH ĐỘNG</p>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -338,12 +487,15 @@ const UserTable = ({ handleSyncClients }) => {
               <tr key={client.id} className="border-b border-gray-200 hover:bg-gray-50">
                 <td className="min-w-[150px] border-white/0 py-3 pr-4">
                   <button
-                    onClick={() => handleEditUser(client)}
+                    onClick={() => handleShowProfile(client)}
                     className="text-sm font-bold text-navy-700 hover:underline"
                   >
                     {client.fullname}
                   </button> <br/>
                   <span className="text-gray-500 italic text-sm">{client.email || "Not Provided"}</span>
+                </td>
+                <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                  <p className="text-sm font-semibold text-navy-700">{client.employeeCode || "Chưa có"}</p>
                 </td>
                 <td className="min-w-[150px] border-white/0 py-3 pr-4">
                   <p className="text-sm font-semibold text-navy-700">{client.jobTitle || "Not Provided"}</p>
@@ -364,11 +516,51 @@ const UserTable = ({ handleSyncClients }) => {
                       </p>
                     </div>
                   </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4 text-center">
+                        <div className="flex justify-center space-x-2">
+                          {/* Nút Edit */}
+                          <button
+                          onClick={() => handleEditUser(client)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiEdit size={14} />
+                          </button>
+                          <button
+                          onClick={() => handleDeleteUser(client._id)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                        </div>
+                      </td>
               </tr>
             ))}
           </tbody>
         </table>
-
+        {/* ------------------------------------------------------------------------------- Modal delete -------------------------------------------------------- */}
+        {isDeleteModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+              <div className="bg-white rounded-lg shadow-lg p-6 w-[400px]">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Xác nhận xóa</h3>
+                <p className="text-gray-600">Bạn có chắc chắn muốn xóa người dùng này không?</p>
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={() => setIsDeleteModalOpen(false)}
+                    className="px-4 py-2 mr-2 bg-gray-300 text-gray-800 rounded shadow hover:bg-gray-400"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={confirmDeleteUser}
+                    className="px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* ------------------------------------------------------------------------------- Modal cập nhật thông tin -------------------------------------------------------- */}
         {isModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                 <div className="bg-white rounded-lg shadow-lg p-6 w-[500px]">
@@ -487,9 +679,108 @@ const UserTable = ({ handleSyncClients }) => {
                 </div>
               </div>
             )}
+            {/* ------------------------------------------------------------------------------- Modal Profile -------------------------------------------------------- */}
+            {isProfileModalOpen && selectedUser && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-2xl p-6 w-[500px]">
+                      {/* Header */}
+                      <div className="flex items-center justify-center mb-4">
+                        <img
+                          src={selectedUser.avatarUrl || "https://via.placeholder.com/150"}
+                          alt="Avatar"
+                          className="w-32 h-32 rounded-full object-cover border-4 border-blue-100"
+                        />
+                      </div>
+                      
+                      {/* Thông tin người dùng */}
+                      <h3 className="text-2xl font-bold text-center text-gray-800 mb-2">
+                        {selectedUser.fullname || "Không có tên"}
+                      </h3>
+                      <p className="text-gray-600 text-center mb-4 font-bold text-sm italic">
+                         {selectedUser.employeeCode || "Chưa cập nhật"}
+                      </p>
+                
+                      <div className="space-y-2 text-center">
+                        <div className="flex items-center text-sm font-bold text-navy-700 bg-grey-100">
+                          <MdEmail className="mr-2 text-[#FF5733]" />
+                          <span>{selectedUser.email || "Chưa cập nhật"}</span>
+                        </div>
+                        <div className="flex items-center text-sm font-bold text-gray-700">
+                          <MdWork className="mr-2 text-[#FF5733]" />
+                          <span>{selectedUser.jobTitle || "Chưa cập nhật"}</span>
+                        </div>
+                        <div className="flex items-center text-sm font-bold text-gray-700">
+                          <MdBusiness className="mr-2 text-[#FF5733]" />
+                          <span>{selectedUser.department || "Chưa cập nhật"}</span>
+                        </div>
+                        <div className="flex items-center text-sm font-bold text-gray-700">
+                          <MdPerson className="mr-2 text-[#FF5733]" />
+                          <span>Vai trò: {selectedUser.role || "Chưa cập nhật"}</span>
+                        </div>
+                        <div className="flex items-center text-sm font-bold text-gray-700">
+                        {selectedUser.disabled ? (
+                          <>
+                            <MdCancel className="mr-2 text-[#FF5733]" />
+                            <span>Trạng thái: Inactive</span>
+                          </>
+                        ) : (
+                          <>
+                            <MdCheckCircle className="mr-2 text-[#009483]" />
+                            <span>Trạng thái: Active</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                      {/* Assigned Items */}
+                          <div className="mt-6">
+                            <h4 className="text-lg font-semibold text-[#002147] mb-2">Thiết bị sử dụng</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {assignedItems.map((item, index) => (
+                                  <span
+                                    key={item.id || index} // Sử dụng `item.id` nếu có, nếu không fallback sang `index`
+                                    onClick={() => handleOpenLaptopModal(item)} 
+                                    className="px-3 py-1 bg-[#002147] text-white font-bold rounded-full text-xs cursor-pointer"
+                                  >
+                                    {item.name} - SN: {item.serial}
+                                  </span>
+                                ))}
+                            </div>
+                          </div>
+                         
+                
+                      {/* Footer */}
+                      <div className="mt-6 flex justify-end">
+                        <button
+                          onClick={() => setIsProfileModalOpen(false)}
+                          className="px-4 py-2 bg-gray-300 text-gray-800 rounded shadow hover:bg-gray-400"
+                        >
+                          Đóng
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                        {isLaptopModalOpen && selectedLaptopData && (
+                              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50" onClick={() => setIsLaptopModalOpen(false)}>
+                                <div  onClick={(e) => e.stopPropagation()}>
+                                  <LaptopProductCard
+                                    laptopData={selectedLaptopData}
+                                    onAddRepair={(newRepair) => console.log("Thêm sửa chữa", newRepair)}
+                                    onDeleteRepair={(laptopId, repairId) =>
+                                      console.log("Xóa sửa chữa", laptopId, repairId)
+                                    }
+                                    onCloseModal={() => setIsLaptopModalOpen(false)}
+                                  />
+                                </div>
+                              </div>
+                            )}
+              
       </div>
-      {/* Pagination */}
-      <div className="flex justify-end items-right mt-4">
+      {/* Pagination Buttons */}
+      <div className="flex justify-between items-center mt-4">
+        <div>
         <button
           disabled={currentPage === 1}
           onClick={() => handlePageChange(currentPage - 1)}
@@ -507,10 +798,22 @@ const UserTable = ({ handleSyncClients }) => {
         >
           Tiếp
         </button>
-      </div>
+        </div>
+        <div className="flex items-center space-x-2">
+        <select
+          value={itemsPerPage}
+          onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
+          className="border border-gray-300 font-semibold rounded-md px-5 py-1 text-sm"
+        >
+          <option value={10}>10</option>
+          <option value={20}>20</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+        </select>
+        <span className="text-sm">Users/Page</span>
+        </div>
     </div>
-
-    
+  </div> 
   );
 };
 
