@@ -197,48 +197,40 @@ const UserTable = ({ handleSyncClients }) => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-      console.log("Dữ liệu từ file Excel:", jsonData); // Log kiểm tra
-
   
-      // Chuyển dữ liệu Excel thành mảng với email làm gốc
-      const filteredData = jsonData.map((row) => ({
+      console.log("Dữ liệu từ file Excel:", jsonData);
+  
+      // Chuyển đổi dữ liệu Excel thành mảng
+      const formattedData = jsonData.map((row) => ({
         email: row.email,
         fullname: row.fullname || undefined,
         jobTitle: row.title || undefined,
         department: row.department || undefined,
         employeeCode: row.employeeCode || undefined,
       }));
-
-      console.log("Dữ liệu định dạng chuẩn:", filteredData); // Log kiểm tra
-
   
-      // Gửi từng bản ghi lên server để cập nhật theo email
-      for (const userData of filteredData) {
-        if (!userData.email) continue; // Bỏ qua nếu không có email
+      console.log("Dữ liệu định dạng chuẩn:", formattedData);
   
-        const response = await fetch(`/api/users/bulk-update`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-          body: JSON.stringify(userData), // Gửi dữ liệu cập nhật
-        });
+      // Gửi toàn bộ dữ liệu dưới dạng mảng
+      const response = await fetch(`/api/users/bulk-update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ users: formattedData }), // Gửi mảng users
+      });
   
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Lỗi khi cập nhật user ${userData.email}:`, errorText);
-          toast.error(`Cập nhật thất bại cho email: ${userData.email}`);
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi từ server: ${errorText}`);
       }
   
-      // Làm mới danh sách người dùng sau khi cập nhật
-      await fetchUsers();
       toast.success('Dữ liệu đã được cập nhật thành công!');
+      await fetchUsers(); // Làm mới danh sách người dùng
     } catch (error) {
-      console.error('Error reading Excel file:', error);
-      toast.error('Lỗi khi xử lý file Excel. Vui lòng thử lại.');
+      console.error('Lỗi khi tải dữ liệu từ Excel:', error.message);
+      toast.error('Lỗi khi tải file Excel. Vui lòng kiểm tra định dạng file.');
     }
   };
   
