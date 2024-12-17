@@ -37,8 +37,8 @@ const UserTable = ({ handleSyncClients }) => {
           Authorization: `Bearer ${localStorage.getItem("token")}`, // Đảm bảo token đúng
         },
       });
-      console.error("Token không tồn tại, vui lòng đăng nhập lại.");
-      toast.error("Phiên làm việc đã hết hạn, vui lòng đăng nhập lại.");
+      // console.error("Token không tồn tại, vui lòng đăng nhập lại.");
+      // toast.error("Phiên làm việc đã hết hạn, vui lòng đăng nhập lại.");
   
       if (!response.ok) {
         const errorText = await response.text(); // Đọc nội dung lỗi từ backend
