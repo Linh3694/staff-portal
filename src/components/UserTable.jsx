@@ -222,6 +222,7 @@ const UserTable = ({ handleSyncClients }) => {
     const dataToExport = clients.map((client) => ({
       Tên: client.fullname,
       Email: client.email || "Không có",
+      Mã_nhân_viên : client.employeeCode || "Không có",
       Chức_Vụ: client.jobTitle || "Không có",
       Phòng_Ban: client.department || "Không có",
       Vai_Trò: client.role,
@@ -310,6 +311,7 @@ const UserTable = ({ handleSyncClients }) => {
         formData.append("jobTitle", updatedUser.jobTitle);
         formData.append("department", updatedUser.department);
         formData.append("role", updatedUser.role);
+        formData.append("employeeCode", updatedUser.employeeCode);
         if (updatedUser.newPassword) {
           formData.append("newPassword", updatedUser.newPassword);
         }
