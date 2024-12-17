@@ -664,8 +664,7 @@ const LaptopTable = () => {
                       </div>  
                 </div>
            
-                <div className="flex items-center justify-evenly w-full space-x-4 mb-4">
-                    
+                <div className="flex items-center justify-evenly w-full space-x-4 mb-4">   
                      <Dropdown
                           button={
                             <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">
@@ -1241,7 +1240,7 @@ const LaptopTable = () => {
                   <div className="flex justify-between items-center">
                     {/* Nút tải file mẫu */}
                     <a
-                      href="/sample-template.xlsx"
+                      href="/laptop-sample-upload.xlsx"
                       download
                       className="bg-[#009483] text-white px-4 py-2 rounded-md hover:bg-[#001635]"
                     >

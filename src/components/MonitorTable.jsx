@@ -8,6 +8,8 @@ import ReactDOM from "react-dom";
 import "../css/table.css"
 import { MdCancel, MdCheckCircle, MdOutlineError,MdOutlinePending } from "react-icons/md";
 import Dropdown from "./function/dropdown";
+import MonitorProductCard from "./productcard/monitorProductCard.jsx";
+
 
 
 const MonitorTable = () => {
@@ -60,8 +62,8 @@ const MonitorTable = () => {
         const [selectedDepartment, setSelectedDepartment] = useState("Tất cả phòng ban");
         const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
         const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
+        const [selectedType, setSelectedType] = useState("Tất cả"); // Mặc định là Tất cả
 
-        
         const statusLabels = {
           Active: "Đang sử dụng",
                   "Standby": "Chờ Cấp Phát",
@@ -79,7 +81,7 @@ const MonitorTable = () => {
           try {
             const token = localStorage.getItem("authToken");
             const response = await axios.delete(
-              `/api/Monitors/${MonitorId}/repairs/${repairId}`,
+              `/api/monitors/${MonitorId}/repairs/${repairId}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
         
@@ -114,7 +116,7 @@ const MonitorTable = () => {
                 };
                 console.log(payload);
                 console.log("Token:", localStorage.getItem("authToken"));
-                const response = await fetch(`/api/Monitors/${selectedMonitor._id}/repairs`, {
+                const response = await fetch(`/api/monitors/${selectedMonitor._id}/repairs`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -156,7 +158,7 @@ const MonitorTable = () => {
           const fetchMonitors = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/Monitors", {
+              const response = await axios.get("/api/monitors", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -207,24 +209,25 @@ const MonitorTable = () => {
             }
           };
 
-          const handleClone = async (Monitor) => {
+          const handleClone = async (monitor) => {
             try {
               // Payload giữ nguyên thông tin Monitor, chỉ thay đổi serial
               const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
               const userId = currentUser ? currentUser._id : null; // Lấy ID người dùng
+              const { _id, ...clonedMonitorData } = monitor;
               const clonedMonitor = {
-                ...Monitor,
-                serial: `${Monitor.serial}_copy`,
-                assigned: Monitor.assigned?.map((user) => user.value),
+                ...clonedMonitorData,
+                serial: `${monitor.serial}_copy`,
+                assigned: monitor.assigned?.map((user) => user.value),
                 userId,
               };
           
               // Gửi yêu cầu POST để tạo Monitor mới
               const response = await axios.post(
-                "/api/Monitors",
+                "/api/monitors",
                 clonedMonitor,
                 {
-                  headers: {
+                  headers: { 
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`,
                   },
                 }
@@ -248,7 +251,7 @@ const MonitorTable = () => {
             if (!MonitorToDelete) return;
 
               try {
-                await axios.delete(`/api/Monitors/${MonitorToDelete._id}`, {
+                await axios.delete(`/api/monitors/${MonitorToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -278,9 +281,7 @@ const MonitorTable = () => {
                 ...item,
                 releaseYear: item.releaseYear || "", // Đảm bảo có giá trị mặc định cho Năm sản xuất
                 specs: {
-                  processor: item.specs?.processor || "",
-                  ram: item.specs?.ram || "",
-                  storage: item.specs?.storage || "",
+
                   display: item.specs?.display || "",
                 },
                 assigned: Array.isArray(item.assigned)
@@ -324,21 +325,16 @@ const MonitorTable = () => {
               const payload = {
                 ...newMonitor,
                 releaseYear: newMonitor.releaseYear || "",
-                type: newMonitor.type || "Monitor",
                 specs: {
-                  processor: newMonitor.specs?.processor || "",
-                  ram: newMonitor.specs?.ram || "",
-                  storage: newMonitor.specs?.storage || "",
                   display: newMonitor.specs?.display || "",
                 },
                 assigned: newMonitor.assigned?.map((user) => user.value) || [],
-                userId,
                  // Xử lý danh sách người dùng
               };
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("/api/Monitors", payload, {
+              const response = await axios.post("/api/monitors", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -361,15 +357,11 @@ const MonitorTable = () => {
                   serial: "",
                   releaseYear: "",
                   specs: {
-                    processor: "",
-                    ram: "",
-                    storage: "",
                     display: "",
                   },
                   assigned: [],
                   status: "Active",
-                  userId,
-                });
+                  });
               }
             } catch (error) {
               console.error("Lỗi khi thêm Monitor:", error);
@@ -405,7 +397,7 @@ const MonitorTable = () => {
                 return;
             }
         
-            const reader = new FileReader();
+        const reader = new FileReader();
         
             reader.onload = (event) => {
                 try {
@@ -440,7 +432,6 @@ const MonitorTable = () => {
         
                         return {
                             name: row["Tên Thiết Bị (name)"] || "",
-                            type: row["Loại (type)"] || "Monitor",
                             manufacturer: row["Nhà Sản Xuất (manufacturer)"] || "",
                             serial: row["Serial (serial)"] || "",
                             status: row["Trạng Thái (status)"] === "Đang sử dụng"
@@ -451,9 +442,6 @@ const MonitorTable = () => {
                                   ? "Broken"
                                   : "Không xác định",
                             specs: {
-                                processor: row["Bộ Xử Lý (processor)"] || "",
-                                ram: row["RAM (ram)"] || "",
-                                storage: row["Bộ Nhớ (storage)"] || "",
                                 display: row["Màn Hình (display)"] || "",
                             },
                             assigned: assignedIds,
@@ -509,8 +497,8 @@ const MonitorTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "/api/Monitors/bulk-upload",
-                  { Monitors: parsedData },
+                  "/api/monitors/bulk-upload",
+                  { monitors: parsedData },
                   {
                       headers: {
                           "Content-Type": "application/json",
@@ -582,6 +570,31 @@ const MonitorTable = () => {
             };
             fetchData();
             }, []);
+    <monitorProductCard
+            monitorData={{
+              ...selectedMonitor,
+              repairs: selectedMonitor?.repairs || [], // Đảm bảo repairs là mảng
+            }}
+            onAddRepair={(repair) => {
+                    // Gọi API thêm nhật ký sửa chữa
+                    fetch(`/api/monitors/${selectedMonitor._id}/repairs`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(repair),
+                    })
+                      .then((response) => {
+                        if (response.ok) {
+                          console.log("Repair saved successfully");
+                        
+                        } else {
+                          console.error("Failed to save repair");                         
+                        }
+                      })
+                      .catch((error) => console.error("Error saving repair:", error));
+               }}
+            currentUser={JSON.parse(localStorage.getItem("currentUser"))}
+            onDeleteRepair={handleDeleteRepair}
+    />
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -637,13 +650,12 @@ const MonitorTable = () => {
                       </div>  
                 </div>
            
-                <div className="flex items-center justify-between w-full space-x-4">
-                     <div className="flex space-x-4">
+                <div className="flex items-center justify-evenly w-full space-x-4 mb-4">   
                      <Dropdown
                           button={
                             <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">
                               {selectedOption === "Tất cả"
-                                ? "Trạng thái: Tất cả trạng thái"
+                                ? "Trạng thái"
                                 : `Trạng thái: ${selectedOption}`}
                             </button>
                           }
@@ -683,53 +695,60 @@ const MonitorTable = () => {
                             </div>
                           }
                         />
+                        
                         <Dropdown
-                              button={
-                                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                                  {selectedDepartment === "Tất cả"
-                                    ? "Phòng ban: Tất cả phòng ban"
-                                    : `Phòng ban: ${selectedDepartment}`}
+                            button={
+                              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                                {selectedDepartment === "Tất cả"
+                                  ? "Phòng ban"
+                                  : `Phòng ban: ${selectedDepartment}`}
+                              </button>
+                            }
+                            children={
+                              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                                {/* Tùy chọn "Tất cả phòng ban" */}
+                                <button
+                                  key="all"
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedDepartment("Tất cả");
+                                    fetchMonitors(); // Hiển thị toàn bộ dữ liệu
+                                  }}
+                                >
+                                  Tất cả phòng ban
                                 </button>
-                              }
-                              children={
-                                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                                  {/* Option "Tất cả phòng ban" */}
+
+                                {/* Lọc phòng ban từ cột Người sử dụng */}
+                                {Array.from(
+                                  new Set(
+                                    data.flatMap((item) =>
+                                      item.assigned?.map((user) => user.departmentName || "Unknown")
+                                    )
+                                  )
+                                ).map((department) => (
                                   <button
-                                    key="all"
+                                    key={department}
                                     className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                     onClick={() => {
-                                      setSelectedDepartment("Tất cả");
-                                      fetchMonitors(); // Lấy lại toàn bộ dữ liệu
-                                      setShowDropdown(false); // Đóng dropdown
+                                      setSelectedDepartment(department);
+                                      setData(
+                                        data.filter((item) =>
+                                          item.assigned.some((user) => user.departmentName === department)
+                                        )
+                                      );
                                     }}
                                   >
-                                    Tất cả phòng ban
+                                    {department}
                                   </button>
-
-                                  {/* Các phòng ban */}
-                                  {Array.from(new Set(users.map(user => user.departmentName))).map(department => (
-                                    <button
-                                      key={department}
-                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                      onClick={() => {
-                                        setSelectedDepartment(department);
-                                        setData(data.filter((item) =>
-                                          item.assigned.some((user) => user.departmentName === department)
-                                        )); // Lọc theo phòng ban
-                                        setShowDropdown(false); // Đóng dropdown
-                                      }}
-                                    >
-                                      {department}
-                                    </button>
-                                  ))}
-                                </div>
-                              }
-                            />
+                                ))}
+                              </div>
+                            }
+                          />
                             <Dropdown
                                 button={
                                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                     {selectedManufacturer === "Tất cả"
-                                      ? "Nhà sản xuất: Tất cả nhà sản xuất"
+                                      ? "Nhà sản xuất"
                                       : `Nhà sản xuất: ${selectedManufacturer}`}
                                   </button>
                                 }
@@ -771,7 +790,7 @@ const MonitorTable = () => {
                                 button={
                                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                     {selectedYear === "Tất cả"
-                                      ? "Năm sản xuất: Tất cả năm sản xuất"
+                                      ? "Năm sản xuất"
                                       : `Năm sản xuất: ${selectedYear}`}
                                   </button>
                                 }
@@ -809,9 +828,10 @@ const MonitorTable = () => {
                                   </div>
                                 }
                               />
-                        </div>
+                        
                     </div>
-                 </div>
+                   
+              </div>
 
       {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
   <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
@@ -821,10 +841,6 @@ const MonitorTable = () => {
                   <tr className="!border-px !border-gray-400" >
                     <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                         <p className="text-sm font-bold text-gray-500">TÊN THIẾT BỊ
-                        </p>
-                    </th>
-                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                        <p className="text-sm font-bold text-gray-500">LOẠI
                         </p>
                     </th>
                     <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
@@ -859,9 +875,6 @@ const MonitorTable = () => {
                     <span className="text-sm italic bold text-gray-500">
                       {item.manufacturer || "Không xác định"} - {item.releaseYear || "N/A"}
                     </span>
-                  </td>
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                    <p className="text-sm font-bold text-navy-700">{item.type}</p>
                   </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">{item.serial}
@@ -971,17 +984,6 @@ const MonitorTable = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-gray-600 font-medium mb-2">Phân loại</label>
-                          <select
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            value={newMonitor.type}
-                            onChange={(e) => setNewMonitor({ ...newMonitor, type: e.target.value })}
-                          >
-                            <option value="Monitor">Monitor</option>
-                            <option value="Desktop">Desktop</option>
-                          </select>
-                        </div>
-                        <div>
                           <label className="block text-gray-600 font-medium mb-2">Nhà sản xuất</label>
                           <input
                             type="text"
@@ -1033,43 +1035,7 @@ const MonitorTable = () => {
                       >
                         Cấu hình
                       </span>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-gray-600 font-medium mb-2">Processor</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            placeholder="Nhập bộ xử lý"
-                            value={newMonitor.specs?.processor || ""}
-                            onChange={(e) =>
-                              setNewMonitor({ ...newMonitor, specs: { ...newMonitor.specs, processor: e.target.value } })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-600 font-medium mb-2">RAM</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            placeholder="Nhập dung lượng RAM"
-                            value={newMonitor.specs?.ram || ""}
-                            onChange={(e) =>
-                              setNewMonitor({ ...newMonitor, specs: { ...newMonitor.specs, ram: e.target.value } })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-600 font-medium mb-2">Bộ Nhớ</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            placeholder="Nhập dung lượng Bộ nhớ"
-                            value={newMonitor.specs?.storage || ""}
-                            onChange={(e) =>
-                              setNewMonitor({ ...newMonitor, specs: { ...newMonitor.specs, storage: e.target.value } })
-                            }
-                          />
-                        </div>
+                      
                         <div>
                           <label className="block text-gray-600 font-medium mb-2">Màn hình</label>
                           <input
@@ -1082,7 +1048,6 @@ const MonitorTable = () => {
                             }
                           />
                         </div>
-                      </div>
                     </div>
 
                     {/* Trạng thái */}
@@ -1165,7 +1130,7 @@ const MonitorTable = () => {
                   <div className="flex justify-between items-center">
                     {/* Nút tải file mẫu */}
                     <a
-                      href="/sample-template.xlsx"
+                      href="/monitor-sample-upload.xlsx"
                       download
                       className="bg-[#009483] text-white px-4 py-2 rounded-md hover:bg-[#001635]"
                     >
@@ -1216,11 +1181,7 @@ const MonitorTable = () => {
                       const payload = {
                         ...editingMonitor,
                         releaseYear: editingMonitor.releaseYear || "",
-                        type: editingMonitor.type || "Monitor",
                         specs: {
-                          processor: editingMonitor.specs?.processor || "",
-                          ram: editingMonitor.specs?.ram || "",
-                          storage: editingMonitor.specs?.storage || "",
                           display: editingMonitor.specs?.display || "",
                         },
                         assigned:
@@ -1232,7 +1193,7 @@ const MonitorTable = () => {
                         console.log("Payload gửi lên server:", payload);
 
                       await axios.put(
-                        `/api/Monitors/${editingMonitor._id}`,
+                        `/api/monitors/${editingMonitor._id}`,
                         payload,
                         {
                           headers: {
@@ -1347,44 +1308,7 @@ const MonitorTable = () => {
                       }}
                     >
                       Cấu hình
-                    </span>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-gray-600 font-medium mb-2">Processor</label>
-                        <input
-                          type="text"
-                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                          placeholder="Nhập bộ xử lý"
-                          value={editingMonitor.specs?.processor || ""}
-                          onChange={(e) =>
-                            setEditingMonitor({ ...editingMonitor, specs: { ...editingMonitor.specs, processor: e.target.value } })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-600 font-medium mb-2">RAM</label>
-                        <input
-                          type="text"
-                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                          placeholder="Nhập dung lượng RAM"
-                          value={editingMonitor.specs?.ram || ""}
-                          onChange={(e) =>
-                            setEditingMonitor({ ...editingMonitor, specs: { ...editingMonitor.specs, ram: e.target.value } })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-600 font-medium mb-2">Bộ Nhớ</label>
-                        <input
-                          type="text"
-                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                          placeholder="Nhập dung lượng bộ nhớ"
-                          value={editingMonitor.specs?.storage || ""}
-                          onChange={(e) =>
-                            setEditingMonitor({ ...editingMonitor, specs: { ...editingMonitor.specs, storage: e.target.value } })
-                          }
-                        />
-                      </div>
+                    </span>       
                       <div>
                         <label className="block text-gray-600 font-medium mb-2">Màn hình</label>
                         <input
@@ -1397,9 +1321,7 @@ const MonitorTable = () => {
                           }
                         />
                       </div>
-                    </div>
                   </div>
-
                   {/* Trạng thái */}
                     <div
                       className="border rounded-lg p-4 mb-8 relative"
@@ -1531,6 +1453,41 @@ const MonitorTable = () => {
           </div>,
           document.body
           )}
+
+         {/* {-----------------------------------------/* Modal click /-----------------------------------------} */}
+      {showDetailModal && selectedMonitor && ReactDOM.createPortal(
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-1000"
+          style={{ zIndex: 1050 }}
+          onClick={(e) => {
+            // Đóng modal nếu người dùng nhấp ra ngoài modal
+            if (e.target === e.currentTarget) {
+              setSelectedMonitor(null);
+            }
+          }}
+          >
+            <div className=" w-3/4 max-w-4xl"
+            style={{ zIndex: 1050 }}
+            onClick={(e) => e.stopPropagation()}>
+              <MonitorProductCard
+                monitorData={{
+                  ...selectedMonitor,
+                  assigned: selectedMonitor?.assigned.map((user) => ({
+                    ...user,
+                    jobTitle: user.jobTitle || "Không xác định", // Thêm jobTitle
+                  })) || [],
+                  releaseYear: selectedMonitor.releaseYear || "Không có",
+                }}
+                onAddRepair={handleAddRepair} // Truyền hàm vào đây
+                onDeleteRepair={handleDeleteRepair}
+                onCloseModal={() => {
+                  setSelectedMonitor(null); // Reset laptop đã chọn
+                  setShowDetailModal(false); // Đóng modal
+                }} // Truyền hàm đóng modal
+              />
+            </div>
+          </div>,
+          document.body
+        )}    
       
     </div>
   );

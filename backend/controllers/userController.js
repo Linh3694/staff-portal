@@ -39,49 +39,29 @@ exports.getUsers = async (req, res) => {
   }
 };
 
-// Create User
 exports.createUser = async (req, res) => {
-  const { fullname, email, password, role, jobTitle, department } = req.body;
-
-  // Validate required fields
-  if (!fullname || !email || !password || !role) {
-    return res.status(400).json({ message: "Please provide all required information." });
-  }
-
   try {
-    // Check if email already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "Email is already in use." });
+    const { fullname, email, password, role, employeeCode } = req.body;
+
+    // Kiểm tra nếu mã nhân viên đã tồn tại
+    const existingCode = await User.findOne({ employeeCode });
+    if (existingCode) {
+      return res.status(400).json({ message: "Mã nhân viên đã tồn tại." });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new user
     const newUser = new User({
       fullname,
       email,
-      password: hashedPassword, // Save hashed password
+      password, // Nên hash mật khẩu trước khi lưu
       role,
-      jobTitle: jobTitle || "Not provided", // Default value if not provided
+      employeeCode, // Lưu mã nhân viên
     });
 
     await newUser.save();
-
-    // Return success message
-    res.status(201).json({
-      message: "User created successfully!",
-      user: {
-        fullname: newUser.fullname,
-        email: newUser.email,
-        role: newUser.role,
-        jobTitle: newUser.jobTitle,
-      },
-    });
+    res.status(201).json({ message: "Tạo người dùng thành công", user: newUser });
   } catch (error) {
-    console.error("Error creating user:", error.message);
-    res.status(500).json({ message: "Error creating user", error: error.message });
+    console.error("Error creating user:", error);
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
@@ -127,5 +107,41 @@ exports.deleteUser = async (req, res) => {
   } catch (error) {
     console.error("Error deleting user:", error.message);
     res.status(400).json({ message: "Error deleting user", error: error.message });
+  }
+};
+
+exports.updateAttendance = async (req, res) => {
+  try {
+    const { employeeCode, dateTime } = req.body;
+
+    // Kiểm tra các tham số bắt buộc
+    if (!employeeCode || !dateTime) {
+      return res.status(400).json({ message: "Thiếu thông tin mã nhân viên hoặc thời gian." });
+    }
+
+    // Tìm người dùng theo mã nhân viên
+    const user = await User.findOne({ employeeCode });
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng với mã nhân viên này." });
+    }
+
+    // Khởi tạo trường attendanceLog nếu chưa tồn tại
+    if (!Array.isArray(user.attendanceLog)) {
+      user.attendanceLog = [];
+    }
+
+    // Thêm bản ghi chấm công mới
+    user.attendanceLog.push({
+      time: dateTime,
+      createdAt: new Date(),
+    });
+
+    // Lưu lại bản ghi vào database
+    await user.save();
+
+    res.status(200).json({ message: "Cập nhật chấm công thành công.", attendanceLog: user.attendanceLog });
+  } catch (error) {
+    console.error("Error updating attendance:", error);
+    res.status(500).json({ message: "Lỗi máy chủ.", error });
   }
 };

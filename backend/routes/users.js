@@ -118,7 +118,8 @@ router.post('/bulk-update', async (req, res) => {
         filter: { fullname: user.fullname }, // Tìm kiếm bằng fullname
         update: {
           department: user.department, // Cập nhật department
-          jobTitle: user.title,        // Cập nhật title
+          jobTitle: user.title,
+          employeeCode: user.employeeCode        // Cập nhật mã nhân viên
         },
         upsert: false, // Không tạo mới nếu không tìm thấy fullname
       },
@@ -244,6 +245,9 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ message: "Lỗi máy chủ.", error: error.message });
   }
 });
+
+router.post("/attendance", userController.updateAttendance);
+
 
 // Cập nhật avatar người dùng
 router.put('/:id/avatar', upload.single('avatar'), userController.updateAvatar);

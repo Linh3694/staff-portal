@@ -19,8 +19,8 @@ import Dropdown from "../components/function/dropdown";
 
 const Dashboard = () => {
   const tabMapping = {
-    "Quản lý thiết bị": ["Laptop || Desktop", "Màn hình", "Máy in", "Máy chiếu/ Tivi tương tác", "Khác"],
-    "Quản lý chấm công": ["Chấm công theo ngày", "Báo cáo tuần", "Lịch sử chấm công"],
+    "Quản lý thiết bị": ["Laptop || Desktop", "Màn hình", "Máy in", "Thiết bị trình chiếu", "Khác"],
+    "Quản lý chấm công": ["Báo cáo chấm công", "Phê duyệt đơn"],
     "Quản lý người dùng": ["Tài khoản", "Quyền hạn", "Hoạt động gần đây"],
   };
 
@@ -39,6 +39,7 @@ const Dashboard = () => {
     email: "",
     title: "",
     department: "",
+    attendanceLog: [],
   });
   const profileMenuRef = useRef(null);
   const [notifications, setNotifications] = useState([]);
@@ -233,6 +234,7 @@ const Dashboard = () => {
         avatarUrl: data.avatarUrl || "http://via.placeholder.com/150",
         email: data.email || "",
         department: data.department || "Không xác định",
+        attendance: data.attendanceLog || [],
       });
 
       // Cập nhật localStorage
@@ -263,7 +265,7 @@ const renderContent = () => {
                     {activeTab === "Laptop || Desktop" && <LaptopTable />}
                     {activeTab === "Màn hình" && <MonitorTable />}
                     {activeTab === "Máy in" && <PrinterTable />}
-                    {activeTab === "Máy chiếu/ Tivi tương tác" && <ProjectorTable />}
+                    {activeTab === "Thiết bị trình chiếu" && <ProjectorTable />}
                     {activeTab === "Khác" && <AccessoriesTable />}
                   </div>
                 );
@@ -271,9 +273,8 @@ const renderContent = () => {
               case "Quản lý chấm công":
                 return (
                   <div>
-                    {activeTab === "Chấm công theo ngày" && <Attendance currentUser={currentUser} view="daily"/>}
-                    {activeTab === "Báo cáo tuần" && <Attendance view="weekly" />}
-                    {activeTab === "Lịch sử chấm công" && <Attendance view="history" />}
+                    {activeTab === "Báo cáo chấm công" && <Attendance currentUser={currentUser} view="daily"/>}
+                    {activeTab === "Phê duyệt đơn" && <Attendance view="history" />}
                   </div>
                 );
 

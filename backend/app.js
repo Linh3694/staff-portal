@@ -7,6 +7,10 @@ const cors = require("cors");
 const User = require("./models/Users");
 const authRoutes = require("./routes/auth");
 const laptopRoutes = require("./routes/laptops");
+const monitorRoutes = require("./routes/monitors");
+const printerRoutes = require("./routes/printers");
+const projectorRoutes = require("./routes/projectors");
+const roomRoutes = require("./routes/roomRoutes");
 const userRoutes = require("./routes/users");
 const notificationRoutes = require('./routes/notifications');
 const Notification = require('./models/notification'); // Adjust the path as necessary
@@ -14,8 +18,13 @@ const validateToken = require("./middleware/validateToken");
 const clientsSync = require('./routes/clientsSync'); // Import the clientsSync router
 const app = express();
 const Laptop = require("./models/Laptop");
+const Monitor = require("./models/Monitor");
+const Printer = require("./models/Printer");
 const { exec } = require('child_process');
 const AcsEvent = require('./models/AcsEvent');
+
+
+
 
 require("dotenv").config();
 
@@ -60,10 +69,14 @@ app.use(cors());
 app.use("/api/laptops", laptopRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/auth", authRoutes); // Route xác thực
-app.use("/api/laptops", laptopRoutes); // Route laptops
+app.use("/api/monitors", monitorRoutes); // Route laptops
 app.use("/api/users", userRoutes); // Route users
 app.use("/api/clients-sync", clientsSync.router); // Use the clientsSync router
 app.use("/api/notifications", notificationRoutes); // Route notifications
+app.use("/api/printers", printerRoutes); // Route printers
+app.use("/api/projectors", projectorRoutes); // Route projectors
+app.use("/api/rooms", roomRoutes);
+
 
 const syncClientsFromAzure = require("./routes/clientsSync").syncClientsFromAzure;
 app.get("/api/sync-clients", async (req, res) => {
@@ -113,18 +126,78 @@ app.post("/api/laptops/bulk-upload", async (req, res) => {
   }
 });
 
-app.post('/api/attendances/save', async (req, res) => {
+app.post("/api/monitors/bulk-upload", async (req, res) => {
   try {
-    const attendanceData = req.body;
+    const monitors = req.body.monitors;
 
-    // Kiểm tra nếu không có dữ liệu
-    if (!attendanceData || !attendanceData.name || !attendanceData.time) {
-      return res.status(400).json({ message: 'Missing required fields: name or time.' });
+    if (!monitors || !Array.isArray(monitors)) {
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
     }
 
-    // Tạo một sự kiện mới và lưu vào MongoDB
+    const invalidMonitors = monitors.filter(
+      (monitor) =>
+        !monitor.name || !monitor.manufacturer || !monitor.serial || !monitor.status
+    );
+
+    if (invalidMonitors.length > 0) {
+      return res.status(400).json({
+        message: "Có màn hình không hợp lệ, kiểm tra lại dữ liệu!",
+        invalidMonitors,
+      });
+    }
+
+    await Monitor.insertMany(monitors);
+    res.status(201).json({ message: "Tải dữ liệu lên thành công!" });
+  } catch (error) {
+    console.error("Lỗi khi tải dữ liệu lên:", error);
+    res.status(500).json({ message: "Lỗi máy chủ", error });
+  }
+});
+app.post("/api/printers/bulk-upload", async (req, res) => {
+  try {
+    const printers = req.body.monitors;
+
+    if (!printers || !Array.isArray(printers)) {
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
+    }
+
+    const invalidPrinters = printers.filter(
+      (printer) =>
+        !printer.name || !printer.manufacturer || !printer.serial || !printer.status
+    );
+
+    if (invalidPrinters.length > 0) {
+      return res.status(400).json({
+        message: "Có máy in không hợp lệ, kiểm tra lại dữ liệu!",
+        invalidPrinters,
+      });
+    }
+
+    await Printer.insertMany(printers);
+    res.status(201).json({ message: "Tải dữ liệu lên thành công!" });
+  } catch (error) {
+    console.error("Lỗi khi tải dữ liệu lên:", error);
+    res.status(500).json({ message: "Lỗi máy chủ", error });
+  }
+});
+
+app.post('/api/attendances/save', async (req, res) => {
+  try {
+    console.log('Received data:', req.body);
+    const { fingerprintCode, dateTime } = req.body;
+    // Chuyển đổi dateTime về dạng Date
+    const parsedDateTime = new Date(dateTime);
+    console.log("Parsed DateTime:", parsedDateTime); // Log để kiểm tra
+    if (isNaN(parsedDateTime.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+    }
+    const attendanceData = {
+      employeeNoString: fingerprintCode,
+      dateTime: parsedDateTime, // Chuyển thành ISODate nếu cần
+    };
     const acsEvent = new AcsEvent(attendanceData);
     await acsEvent.save();
+    console.log('Saved attendance:', attendanceData);
 
     res.status(200).json({ message: 'Attendance data saved successfully.' });
   } catch (error) {
@@ -136,7 +209,7 @@ app.post('/api/attendances/save', async (req, res) => {
 app.post('/api/sync-attendance', (req, res) => {
   const scriptPath = path.join(__dirname, 'scripts', 'hikcon.py');
   const venvPath = path.join(__dirname, 'venv', 'bin', 'python3'); // Adjust the path if necessary
-  exec(`${venvPath} ${scriptPath}`, (error, stdout, stderr) => {
+  exec(`${venvPath} ${scriptPath}`, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
     if (error) {
       console.error(`Error executing script: ${error.message}`);
       return res.status(500).json({ message: 'Đồng bộ thất bại.' });

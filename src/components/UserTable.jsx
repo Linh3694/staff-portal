@@ -15,7 +15,7 @@ const UserTable = ({ handleSyncClients }) => {
   const [avatarUrl, setAvatarUrl] = useState('');
 
 
-  // Lấy dữ liệu từ /api/users
+  // Lấy dữ liệu từ /api//users
   const fetchUsers = async () => {
     try {
       const response = await fetch("/api/users", {
@@ -97,6 +97,7 @@ const UserTable = ({ handleSyncClients }) => {
         fullname: row.fullname,
         title: row.title,
         department: row.department,
+        employeeCode: row.employeeCode,
       }));
   
       // Gửi dữ liệu lên server
@@ -268,9 +269,9 @@ const UserTable = ({ handleSyncClients }) => {
   };
 
   return (
-    <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
+    <div className="w-full h-full px-6 pb-6 border sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
           <div className="flex justify-between items-center mb-4 mt-3">
-            <div className="text-xl font-bold text-navy-700 dark:text-white">Danh sách người dùng</div>
+            <div className="text-2xl font-bold text-navy-700">Danh sách người dùng</div>
           </div>
 
       {/* Thanh tìm kiếm */}

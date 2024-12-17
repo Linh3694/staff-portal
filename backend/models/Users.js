@@ -10,7 +10,6 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true, // Yêu cầu bắt buộc mật khẩu
     minlength: 8, // Đảm bảo mật khẩu có độ dài tối thiểu
   },
   fullname: {
@@ -51,6 +50,16 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  employeeCode: { 
+    type: String, 
+    unique: true }, // Thêm trường Mã nhân viên
+
+  attendanceLog: [
+      {
+        time: { type: String },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ]
 });
 
 
