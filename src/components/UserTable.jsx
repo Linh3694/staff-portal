@@ -583,6 +583,16 @@ const UserTable = ({ handleSyncClients }) => {
                         onChange={(e) => setSelectedUser({ ...selectedUser, fullname: e.target.value })}
                         className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
                       />
+                        {/* Thêm input Mã nhân viên */}
+                      <label className="block mt-4">
+                        Mã nhân viên:
+                        <input
+                          type="text"
+                          value={selectedUser.employeeCode || ""}
+                          onChange={(e) => setSelectedUser({ ...selectedUser, employeeCode: e.target.value })}
+                          className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                        />
+                      </label>
                       <label className="block mt-4">
                         Chức vụ:
                         <input
