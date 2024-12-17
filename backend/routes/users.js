@@ -36,6 +36,31 @@ router.get('/:id', validateToken, async (req, res) => {
   }
 });
 
+router.put("/attendance", async (req, res) => {
+  const { employeeCode, attendanceLog } = req.body;
+
+  if (!employeeCode || !attendanceLog || !attendanceLog.length) {
+    return res.status(400).json({ message: "Thiếu dữ liệu đầu vào" });
+  }
+
+  try {
+    const user = await User.findOneAndUpdate(
+      { employeeCode },
+      { $push: { attendanceLog: { $each: attendanceLog } } }, // Thêm log mới
+      { new: true, upsert: false }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy nhân viên" });
+    }
+
+    return res.status(200).json({ message: "Cập nhật thành công", user });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
 // Endpoint cập nhật thông tin người dùng
 router.put('/users/:id', async (req, res) => {
   const userId = req.params.id;
@@ -247,6 +272,31 @@ router.put("/:id", async (req, res) => {
 });
 
 router.post("/attendance", userController.updateAttendance);
+
+// Lấy attendanceLog theo employeeCode
+router.get("/attendance/:employeeCode", async (req, res) => {
+  try {
+    const { employeeCode } = req.params;
+
+    // Tìm user có employeeCode tương ứng
+    const user = await User.findOne({ employeeCode }, "attendanceLog");
+
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy nhân viên này" });
+    }
+
+    // Trả về danh sách "time" từ attendanceLog
+    const attendanceTimes = user.attendanceLog.map((log) => log.time);
+
+    return res.status(200).json({
+      employeeCode: employeeCode,
+      attendanceTimes: attendanceTimes,
+    });
+  } catch (error) {
+    console.error("Error fetching attendance log:", error.message);
+    return res.status(500).json({ message: "Lỗi server" });
+  }
+});
 
 
 // Cập nhật avatar người dùng

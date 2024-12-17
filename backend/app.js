@@ -10,7 +10,7 @@ const laptopRoutes = require("./routes/laptops");
 const monitorRoutes = require("./routes/monitors");
 const printerRoutes = require("./routes/printers");
 const projectorRoutes = require("./routes/projectors");
-const roomRoutes = require("./routes/roomRoutes");
+const roomRoutes = require("./routes/room");
 const userRoutes = require("./routes/users");
 const notificationRoutes = require('./routes/notifications');
 const Notification = require('./models/notification'); // Adjust the path as necessary
@@ -22,6 +22,8 @@ const Monitor = require("./models/Monitor");
 const Printer = require("./models/Printer");
 const { exec } = require('child_process');
 const AcsEvent = require('./models/AcsEvent');
+const attendanceRoutes = require("./routes/users");
+
 
 
 
@@ -76,6 +78,7 @@ app.use("/api/notifications", notificationRoutes); // Route notifications
 app.use("/api/printers", printerRoutes); // Route printers
 app.use("/api/projectors", projectorRoutes); // Route projectors
 app.use("/api/rooms", roomRoutes);
+app.use("/api/users", attendanceRoutes);
 
 
 const syncClientsFromAzure = require("./routes/clientsSync").syncClientsFromAzure;

@@ -112,36 +112,26 @@ exports.deleteUser = async (req, res) => {
 
 exports.updateAttendance = async (req, res) => {
   try {
-    const { employeeCode, dateTime } = req.body;
+    const { employeeCode, attendanceLog } = req.body;
 
-    // Kiểm tra các tham số bắt buộc
-    if (!employeeCode || !dateTime) {
-      return res.status(400).json({ message: "Thiếu thông tin mã nhân viên hoặc thời gian." });
+    if (!employeeCode || !attendanceLog || !attendanceLog.length) {
+      return res.status(400).json({ message: "Thiếu dữ liệu đầu vào" });
     }
 
-    // Tìm người dùng theo mã nhân viên
-    const user = await User.findOne({ employeeCode });
+    // Tìm user bằng employeeCode và cập nhật attendanceLog
+    const user = await User.findOneAndUpdate(
+      { employeeCode }, // Bộ lọc sử dụng employeeCode
+      { $push: { attendanceLog: { $each: attendanceLog } } }, // Thêm attendanceLog mới
+      { new: true, upsert: false }
+    );
+
     if (!user) {
-      return res.status(404).json({ message: "Không tìm thấy người dùng với mã nhân viên này." });
+      return res.status(404).json({ message: "Không tìm thấy nhân viên" });
     }
 
-    // Khởi tạo trường attendanceLog nếu chưa tồn tại
-    if (!Array.isArray(user.attendanceLog)) {
-      user.attendanceLog = [];
-    }
-
-    // Thêm bản ghi chấm công mới
-    user.attendanceLog.push({
-      time: dateTime,
-      createdAt: new Date(),
-    });
-
-    // Lưu lại bản ghi vào database
-    await user.save();
-
-    res.status(200).json({ message: "Cập nhật chấm công thành công.", attendanceLog: user.attendanceLog });
+    return res.status(200).json({ message: "Cập nhật thành công", user });
   } catch (error) {
-    console.error("Error updating attendance:", error);
-    res.status(500).json({ message: "Lỗi máy chủ.", error });
+    console.error("Error updating attendance:", error.message);
+    return res.status(500).json({ message: "Lỗi máy chủ.", error: error.message });
   }
 };
