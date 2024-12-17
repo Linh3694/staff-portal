@@ -132,33 +132,34 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.post('/bulk-update', async (req, res) => {
+router.put("/bulk-update", async (req, res) => {
   try {
     const { users } = req.body;
+
+    console.log("Dữ liệu nhận được từ frontend:", req.body);
+
+    // Validate dữ liệu
     if (!Array.isArray(users)) {
-      return res.status(400).json({ message: 'Invalid data format. "users" should be an array.' });
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ: users phải là mảng" });
     }
 
-    // Tạo danh sách thao tác bulkWrite dựa trên fullname
-    const bulkOps = users.map((user) => ({
-      updateOne: {
-        filter: { fullname: user.fullname }, // Tìm kiếm bằng fullname
-        update: {
-          department: user.department, // Cập nhật department
-          jobTitle: user.title,
-          employeeCode: user.employeeCode        // Cập nhật mã nhân viên
-        },
-        upsert: false, // Không tạo mới nếu không tìm thấy fullname
-      },
-    }));
+    // Lặp qua danh sách người dùng và kiểm tra email
+    const updatePromises = users.map(async (user) => {
+      if (!user.email) throw new Error("Email là bắt buộc");
 
-    // Thực hiện cập nhật hàng loạt
-    await User.bulkWrite(bulkOps);
+      return User.findOneAndUpdate(
+        { email: user.email },
+        { $set: user },
+        { new: true, upsert: false }
+      );
+    });
 
-    res.status(200).json({ message: 'Bulk update successful' });
+    await Promise.all(updatePromises);
+
+    res.json({ message: "Cập nhật thành công!" });
   } catch (error) {
-    console.error('Error in bulk update:', error);
-    res.status(500).json({ message: 'Server error', error });
+    console.error("Lỗi khi cập nhật:", error.message);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 });
 

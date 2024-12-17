@@ -113,12 +113,12 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullname, email, role, status, password, employeeCode } = req.body;
-    const updates = { fullname, email, role, status, employeeCode };
+    const { fullname, email, department, jobTitle, role, status, password, employeeCode } = req.body;
+    const updates = { fullname, email, department, jobTitle, role, status, employeeCode };
 
 
     if (employeeCode) {
-      updates.employeeCode = employeeCode; // Chỉ thêm khi employeeCode tồn tại
+      updates.employeeCode = employeeCode;
     }
     
     // Validate required fields
