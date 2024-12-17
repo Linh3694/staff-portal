@@ -197,51 +197,106 @@ const UserTable = ({ handleSyncClients }) => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      console.log("Dữ liệu từ file Excel:", jsonData); // Log kiểm tra
+
   
-      // Chỉ giữ lại các trường cần thiết: fullname, title, department
+      // Chuyển dữ liệu Excel thành mảng với email làm gốc
       const filteredData = jsonData.map((row) => ({
-        fullname: row.fullname,
-        title: row.title,
-        department: row.department,
-        employeeCode: row.employeeCode,
+        email: row.email,
+        fullname: row.fullname || undefined,
+        jobTitle: row.title || undefined,
+        department: row.department || undefined,
+        employeeCode: row.employeeCode || undefined,
       }));
+
+      console.log("Dữ liệu định dạng chuẩn:", filteredData); // Log kiểm tra
+
   
-      // Gửi dữ liệu lên server
-      await uploadDataToServer(filteredData);
+      // Gửi từng bản ghi lên server để cập nhật theo email
+      for (const userData of filteredData) {
+        if (!userData.email) continue; // Bỏ qua nếu không có email
   
-      // Hiển thị thông báo thành công
-      toast.success('Dữ liệu đã được tải lên và xử lý thành công!');
+        const response = await fetch(`/api/users/bulk-update`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(userData), // Gửi dữ liệu cập nhật
+        });
+  
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Lỗi khi cập nhật user ${userData.email}:`, errorText);
+          toast.error(`Cập nhật thất bại cho email: ${userData.email}`);
+        }
+      }
+  
+      // Làm mới danh sách người dùng sau khi cập nhật
+      await fetchUsers();
+      toast.success('Dữ liệu đã được cập nhật thành công!');
     } catch (error) {
       console.error('Error reading Excel file:', error);
       toast.error('Lỗi khi xử lý file Excel. Vui lòng thử lại.');
     }
   };
   
-  const handleExportToExcel = () => {
-    // Tạo dữ liệu export
-    const dataToExport = clients.map((client) => ({
-      Tên: client.fullname,
-      Email: client.email || "Không có",
-      Mã_nhân_viên : client.employeeCode || "Không có",
-      Chức_Vụ: client.jobTitle || "Không có",
-      Phòng_Ban: client.department || "Không có",
-      Vai_Trò: client.role,
-      Tình_Trạng: client.disabled ? "Inactive" : "Active",
-    }));
+  const handleExportToExcel = async () => {
+    try {
+      const enrichedClients = await Promise.all(
+        clients.map(async (client) => {
+          try {
+            // Fetch thông tin assigned-items cho từng user
+            const response = await fetch(`/api/users/${client._id}/assigned-items`, {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            });
   
-    // Tạo worksheet từ dữ liệu
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            if (!response.ok) throw new Error("Failed to fetch assigned items.");
   
-    // Tạo workbook và thêm worksheet
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách người dùng");
+            const assignedItems = await response.json();
   
-    // Ghi workbook ra file Excel
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+            return {
+              ...client,
+              assignedItems: assignedItems.map(
+                (item) => `${item.name || "Không xác định"} (SN: ${item.serial || "N/A"})`
+              ),
+            };
+          } catch (error) {
+            console.error(`Error fetching assigned items for user ${client._id}:`, error.message);
+            return {
+              ...client,
+              assignedItems: ["Không có"],
+            };
+          }
+        })
+      );
   
-    // Tải file xuống
-    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, "Danh_sach_nguoi_dung.xlsx");
+      // Chuẩn bị dữ liệu cho Excel
+      const dataToExport = enrichedClients.map((client) => ({
+        Tên: client.fullname || "Không có",
+        Email: client.email || "Không có",
+        Mã_nhân_viên: client.employeeCode || "Không có",
+        Chức_Vụ: client.jobTitle || "Không có",
+        Phòng_Ban: client.department || "Không có",
+        Vai_Trò: client.role || "Không có",
+        "Thiết_bị_sử_dụng": client.assignedItems.join("; "), // Nối các thiết bị thành chuỗi
+      }));
+  
+      // Tạo worksheet và workbook
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách người dùng");
+  
+      // Xuất file Excel
+      XLSX.writeFile(workbook, "Danh_sach_nguoi_dung.xlsx");
+      toast.success("Xuất file Excel thành công!");
+    } catch (error) {
+      console.error("Error exporting Excel:", error.message);
+      toast.error("Lỗi khi xuất file Excel.");
+    }
   };
 
   // Lọc clients theo từ khóa tìm kiếm
@@ -338,7 +393,8 @@ const UserTable = ({ handleSyncClients }) => {
         throw new Error(`Error: ${response.status}`);
       }
   
-      toast.error("Cập nhật người dùng thành công!");
+      toast.success("Cập nhật người dùng thành công!");
+      await fetchUsers(); // Làm mới dữ liệu
       const updatedClient = await response.json(); // Lấy dữ liệu cập nhật từ backend
       setClients((prevClients) =>
         prevClients.map((client) =>
@@ -501,7 +557,7 @@ const UserTable = ({ handleSyncClients }) => {
                 </td>
                 <td className="min-w-[150px] border-white/0 py-3 pr-4">
                   <p className="text-sm font-semibold text-navy-700">{client.jobTitle || "Not Provided"}</p>
-                  <p className="text-sm font-semibold">{client.department || "Not Provided"}</p>
+                  <p className="text-sm font-semibold italic">{client.department || "Not Provided"}</p>
                 </td>
                 <td className="min-w-[150px] border-white/0 py-3 pr-4">
                   <p className="text-sm font-semibold text-navy-700">{client.role}</p>
