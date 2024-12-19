@@ -10,6 +10,7 @@ const laptopRoutes = require("./routes/laptops");
 const monitorRoutes = require("./routes/monitors");
 const printerRoutes = require("./routes/printers");
 const projectorRoutes = require("./routes/projectors");
+const toolRoutes = require("./routes/tool");
 const roomRoutes = require("./routes/room");
 const userRoutes = require("./routes/users");
 const notificationRoutes = require('./routes/notifications');
@@ -20,6 +21,8 @@ const app = express();
 const Laptop = require("./models/Laptop");
 const Monitor = require("./models/Monitor");
 const Printer = require("./models/Printer");
+const Projector = require("./models/Projector");
+const Tool = require("./models/Tool");
 const { exec } = require('child_process');
 const AcsEvent = require('./models/AcsEvent');
 const attendanceRoutes = require("./routes/users");
@@ -79,6 +82,7 @@ app.use("/api/printers", printerRoutes); // Route printers
 app.use("/api/projectors", projectorRoutes); // Route projectors
 app.use("/api/rooms", roomRoutes);
 app.use("/api/users", attendanceRoutes);
+app.use("/api/tool", toolRoutes);
 
 
 const syncClientsFromAzure = require("./routes/clientsSync").syncClientsFromAzure;
@@ -130,30 +134,29 @@ app.post("/api/laptops/bulk-upload", async (req, res) => {
 });
 
 app.post("/api/monitors/bulk-upload", async (req, res) => {
+  const { monitors } = req.body;
+
   try {
-    const monitors = req.body.monitors;
+    // Lấy danh sách các serial gửi lên
+    const serials = monitors.map((monitor) => monitor.serial);
 
-    if (!monitors || !Array.isArray(monitors)) {
-      return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
-    }
+    // Kiểm tra serial nào đã tồn tại trong database
+    const existingMonitors = await Monitor.find({ serial: { $in: serials } });
+    const existingSerials = existingMonitors.map((monitor) => monitor.serial);
 
-    const invalidMonitors = monitors.filter(
-      (monitor) =>
-        !monitor.name || !monitor.manufacturer || !monitor.serial || !monitor.status
-    );
-
-    if (invalidMonitors.length > 0) {
+    if (existingSerials.length > 0) {
       return res.status(400).json({
-        message: "Có màn hình không hợp lệ, kiểm tra lại dữ liệu!",
-        invalidMonitors,
+        message: "Các serial đã tồn tại.",
+        errors: existingSerials.map((serial) => ({ serial })),
       });
     }
 
+    // Thêm mới monitors vào database
     await Monitor.insertMany(monitors);
-    res.status(201).json({ message: "Tải dữ liệu lên thành công!" });
+    res.status(201).json({ addedMonitors: monitors.length });
   } catch (error) {
-    console.error("Lỗi khi tải dữ liệu lên:", error);
-    res.status(500).json({ message: "Lỗi máy chủ", error });
+    console.error("Lỗi server:", error);
+    res.status(500).json({ message: "Có lỗi xảy ra khi thêm Monitor!" });
   }
 });
 app.post("/api/printers/bulk-upload", async (req, res) => {
@@ -180,6 +183,63 @@ app.post("/api/printers/bulk-upload", async (req, res) => {
     res.status(201).json({ message: "Tải dữ liệu lên thành công!" });
   } catch (error) {
     console.error("Lỗi khi tải dữ liệu lên:", error);
+    res.status(500).json({ message: "Lỗi máy chủ", error });
+  }
+});
+
+app.post("/api/projectors/bulk-upload", async (req, res) => {
+  try {
+    const projectors = req.body.projectors;
+
+    if (!projectors || !Array.isArray(projectors)) {
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
+    }
+
+    const invalidProjectors = projectors.filter(
+      (projector) =>
+        !projector.name || !projector.serial || !projector.status
+    );
+
+    if (invalidProjectors.length > 0) {
+      return res.status(400).json({
+        message: "Có laptop không hợp lệ, kiểm tra lại dữ liệu!",
+        invalidProjectors,
+      });
+    }
+
+    await Laptop.insertMany(projectors);
+    res.status(201).json({ message: "Tải dữ liệu lên thành công!" });
+  } catch (error) {
+    console.error("Lỗi khi tải dữ liệu lên:", error);
+    res.status(500).json({ message: "Lỗi máy chủ", error });
+  }
+});
+
+// Endpoint để upload bulk dữ liệu Tool
+app.post("/api/tool/bulk-upload", async (req, res) => {
+  try {
+    const tools = req.body.tools;
+
+    if (!tools || !Array.isArray(tools)) {
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
+    }
+
+    const invalidTools = tools.filter(
+      (tool) =>
+        !tool.name || !tool.serial || !tool.status
+    );
+
+    if (invalidTools.length > 0) {
+      return res.status(400).json({
+        message: "Có công cụ không hợp lệ, kiểm tra lại dữ liệu!",
+        invalidTools,
+      });
+    }
+
+    await Tool.insertMany(tools);
+    res.status(201).json({ message: "Tải dữ liệu công cụ lên thành công!" });
+  } catch (error) {
+    console.error("Lỗi khi tải dữ liệu công cụ lên:", error);
     res.status(500).json({ message: "Lỗi máy chủ", error });
   }
 });

@@ -93,7 +93,7 @@ class AcsEventRequester:
         return formatted_data
     
     def upload_to_backend(self, data):
-        url = "https://staff-portal.wellspring.edu.vn/api/users/attendance"  # API backend
+        url = "http://localhost:5001/api/users/attendance"  # API backend
         headers = {"Content-Type": "application/json"}
         successful_uploads = 0
         failed_uploads = 0
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     credentials_dir = "./"  # Thư mục chứa các file credentials
     credentials_files = [f for f in os.listdir(credentials_dir) if f.startswith("credentials") and f.endswith(".txt")]
 
-    days = 7
+    days = 2
 
     for credentials_file in credentials_files:
         print(f"\n[Đang đồng bộ từ file: {credentials_file}]")

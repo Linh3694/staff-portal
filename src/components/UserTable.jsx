@@ -139,30 +139,6 @@ const UserTable = ({ handleSyncClients }) => {
     }
   };
 
-  const uploadDataToServer = async (data) => {
-    try {
-      const response = await fetch('/api/users/bulk-update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ users: data }),
-      });
-  
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText}`);
-      }
-  
-      // Làm mới dữ liệu bảng sau khi cập nhật thành công
-      fetchUsers();
-    } catch (error) {
-      console.error('Error uploading data to server:', error.message);
-      toast.error('Lỗi khi tải dữ liệu lên server.');
-    }
-  };
-
 
   const handleShowProfile = async (user) => {
     setSelectedUser(user);

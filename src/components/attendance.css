@@ -1,0 +1,81 @@
+.attendance-container {
+    padding: 20px;
+    /* background-color: #f9f9f9; */
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+    color: #002147;
+  }
+  
+  .date-picker {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  
+  /* Swiper Container */
+  .mySwiper {
+    width: 100%;
+    padding: 5px 0;
+    padding-top: 20px; /* Tạo khoảng trống trên dưới */
+    padding-bottom: 20px;
+  }
+  .swiper-slide {
+    margin: 0; /* Xóa margin mặc định */
+    padding: 0; /* Xóa padding thừa */
+    width: 300px; /* Kích thước cố định */
+    position: relative; /* Đảm bảo thẻ không tràn ra ngoài */
+    /* background: #f6f6f6; */
+  }
+  .swiper-slide .scale-110 {
+    transform: scale(1.1);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  .swiper-slide .scale-100 {
+    transform: scale(1);
+  }
+  .swiper-button-next, .swiper-button-prev {
+    display: none; /* Ẩn nút điều hướng nếu không cần */
+  }
+  
+  
+  .card {
+    width: 150px;
+    height: 120px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .card:hover {
+    transform: scale(1.05);
+  }
+  
+  .card.highlight {
+    background: #002147; /* Highlight khi click */
+    color: white;
+    transform: scale(1.1);
+  }
+  
+  .card.auto-highlight {
+    background: #ffcc00; /* Highlight cho ngày hôm nay */
+    color: #002147;
+  }

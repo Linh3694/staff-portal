@@ -11,16 +11,14 @@ const repairSchema = new mongoose.Schema({
   },
 });
 
-const projectorSchema = new mongoose.Schema({
+const toolSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  type: { type: String, enum: ['Máy chiếu', 'Tivi', 'Màn hình tương tác'] }, // Thêm trường phân loại
-  manufacturer: { type: String },
   serial: { type: String, required: true },
   releaseYear: { type: Number },
   assigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   status: { type: String, required: true },
   repairs: [repairSchema],
-  updates: [  
+  updates: [
     {
       date: { type: Date, default: Date.now },
       version: { type: String },
@@ -30,4 +28,4 @@ const projectorSchema = new mongoose.Schema({
 });
 
 
-module.exports = mongoose.model("Projector", projectorSchema);
+module.exports = mongoose.model("Tool", toolSchema);

@@ -34,12 +34,6 @@ const ProjectorTable = () => {
             assigned: [],
             status: "Active",
             releaseYear: "",
-            specs: {
-              processor: "",
-              ram: "",
-              storage: "",
-              display: "",
-          },
           });
         const [showEditModal, setShowEditModal] = useState(false);
         const [filteredUsers, setFilteredUsers] = useState([]); // Lưu danh sách gợi ý tạm thời
@@ -421,7 +415,7 @@ const ProjectorTable = () => {
         
                     // Chuẩn hóa dữ liệu
                     const normalizedData = sheetData.map((row, index) => {
-                        if (!row["Tên Thiết Bị (name)"] || !row["Nhà Sản Xuất (manufacturer)"] || !row["Serial (serial)"]) {
+                        if (!row["Tên Thiết Bị (name)"] ||  !row["Serial (serial)"]) {
                             console.error(`Hàng ${index + 1} bị thiếu dữ liệu bắt buộc.`);
                             return null;
                         }
@@ -444,19 +438,19 @@ const ProjectorTable = () => {
                         }); 
         
                         return {
-                            name: row["Tên Thiết Bị (name)"] || "",
-                            type: row["Loại (type)"] || "Máy chiếu",
-                            manufacturer: row["Nhà Sản Xuất (manufacturer)"] || "",
-                            serial: row["Serial (serial)"] || "",
-                            status: row["Trạng Thái (status)"] === "Đang sử dụng"
-                                  ? "Active"
-                                  : row["Trạng Thái (status)"] === "Chờ Cấp Phát"
-                                  ? "Standby"
-                                  : row["Trạng Thái (status)"] === "Hỏng"
-                                  ? "Broken"
-                                  : "Không xác định",
-                            assigned: assignedIds,
-                            releaseYear: row["Năm đưa vào sử dụng (releaseYear)"] || "",
+                          name: row["Tên Thiết Bị (name)"] || "N/A",
+                          type: row["Loại Thiết Bị (type)"] || "Máy chiếu",
+                          manufacturer: row["Nhà Sản Xuất (manufacturer)"] || "",
+                          serial: row["Serial (serial)"] || "",
+                          status: row["Trạng Thái (status)"] === "Đang sử dụng"
+                                ? "Active"
+                                : row["Trạng Thái (status)"] === "Chờ Cấp Phát"
+                                ? "Standby"
+                                : row["Trạng Thái (status)"] === "Hỏng"
+                                ? "Broken"
+                                : "Không xác định",
+                          assigned: assignedIds,
+                          releaseYear: row["Năm đưa vào sử dụng (releaseYear)"] || "",
                         };
                     }).filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
         
@@ -495,81 +489,83 @@ const ProjectorTable = () => {
 
         const handleConfirmUpload = async () => {
           if (!parsedData || parsedData.length === 0) {
-              toast.error("Không có dữ liệu để upload. Vui lòng kiểm tra file Excel!",
-                {
+            toast.error("Không có dữ liệu để upload. Vui lòng kiểm tra file Excel!", {
+              className: "toast-error",
+              progressClassName: "Toastify__progress-bar",
+            });
+            return;
+          }
+        
+          // Kiểm tra serial trùng lặp
+          const serials = parsedData.map((item) => item.serial);
+          const duplicateSerials = serials.filter(
+            (serial, index) => serials.indexOf(serial) !== index
+          );
+          if (duplicateSerials.length > 0) {
+            toast.error(`Serial trùng lặp trong file: ${duplicateSerials.join(", ")}`, {
+              className: "toast-error",
+              progressClassName: "Toastify__progress-bar",
+            });
+            return;
+          }
+        
+          try {
+            console.log("Dữ liệu gửi lên:", parsedData);
+        
+            const response = await axios.post(
+              "/api/projectors/bulk-upload",
+              { projectors: parsedData },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                },
+              }
+            );
+        
+            if (response.status === 201) {
+              toast.success(`${response.data.addedProjectors} Projector đã được thêm thành công!`, {
+                className: "toast-success",
+                progressClassName: "Toastify__progress-bar",
+              });
+              fetchProjectors();
+              setShowUploadModal(false);
+            }
+          } catch (error) {
+            console.error("Lỗi khi tải dữ liệu lên:", error);
+        
+            if (error.response?.status === 400) {
+              const { errors } = error.response.data || {};
+              if (errors && Array.isArray(errors)) {
+                const duplicateSerials = errors
+                  .filter((err) => err.message.includes("đã tồn tại"))
+                  .map((err) => err.serial);
+        
+                if (duplicateSerials.length > 0) {
+                  toast.error(`Các serial bị trùng: ${duplicateSerials.join(", ")}`, {
+                    className: "toast-error",
+                    progressClassName: "Toastify__progress-bar",
+                  });
+                } else {
+                  toast.error("File chứa lỗi không xác định.", {
+                    className: "toast-error",
+                    progressClassName: "Toastify__progress-bar",
+                  });
+                }
+              } else {
+                toast.error("Dữ liệu có lỗi, vui lòng kiểm tra lại.", {
                   className: "toast-error",
                   progressClassName: "Toastify__progress-bar",
-                }
-              );
-              return;
-          }
-      
-          try {
-              console.log("Dữ liệu gửi lên:", parsedData);
-      
-              const response = await axios.post(
-                  "/api/projectors/bulk-upload",
-                  { projectors: parsedData },
-                  {
-                      headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                      },
-                  }
-              );
-      
-              if (response.status === 201) {
-                  toast.success(`${response.data.addedProjectors} Projector(s) đã được thêm thành công!`,
-                    {
-                      className: "toast-success",
-                      progressClassName: "Toastify__progress-bar",
-                    }
-                  );
-                  fetchProjectors();
-                  setShowUploadModal(false); 
+                });
               }
-          } catch (error) {
-              console.error("Lỗi khi tải dữ liệu lên:", error);
-      
-              if (error.response?.status === 400) {
-                  const { errors } = error.response.data || {};
-                  if (errors && Array.isArray(errors)) {
-                      const duplicateSerials = errors
-                          .filter((err) => err.message.includes("đã tồn tại"))
-                          .map((err) => err.serial);
-                      
-                      if (duplicateSerials.length > 0) {
-                          toast.error(`Các serial bị trùng: ${duplicateSerials.join(", ")}`,
-                          {
-                            className: "toast-error",
-                            progressClassName: "Toastify__progress-bar",
-                          });
-                      } else {
-                          toast.error("File chứa lỗi không xác định.",
-                            {
-                              className: "toast-error",
-                              progressClassName: "Toastify__progress-bar",
-                            }
-                          );
-                      }
-                  } else {
-                      toast.error("Dữ liệu có lỗi, vui lòng kiểm tra lại.",
-                        {
-                          className: "toast-error",
-                          progressClassName: "Toastify__progress-bar",
-                        }
-                      );
-                  }
-              } else {
-                  toast.error("Đã xảy ra lỗi không xác định từ server!",
-                    {
-                      className: "toast-error",
-                      progressClassName: "Toastify__progress-bar",
-                    }
-                  );
-              }
+            } else {
+              toast.error("Đã xảy ra lỗi không xác định từ server!", {
+                className: "toast-error",
+                progressClassName: "Toastify__progress-bar",
+              });
+            }
           }
-      };
+        };
 
           useEffect(() => {
             const fetchData = async () => {
@@ -636,7 +632,7 @@ const ProjectorTable = () => {
                       </div>  
                 </div>
            
-                <div className="flex items-center justify-evenly w-full space-x-4 mb-4">   
+                <div className="flex items-center justify-start w-full space-x-4 mb-4">   
                      <Dropdown
                           button={
                             <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">
@@ -708,18 +704,29 @@ const ProjectorTable = () => {
                                     setData(data.filter((item) => item.type === "Projector")); // Lọc theo Projector
                                   }}
                                 >
-                                  Projector
+                                  Máy chiếu
                                 </button>
 
-                                {/* Tùy chọn Desktop */}
+                                {/* Tùy chọn Tivi */}
                                 <button
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
-                                    setSelectedType("Desktop");
-                                    setData(data.filter((item) => item.type === "Desktop")); // Lọc theo Desktop
+                                    setSelectedType("Tivi");
+                                    setData(data.filter((item) => item.type === "Tivi")); // Lọc theo Tivi
                                   }}
                                 >
-                                  Desktop
+                                  Tivi
+                                </button>
+
+                                {/* Tùy chọn Tivi */}
+                                <button
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedType("Màn hình tương tác");
+                                    setData(data.filter((item) => item.type === "Màn hình tương tác")); // Lọc theo Tivi
+                                  }}
+                                >
+                                  Màn hình tương tác
                                 </button>
                               </div>
                             }
@@ -1195,12 +1202,6 @@ const ProjectorTable = () => {
                         ...editingProjector,
                         releaseYear: editingProjector.releaseYear || "",
                         type: editingProjector.type || "Projector",
-                        specs: {
-                          processor: editingProjector.specs?.processor || "",
-                          ram: editingProjector.specs?.ram || "",
-                          storage: editingProjector.specs?.storage || "",
-                          display: editingProjector.specs?.display || "",
-                        },
                         assigned:
                             editingProjector.assigned
                               ? editingProjector.assigned.map((user) => user.value)
@@ -1282,8 +1283,9 @@ const ProjectorTable = () => {
                             value={editingProjector.type}
                             onChange={(e) => setEditingProjector({ ...editingProjector, type: e.target.value })}
                           >
-                            <option value="Projector">Projector</option>
-                            <option value="Desktop">Desktop</option>
+                            <option value="Máy chiếu">Máy chiếu</option>
+                            <option value="Tivi">Tivi</option>
+                            <option value="Màn hình tương tác">Màn hình tương tác</option>
                           </select>
                         </div>
                       <div>

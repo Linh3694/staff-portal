@@ -302,7 +302,7 @@ const PrinterTable = () => {
               setEditingPrinter({
                 ...item,
                 releaseYear: item.releaseYear || "", // Đảm bảo có giá trị mặc định cho Năm sản xuất
-                type: item.type || "Đen trắng", // Đảm bảo có giá trị mặc định cho Loại
+                type: item.type || "Máy in Đen trắng", // Đảm bảo có giá trị mặc định cho Loại
                 ip: item.ip || "", // Đảm bảo có giá trị mặc định cho IP
                 assigned: Array.isArray(item.assigned)
                   ? item.assigned.map((user) => ({
@@ -450,6 +450,7 @@ const PrinterTable = () => {
                         return {
                             name: row["Tên Thiết Bị (name)"] || "",
                             manufacturer: row["Nhà Sản Xuất (manufacturer)"] || "",
+                            type: row["Loại (type)"] || "",
                             serial: row["Serial (serial)"] || "",
                             status: row["Trạng Thái (status)"] === "Đang sử dụng"
                                   ? "Active"
@@ -499,81 +500,86 @@ const PrinterTable = () => {
 
         const handleConfirmUpload = async () => {
           if (!parsedData || parsedData.length === 0) {
-              toast.error("Không có dữ liệu để upload. Vui lòng kiểm tra file Excel!",
-                {
+            toast.error("Không có dữ liệu để upload. Vui lòng kiểm tra file Excel!", {
+              className: "toast-error",
+              progressClassName: "Toastify__progress-bar",
+            });
+            return;
+          }
+        
+          // Kiểm tra serial trùng lặp
+          const serials = parsedData.map((item) => item.serial);
+          const duplicateSerials = serials.filter(
+            (serial, index) => serials.indexOf(serial) !== index
+          );
+          if (duplicateSerials.length > 0) {
+            toast.error(`Serial trùng lặp trong file: ${duplicateSerials.join(", ")}`, {
+              className: "toast-error",
+              progressClassName: "Toastify__progress-bar",
+            });
+            return;
+          }
+        
+          // Kiểm tra trạng thái hợp lệ
+          
+        
+          try {
+            console.log("Dữ liệu gửi lên:", parsedData);
+        
+            const response = await axios.post(
+              "/api/printers/bulk-upload",
+              { printers: parsedData },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                },
+              }
+            );
+        
+            if (response.status === 201) {
+              toast.success(`${response.data.addedPrinters} Printer(s) đã được thêm thành công!`, {
+                className: "toast-success",
+                progressClassName: "Toastify__progress-bar",
+              });
+              fetchPrinters();
+              setShowUploadModal(false);
+            }
+          } catch (error) {
+            console.error("Lỗi khi tải dữ liệu lên:", error);
+        
+            if (error.response?.status === 400) {
+              const { errors } = error.response.data || {};
+              if (errors && Array.isArray(errors)) {
+                const duplicateSerials = errors
+                  .filter((err) => err.message.includes("đã tồn tại"))
+                  .map((err) => err.serial);
+        
+                if (duplicateSerials.length > 0) {
+                  toast.error(`Các serial bị trùng: ${duplicateSerials.join(", ")}`, {
+                    className: "toast-error",
+                    progressClassName: "Toastify__progress-bar",
+                  });
+                } else {
+                  toast.error("File chứa lỗi không xác định.", {
+                    className: "toast-error",
+                    progressClassName: "Toastify__progress-bar",
+                  });
+                }
+              } else {
+                toast.error("Dữ liệu có lỗi, vui lòng kiểm tra lại.", {
                   className: "toast-error",
                   progressClassName: "Toastify__progress-bar",
-                }
-              );
-              return;
-          }
-      
-          try {
-              console.log("Dữ liệu gửi lên:", parsedData);
-      
-              const response = await axios.post(
-                  "/api/printers/bulk-upload",
-                  { printers: parsedData },
-                  {
-                      headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                      },
-                  }
-              );
-      
-              if (response.status === 201) {
-                  toast.success(`${response.data.addedPrinters} Printer(s) đã được thêm thành công!`,
-                    {
-                      className: "toast-success",
-                      progressClassName: "Toastify__progress-bar",
-                    }
-                  );
-                  fetchPrinters();
-                  setShowUploadModal(false); 
+                });
               }
-          } catch (error) {
-              console.error("Lỗi khi tải dữ liệu lên:", error);
-      
-              if (error.response?.status === 400) {
-                  const { errors } = error.response.data || {};
-                  if (errors && Array.isArray(errors)) {
-                      const duplicateSerials = errors
-                          .filter((err) => err.message.includes("đã tồn tại"))
-                          .map((err) => err.serial);
-                      
-                      if (duplicateSerials.length > 0) {
-                          toast.error(`Các serial bị trùng: ${duplicateSerials.join(", ")}`,
-                          {
-                            className: "toast-error",
-                            progressClassName: "Toastify__progress-bar",
-                          });
-                      } else {
-                          toast.error("File chứa lỗi không xác định.",
-                            {
-                              className: "toast-error",
-                              progressClassName: "Toastify__progress-bar",
-                            }
-                          );
-                      }
-                  } else {
-                      toast.error("Dữ liệu có lỗi, vui lòng kiểm tra lại.",
-                        {
-                          className: "toast-error",
-                          progressClassName: "Toastify__progress-bar",
-                        }
-                      );
-                  }
-              } else {
-                  toast.error("Đã xảy ra lỗi không xác định từ server!",
-                    {
-                      className: "toast-error",
-                      progressClassName: "Toastify__progress-bar",
-                    }
-                  );
-              }
+            } else {
+              toast.error("Đã xảy ra lỗi không xác định từ server!", {
+                className: "toast-error",
+                progressClassName: "Toastify__progress-bar",
+              });
+            }
           }
-      };
+        };
 
           useEffect(() => {
             const fetchData = async () => {
@@ -640,7 +646,7 @@ const PrinterTable = () => {
                       </div>  
                 </div>
            
-                <div className="flex items-center justify-evenly w-full space-x-4 mb-4">   
+                <div className="flex items-center justify-start w-full space-x-4 mb-4">   
                      <Dropdown
                           button={
                             <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">
@@ -708,22 +714,52 @@ const PrinterTable = () => {
                                 <button
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
-                                    setSelectedType("Màu");
-                                    setData(data.filter((item) => item.type === "Màu")); // Lọc theo Printer
+                                    setSelectedType("Máy in Màu");
+                                    setData(data.filter((item) => item.type === "Máy in Màu")); // Lọc theo Printer
                                   }}
                                 >
-                                  Màu
+                                  Máy in Màu
                                 </button>
 
                                 {/* Tùy chọn printer */}
                                 <button
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
-                                    setSelectedType("Đen trắng");
-                                    setData(data.filter((item) => item.type === "Đen trắng")); // Lọc theo printer
+                                    setSelectedType("Máy in Đen trắng");
+                                    setData(data.filter((item) => item.type === "Máy in Đen trắng")); // Lọc theo printer
                                   }}
                                 >
-                                  Đen trắng
+                                  Máy in Đen trắng
+                                </button>
+                                {/* Tùy chọn printer */}
+                                <button
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedType("Máy Scan");
+                                    setData(data.filter((item) => item.type === "Scan")); // Lọc theo printer
+                                  }}
+                                >
+                                  Máy Scan
+                                </button>
+                                {/* Tùy chọn printer */}
+                                <button
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedType("Máy Photocopier");
+                                    setData(data.filter((item) => item.type === "Máy Photocopier")); // Lọc theo printer
+                                  }}
+                                >
+                                  Máy Photocopier
+                                </button>
+                                {/* Tùy chọn printer */}
+                                <button
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedType("Máy đa chức năng");
+                                    setData(data.filter((item) => item.type === "Máy đa chức năng")); // Lọc theo printer
+                                  }}
+                                >
+                                  Máy đa chức năng
                                 </button>
                               </div>
                             }
@@ -1004,8 +1040,11 @@ const PrinterTable = () => {
                             value={newPrinter.type}
                             onChange={(e) => setNewPrinter({ ...newPrinter, type: e.target.value })}
                           >
-                            <option value="Màu">Màu</option>
-                            <option value="Đen trắng">Đen trắng</option>
+                            <option value="Máy in Màu">Máy in Màu</option>
+                            <option value="Máy in Đen trắng">Máy in Đen trắng</option>
+                            <option value="Máy Scan">Máy Scan</option>
+                            <option value="Máy Photocopier">Máy Photocopier</option>
+                            <option value="Máy đa chức năng">Máy đa chức năng</option>
                           </select>
                         </div>
                         <div>
@@ -1264,8 +1303,11 @@ const PrinterTable = () => {
                             value={editingPrinter.type}
                             onChange={(e) => setEditingPrinter({ ...editingPrinter, type: e.target.value })}
                           >
-                            <option value="Màu">Màu</option>
-                            <option value="Đen trắng">Đen trắng</option>
+                            <option value="Máy in Màu">Máy in Màu</option>
+                            <option value="Máy in Đen trắng">Máy in Đen trắng</option>
+                            <option value="Máy Scan">Máy Scan</option>
+                            <option value="Máy Photocopier">Máy Photocopier</option>
+                            <option value="Máy đa chức năng">Máy đa chức năng</option>
                           </select>
                         </div>
                       <div>

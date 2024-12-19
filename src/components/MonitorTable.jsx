@@ -484,81 +484,53 @@ const MonitorTable = () => {
 
         const handleConfirmUpload = async () => {
           if (!parsedData || parsedData.length === 0) {
-              toast.error("Không có dữ liệu để upload. Vui lòng kiểm tra file Excel!",
-                {
-                  className: "toast-error",
-                  progressClassName: "Toastify__progress-bar",
-                }
-              );
-              return;
+            toast.error("Không có dữ liệu để upload. Vui lòng kiểm tra file Excel!");
+            return;
           }
-      
+        
+          // Kiểm tra trùng lặp serial trong file Excel
+          const serials = parsedData.map((item) => item.serial);
+          const duplicateSerials = serials.filter(
+            (serial, index) => serials.indexOf(serial) !== index
+          );
+        
+          if (duplicateSerials.length > 0) {
+            toast.error(`Serial trùng lặp trong file: ${duplicateSerials.join(", ")}`);
+            return;
+          }
+        
           try {
-              console.log("Dữ liệu gửi lên:", parsedData);
-      
-              const response = await axios.post(
-                  "/api/monitors/bulk-upload",
-                  { monitors: parsedData },
-                  {
-                      headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                      },
-                  }
-              );
-      
-              if (response.status === 201) {
-                  toast.success(`${response.data.addedMonitors} Monitor(s) đã được thêm thành công!`,
-                    {
-                      className: "toast-success",
-                      progressClassName: "Toastify__progress-bar",
-                    }
-                  );
-                  fetchMonitors();
-                  setShowUploadModal(false); 
+            console.log("Dữ liệu gửi lên:", parsedData);
+        
+            const response = await axios.post(
+              "/api/monitors/bulk-upload",
+              { monitors: parsedData },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                },
               }
+            );
+        
+            if (response.status === 201) {
+              toast.success(`${response.data.addedMonitors} Monitor(s) đã được thêm thành công!`);
+              fetchMonitors();
+              setShowUploadModal(false);
+            }
           } catch (error) {
-              console.error("Lỗi khi tải dữ liệu lên:", error);
-      
-              if (error.response?.status === 400) {
-                  const { errors } = error.response.data || {};
-                  if (errors && Array.isArray(errors)) {
-                      const duplicateSerials = errors
-                          .filter((err) => err.message.includes("đã tồn tại"))
-                          .map((err) => err.serial);
-                      
-                      if (duplicateSerials.length > 0) {
-                          toast.error(`Các serial bị trùng: ${duplicateSerials.join(", ")}`,
-                          {
-                            className: "toast-error",
-                            progressClassName: "Toastify__progress-bar",
-                          });
-                      } else {
-                          toast.error("File chứa lỗi không xác định.",
-                            {
-                              className: "toast-error",
-                              progressClassName: "Toastify__progress-bar",
-                            }
-                          );
-                      }
-                  } else {
-                      toast.error("Dữ liệu có lỗi, vui lòng kiểm tra lại.",
-                        {
-                          className: "toast-error",
-                          progressClassName: "Toastify__progress-bar",
-                        }
-                      );
-                  }
-              } else {
-                  toast.error("Đã xảy ra lỗi không xác định từ server!",
-                    {
-                      className: "toast-error",
-                      progressClassName: "Toastify__progress-bar",
-                    }
-                  );
-              }
+            console.error("Lỗi khi tải dữ liệu lên:", error);
+        
+            // Hiển thị lỗi từ server nếu serial đã tồn tại
+            if (error.response?.status === 400) {
+              const { errors } = error.response.data || {};
+              const duplicateSerialsFromServer = errors?.map((err) => err.serial) || [];
+              toast.error(`Serial đã tồn tại: ${duplicateSerialsFromServer.join(", ")}`);
+            } else {
+              toast.error("Có lỗi xảy ra khi tải dữ liệu lên!");
+            }
           }
-      };
+        };
 
           useEffect(() => {
             const fetchData = async () => {
@@ -570,6 +542,9 @@ const MonitorTable = () => {
             };
             fetchData();
             }, []);
+
+
+            
     <monitorProductCard
             monitorData={{
               ...selectedMonitor,
@@ -650,7 +625,7 @@ const MonitorTable = () => {
                       </div>  
                 </div>
            
-                <div className="flex items-center justify-evenly w-full space-x-4 mb-4">   
+                <div className="flex items-center justify-start w-full space-x-4 mb-4">   
                      <Dropdown
                           button={
                             <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">

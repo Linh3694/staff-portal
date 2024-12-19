@@ -3,27 +3,35 @@ const Room = require("../models/Room");
 // Lấy tất cả phòng
 exports.getAllRooms = async (req, res) => {
   try {
-    const rooms = await Room.find();
-    res.json(rooms);
+    const rooms = await Room.find().lean();
+    res.json({
+      rooms: rooms.map((room) => ({
+        ...room,
+        location: room.location?.map(loc => `${loc.building} - Tầng ${loc.floor}`).join(", ") || "Chưa xác định",
+      })),
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error fetching rooms:", error);
+    res.status(500).json({ message: "Lỗi server" });
   }
 };
 
 // Thêm phòng mới
 exports.addRoom = async (req, res) => {
   try {
-    const { name, location, status } = req.body;
+    const { name, location, capacity, status } = req.body;
 
-    if (!name || !location) {
-      return res.status(400).json({ message: "Tên phòng và Địa điểm là bắt buộc" });
+    if (!name || !location || !location.length || !capacity || !status) {
+      return res.status(400).json({ message: "Thiếu dữ liệu bắt buộc" });
     }
 
-    const newRoom = new Room({ name, location, status });
+    const newRoom = new Room({ name, location, capacity, status });
     await newRoom.save();
-    res.status(201).json(newRoom);
+
+    res.status(201).json({ message: "Thêm phòng thành công!" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Lỗi khi thêm phòng:", error);
+    res.status(500).json({ message: "Lỗi server", error });
   }
 };
 

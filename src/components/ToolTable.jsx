@@ -3,7 +3,6 @@ import axios from "axios";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 import { FaSearch } from "react-icons/fa";
 import { toast } from "react-toastify";
-import LaptopProductCard from "./productcard/laptopProductCard";
 import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import "../css/table.css"
@@ -11,45 +10,33 @@ import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import Dropdown from "./function/dropdown";
 
 
-const LaptopTable = () => {
+const ToolTable = () => {
         
-        const [data, setData] = useState([]); // State cho danh sách laptops
+        const [data, setData] = useState([]); // State cho danh sách Tool
         const [users, setUsers] = useState([]); // Lưu danh sách users từ API
         const [showAddModal, setShowAddModal] = useState(false); // State để điều khiển modal 
-        const [newLaptop, setNewLaptop] = useState({
+        const [newTool, setNewTool] = useState({
             name: "",
             manufacturer: "",
             serial: "",
             assigned: [],
             status: "Active",
             releaseYear: "",
-            specs: {
-              processor: "",
-              ram: "",
-              storage: "",
-              display: "",
-          },
           }); 
-        const [editingLaptop, setEditingLaptop] = useState({
+        const [editingTool, setEditingTool] = useState({
             name: "",
             manufacturer: "",
             serial: "",
             assigned: [],
             status: "Active",
             releaseYear: "",
-            specs: {
-              processor: "",
-              ram: "",
-              storage: "",
-              display: "",
-          },
           });
         const [showEditModal, setShowEditModal] = useState(false);
         const [filteredUsers, setFilteredUsers] = useState([]); // Lưu danh sách gợi ý tạm thời
         const [showSuggestions, setShowSuggestions] = useState(false); // Kiểm soát hiển thị gợi ý
         const [showConfirmModal, setShowConfirmModal] = useState(false);
-        const [laptopToDelete, setLaptopToDelete] = useState(null);
-        const [selectedLaptop, setSelectedLaptop] = useState(null);
+        const [toolToDelete, setToolToDelete] = useState(null);
+        const [selectedTool, setSelectedTool] = useState(null);
         const [showDetailModal, setShowDetailModal] = useState(false); // Kiểm soát hiển thị modal
         const [showUploadModal, setShowUploadModal] = useState(false);
         const [parsedData, setParsedData] = useState([]);
@@ -62,33 +49,16 @@ const LaptopTable = () => {
 
         
 
-        const statusClasses = {
-          Active: "bg-green-100 text-green-800",
-          "In Repair": "bg-yellow-100 text-yellow-800",
-          "Lưu kho": "bg-red-600 text-white",
-          default: "bg-gray-100 text-gray-700",
-        };
-        
         const statusLabels = {
           Active: "Đang sử dụng",
-          "In Repair": "Chờ sửa chữa",
-          "Lưu kho": "Lưu kho",
+                  "Standby": "Chờ Cấp Phát",
+                  "Broken": "Hỏng",
+
           default: "Không xác định",
         };
 
-        const handleOptionChange = (option) => {
-          setSelectedOption(option);
-          setShowDropdown(false);
-        
-          if (option === "Tất cả") {
-            fetchLaptops();
-          } else {
-            setData(data.filter((item) => item.status === option));
-          }
-        };
-
       
-        const handleDeleteRepair = async (laptopId, repairId) => {
+        const handleDeleteRepair = async (toolId, repairId) => {
           if (!repairId) {
             return Promise.reject("repairId không hợp lệ");
           }
@@ -96,14 +66,14 @@ const LaptopTable = () => {
           try {
             const token = localStorage.getItem("authToken");
             const response = await axios.delete(
-              `http://localhost:5001/api/laptops/${laptopId}/repairs/${repairId}`,
+              `/api/tool/${toolId}/repairs/${repairId}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
         
             if (response.status === 200) {
-              setSelectedLaptop((prevLaptop) => ({
-                ...prevLaptop,
-                repairs: prevLaptop.repairs.filter((repair) => repair._id !== repairId),
+              setSelectedTool((prevTool) => ({
+                ...prevTool,
+                repairs: prevTool.repairs.filter((repair) => repair._id !== repairId),
               }));
               toast.success("Xóa nhật ký sửa chữa thành công!",{
                 className: "toast-success",
@@ -130,16 +100,16 @@ const LaptopTable = () => {
                 };
 
                 console.log("Payload:", payload);
-                console.log("Gửi yêu cầu tới:", `http://localhost:5001/api/laptops/${selectedLaptop._id}/repairs`);
+                console.log("Gửi yêu cầu tới:", `/api/tool/${selectedTool._id}/repairs`);
                 console.log("Payload:", repairData);
-                console.log("Selected laptop:", selectedLaptop);
+                console.log("Selected tool:", selectedTool);
                 console.log("Payload:", {
                   description: repairData.description,
                   date: repairData.date || new Date().toISOString(),
                   updatedBy: currentUser.fullname,
                 });
                 console.log("Token:", localStorage.getItem("authToken"));
-                const response = await fetch(`http://localhost:5001/api/laptops/${selectedLaptop._id}/repairs`, {
+                const response = await fetch(`/api/tool/${selectedTool._id}/repairs`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -155,9 +125,9 @@ const LaptopTable = () => {
                 }
                 const updatedRepair = await response.json();
             
-                setSelectedLaptop((prevLaptop) => ({
-                  ...prevLaptop,
-                  repairs: [updatedRepair, ...(prevLaptop.repairs || [])], // Thêm nhật ký sửa chữa mới vào đầu danh sách
+                setSelectedTool((prevTool) => ({
+                  ...prevTool,
+                  repairs: [updatedRepair, ...(prevTool.repairs || [])], // Thêm nhật ký sửa chữa mới vào đầu danh sách
                 }));
             
                 console.log("Repair log updated successfully:", updatedRepair);
@@ -166,64 +136,64 @@ const LaptopTable = () => {
               }
           };
           
-          console.log("Props truyền vào laptopProductCard:", {
-            laptopData: selectedLaptop,
+          console.log("Props truyền vào ToolProductCard:", {
+            toolData: selectedTool,
             onDeleteRepair: handleDeleteRepair,
           });
 
-          <laptopProductCard
-            laptopData={{
-              ...selectedLaptop,
-              repairs: selectedLaptop?.repairs || [], // Đảm bảo repairs là mảng
-            }}
-            onAddRepair={(repair) => {
-                    // Gọi API thêm nhật ký sửa chữa
-                    fetch(`http://localhost:5001/api/laptops/${selectedLaptop._id}/repairs`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(repair),
-                    })
-                      .then((response) => {
-                        if (response.ok) {
-                          console.log("Repair saved successfully");
+          // <laptopProductCard
+          //   laptopData={{
+          //     ...selectedLaptop,
+          //     repairs: selectedLaptop?.repairs || [], // Đảm bảo repairs là mảng
+          //   }}
+          //   onAddRepair={(repair) => {
+          //           // Gọi API thêm nhật ký sửa chữa
+          //           fetch(`http://localhost:5001/api/laptops/${selectedLaptop._id}/repairs`, {
+          //             method: "POST",
+          //             headers: { "Content-Type": "application/json" },
+          //             body: JSON.stringify(repair),
+          //           })
+          //             .then((response) => {
+          //               if (response.ok) {
+          //                 console.log("Repair saved successfully");
                         
-                        } else {
-                          console.error("Failed to save repair");                         
-                        }
-                      })
-                      .catch((error) => console.error("Error saving repair:", error));
-               }}
-            currentUser={JSON.parse(localStorage.getItem("currentUser"))}
-            onDeleteRepair={handleDeleteRepair}
-            />
+          //               } else {
+          //                 console.error("Failed to save repair");                         
+          //               }
+          //             })
+          //             .catch((error) => console.error("Error saving repair:", error));
+          //      }}
+          //   currentUser={JSON.parse(localStorage.getItem("currentUser"))}
+          //   onDeleteRepair={handleDeleteRepair}
+          //   />
           
-          const handleViewDetails = (laptop) => {
-            setSelectedLaptop(laptop); // Lưu thiết bị được chọn
+          const handleViewDetails = (tool) => {
+            setSelectedTool(tool); // Lưu thiết bị được chọn
             setShowDetailModal(true); // Hiển thị modal
           };
 
-          // Hàm gọi API để lấy danh sách laptops
-          const fetchLaptops = async () => {
+          // Hàm gọi API để lấy danh sách tool
+          const fetchtool = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/laptops", {
+              const response = await axios.get("/api/tool", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
               // Map dữ liệu `assigned` để phù hợp với định dạng giao diện
-              const laptops = response.data.map((laptop) => ({
-                ...laptop,
-                assigned: laptop.assigned.map((user) => ({
+              const tool = response.data.map((tool) => ({
+                ...tool,
+                assigned: tool.assigned.map((user) => ({
                   value: user._id,
                   label: user.name,
                   title: user.jobTitle || "Không xác định",
                   departmentName: user.department || "Không xác định",
                 })),
               }));
-              setData(laptops);
-              console.log("Laptops fetched:", response.data); // Log dữ liệu
+              setData(tool);
+              console.log("tool fetched:", response.data); // Log dữ liệu
             } catch (error) {
-              console.error("Error fetching laptops:", error);
+              console.error("Error fetching tool:", error);
             }
           };
 
@@ -232,7 +202,7 @@ const LaptopTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/users", {
+              const response = await axios.get("/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               console.log("Dữ liệu từ API users:", response.data);
@@ -258,44 +228,39 @@ const LaptopTable = () => {
           };
 
           const handleDelete = async (id) => {
-            if (!laptopToDelete) return;
+            if (!toolToDelete) return;
 
               try {
-                await axios.delete(`http://localhost:5001/api/laptops/${laptopToDelete._id}`, {
+                await axios.delete(`/api/tool/${toolToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
                 }
                 );
-                fetchLaptops(); // Cập nhật lại danh sách sau khi xóa
-                toast.success("Laptop đã được xóa!",
+                fetchtool(); // Cập nhật lại danh sách sau khi xóa
+                toast.success("tool đã được xóa!",
                   {
                     className: "toast-success",
                   }
                 );
               } catch (error) {
-                console.error("Error deleting laptop:", error);
-                toast.error("Có lỗi xảy ra khi xóa laptop!",
+                console.error("Error deleting tool:", error);
+                toast.error("Có lỗi xảy ra khi xóa tool!",
                   {
                     className: "toast-error",
                   }
                 );
               } finally {
                 setShowConfirmModal(false); // Đóng modal
-                setLaptopToDelete(null); // Reset laptop cần xóa
+                setToolToDelete(null); // Reset Tool cần xóa
               }
           };
 
           const handleEdit = (item) => {
-              setEditingLaptop({
+              setEditingTool({
                 ...item,
                 releaseYear: item.releaseYear || "", // Đảm bảo có giá trị mặc định cho Năm sản xuất
-                specs: {
-                  processor: item.specs?.processor || "",
-                  ram: item.specs?.ram || "",
-                  storage: item.specs?.storage || "",
-                  display: item.specs?.display || "",
-                },
+                
                 assigned: Array.isArray(item.assigned)
                   ? item.assigned.map((user) => ({
                       value: user.value || user._id, // Đảm bảo định dạng user
@@ -306,17 +271,17 @@ const LaptopTable = () => {
               setShowEditModal(true); // Hiển thị modal chỉnh sửa
           };
 
-          const confirmDelete = (laptop) => {
-            setLaptopToDelete(laptop); // Đặt laptop cần xóa
+          const confirmDelete = (tool) => {
+            setToolToDelete(tool); // Đặt tool cần xóa
             setShowConfirmModal(true); // Hiển thị modal xác nhận
           };
           
-          const handleAddLaptop = async (e) => {
+          const handleAddTool = async (e) => {
             e.preventDefault();
           
             try {
               // Kiểm tra dữ liệu nhập
-              if (!newLaptop.name || !newLaptop.manufacturer || !newLaptop.serial || !newLaptop.status) {
+              if (!newTool.name || !newTool.serial || !newTool.status) {
                 toast.error("Vui lòng điền đầy đủ thông tin!",
                   {
                     className: "toast-error",
@@ -327,54 +292,43 @@ const LaptopTable = () => {
           
               // Chuẩn bị payload
               const payload = {
-                ...newLaptop,
-                releaseYear: newLaptop.releaseYear || "",
-                specs: {
-                  processor: newLaptop.specs?.processor || "",
-                  ram: newLaptop.specs?.ram || "",
-                  storage: newLaptop.specs?.storage || "",
-                  display: newLaptop.specs?.display || "",
-                },
-                assigned: newLaptop.assigned?.map((user) => user.value) || [], // Xử lý danh sách người dùng
+                ...newTool,
+                releaseYear: newTool.releaseYear || "",
+                
+                assigned: newTool.assigned?.map((user) => user.value) || [], // Xử lý danh sách người dùng
               };
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("http://localhost:5001/api/laptops", payload, {
+              const response = await axios.post("/api/tool", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
               });
           
               if (response.status === 201) {
-                toast.success("Thêm laptop thành công!",
+                toast.success("Thêm tool thành công!",
                   {
                     className: "toast-success",
                     progressClassName: "Toastify__progress-bar",
                   }
                 );
           
-                // Cập nhật danh sách laptops và đóng modal
-                fetchLaptops();
+                // Cập nhật danh sách tool và đóng modal
+                fetchtool();
                 setShowAddModal(false);
-                setNewLaptop({
+                setNewTool({
                   name: "",
                   manufacturer: "",
                   serial: "",
                   releaseYear: "",
-                  specs: {
-                    processor: "",
-                    ram: "",
-                    storage: "",
-                    display: "",
-                  },
                   assigned: [],
                   status: "Active",
                 });
               }
             } catch (error) {
-              console.error("Lỗi khi thêm laptop:", error);
-              toast.error("Có lỗi xảy ra khi thêm laptop. Vui lòng thử lại!",
+              console.error("Lỗi khi thêm Tool:", error);
+              toast.error("Có lỗi xảy ra khi thêm Tool. Vui lòng thử lại!",
                 {
                   className: "toast-error",
                   progressClassName: "Toastify__progress-bar",
@@ -417,7 +371,7 @@ const LaptopTable = () => {
         
                     // Chuẩn hóa dữ liệu
                     const normalizedData = sheetData.map((row, index) => {
-                        if (!row["Tên Thiết Bị (name)"] || !row["Nhà Sản Xuất (manufacturer)"] || !row["Serial (serial)"]) {
+                        if (!row["Tên Thiết Bị (name)"] || !row["Serial (serial)"]) {
                             console.error(`Hàng ${index + 1} bị thiếu dữ liệu bắt buộc.`);
                             return null;
                         }
@@ -440,24 +394,17 @@ const LaptopTable = () => {
                         }); 
         
                         return {
-                            name: row["Tên Thiết Bị (name)"] || "",
-                            manufacturer: row["Nhà Sản Xuất (manufacturer)"] || "",
-                            serial: row["Serial (serial)"] || "",
-                            status: row["Trạng Thái (status)"] === "Đang sử dụng"
-                                  ? "Active"
-                                  : row["Trạng Thái (status)"] === "Chờ sửa chữa"
-                                  ? "In Repair"
-                                  : row["Trạng Thái (status)"] === "Lưu kho"
-                                  ? "Lưu kho"
-                                  : "Không xác định",
-                            specs: {
-                                processor: row["Bộ Xử Lý (processor)"] || "",
-                                ram: row["RAM (ram)"] || "",
-                                storage: row["Bộ Nhớ (storage)"] || "",
-                                display: row["Màn Hình (display)"] || "",
-                            },
-                            assigned: assignedIds,
-                            releaseYear: row["Năm đưa vào sử dụng (releaseYear)"] || "",
+                          name: row["Tên Thiết Bị (name)"] || "",
+                          serial: row["Serial (serial)"] || "",
+                          status: row["Trạng Thái (status)"] === "Đang sử dụng"
+                                ? "Active"
+                                : row["Trạng Thái (status)"] === "Chờ Cấp Phát"
+                                ? "Standby"
+                                : row["Trạng Thái (status)"] === "Hỏng"
+                                ? "Broken"
+                                : "Không xác định",
+                          assigned: assignedIds,
+                          releaseYear: row["Năm đưa vào sử dụng (releaseYear)"] || "",
                         };
                     }).filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
         
@@ -496,86 +443,50 @@ const LaptopTable = () => {
 
         const handleConfirmUpload = async () => {
           if (!parsedData || parsedData.length === 0) {
-              toast.error("Không có dữ liệu để upload. Vui lòng kiểm tra file Excel!",
-                {
-                  className: "toast-error",
-                  progressClassName: "Toastify__progress-bar",
-                }
-              );
-              return;
+            toast.error("Không có dữ liệu để upload. Vui lòng kiểm tra file Excel!");
+            return;
           }
-      
+        
+          // Kiểm tra serial trùng lặp trong file Excel
+          const serials = parsedData.map((item) => item.serial);
+          const duplicateSerials = serials.filter(
+            (serial, index) => serials.indexOf(serial) !== index
+          );
+        
+          if (duplicateSerials.length > 0) {
+            toast.error(`Serial trùng lặp trong file: ${duplicateSerials.join(", ")}`);
+            return;
+          }
+        
           try {
-              console.log("Dữ liệu gửi lên:", parsedData);
-      
-              const response = await axios.post(
-                  "http://localhost:5001/api/laptops/bulk-upload",
-                  { laptops: parsedData },
-                  {
-                      headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                      },
-                  }
-              );
-      
-              if (response.status === 201) {
-                  toast.success(`${response.data.addedLaptops} laptop(s) đã được thêm thành công!`,
-                    {
-                      className: "toast-success",
-                      progressClassName: "Toastify__progress-bar",
-                    }
-                  );
-                  fetchLaptops();
-                  setShowUploadModal(false); 
+            console.log("Dữ liệu gửi lên (Tool):", parsedData);
+        
+            const response = await axios.post(
+              "/api/tool/bulk-upload",
+              { tools: parsedData },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                },
               }
+            );
+        
+            if (response.status === 201) {
+              toast.success("Dữ liệu phụ kiện đã được tải lên thành công!");
+              fetchtool(); // Làm mới danh sách
+              setShowUploadModal(false);
+            }
           } catch (error) {
-              console.error("Lỗi khi tải dữ liệu lên:", error);
-      
-              if (error.response?.status === 400) {
-                  const { errors } = error.response.data || {};
-                  if (errors && Array.isArray(errors)) {
-                      const duplicateSerials = errors
-                          .filter((err) => err.message.includes("đã tồn tại"))
-                          .map((err) => err.serial);
-                      
-                      if (duplicateSerials.length > 0) {
-                          toast.error(`Các serial bị trùng: ${duplicateSerials.join(", ")}`,
-                          {
-                            className: "toast-error",
-                            progressClassName: "Toastify__progress-bar",
-                          });
-                      } else {
-                          toast.error("File chứa lỗi không xác định.",
-                            {
-                              className: "toast-error",
-                              progressClassName: "Toastify__progress-bar",
-                            }
-                          );
-                      }
-                  } else {
-                      toast.error("Dữ liệu có lỗi, vui lòng kiểm tra lại.",
-                        {
-                          className: "toast-error",
-                          progressClassName: "Toastify__progress-bar",
-                        }
-                      );
-                  }
-              } else {
-                  toast.error("Đã xảy ra lỗi không xác định từ server!",
-                    {
-                      className: "toast-error",
-                      progressClassName: "Toastify__progress-bar",
-                    }
-                  );
-              }
+            console.error("Error uploading Tool data:", error.response?.data || error);
+            toast.error("Đã xảy ra lỗi khi tải dữ liệu lên. Vui lòng thử lại!");
           }
-      };
+        };
 
           useEffect(() => {
             const fetchData = async () => {
               try {
-                await fetchLaptops();
+                await fetchtool();
                 await fetchUsers();
               } catch (error) {
                 }
@@ -592,20 +503,19 @@ const LaptopTable = () => {
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                           <input
                           type="text"
-                          placeholder="Tìm kiếm laptop..."
+                          placeholder="Tìm kiếm tool..."
                           className="pl-10 pr-4 py-2 border rounded-md w-100 focus:outline-none focus:ring-2 focus:ring-[#002147]"
                           onChange={(e) => {
-                            const query = e.target.value.toLowerCase();
+                            const query = e.target.value ? e.target.value.toLowerCase() : "";
                             if (query === "") {
-                              // Nếu ô tìm kiếm rỗng, khôi phục dữ liệu gốc
-                              fetchLaptops();
+                              fetchtool();
                             } else {
                               const filteredData = data.filter((item) =>
-                                item.name.toLowerCase().includes(query) ||
-                                item.manufacturer.toLowerCase().includes(query) ||
-                                item.serial.toLowerCase().includes(query)
+                                item.name?.toLowerCase().includes(query) || // Dùng optional chaining để tránh undefined
+                                item.manufacturer?.toLowerCase().includes(query) ||
+                                item.serial?.toLowerCase().includes(query)
                               );
-                              setData(filteredData); // Cập nhật danh sách được hiển thị
+                              setData(filteredData);
                             }
                           }}
                         />
@@ -629,7 +539,7 @@ const LaptopTable = () => {
                                 className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                 onClick={() => {
                                   setSelectedOption("Tất cả");
-                                  fetchLaptops(); // Lấy lại toàn bộ dữ liệu
+                                  fetchtool(); // Lấy lại toàn bộ dữ liệu
                                   setShowDropdown(false); // Đóng dropdown
                                 }}
                               >
@@ -639,8 +549,8 @@ const LaptopTable = () => {
                               {/* Các trạng thái */}
                               {[
                                 { value: "Active", label: "Đang sử dụng" },
-                                { value: "In Repair", label: "Chờ sửa chữa" },
-                                { value: "Lưu kho", label: "Lưu kho" },
+                                { value: "Standby", label: "Chờ Cấp Phát" },
+                                { value: "Broken", label: "Hỏng" },
                               ].map((option) => (
                                 <button
                                   key={option.value}
@@ -657,96 +567,12 @@ const LaptopTable = () => {
                             </div>
                           }
                         />
-                            <Dropdown
-                                button={
-                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
-                                    {selectedManufacturer === "Tất cả"
-                                      ? "Nhà sản xuất: Tất cả nhà sản xuất"
-                                      : `Nhà sản xuất: ${selectedManufacturer}`}
-                                  </button>
-                                }
-                                children={
-                                  <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
-                                    {/* Option "Tất cả nhà sản xuất" */}
-                                    <button
-                                      key="all"
-                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                      onClick={() => {
-                                        setSelectedManufacturer("Tất cả");
-                                        fetchLaptops(); // Lấy lại toàn bộ dữ liệu
-                                        setShowDropdown(false); // Đóng dropdown
-                                      }}
-                                    >
-                                      Tất cả nhà sản xuất
-                                    </button>
-
-                                    {/* Các nhà sản xuất */}
-                                    {Array.from(new Set(data.map((item) => item.manufacturer))).map(
-                                      (manufacturer) => (
-                                        <button
-                                          key={manufacturer}
-                                          className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                          onClick={() => {
-                                            setSelectedManufacturer(manufacturer);
-                                            setData(data.filter((item) => item.manufacturer === manufacturer)); // Lọc theo nhà sản xuất
-                                            setShowDropdown(false); // Đóng dropdown
-                                          }}
-                                        >
-                                          {manufacturer}
-                                        </button>
-                                      )
-                                    )}
-                                  </div>
-                                }
-                              />
-                              <Dropdown
-                                button={
-                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
-                                    {selectedYear === "Tất cả"
-                                      ? "Năm sản xuất: Tất cả năm sản xuất"
-                                      : `Năm sản xuất: ${selectedYear}`}
-                                  </button>
-                                }
-                                children={
-                                  <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
-                                    {/* Option "Tất cả năm sản xuất" */}
-                                    <button
-                                      key="all"
-                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                      onClick={() => {
-                                        setSelectedYear("Tất cả");
-                                        fetchLaptops(); // Lấy lại toàn bộ dữ liệu
-                                        setShowDropdown(false); // Đóng dropdown
-                                      }}
-                                    >
-                                      Tất cả năm sản xuất
-                                    </button>
-
-                                    {/* Các năm sản xuất */}
-                                    {Array.from(new Set(data.map((item) => item.releaseYear)))
-                                      .sort()
-                                      .map((year) => (
-                                        <button
-                                          key={year}
-                                          className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                          onClick={() => {
-                                            setSelectedYear(year);
-                                            setData(data.filter((item) => item.releaseYear === year)); // Lọc theo năm
-                                            setShowDropdown(false); // Đóng dropdown
-                                          }}
-                                        >
-                                          {year}
-                                        </button>
-                                      ))}
-                                  </div>
-                                }
-                              />
                         </div>
                              {/* Các nút hành động */}
                                 <div className="flex space-x-2">
                                         <button
                                           onClick={() => {
-                                            setNewLaptop({
+                                            setNewTool({
                                               name: "",
                                               manufacturer: "",
                                               serial: "",
@@ -836,12 +662,12 @@ const LaptopTable = () => {
                     )}
                    </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                    <div className="flex items-center">
+                  <div className="flex items-center">
                       {item.status === "Active" ? (
-                        <MdCheckCircle className="text-green-500 me-1" />
-                      ) : item.status === "Lưu kho" ? (
-                        <MdCancel className="text-red-500 me-1" />
-                      ) : item.status === "In Repair" ? (
+                        <MdCheckCircle className="text-[#009483] me-1" />
+                      ) : item.status === "Broken" ? (
+                        <MdCancel className="text-orange-red me-1" />
+                      ) : item.status === "Standby" ? (
                         <MdOutlineError className="text-amber-500 me-1" />
                       ) : null}
                       <p className="text-sm font-bold text-navy-700">
@@ -885,8 +711,8 @@ const LaptopTable = () => {
                   className="bg-white rounded-lg shadow-lg p-6 w-[50%]"
                   onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
                 >
-                  <h3 className="text-2xl font-bold mb-6 text-[#002147]">Thêm mới laptop</h3>
-                  <form onSubmit={handleAddLaptop}>
+                  <h3 className="text-2xl font-bold mb-6 text-[#002147]">Thêm mới Tool</h3>
+                  <form onSubmit={handleAddTool}>
                     {/* Thông tin chung */}
                     <div
                       className="border rounded-lg p-4 mb-4 relative"
@@ -912,8 +738,8 @@ const LaptopTable = () => {
                             type="text"
                             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                             placeholder="Nhập tên thiết bị"
-                            value={newLaptop.name}
-                            onChange={(e) => setNewLaptop({ ...newLaptop, name: e.target.value })}
+                            value={newTool.name}
+                            onChange={(e) => setNewTool({ ...newTool, name: e.target.value })}
                           />
                         </div>
                         <div>
@@ -922,8 +748,8 @@ const LaptopTable = () => {
                             type="text"
                             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                             placeholder="Nhập nhà sản xuất"
-                            value={newLaptop.manufacturer}
-                            onChange={(e) => setNewLaptop({ ...newLaptop, manufacturer: e.target.value })}
+                            value={newTool.manufacturer}
+                            onChange={(e) => setNewTool({ ...newTool, manufacturer: e.target.value })}
                           />
                         </div>
                         <div>
@@ -932,8 +758,8 @@ const LaptopTable = () => {
                             type="text"
                             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                             placeholder="Nhập số serial"
-                            value={newLaptop.serial}
-                            onChange={(e) => setNewLaptop({ ...newLaptop, serial: e.target.value })}
+                            value={newTool.serial}
+                            onChange={(e) => setNewTool({ ...newTool, serial: e.target.value })}
                           />
                         </div>
                         <div>
@@ -942,79 +768,8 @@ const LaptopTable = () => {
                             type="number"
                             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                             placeholder="Nhập năm sản xuất"
-                            value={newLaptop.releaseYear}
-                            onChange={(e) => setNewLaptop({ ...newLaptop, releaseYear: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Cấu hình */}
-                    <div
-                      className="border rounded-lg p-4 mb-4 relative"
-                      style={{ position: "relative", padding: "16px", marginBottom: "30px" }}
-                    >
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: "-12px",
-                          left: "16px",
-                          backgroundColor: "#fff",
-                          padding: "0 8px",
-                          fontWeight: "bold",
-                          color: "#002147",
-                          marginBottom: "16px"
-                        }}
-                      >
-                        Cấu hình
-                      </span>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-gray-600 font-medium mb-2">Processor</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            placeholder="Nhập bộ xử lý"
-                            value={newLaptop.specs?.processor || ""}
-                            onChange={(e) =>
-                              setNewLaptop({ ...newLaptop, specs: { ...newLaptop.specs, processor: e.target.value } })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-600 font-medium mb-2">RAM</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            placeholder="Nhập dung lượng RAM"
-                            value={newLaptop.specs?.ram || ""}
-                            onChange={(e) =>
-                              setNewLaptop({ ...newLaptop, specs: { ...newLaptop.specs, ram: e.target.value } })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-600 font-medium mb-2">Bộ Nhớ</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            placeholder="Nhập dung lượng Bộ nhớ"
-                            value={newLaptop.specs?.storage || ""}
-                            onChange={(e) =>
-                              setNewLaptop({ ...newLaptop, specs: { ...newLaptop.specs, storage: e.target.value } })
-                            }
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-600 font-medium mb-2">Màn hình</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            placeholder="Nhập kích thước màn hình"
-                            value={newLaptop.specs?.display || ""}
-                            onChange={(e) =>
-                              setNewLaptop({ ...newLaptop, specs: { ...newLaptop.specs, display: e.target.value } })
-                            }
+                            value={newTool.releaseYear}
+                            onChange={(e) => setNewTool({ ...newTool, releaseYear: e.target.value })}
                           />
                         </div>
                       </div>
@@ -1041,12 +796,12 @@ const LaptopTable = () => {
                       </span>
                       <select
                         className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        value={newLaptop.status}
-                        onChange={(e) => setNewLaptop({ ...newLaptop, status: e.target.value })}
+                        value={newTool.status}
+                        onChange={(e) => setNewTool({ ...newTool, status: e.target.value })}
                       >
                         <option value="Active">Đang sử dụng</option>
-                        <option value="In Repair">Chờ sửa chữa</option>
-                        <option value="Lưu kho">Lưu kho</option>
+                        <option value="Standby">Chờ Cấp Phát</option>
+                        <option value="Broken">Hỏng</option>
                       </select>
                     </div>
 
@@ -1143,30 +898,24 @@ const LaptopTable = () => {
                 className="bg-white rounded-lg shadow-lg p-6 w-[50%]"
                 onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
                 style={{ zIndex: 1050 }}>
-                <h3 className="text-2xl font-semibold mb-8 text-[#002147]">Cập nhật thông tin Laptop</h3>
+                <h3 className="text-2xl font-semibold mb-8 text-[#002147]">Cập nhật thông tin Tool</h3>
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
                     try {
                       const payload = {
-                        ...editingLaptop,
-                        releaseYear: editingLaptop.releaseYear || "",
-                        specs: {
-                          processor: editingLaptop.specs?.processor || "",
-                          ram: editingLaptop.specs?.ram || "",
-                          storage: editingLaptop.specs?.storage || "",
-                          display: editingLaptop.specs?.display || "",
-                        },
+                        ...editingTool,
+                        releaseYear: editingTool.releaseYear || "",
                         assigned:
-                            editingLaptop.assigned
-                              ? editingLaptop.assigned.map((user) => user.value)
-                              : selectedLaptop.assigned.map((user) => user.value),
+                            editingTool.assigned
+                              ? editingTool.assigned.map((user) => user.value)
+                              : selectedTool.assigned.map((user) => user.value),
                         };
                       
                         console.log("Payload gửi lên server:", payload);
 
                       await axios.put(
-                        `http://localhost:5001/api/laptops/${editingLaptop._id}`,
+                        `/api/tool/${editingTool._id}`,
                         payload,
                         {
                           headers: {
@@ -1175,16 +924,16 @@ const LaptopTable = () => {
                         }
                       );
                       setShowEditModal(false);
-                      fetchLaptops(); // Cập nhật danh sách sau khi sửa
-                      toast.success("Cập nhật laptop thành công!",
+                      fetchtool(); // Cập nhật danh sách sau khi sửa
+                      toast.success("Cập nhật tool thành công!",
                         {
                           className: "toast-succes",
                           progressClassName: "Toastify__progress-bar",
                         }
                       );
                     } catch (error) {
-                      console.error("Error updating laptop:", error);
-                      toast.error("Không thể cập nhật laptop!",
+                      console.error("Error updating tool:", error);
+                      toast.error("Không thể cập nhật tool!",
                         {
                           className: "toast-error",
                           progressClassName: "Toastify__progress-bar",
@@ -1217,8 +966,8 @@ const LaptopTable = () => {
                           type="text"
                           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                           placeholder="Nhập tên thiết bị"
-                          value={editingLaptop.name}
-                          onChange={(e) => setEditingLaptop({ ...editingLaptop, name: e.target.value })}
+                          value={editingTool.name}
+                          onChange={(e) => setEditingTool({ ...editingTool, name: e.target.value })}
                         />
                       </div>
                       <div>
@@ -1227,8 +976,8 @@ const LaptopTable = () => {
                           type="text"
                           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                           placeholder="Nhập nhà sản xuất"
-                          value={editingLaptop.manufacturer}
-                          onChange={(e) => setEditingLaptop({ ...editingLaptop, manufacturer: e.target.value })}
+                          value={editingTool.manufacturer}
+                          onChange={(e) => setEditingTool({ ...editingTool, manufacturer: e.target.value })}
                         />
                       </div>
                       <div>
@@ -1237,8 +986,8 @@ const LaptopTable = () => {
                           type="text"
                           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                           placeholder="Nhập số serial"
-                          value={editingLaptop.serial}
-                          onChange={(e) => setEditingLaptop({ ...editingLaptop, serial: e.target.value })}
+                          value={editingTool.serial}
+                          onChange={(e) => setEditingTool({ ...editingTool, serial: e.target.value })}
                         />
                       </div>
                       <div>
@@ -1247,81 +996,13 @@ const LaptopTable = () => {
                           type="number"
                           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                           placeholder="Nhập năm sản xuất"
-                          value={editingLaptop.releaseYear}
-                          onChange={(e) => setEditingLaptop({ ...editingLaptop, releaseYear: e.target.value })}
+                          value={editingTool.releaseYear}
+                          onChange={(e) => setEditingTool({ ...editingTool, releaseYear: e.target.value })}
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Cấu hình */}
-                  <div className="border rounded-lg p-4 mb-4 relative"
-                  style={{ position: "relative", padding: "16px", marginBottom: "30px" }}
-                  >
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: "-12px",
-                        left: "16px",
-                        backgroundColor: "#fff",
-                        padding: "0 8px",
-                        fontWeight: "bold",
-                        color: "#002147",
-                      }}
-                    >
-                      Cấu hình
-                    </span>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-gray-600 font-medium mb-2">Processor</label>
-                        <input
-                          type="text"
-                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                          placeholder="Nhập bộ xử lý"
-                          value={editingLaptop.specs?.processor || ""}
-                          onChange={(e) =>
-                            setEditingLaptop({ ...editingLaptop, specs: { ...editingLaptop.specs, processor: e.target.value } })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-600 font-medium mb-2">RAM</label>
-                        <input
-                          type="text"
-                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                          placeholder="Nhập dung lượng RAM"
-                          value={editingLaptop.specs?.ram || ""}
-                          onChange={(e) =>
-                            setEditingLaptop({ ...editingLaptop, specs: { ...editingLaptop.specs, ram: e.target.value } })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-600 font-medium mb-2">Bộ Nhớ</label>
-                        <input
-                          type="text"
-                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                          placeholder="Nhập dung lượng bộ nhớ"
-                          value={editingLaptop.specs?.storage || ""}
-                          onChange={(e) =>
-                            setEditingLaptop({ ...editingLaptop, specs: { ...editingLaptop.specs, storage: e.target.value } })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-600 font-medium mb-2">Màn hình</label>
-                        <input
-                          type="text"
-                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                          placeholder="Nhập kích thước màn hình"
-                          value={editingLaptop.specs?.display || ""}
-                          onChange={(e) =>
-                            setEditingLaptop({ ...editingLaptop, specs: { ...editingLaptop.specs, display: e.target.value } })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
 
                   {/* Trạng thái */}
                     <div
@@ -1346,12 +1027,12 @@ const LaptopTable = () => {
                           <label className="block text-gray-600 font-medium mb-2">Tình trạng</label>
                           <select
                             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            value={editingLaptop.status}
-                            onChange={(e) => setEditingLaptop({ ...editingLaptop, status: e.target.value })}
+                            value={editingTool.status}
+                            onChange={(e) => setEditingTool({ ...editingTool, status: e.target.value })}
                           >
                             <option value="Active">Đang sử dụng</option>
-                            <option value="In Repair">Chờ sửa chữa</option>
-                            <option value="Lưu kho">Lưu kho</option>
+                            <option value="Standby">Chờ Cấp Phát</option>
+                            <option value="Broken">Hỏng</option>
                           </select>
                         </div>
                         <div>
@@ -1360,21 +1041,22 @@ const LaptopTable = () => {
                                 type="text"
                                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                                 placeholder="Nhập tên người sử dụng"
-                                value={editingLaptop.assigned[0]?.label || ""}
+                                value={editingTool.assigned[0]?.label || ""}
                                 onChange={(e) => {
                                   const query = e.target.value.toLowerCase();
 
                                   // Lọc danh sách người dùng phù hợp
                                   const filtered = users.filter((user) =>
-                                    user.label.toLowerCase().includes(query)
+                                    user.label.toLowerCase().includes(query) ||
+                                    user.emailAddress.toLowerCase().includes(query)
                                   );
 
                                   setFilteredUsers(filtered);
                                   setShowSuggestions(true);
 
                                   // Tạm thời gắn giá trị nhập vào assigned
-                                  setEditingLaptop({
-                                    ...editingLaptop,
+                                  setEditingTool({
+                                    ...editingTool,
                                     assigned: [{ label: e.target.value, value: null }],
                                   });
                                 }}
@@ -1387,13 +1069,18 @@ const LaptopTable = () => {
                                   key={user.value}
                                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                                   onClick={() => {
-                                    setEditingLaptop({ ...editingLaptop, assigned: [user] });
+                                    setEditingTool({ ...editingTool, assigned: [user] });
                                     setShowSuggestions(false);
                                   }}
                                 >
-                                  {user.label} <br/> <i>{user.emailAddress}</i>
+                                 <span className="font-bold">{user.label}</span>
+                                  <br />
+                                  <span className="italic text-gray-500">{user.emailAddress}</span>
                                 </li>
                               ))}
+                              {filteredUsers.length === 0 && (
+                                <li className="px-4 py-2 text-gray-500 italic">Không tìm thấy kết quả</li>
+                              )}
                             </ul>
                           )}
                         </div>
@@ -1428,7 +1115,7 @@ const LaptopTable = () => {
                         style={{ zIndex: 1050 }}>
               <h3 className="text-lg text-center font-semibold mb-4 text-[#002147]">Xác nhận xóa</h3>
               <p className="text-gray-600 mb-4">
-                Bạn có chắc chắn muốn xóa laptop <strong>{laptopToDelete?.name}</strong> không?
+                Bạn có chắc chắn muốn xóa Tool <strong>{toolToDelete?.name}</strong> không?
               </p>
               <div className="flex justify-end space-x-2">
                 <button
@@ -1449,13 +1136,13 @@ const LaptopTable = () => {
           document.body
           )}
       {/* {-----------------------------------------/* Modal click thiết bị /-----------------------------------------} */}
-      {showDetailModal && selectedLaptop && ReactDOM.createPortal(
+      {/* {showDetailModal && selectedtool && ReactDOM.createPortal(
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-1000"
           style={{ zIndex: 1050 }}
           onClick={(e) => {
             // Đóng modal nếu người dùng nhấp ra ngoài modal
             if (e.target === e.currentTarget) {
-              setSelectedLaptop(null);
+              setSelectedtool(null);
             }
           }}
           >
@@ -1474,16 +1161,16 @@ const LaptopTable = () => {
                 onAddRepair={handleAddRepair} // Truyền hàm vào đây
                 onDeleteRepair={handleDeleteRepair}
                 onCloseModal={() => {
-                  setSelectedLaptop(null); // Reset laptop đã chọn
+                  setSelectedLaptop(null); // Reset tool đã chọn
                   setShowDetailModal(false); // Đóng modal
                 }} // Truyền hàm đóng modal
               />
             </div>
           </div>,
           document.body
-        )}
+        )} */}
     </div>
   );
 };
 
-export default LaptopTable;
+export default ToolTable;

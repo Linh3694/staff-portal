@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import LaptopTable from "../components/LaptopTable";
-import AccessoriesTable from "../components/AccessoriesTable";
+import ToolTable from "../components/ToolTable";
 import PrinterTable from "../components/PrinterTable";
 import ProjectorTable from "../components/ProjectorTable";
 import MonitorTable from "../components/MonitorTable";
@@ -266,7 +266,7 @@ const renderContent = () => {
                     {activeTab === "Màn hình" && <MonitorTable />}
                     {activeTab === "Máy in" && <PrinterTable />}
                     {activeTab === "Thiết bị trình chiếu" && <ProjectorTable />}
-                    {activeTab === "Khác" && <AccessoriesTable />}
+                    {activeTab === "Khác" && <ToolTable />}
                   </div>
                 );
 
@@ -362,7 +362,7 @@ const renderContent = () => {
                       <button
                         key={tab}
                         // disabled={tab.disabled}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-full transform transition-colors transition-transform duration-300  hover:scale-105 ${
+                        className={`flex font-bold items-center gap-2 px-4 py-2 rounded-full transform transition-colors transition-transform duration-300  hover:scale-105 ${
                           activeTab === tab
                             ? "bg-[#002147] text-white"
                             : "bg-transparent text-gray-600 hover:bg-gray-200 hover:text-gray-800"
@@ -536,7 +536,7 @@ const renderContent = () => {
                 {menuItems.map((item) => (
                   <button
                     key={item.label}
-                    className={`flex items-center w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105  ${
+                    className={`flex items-center font-semibold w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105  ${
                       selectedCategory === item.label
                         ? darkMode
                           ? "bg-gray-800 text-white"
@@ -557,7 +557,7 @@ const renderContent = () => {
             {/* Users Section */}
             <button
               onClick={() => setSelectedCategory("User")}
-              className={`flex items-center w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105 mb-4 ${
+              className={`flex items-center w-full font-semibold px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105 mb-4 ${
                 selectedCategory === "User"
                   ? "bg-[#002147] text-white"
                   : "hover:bg-[#002147] hover:text-white text-gray-700"
@@ -569,7 +569,7 @@ const renderContent = () => {
             {/* Room Section */}
             <button
               onClick={() => setSelectedCategory("Room")}
-              className={`flex items-center w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105 mb-4 ${
+              className={`flex items-center w-full font-semibold px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105 mb-4 ${
                 selectedCategory === "Room"
                   ? "bg-[#002147] text-white"
                   : "hover:bg-[#002147] hover:text-white text-gray-700"
