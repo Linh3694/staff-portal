@@ -22,6 +22,7 @@ const LaptopTable = () => {
             manufacturer: "",
             serial: "",
             assigned: [],
+            room: "",
             status: "Active",
             releaseYear: "",
             specs: {
@@ -37,6 +38,7 @@ const LaptopTable = () => {
             manufacturer: "",
             serial: "",
             assigned: [],
+            room: "",
             status: "Active",
             releaseYear: "",
             specs: {
@@ -62,6 +64,9 @@ const LaptopTable = () => {
         const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
         const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
         const [selectedType, setSelectedType] = useState("Tất cả"); // Mặc định là Tất cả
+        const [rooms, setRooms] = useState([]); // Lưu danh sách rooms từ API
+        const [filteredRooms, setFilteredRooms] = useState([]); // Lưu gợi ý tìm kiếm
+        const [showRoomSuggestions, setShowRoomSuggestions] = useState(false); // Kiểm soát hiển thị gợi ý
 
         
         const statusLabels = {
@@ -186,19 +191,21 @@ const LaptopTable = () => {
               const response = await axios.get("/api/laptops", {
                 headers: { Authorization: `Bearer ${token}` },
               });
-
-              // Map dữ liệu `assigned` để phù hợp với định dạng giao diện
+          
               const laptops = response.data.map((laptop) => ({
                 ...laptop,
+                room: laptop.room
+                  ? { label: laptop.room.name, value: laptop.room._id, location: laptop.room.location }
+                  : null,
                 assigned: laptop.assigned.map((user) => ({
                   value: user._id,
-                  label: user.name,
-                  title: user.jobTitle || "Không xác định",
+                  label: user.fullname,
                   departmentName: user.department || "Không xác định",
                 })),
               }));
+          
               setData(laptops);
-              console.log("Laptops fetched:", response.data); // Log dữ liệu
+              console.log("Fetched laptops with room data:", laptops); // Kiểm tra dữ liệu log
             } catch (error) {
               console.error("Error fetching laptops:", error);
             }
@@ -233,6 +240,47 @@ const LaptopTable = () => {
               setUsers([]);
             }
           };
+          const fetchRooms = async () => {
+            try {
+              const token = localStorage.getItem("authToken");
+              console.log("Token used for API request:", token);
+          
+              const response = await axios.get("/api/rooms", {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+          
+              console.log("Dữ liệu trả về từ API rooms:", response.data);
+          
+              // Kiểm tra nếu dữ liệu nằm trong "rooms"
+              const roomsData = response.data.rooms || []; // Lấy rooms từ response
+          
+              if (!Array.isArray(roomsData)) {
+                throw new Error("API trả về dữ liệu không hợp lệ");
+              }
+          
+              // Xử lý dữ liệu rooms
+              const rooms = roomsData.map((room) => ({
+                value: room._id,
+                label: room.name,
+                location: room.location
+                  .map((loc) => `${loc.building}, tầng ${loc.floor}`)
+                  .join("; "), // Nối thông tin location thành chuỗi
+                capacity: room.capacity || "Không xác định",
+                status: room.status || "Không xác định",
+              }));
+          
+              console.log("Danh sách rooms đã xử lý:", rooms);
+              setRooms(rooms); // Lưu danh sách vào state
+            } catch (error) {
+              console.error("Error fetching rooms:", error.response || error.message);
+              toast.error(
+                `Lỗi khi tải danh sách phòng! Vui lòng kiểm tra kết nối. Chi tiết: ${
+                  error.response?.statusText || error.message
+                }`,
+                { className: "toast-error" }
+              );
+            }
+          };
 
           const handleClone = async (laptop) => {
             try {
@@ -243,6 +291,7 @@ const LaptopTable = () => {
                 ...laptop,
                 serial: `${laptop.serial}_copy`,
                 assigned: laptop.assigned?.map((user) => user.value),
+                room: laptop.room ? laptop.room.value : null,
                 userId,
               };
           
@@ -300,25 +349,22 @@ const LaptopTable = () => {
               }
           };
 
-          const handleEdit = (item) => {
-              setEditingLaptop({
-                ...item,
-                releaseYear: item.releaseYear || "", // Đảm bảo có giá trị mặc định cho Năm sản xuất
-                specs: {
-                  processor: item.specs?.processor || "",
-                  ram: item.specs?.ram || "",
-                  storage: item.specs?.storage || "",
-                  display: item.specs?.display || "",
-                },
-                assigned: Array.isArray(item.assigned)
-                  ? item.assigned.map((user) => ({
-                      value: user.value || user._id, // Đảm bảo định dạng user
-                      label: user.label || user.fullname,
-                    }))
-                  : [],
-              });
-              setShowEditModal(true); // Hiển thị modal chỉnh sửa
-          };
+          // Xử lý trong handleEdit
+              const handleEdit = (item) => {
+                setEditingLaptop({
+                  ...item,
+                  assigned: Array.isArray(item.assigned)
+                    ? item.assigned.map((user) => ({
+                        value: user.value || user._id,
+                        label: user.label || user.fullname,
+                      }))
+                    : [],
+                  room: item.room
+                    ? { value: item.room._id, label: item.room.label }
+                    : null,
+                });
+                setShowEditModal(true);
+              };
 
           const confirmDelete = (laptop) => {
             setLaptopToDelete(laptop); // Đặt laptop cần xóa
@@ -358,7 +404,8 @@ const LaptopTable = () => {
                   storage: newLaptop.specs?.storage || "",
                   display: newLaptop.specs?.display || "",
                 },
-                assigned: newLaptop.assigned?.map((user) => user.value) || [],
+                assigned: newLaptop.assigned.length > 0 ? newLaptop.assigned.map((user) => user.value) : [],
+                room: newLaptop.assigned.length === 0 ? newLaptop.room : null,
                 userId,
                  // Xử lý danh sách người dùng
               };
@@ -394,6 +441,7 @@ const LaptopTable = () => {
                     display: "",
                   },
                   assigned: [],
+                  room:"",
                   status: "Active",
                   userId,
                 });
@@ -440,21 +488,38 @@ const LaptopTable = () => {
                     const workbook = XLSX.read(data, { type: "array" });
                     const sheetName = workbook.SheetNames[0];
                     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-        
+                    console.log("Dữ liệu gửi lên:", parsedData);
+                    console.log("Danh sách người dùng ánh xạ:", parsedData.map((laptop) => laptop.assigned));
+
                     // Chuẩn hóa dữ liệu
                     const normalizedData = sheetData.map((row, index) => {
                         if (!row["Tên Thiết Bị (name)"] || !row["Nhà Sản Xuất (manufacturer)"] || !row["Serial (serial)"]) {
                             console.error(`Hàng ${index + 1} bị thiếu dữ liệu bắt buộc.`);
                             return null;
                         }
+
+                        // Tìm room dựa trên tên phòng
+                        const roomName = row["Tên Phòng (Room Name)"]?.trim();
+                        const matchedRoom = rooms.find(
+                          (room) => room.label.toLowerCase() === roomName.toLowerCase()
+                        );
+                        
+                        if (!matchedRoom) {
+                          toast.error(`Tên phòng "${roomName}" không tồn tại trong hệ thống.`, {
+                            className: "toast-error",
+                          });
+                          throw new Error(`Tên phòng không tồn tại: ${roomName}`);
+                        }
+                        
                         const assignedFullnames = row["Người Dùng (assigned)"]
                             ? row["Người Dùng (assigned)"].split(",").map((name) => name.trim())
                             : [];
+                        
+                        const normalizeString = (str) => str.trim().toLowerCase();
 
                         const assignedIds = assignedFullnames.map((name) => {
-                           const normalizedFullname = name.trim().toLowerCase();
-                           const matchedUser = users.find(
-                            (user) => user.label.trim().toLowerCase() === normalizedFullname // So sánh tên đã chuẩn hóa
+                        const matchedUser = users.find(
+                            (user) => user.label.trim().toLowerCase() === normalizeString(name) // So sánh tên đã chuẩn hóa
                           );
                             if (!matchedUser) {
                               const suggestions = users.map((user) => user.label).join(", ");
@@ -463,7 +528,7 @@ const LaptopTable = () => {
                               throw new Error(`Tên không hợp lệ: ${name}`);
                           }
                             return matchedUser.value; // Lấy ID nếu khớp
-                        }); 
+                        });
         
                         return {
                             name: row["Tên Thiết Bị (name)"] || "",
@@ -484,6 +549,7 @@ const LaptopTable = () => {
                                 display: row["Màn Hình (display)"] || "",
                             },
                             assigned: assignedIds,
+                            room: matchedRoom.value, // Lưu ID phòng vào đây
                             releaseYear: row["Năm đưa vào sử dụng (releaseYear)"] || "",
                         };
                     }).filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
@@ -599,17 +665,15 @@ const LaptopTable = () => {
           }
       };
 
-          useEffect(() => {
-            const fetchData = async () => {
-              try {
-                await fetchLaptops();
-                await fetchUsers();
-              } catch (error) {
-                }
-            };
-            fetchData();
-            }, []);
-
+      useEffect(() => {
+        const fetchData = async () => {
+          await fetchLaptops();
+          await fetchUsers();
+          await fetchRooms();
+        };
+      
+        fetchData();
+      }, []);
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
         {/* Header */}
@@ -911,6 +975,10 @@ const LaptopTable = () => {
                         </p>
                     </th>
                     <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                        <p className="text-sm font-bold text-gray-500">NƠI SỬ DỤNG
+                        </p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                         <p className="text-sm font-bold text-gray-500">TRẠNG THÁI
                         </p>
                     </th>
@@ -943,21 +1011,41 @@ const LaptopTable = () => {
                     </p>
                     </td>
                     <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
-                      {Array.isArray(item.assigned) && item.assigned.length > 0 ? (
-                      item.assigned.map((user) => (
-                        <div key={user.value || user._id}>
-                          <p className="font-bold">{user.label}</p>
-                          <span className="italic text-gray-400">
-                            {user.departmentName ? user.departmentName : "SS"}
-                          </span>
-                          {console.log("User Object:", user)}
-                        {console.log("User Department Name:", user.departmentName)}
+                    {Array.isArray(item.assigned) && item.assigned.length > 0 ? (
+                        item.assigned.map((user) => (
+                          <div key={user.value || user._id}>
+                            <p className="font-bold">{user.label}</p>
+                            <span className="italic text-gray-400">
+                              {user.departmentName ? user.departmentName : "Không xác định"}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div>
+                          <p className="font-bold">Chưa bàn giao</p>
                         </div>
-                      ))
-                    ) : (
-                      "Chưa bàn giao"
-                    )}
-                   </td>
+                      )}
+                    </td>
+                    <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
+                          {item.room ? (
+                            <div>
+                              <p className="font-bold">{item.room.label || "N/A"}</p>
+                              {Array.isArray(item.room.location) && item.room.location.length > 0 ? (
+                                <span className="italic text-gray-400">
+                                  {item.room.location
+                                    .map((loc) => `Tòa nhà: ${loc.building || "N/A"}, tầng ${loc.floor || "N/A"}`)
+                                    .join("; ")}
+                                </span>
+                              ) : (
+                                <span className="italic text-gray-400">Không xác định</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="font-bold">N/A</p>
+                            </div>
+                          )}
+                        </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <div className="flex items-center">
                       {item.status === "Active" ? (
@@ -1298,14 +1386,16 @@ const LaptopTable = () => {
                           storage: editingLaptop.specs?.storage || "",
                           display: editingLaptop.specs?.display || "",
                         },
-                        assigned:
-                            editingLaptop.assigned
-                              ? editingLaptop.assigned.map((user) => user.value)
-                              : selectedLaptop.assigned.map((user) => user.value),
-                        };
-                      
-                        console.log("Payload gửi lên server:", payload);
-
+                        assigned: Array.isArray(editingLaptop.assigned)
+                          ? editingLaptop.assigned
+                              .filter((user) => user.value) // Lọc bỏ user không có ID
+                              .map((user) => user.value) // Chỉ lấy ID
+                          : [],
+                        room: editingLaptop.room?.value || null, // Chỉ lấy ID phòng
+                      };
+                  
+                      console.log("Payload gửi lên server:", payload);
+                  
                       await axios.put(
                         `/api/laptops/${editingLaptop._id}`,
                         payload,
@@ -1316,21 +1406,11 @@ const LaptopTable = () => {
                         }
                       );
                       setShowEditModal(false);
-                      fetchLaptops(); // Cập nhật danh sách sau khi sửa
-                      toast.success("Cập nhật laptop thành công!",
-                        {
-                          className: "toast-succes",
-                          progressClassName: "Toastify__progress-bar",
-                        }
-                      );
+                      fetchLaptops(); // Làm mới danh sách sau khi lưu
+                      toast.success("Cập nhật laptop thành công!");
                     } catch (error) {
                       console.error("Error updating laptop:", error);
-                      toast.error("Không thể cập nhật laptop!",
-                        {
-                          className: "toast-error",
-                          progressClassName: "Toastify__progress-bar",
-                        }
-                      );
+                      toast.error("Không thể cập nhật laptop!");
                     }
                   }}
                 >
@@ -1506,6 +1586,7 @@ const LaptopTable = () => {
                             <option value="Broken">Hỏng</option>
                           </select>
                         </div>
+                        
                         <div>
                           <label className="block text-gray-600 font-medium mb-2">Người sử dụng</label>
                           <input
@@ -1554,6 +1635,54 @@ const LaptopTable = () => {
                               )}
                             </ul>
                           )}
+                        </div>
+                        <div>
+                          <label className="block text-gray-600 font-medium mb-2">Nơi sử dụng</label>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                            placeholder="Nhập tên phòng"
+                            value={editingLaptop.room?.label || ""}
+                            onChange={(e) => {
+                              const query = e.target.value.toLowerCase();
+
+                              // Lọc danh sách rooms phù hợp
+                              const filtered = rooms.filter((room) =>
+                                room.label.toLowerCase().includes(query)
+                              );
+
+                              setFilteredRooms(filtered);
+                              setShowRoomSuggestions(true);
+
+                              // Tạm thời gắn giá trị nhập vào room
+                              setEditingLaptop({
+                                ...editingLaptop,
+                                room: { label: e.target.value, value: null },
+                              });
+                            }}
+                            onBlur={() => setTimeout(() => setShowRoomSuggestions(false), 200)}
+                          />
+                            {showRoomSuggestions && filteredRooms.length > 0 && (
+                              <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
+                              {filteredRooms.map((room) => (
+                                <li
+                                  key={room.value}
+                                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                  onClick={() => {
+                                    setEditingLaptop({
+                                      ...editingLaptop,
+                                      room,
+                                    });
+                                    setShowRoomSuggestions(false);
+                                  }}
+                                >
+                                  <span className="font-bold">{room.label}</span>
+                                  <br />
+                                  <span className="italic text-gray-500">{room.location}</span>
+                                </li>
+                              ))}
+                            </ul>
+                            )}
                         </div>
                       </div>
                     </div>

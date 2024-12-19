@@ -51,8 +51,10 @@ const ProjectorTable = () => {
         const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
         const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
         const [selectedType, setSelectedType] = useState("Tất cả"); // Mặc định là Tất cả
+        const [rooms, setRooms] = useState([]); // Lưu danh sách phòng
+        const [filteredRooms, setFilteredRooms] = useState([]); // Lưu danh sách gợi ý phòng tạm thời
+        const [showRoomSuggestions, setShowRoomSuggestions] = useState(false); // Kiểm soát hiển thị gợi ý phòng
 
-        
         const statusLabels = {
           Active: "Đang sử dụng",
                   "Standby": "Chờ Cấp Phát",
@@ -185,11 +187,42 @@ const ProjectorTable = () => {
                   title: user.jobTitle || "Không xác định",
                   departmentName: user.department || "Không xác định",
                 })),
+                room: projector.room
+                  ? { label: projector.room.name, value: projector.room._id, location: projector.room.location }
+                  : null,
               }));
               setData(projectors);
               console.log("projectors fetched:", response.data); // Log dữ liệu
             } catch (error) {
               console.error("Error fetching projectors:", error);
+            }
+          };
+
+          const fetchRooms = async () => {
+            try {
+              const token = localStorage.getItem("authToken");
+              const response = await axios.get("/api/rooms", {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+          
+              const roomsData = response.data.rooms || []; // Kiểm tra dữ liệu trả về từ API
+              if (!Array.isArray(roomsData)) {
+                throw new Error("API trả về dữ liệu không hợp lệ");
+              }
+          
+              const rooms = roomsData.map((room) => ({
+                value: room._id,
+                label: room.name || "Không xác định",
+                location: room.location
+                  ? room.location.map((loc) => `${loc.building}, tầng ${loc.floor}`).join("; ")
+                  : "Không xác định",
+              }));
+          
+              console.log("Danh sách rooms đã xử lý:", rooms); // Kiểm tra danh sách
+              setRooms(rooms);
+            } catch (error) {
+              console.error("Error fetching rooms:", error.response || error.message);
+              toast.error("Lỗi khi tải danh sách phòng! Vui lòng kiểm tra lại.");
             }
           };
 
@@ -366,6 +399,7 @@ const ProjectorTable = () => {
                   releaseYear: "",
                   type: "",
                   assigned: [],
+                  room:"",
                   status: "Active",
                   userId,
                 });
@@ -419,6 +453,19 @@ const ProjectorTable = () => {
                             console.error(`Hàng ${index + 1} bị thiếu dữ liệu bắt buộc.`);
                             return null;
                         }
+
+                        const roomName = row["Tên Phòng (Room Name)"]?.trim();
+                        const matchedRoom = rooms.find(
+                          (room) => room.label.toLowerCase() === roomName.toLowerCase()
+                        );
+                        
+                        if (!matchedRoom) {
+                          toast.error(`Tên phòng "${roomName}" không tồn tại trong hệ thống.`, {
+                            className: "toast-error",
+                          });
+                          throw new Error(`Tên phòng không tồn tại: ${roomName}`);
+                        }
+
                         const assignedFullnames = row["Người Dùng (assigned)"]
                             ? row["Người Dùng (assigned)"].split(",").map((name) => name.trim())
                             : [];
@@ -450,6 +497,7 @@ const ProjectorTable = () => {
                                 ? "Broken"
                                 : "Không xác định",
                           assigned: assignedIds,
+                          room: matchedRoom,
                           releaseYear: row["Năm đưa vào sử dụng (releaseYear)"] || "",
                         };
                     }).filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
@@ -508,13 +556,19 @@ const ProjectorTable = () => {
             });
             return;
           }
+          // Chuẩn bị dữ liệu
+            const normalizedData = parsedData.map((item) => ({
+              ...item,
+              room: item.room?.value || null, // Chỉ lấy ObjectId của room
+            }));
+
         
           try {
             console.log("Dữ liệu gửi lên:", parsedData);
         
             const response = await axios.post(
               "/api/projectors/bulk-upload",
-              { projectors: parsedData },
+              { projectors: normalizedData },
               {
                 headers: {
                   "Content-Type": "application/json",
@@ -567,16 +621,20 @@ const ProjectorTable = () => {
           }
         };
 
-          useEffect(() => {
-            const fetchData = async () => {
-              try {
-                await fetchProjectors();
-                await fetchUsers();
-              } catch (error) {
-                }
-            };
-            fetchData();
-            }, []);
+        useEffect(() => {
+          const fetchData = async () => {
+            try {
+              await fetchRooms(); // Gọi API lấy danh sách phòng
+              await fetchUsers(); // Gọi API lấy danh sách người dùng
+              await fetchProjectors(); // Gọi API lấy danh sách Monitor
+              console.log("Danh sách gợi ý phòng:", filteredRooms);
+
+            } catch (error) {
+              console.error("Error fetching data:", error);
+            }
+          };
+          fetchData();
+        }, []);
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -922,21 +980,25 @@ const ProjectorTable = () => {
                     </p>
                     </td>
                     <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
-                      {Array.isArray(item.assigned) && item.assigned.length > 0 ? (
-                      item.assigned.map((user) => (
-                        <div key={user.value || user._id}>
-                          <p className="font-bold">{user.label}</p>
-                          <span className="italic text-gray-400">
-                            {user.departmentName ? user.departmentName : "SS"}
-                          </span>
-                          {console.log("User Object:", user)}
-                        {console.log("User Department Name:", user.departmentName)}
-                        </div>
-                      ))
-                    ) : (
-                      "Chưa bàn giao"
-                    )}
-                   </td>
+                          {item.room ? (
+                            <div>
+                              <p className="font-bold">{item.room.label || "N/A"}</p>
+                              {Array.isArray(item.room.location) && item.room.location.length > 0 ? (
+                                <span className="italic text-gray-400">
+                                  {item.room.location
+                                    .map((loc) => `Tòa nhà: ${loc.building || "N/A"}, tầng ${loc.floor || "N/A"}`)
+                                    .join("; ")}
+                                </span>
+                              ) : (
+                                <span className="italic text-gray-400">Không xác định</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="font-bold">N/A</p>
+                            </div>
+                          )}
+                        </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <div className="flex items-center">
                       {item.status === "Active" ? (
@@ -1206,6 +1268,7 @@ const ProjectorTable = () => {
                             editingProjector.assigned
                               ? editingProjector.assigned.map((user) => user.value)
                               : selectedProjector.assigned.map((user) => user.value),
+                        room: editingProjector.room?.value || null, // Gửi ID phòng
                         };
                       
                         console.log("Payload gửi lên server:", payload);
@@ -1344,53 +1407,53 @@ const ProjectorTable = () => {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-gray-600 font-medium mb-2">Người sử dụng</label>
+                          <label className="block text-gray-600 font-medium mb-2">Phòng</label>
                           <input
-                                type="text"
-                                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                                placeholder="Nhập tên người sử dụng"
-                                value={editingProjector.assigned[0]?.label || ""}
-                                onChange={(e) => {
-                                  const query = e.target.value.toLowerCase();
+                            type="text"
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                            placeholder="Nhập tên phòng"
+                            value={editingProjector.room?.label || ""}
+                            onChange={(e) => {
+                              const query = e.target.value.toLowerCase();
 
-                                  // Lọc danh sách người dùng phù hợp
-                                  const filtered = users.filter((user) =>
-                                    user.label.toLowerCase().includes(query) ||
-                                    user.emailAddress.toLowerCase().includes(query)
-                                  );
+                              // Lọc danh sách rooms phù hợp
+                              const filtered = rooms.filter((room) =>
+                                room.label.toLowerCase().includes(query)
+                              );
 
-                                  setFilteredUsers(filtered);
-                                  setShowSuggestions(true);
+                              setFilteredRooms(filtered);
+                              setShowRoomSuggestions(true);
 
-                                  // Tạm thời gắn giá trị nhập vào assigned
-                                  setEditingProjector({
-                                    ...editingProjector,
-                                    assigned: [{ label: e.target.value, value: null }],
-                                  });
-                                }}
-                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // Đợi người dùng chọn gợi ý
-                              />
-                          {showSuggestions && filteredUsers.length > 0 && (
-                            <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
-                              {filteredUsers.map((user) => (
-                                <li
-                                  key={user.value}
-                                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                                  onClick={() => {
-                                    setEditingProjector({ ...editingProjector, assigned: [user] });
-                                    setShowSuggestions(false);
-                                  }}
-                                >
-                                 <span className="font-bold">{user.label}</span>
-                                  <br />
-                                  <span className="italic text-gray-500">{user.emailAddress}</span>
-                                </li>
-                              ))}
-                              {filteredUsers.length === 0 && (
-                                <li className="px-4 py-2 text-gray-500 italic">Không tìm thấy kết quả</li>
+                              // Tạm thời gắn giá trị nhập vào room
+                              setEditingProjector({
+                                ...editingProjector,
+                                room: { label: e.target.value, value: null },
+                              });
+                            }}
+                            onBlur={() => setTimeout(() => setShowRoomSuggestions(false), 200)}
+                          />
+                          {showRoomSuggestions && filteredRooms.length > 0 && (
+                                <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
+                                {filteredRooms.map((room) => (
+                                  <li
+                                    key={room.value}
+                                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => {
+                                      setEditingProjector({
+                                        ...editingProjector,
+                                        room: { label: room.label, value: room.value }, // Cập nhật cả label và value
+                                      });
+                                      setShowRoomSuggestions(false); // Ẩn gợi ý
+                                    }}
+                                  >
+                                    <span className="font-bold">{room.label}</span>
+                                    <br />
+                                    <span className="italic text-gray-500">{room.location}</span>
+                                  </li>
+                                ))}
+                              </ul>
                               )}
-                            </ul>
-                          )}
+                        
                         </div>
                       </div>
                     </div>

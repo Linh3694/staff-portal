@@ -19,6 +19,7 @@ const printerSchema = new mongoose.Schema({
   ip: {type: String},
   releaseYear: { type: Number },
   assigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  room: { type: mongoose.Schema.Types.ObjectId, ref: "Room"},
   status: { type: String, required: true },
   repairs: [repairSchema],
   updates: [

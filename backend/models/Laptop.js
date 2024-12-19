@@ -18,6 +18,7 @@ const laptopSchema = new mongoose.Schema({
   serial: { type: String, required: true },
   releaseYear: { type: Number },
   assigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  room: { type: mongoose.Schema.Types.ObjectId, ref: "Room" }, // Gán phòng
   status: { type: String, required: true },
   specs: {
     processor: { type: String },

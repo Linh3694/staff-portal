@@ -46,6 +46,10 @@ const ToolTable = () => {
         const [selectedDepartment, setSelectedDepartment] = useState("Tất cả phòng ban");
         const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
         const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
+        const [rooms, setRooms] = useState([]); // Lưu danh sách phòng
+        const [filteredRooms, setFilteredRooms] = useState([]); // Lưu danh sách gợi ý phòng tạm thời
+        const [showRoomSuggestions, setShowRoomSuggestions] = useState(false); // Kiểm soát hiển thị gợi ý phòng
+
 
         
 
@@ -189,6 +193,9 @@ const ToolTable = () => {
                   title: user.jobTitle || "Không xác định",
                   departmentName: user.department || "Không xác định",
                 })),
+                room: tool.room
+                  ? { label: tool.room.name, value: tool.room._id, location: tool.room.location }
+                  : null,
               }));
               setData(tool);
               console.log("tool fetched:", response.data); // Log dữ liệu
@@ -198,7 +205,34 @@ const ToolTable = () => {
           };
 
           // Lấy danh sách users
-       
+          const fetchRooms = async () => {
+            try {
+              const token = localStorage.getItem("authToken");
+              const response = await axios.get("/api/rooms", {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+          
+              const roomsData = response.data.rooms || []; // Kiểm tra dữ liệu trả về từ API
+              if (!Array.isArray(roomsData)) {
+                throw new Error("API trả về dữ liệu không hợp lệ");
+              }
+          
+              const rooms = roomsData.map((room) => ({
+                value: room._id,
+                label: room.name || "Không xác định",
+                location: room.location
+                  ? room.location.map((loc) => `${loc.building}, tầng ${loc.floor}`).join("; ")
+                  : "Không xác định",
+              }));
+          
+              console.log("Danh sách rooms đã xử lý:", rooms); // Kiểm tra danh sách
+              setRooms(rooms);
+            } catch (error) {
+              console.error("Error fetching rooms:", error.response || error.message);
+              toast.error("Lỗi khi tải danh sách phòng! Vui lòng kiểm tra lại.");
+            }
+          };
+
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
@@ -375,6 +409,19 @@ const ToolTable = () => {
                             console.error(`Hàng ${index + 1} bị thiếu dữ liệu bắt buộc.`);
                             return null;
                         }
+
+                        const roomName = row["Tên Phòng (Room Name)"]?.trim();
+                        const matchedRoom = rooms.find(
+                          (room) => room.label.toLowerCase() === roomName.toLowerCase()
+                        );
+                        
+                        if (!matchedRoom) {
+                          toast.error(`Tên phòng "${roomName}" không tồn tại trong hệ thống.`, {
+                            className: "toast-error",
+                          });
+                          throw new Error(`Tên phòng không tồn tại: ${roomName}`);
+                        }
+
                         const assignedFullnames = row["Người Dùng (assigned)"]
                             ? row["Người Dùng (assigned)"].split(",").map((name) => name.trim())
                             : [];
@@ -488,6 +535,7 @@ const ToolTable = () => {
               try {
                 await fetchtool();
                 await fetchUsers();
+                await fetchRooms();
               } catch (error) {
                 }
             };
@@ -615,6 +663,10 @@ const ToolTable = () => {
                         </p>
                     </th>
                     <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                        <p className="text-sm font-bold text-gray-500">NƠI SỬ DỤNG
+                        </p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                         <p className="text-sm font-bold text-gray-500">TRẠNG THÁI
                         </p>
                     </th>
@@ -661,6 +713,26 @@ const ToolTable = () => {
                       "Chưa bàn giao"
                     )}
                    </td>
+                   <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
+                          {item.room ? (
+                            <div>
+                              <p className="font-bold">{item.room.label || "N/A"}</p>
+                              {Array.isArray(item.room.location) && item.room.location.length > 0 ? (
+                                <span className="italic text-gray-400">
+                                  {item.room.location
+                                    .map((loc) => `Tòa nhà: ${loc.building || "N/A"}, tầng ${loc.floor || "N/A"}`)
+                                    .join("; ")}
+                                </span>
+                              ) : (
+                                <span className="italic text-gray-400">Không xác định</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="font-bold">N/A</p>
+                            </div>
+                          )}
+                        </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                   <div className="flex items-center">
                       {item.status === "Active" ? (
@@ -910,6 +982,8 @@ const ToolTable = () => {
                             editingTool.assigned
                               ? editingTool.assigned.map((user) => user.value)
                               : selectedTool.assigned.map((user) => user.value),
+                        room: editingTool.room?.value || null, // Gửi ID phòng
+      
                         };
                       
                         console.log("Payload gửi lên server:", payload);
@@ -1083,6 +1157,55 @@ const ToolTable = () => {
                               )}
                             </ul>
                           )}
+                        </div>
+                        <div>
+                          <label className="block text-gray-600 font-medium mb-2">Phòng</label>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                            placeholder="Nhập tên phòng"
+                            value={editingTool.room?.label || ""}
+                            onChange={(e) => {
+                              const query = e.target.value.toLowerCase();
+
+                              // Lọc danh sách rooms phù hợp
+                              const filtered = rooms.filter((room) =>
+                                room.label.toLowerCase().includes(query)
+                              );
+
+                              setFilteredRooms(filtered);
+                              setShowRoomSuggestions(true);
+
+                              // Tạm thời gắn giá trị nhập vào room
+                              setEditingTool({
+                                ...editingTool,
+                                room: { label: e.target.value, value: null },
+                              });
+                            }}
+                            onBlur={() => setTimeout(() => setShowRoomSuggestions(false), 200)}
+                          />
+                          {showRoomSuggestions && filteredRooms.length > 0 && (
+                                <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
+                                {filteredRooms.map((room) => (
+                                  <li
+                                    key={room.value}
+                                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => {
+                                      setEditingTool({
+                                        ...editingTool,
+                                        room: { label: room.label, value: room.value }, // Cập nhật cả label và value
+                                      });
+                                      setShowRoomSuggestions(false); // Ẩn gợi ý
+                                    }}
+                                  >
+                                    <span className="font-bold">{room.label}</span>
+                                    <br />
+                                    <span className="italic text-gray-500">{room.location}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                              )}
+                        
                         </div>
                       </div>
                     </div>

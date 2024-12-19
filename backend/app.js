@@ -23,6 +23,7 @@ const Monitor = require("./models/Monitor");
 const Printer = require("./models/Printer");
 const Projector = require("./models/Projector");
 const Tool = require("./models/Tool");
+const Room = require("./models/Room");
 const { exec } = require('child_process');
 const AcsEvent = require('./models/AcsEvent');
 const attendanceRoutes = require("./routes/users");
@@ -195,22 +196,44 @@ app.post("/api/projectors/bulk-upload", async (req, res) => {
       return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
     }
 
-    const invalidProjectors = projectors.filter(
-      (projector) =>
-        !projector.name || !projector.serial || !projector.status
-    );
+    const validProjectors = [];
+    const errors = [];
 
-    if (invalidProjectors.length > 0) {
-      return res.status(400).json({
-        message: "Có laptop không hợp lệ, kiểm tra lại dữ liệu!",
-        invalidProjectors,
-      });
+    for (const projector of projectors) {
+      try {
+        // Kiểm tra và chuyển đổi `room`
+        if (typeof projector.room === 'object' && projector.room.value) {
+          projector.room = projector.room.value; // Lấy ObjectId từ `value`
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(projector.room)) {
+          throw new Error(`Room ID không hợp lệ: ${projector.room}`);
+        }
+
+        // Kiểm tra dữ liệu cần thiết
+        if (!projector.name || !projector.serial || !projector.status) {
+          throw new Error(`Thông tin không hợp lệ cho projector: ${projector.serial}`);
+        }
+
+        validProjectors.push(projector);
+      } catch (error) {
+        errors.push({ serial: projector.serial, message: error.message });
+      }
     }
 
-    await Laptop.insertMany(projectors);
-    res.status(201).json({ message: "Tải dữ liệu lên thành công!" });
+    if (validProjectors.length === 0) {
+      return res.status(400).json({ message: "Không có dữ liệu hợp lệ để thêm mới.", errors });
+    }
+
+    // Lưu các projector hợp lệ vào database
+    await Projector.insertMany(validProjectors);
+
+    res.status(201).json({
+      message: `${validProjectors.length} projector(s) đã được thêm thành công.`,
+      errors,
+    });
   } catch (error) {
-    console.error("Lỗi khi tải dữ liệu lên:", error);
+    console.error("Lỗi khi tải dữ liệu lên:", error.message);
     res.status(500).json({ message: "Lỗi máy chủ", error });
   }
 });
@@ -241,6 +264,24 @@ app.post("/api/tool/bulk-upload", async (req, res) => {
   } catch (error) {
     console.error("Lỗi khi tải dữ liệu công cụ lên:", error);
     res.status(500).json({ message: "Lỗi máy chủ", error });
+  }
+});
+
+// API lưu danh sách phòng từ Excel
+app.post("/api/rooms/bulk", async (req, res) => {
+  try {
+    const { rooms } = req.body;
+
+    if (!rooms || !Array.isArray(rooms)) {
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ." });
+    }
+
+    // Thực hiện lưu từng phòng vào database
+    const savedRooms = await Room.insertMany(rooms, { ordered: false });
+    res.status(201).json({ message: "Danh sách phòng đã được lưu.", rooms: savedRooms });
+  } catch (error) {
+    console.error("Lỗi khi lưu danh sách phòng:", error.message);
+    res.status(500).json({ message: "Có lỗi xảy ra khi lưu danh sách phòng.", error: error.message });
   }
 });
 

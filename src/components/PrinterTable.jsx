@@ -21,6 +21,7 @@ const PrinterTable = () => {
             manufacturer: "",
             serial: "",
             assigned: [],
+            room:" ",
             status: "Active",
             releaseYear: "",
             ip: "",
@@ -31,6 +32,7 @@ const PrinterTable = () => {
             manufacturer: "",
             serial: "",
             assigned: [],
+            room:" ",
             status: "Active",
             releaseYear: "",
             ip: "", 
@@ -52,6 +54,9 @@ const PrinterTable = () => {
         const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
         const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
         const [selectedType, setSelectedType] = useState("Tất cả"); // Mặc định là Tất cả
+        const [rooms, setRooms] = useState([]); // Danh sách tất cả rooms từ API
+        const [filteredRooms, setFilteredRooms] = useState([]); // Gợi ý tạm thời
+        const [showRoomSuggestions, setShowRoomSuggestions] = useState(false); // Hiển thị gợi ý
 
         
         const statusLabels = {
@@ -62,7 +67,34 @@ const PrinterTable = () => {
           default: "Không xác định",
         };
 
-      
+        const fetchRooms = async () => {
+          try {
+            const token = localStorage.getItem("authToken");
+            const response = await axios.get("/api/rooms", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+        
+            const roomsData = response.data.rooms || []; // Kiểm tra dữ liệu trả về từ API
+            if (!Array.isArray(roomsData)) {
+              throw new Error("API trả về dữ liệu không hợp lệ");
+            }
+        
+            const rooms = roomsData.map((room) => ({
+              value: room._id,
+              label: room.name || "Không xác định",
+              location: room.location
+                ? room.location.map((loc) => `${loc.building}, tầng ${loc.floor}`).join("; ")
+                : "Không xác định",
+            }));
+        
+            console.log("Danh sách rooms đã xử lý:", rooms); // Kiểm tra danh sách
+            setRooms(rooms);
+          } catch (error) {
+            console.error("Error fetching rooms:", error.response || error.message);
+            toast.error("Lỗi khi tải danh sách phòng! Vui lòng kiểm tra lại.");
+          }
+        };
+
         const handleDeleteRepair = async (printerId, repairId) => {
           if (!repairId) {
             return Promise.reject("repairId không hợp lệ");
@@ -186,6 +218,9 @@ const PrinterTable = () => {
                   title: user.jobTitle || "Không xác định",
                   departmentName: user.department || "Không xác định",
                 })),
+                room: printer.room
+                    ? { label: printer.room.name, value: printer.room._id, location: printer.room.location }
+                    : null,
               }));
               setData(printers);
               console.log("printers fetched:", response.data); // Log dữ liệu
@@ -240,6 +275,7 @@ const PrinterTable = () => {
                 ...printer,
                 serial: `${printer.serial}_copy`,
                 assigned: printer.assigned?.map((user) => user.value),
+                room: printer.room?.value,
                 userId,
               };
           
@@ -376,6 +412,7 @@ const PrinterTable = () => {
                   serial: "",
                   releaseYear: "",
                   assigned: [],
+                  room:"",
                   status: "Active",
                   userId,
                 });
@@ -429,6 +466,17 @@ const PrinterTable = () => {
                             console.error(`Hàng ${index + 1} bị thiếu dữ liệu bắt buộc.`);
                             return null;
                         }
+                        const roomName = row["Tên Phòng (Room Name)"]?.trim();
+                        const matchedRoom = rooms.find(
+                          (room) => room.label.toLowerCase() === roomName.toLowerCase()
+                        );
+                        
+                        if (!matchedRoom) {
+                          toast.error(`Tên phòng "${roomName}" không tồn tại trong hệ thống.`, {
+                            className: "toast-error",
+                          });
+                          throw new Error(`Tên phòng không tồn tại: ${roomName}`);
+                        }
                         const assignedFullnames = row["Người Dùng (assigned)"]
                             ? row["Người Dùng (assigned)"].split(",").map((name) => name.trim())
                             : [];
@@ -461,6 +509,7 @@ const PrinterTable = () => {
                                   : "Không xác định",
                             ip: row["Địa Chỉ IP (ip)"] || "",
                             assigned: assignedIds,
+                            room: row["Tên Phòng (Room Name)"],
                             releaseYear: row["Năm đưa vào sử dụng (releaseYear)"] || "",
                         };
                     }).filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
@@ -582,15 +631,14 @@ const PrinterTable = () => {
         };
 
           useEffect(() => {
-            const fetchData = async () => {
-              try {
-                await fetchPrinters();
-                await fetchUsers();
-              } catch (error) {
-                }
-            };
-            fetchData();
-            }, []);
+                const fetchData = async () => {
+                  await fetchRooms();
+                  await fetchPrinters();
+                  await fetchUsers();
+                  console.log("Dữ liệu users:", rooms);
+                };
+                fetchData();
+              }, []);
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -630,19 +678,19 @@ const PrinterTable = () => {
                             serial: "",
                             assigned: [],
                             status: "Active",
-                      });
-                                            setShowAddModal(true);
-                                          }}
-                                          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
-                                        >
-                                          Thêm mới
-                                        </button>
-                                        <button
-                                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
-                                          onClick={() => setShowUploadModal(true)}
-                                        >
-                                          Upload
-                                        </button>
+                            });
+                            setShowAddModal(true);
+                            }}
+                              className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
+                          >
+                          Thêm mới
+                          </button>
+                          <button
+                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
+                          onClick={() => setShowUploadModal(true)}
+                          >
+                          Upload
+                          </button>
                       </div>  
                 </div>
            
@@ -881,7 +929,11 @@ const PrinterTable = () => {
                         </p>
                     </th>
                     <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                        <p className="text-sm font-bold text-gray-500">BỘ PHẬN SỬ DỤNG
+                        <p className="text-sm font-bold text-gray-500">NGƯỜI SỬ DỤNG
+                        </p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                        <p className="text-sm font-bold text-gray-500">NƠI SỬ DỤNG
                         </p>
                     </th>
                     <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
@@ -946,6 +998,24 @@ const PrinterTable = () => {
                       "Chưa bàn giao"
                     )}
                    </td>
+                   <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
+                   {item.room ? (
+                              <div>
+                                <p className="font-bold">{item.room.name || item.room.label || "Không xác định"}</p>
+                                {item.room.location && Array.isArray(item.room.location) ? (
+                                  <span className="italic text-gray-400">
+                                    {item.room.location.map(
+                                      (loc) => `${loc.building || "N/A"}, tầng ${loc.floor || "N/A"}`
+                                    ).join("; ")}
+                                  </span>
+                                ) : (
+                                  <span className="italic text-gray-400">Không xác định</span>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="italic text-gray-400">Không xác định</p>
+                            )}
+                    </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <div className="flex items-center">
                       {item.status === "Active" ? (
@@ -1226,6 +1296,7 @@ const PrinterTable = () => {
                             editingPrinter.assigned
                               ? editingPrinter.assigned.map((user) => user.value)
                               : selectedPrinter.assigned.map((user) => user.value),
+                        room: editingPrinter.room?.value || null, // Gửi ID phòng
                         };
                       
                         console.log("Payload gửi lên server:", payload);
@@ -1422,6 +1493,56 @@ const PrinterTable = () => {
                               )}
                             </ul>
                           )}
+                        </div>
+
+                        <div>
+                          <label className="block text-gray-600 font-medium mb-2">Phòng</label>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                            placeholder="Nhập tên phòng"
+                            value={editingPrinter.room?.label || ""}
+                            onChange={(e) => {
+                              const query = e.target.value.toLowerCase();
+
+                              // Lọc danh sách rooms phù hợp
+                              const filtered = rooms.filter((room) =>
+                                room.label.toLowerCase().includes(query)
+                              );
+
+                              setFilteredRooms(filtered);
+                              setShowRoomSuggestions(true);
+
+                              // Tạm thời gắn giá trị nhập vào room
+                              setEditingPrinter({
+                                ...editingPrinter,
+                                room: { label: e.target.value, value: null },
+                              });
+                            }}
+                            onBlur={() => setTimeout(() => setShowRoomSuggestions(false), 200)}
+                          />
+                          {showRoomSuggestions && filteredRooms.length > 0 && (
+                                <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
+                                {filteredRooms.map((room) => (
+                                  <li
+                                    key={room.value}
+                                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => {
+                                      setEditingPrinter({
+                                        ...editingPrinter,
+                                        room: { label: room.label, value: room.value }, // Cập nhật cả label và value
+                                      });
+                                      setShowRoomSuggestions(false); // Ẩn gợi ý
+                                    }}
+                                  >
+                                    <span className="font-bold">{room.label}</span>
+                                    <br />
+                                    <span className="italic text-gray-500">{room.location}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                              )}
+                        
                         </div>
                       </div>
                     </div>

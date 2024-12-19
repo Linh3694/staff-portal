@@ -8,6 +8,7 @@ exports.getProjectors = async (req, res) => {
   try {
     // Lấy danh sách Projector từ database
     const projectors = await Projector.find()
+    .populate('room')
     .lean(); // Sử dụng `.lean()` để trả về plain objects
     console.log(`Fetched ${projectors.length} projectors.`);
 
@@ -87,9 +88,11 @@ exports.createProjector = async (req, res) => {
 };
 
 exports.updateProjector = async (req, res) => {
+  
   try {
+    console.log("Request Body:", req.body)
     const { id } = req.params;
-    const { name, manufacturer, serial, assigned, status, releaseYear, specs, type } = req.body;
+    const { name, manufacturer, serial, assigned, status, releaseYear, specs, type, room } = req.body;
 
     // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
     if (assigned && !Array.isArray(assigned)) {
@@ -98,7 +101,7 @@ exports.updateProjector = async (req, res) => {
 
     const projector = await Projector.findByIdAndUpdate(
       id,
-      { name, manufacturer, serial, assigned, status, releaseYear, specs, type  },
+      { name, manufacturer, serial, assigned, status, releaseYear, specs, type, room },
       { new: true } // Trả về tài liệu đã cập nhật
     );
 
@@ -156,7 +159,7 @@ exports.bulkUploadProjectors = async (req, res) => {
         }
 
         // Kiểm tra thông tin bắt buộc
-        if (!projector.name || !projector.manufacturer || !projector.serial) {
+        if (!projector.name || !projector.serial) {
           errors.push({
             serial: projector.serial || "Không xác định",
             message: "Thông tin projector không hợp lệ (thiếu tên, nhà sản xuất hoặc serial).",

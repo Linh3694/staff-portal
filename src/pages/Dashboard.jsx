@@ -5,7 +5,6 @@ import PrinterTable from "../components/PrinterTable";
 import ProjectorTable from "../components/ProjectorTable";
 import MonitorTable from "../components/MonitorTable";
 import UserTable from "../components/UserTable";
-import DepartmentTable from '../components/DepartmentTable'; 
 import RoomTable from '../components/RoomTable'; 
 import Attendance from '../components/Attendance'; // Adjust the path as necessary
 import { useNavigate } from "react-router-dom";
@@ -311,13 +310,6 @@ const renderContent = () => {
                 return (
                   <div>
                     <UserTable clients={clients} setClients={setClients} handleSyncClients={handleSyncClients} />
-                  </div>
-                );
-
-              case "Department":
-                return (
-                  <div>
-                    <DepartmentTable clients={clients} setClients={setClients} handleSyncClients={handleSyncClients} />
                   </div>
                 );
 

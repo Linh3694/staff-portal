@@ -1,5 +1,6 @@
 const Laptop = require("../models/Laptop");
 const User = require("../models/Users");
+const Room = require("../models/Room")
 const mongoose = require("mongoose");
 const Notification = require('../models/notification'); 
 
@@ -8,35 +9,16 @@ exports.getLaptops = async (req, res) => {
   try {
     // Lấy danh sách laptop từ database
     const laptops = await Laptop.find()
+    .populate("assigned", "fullname jobTitle department") // Populate thông tin người dùng
+    .populate("room", "name location") // Populate thông tin phòng
     .lean(); // Sử dụng `.lean()` để trả về plain objects
     console.log(`Fetched ${laptops.length} laptops.`);
-
-    // Lấy tất cả ID từ trường "assigned" trong các laptop
-    const allAssignedIds = laptops
-      .filter((laptop) => Array.isArray(laptop.assigned))
-      .flatMap((laptop) => laptop.assigned);
-
-    // Truy vấn thông tin tất cả người dùng liên quan
-    const users = await User.find({ _id: { $in: allAssignedIds } }).lean();
-    console.log(`Fetched ${users.length} users for assigned laptops.`);
-
-    // Tạo một object để ánh xạ nhanh theo `_id`
-    const usersById = users.reduce((acc, user) => {
-      acc[user._id] = {
-        _id: user._id,
-        name: user.fullname || "Không xác định",
-        jobTitle: user.jobTitle || "Không xác định", // Giá trị mặc định nếu thiếu jobTitle
-        department: user.department || "Không xác định", // Giá trị mặc định nếu thiếu department
-      };
-      return acc;
-    }, {});
 
     // Gắn thông tin "assigned" vào từng laptop
     const populatedLaptops = laptops.map((laptop) => ({
       ...laptop,
-      assigned: (laptop.assigned || [])
-        .map((userId) => usersById[userId] || null) // Nếu không tìm thấy user, trả về null
-        .filter(Boolean), // Loại bỏ giá trị null
+      assigned: laptop.assigned || [], // Dữ liệu từ populate đã có
+      room: laptop.room || { name: "Không xác định", location: "Không xác định" }, // Gắn giá trị mặc định nếu room null
     }));
 
     // Trả về danh sách laptop đã được populate
@@ -50,10 +32,10 @@ exports.getLaptops = async (req, res) => {
 // Thêm mới laptop
 exports.createLaptop = async (req, res) => {
   try {
-    console.log("Request Body:", req.body); // Log dữ liệu nhận từ frontend
+    console.log("Request Body:", req.body);
 
-    const { name, manufacturer, serial, assigned, status, specs, type } = req.body;
-    const userId = req.body.userId || req.headers['user-id'];
+    const { name, manufacturer, serial, assigned, status, specs, type, room } = req.body;
+    const userId = req.body.userId || req.headers["user-id"];
 
     if (!name || !manufacturer || !serial) {
       return res.status(400).json({ message: "Thiếu thông tin bắt buộc!" });
@@ -63,26 +45,28 @@ exports.createLaptop = async (req, res) => {
       return res.status(400).json({ message: "Thông tin specs không hợp lệ!" });
     }
 
-
-    // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
+    // Kiểm tra `assigned` không hợp lệ
     if (assigned && !Array.isArray(assigned)) {
       return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
 
-    const laptop = new Laptop({ name, manufacturer, serial, assigned, specs, status, type });
+    // Kiểm tra `room` nếu có
+    if (room && !mongoose.Types.ObjectId.isValid(room)) {
+      return res.status(400).json({ message: "Room ID không hợp lệ!" });
+    }
+
+    const laptop = new Laptop({ name, manufacturer, serial, assigned, specs, status, type, room });
     await laptop.save();
 
-      
-          const user = await User.findById(userId);
-          if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-          }
-          const userFullname = user.fullname; // Lấy fullname của người dùng
-          const notification = new Notification({
-            message: `Laptop mới "${name}" đã được thêm bởi ${userFullname}.`,
-            type: 'info',
-          });
-          await notification.save(); // Lưu thông báo vào database
+    // Tạo thông báo khi tạo mới laptop
+    const user = await User.findById(userId);
+    if (user) {
+      const notification = new Notification({
+        message: `Laptop mới "${name}" đã được thêm bởi ${user.fullname}.`,
+        type: "info",
+      });
+      await notification.save();
+    }
 
     res.status(201).json(laptop);
   } catch (error) {
@@ -94,16 +78,21 @@ exports.createLaptop = async (req, res) => {
 exports.updateLaptop = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, manufacturer, serial, assigned, status, releaseYear, specs, type } = req.body;
+    const { name, manufacturer, serial, assigned, status, releaseYear, specs, type, room } = req.body;
 
     // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
     if (assigned && !Array.isArray(assigned)) {
       return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
 
+    // Kiểm tra `room` nếu có
+    if (room && !mongoose.Types.ObjectId.isValid(room)) {
+      return res.status(400).json({ message: "Room ID không hợp lệ!" });
+    }
+
     const laptop = await Laptop.findByIdAndUpdate(
       id,
-      { name, manufacturer, serial, assigned, status, releaseYear, specs, type  },
+      { name, manufacturer, serial, assigned, status, releaseYear, specs, type, room },
       { new: true } // Trả về tài liệu đã cập nhật
     );
 
@@ -132,24 +121,29 @@ exports.bulkUploadLaptops = async (req, res) => {
   try {
     const { laptops } = req.body;
 
-    // Kiểm tra dữ liệu nhận được
     if (!laptops || !Array.isArray(laptops) || laptops.length === 0) {
       return res.status(400).json({ message: "Không có dữ liệu hợp lệ để tải lên!" });
     }
 
-    const errors = []; // Danh sách lỗi
-    const validLaptops = []; // Danh sách laptop hợp lệ
+    const errors = [];
+    const validLaptops = [];
 
-    // Xử lý từng laptop trong danh sách
     for (const laptop of laptops) {
       try {
-        // Chuyển đổi `assigned` từ fullname sang ObjectId
+        // Xử lý `assigned`
         if (laptop.assigned && Array.isArray(laptop.assigned)) {
-          const isObjectId = mongoose.Types.ObjectId.isValid(laptop.assigned[0]);
-          if (!isObjectId) {
+          const isId = mongoose.Types.ObjectId.isValid(laptop.assigned[0]);
+          if (isId) {
+            // Nếu là ID, kiểm tra sự tồn tại
+            const validIds = await User.find({ _id: { $in: laptop.assigned } }).select("_id");
+            if (validIds.length !== laptop.assigned.length) {
+              throw new Error("Một số ID người dùng không tồn tại trong hệ thống.");
+            }
+          } else {
+            // Nếu là fullname, ánh xạ sang ID
             const assignedIds = await Promise.all(
               laptop.assigned.map(async (fullname) => {
-                const user = await User.findOne({ fullname }).select('_id');
+                const user = await User.findOne({ fullname: fullname.trim() }).select("_id");
                 if (!user) {
                   throw new Error(`Người dùng "${fullname}" không tồn tại trong hệ thống.`);
                 }
@@ -160,16 +154,21 @@ exports.bulkUploadLaptops = async (req, res) => {
           }
         }
 
-        // Kiểm tra thông tin bắt buộc
+        // Kiểm tra room
+        if (laptop.room && !mongoose.Types.ObjectId.isValid(laptop.room)) {
+          throw new Error(`Room ID "${laptop.room}" không hợp lệ.`);
+        }
+
+        // Kiểm tra thông tin laptop
         if (!laptop.name || !laptop.manufacturer || !laptop.serial) {
           errors.push({
             serial: laptop.serial || "Không xác định",
             message: "Thông tin laptop không hợp lệ (thiếu tên, nhà sản xuất hoặc serial).",
           });
-          continue; // Bỏ qua laptop này
+          continue;
         }
 
-        // Kiểm tra serial đã tồn tại
+        // Kiểm tra trùng lặp serial
         const existingLaptop = await Laptop.findOne({ serial: laptop.serial });
         if (existingLaptop) {
           errors.push({
@@ -177,13 +176,11 @@ exports.bulkUploadLaptops = async (req, res) => {
             name: laptop.name,
             message: `Serial ${laptop.serial} đã tồn tại.`,
           });
-          continue; // Bỏ qua laptop này
+          continue;
         }
 
-        // Nếu hợp lệ, thêm vào danh sách
         validLaptops.push(laptop);
       } catch (error) {
-        // Bắt lỗi trong quá trình xử lý từng laptop
         errors.push({
           serial: laptop.serial || "Không xác định",
           message: error.message || "Lỗi không xác định khi xử lý laptop.",
@@ -191,30 +188,18 @@ exports.bulkUploadLaptops = async (req, res) => {
       }
     }
 
-    // Nếu có lỗi, trả về danh sách lỗi
-    if (errors.length > 0) {
-      return res.status(400).json({
-        message: "Dữ liệu có lỗi",
-        errors, // Danh sách lỗi
-        addedLaptops: validLaptops.length, // Số lượng laptop hợp lệ
-      });
-    }
-
-    // Thêm các laptop hợp lệ vào database
     if (validLaptops.length > 0) {
       await Laptop.insertMany(validLaptops);
     }
 
     res.status(201).json({
       message: "Thêm mới hàng loạt thành công!",
-      addedLaptops: validLaptops.length, // Số lượng laptop được thêm thành công
+      addedLaptops: validLaptops.length,
+      errors,
     });
   } catch (error) {
     console.error("Lỗi khi thêm mới hàng loạt:", error.message);
-    res.status(500).json({
-      message: "Lỗi khi thêm mới hàng loạt",
-      error: error.message,
-    });
+    res.status(500).json({ message: "Lỗi khi thêm mới hàng loạt", error: error.message });
   }
 };
 

@@ -23,12 +23,10 @@ const MonitorTable = () => {
             manufacturer: "",
             serial: "",
             assigned: [],
+            room: null, // Gán room mặc định là null
             status: "Active",
             releaseYear: "",
             specs: {
-              processor: "",
-              ram: "",
-              storage: "",
               display: "",
           },
           }); 
@@ -38,12 +36,10 @@ const MonitorTable = () => {
             manufacturer: "",
             serial: "",
             assigned: [],
+            room: null, // Gán room mặc định là null
             status: "Active",
             releaseYear: "",
             specs: {
-              processor: "",
-              ram: "",
-              storage: "",
               display: "",
           },
           });
@@ -63,6 +59,10 @@ const MonitorTable = () => {
         const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
         const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
         const [selectedType, setSelectedType] = useState("Tất cả"); // Mặc định là Tất cả
+        const [rooms, setRooms] = useState([]); // Lưu danh sách phòng
+        const [filteredRooms, setFilteredRooms] = useState([]); // Lưu danh sách gợi ý phòng tạm thời
+        const [showRoomSuggestions, setShowRoomSuggestions] = useState(false); // Kiểm soát hiển thị gợi ý phòng
+
 
         const statusLabels = {
           Active: "Đang sử dụng",
@@ -72,7 +72,91 @@ const MonitorTable = () => {
           default: "Không xác định",
         };
 
-      
+        // Hàm gọi API để lấy danh sách Monitors
+        const fetchMonitors = async () => {
+          try {
+            const token = localStorage.getItem("authToken");
+            const response = await axios.get("/api/monitors", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            // Map dữ liệu `assigned` để phù hợp với định dạng giao diện
+            const Monitors = response.data.map((Monitor) => ({
+              ...Monitor,
+              assigned: Monitor.assigned.map((user) => ({
+                value: user._id,
+                label: user.name,
+                title: user.jobTitle || "Không xác định",
+                departmentName: user.department || "Không xác định",
+              })),
+              room: Monitor.room
+                  ? { label: Monitor.room.name, value: Monitor.room._id, location: Monitor.room.location }
+                  : null,
+            }));
+            setData(Monitors);
+            console.log("Monitors fetched:", response.data); // Log dữ liệu
+          } catch (error) {
+            console.error("Error fetching Monitors:", error);
+          }
+        };
+
+        // Lấy danh sách users
+     
+        const fetchUsers = async () => {
+          try {
+            const token = localStorage.getItem("authToken");
+            const response = await axios.get("/api/users", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            console.log("Dữ liệu từ API users:", response.data);
+
+            if (response.data && Array.isArray(response.data)) {
+              setUsers(
+                response.data.map((user) => ({
+                  value: user._id,
+                  label: user.fullname,
+                  title: user.jobTitle || "Không xác định",
+                  departmentName: user.department || "Unknown",
+                  emailAddress : user.email,
+                }))
+              );
+            } else {
+              console.error("API không trả về danh sách người dùng hợp lệ");
+              setUsers([]);
+            }
+          } catch (error) {
+            console.error("Lỗi khi lấy danh sách users:", error);
+            setUsers([]);
+          }
+        };
+        // Hàm gọi API lấy danh sách phòng
+        const fetchRooms = async () => {
+          try {
+            const token = localStorage.getItem("authToken");
+            const response = await axios.get("/api/rooms", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+        
+            const roomsData = response.data.rooms || []; // Kiểm tra dữ liệu trả về từ API
+            if (!Array.isArray(roomsData)) {
+              throw new Error("API trả về dữ liệu không hợp lệ");
+            }
+        
+            const rooms = roomsData.map((room) => ({
+              value: room._id,
+              label: room.name || "Không xác định",
+              location: room.location
+                ? room.location.map((loc) => `${loc.building}, tầng ${loc.floor}`).join("; ")
+                : "Không xác định",
+            }));
+        
+            console.log("Danh sách rooms đã xử lý:", rooms); // Kiểm tra danh sách
+            setRooms(rooms);
+          } catch (error) {
+            console.error("Error fetching rooms:", error.response || error.message);
+            toast.error("Lỗi khi tải danh sách phòng! Vui lòng kiểm tra lại.");
+          }
+        };
         const handleDeleteRepair = async (MonitorId, repairId) => {
           if (!repairId) {
             return Promise.reject("repairId không hợp lệ");
@@ -154,60 +238,7 @@ const MonitorTable = () => {
             setShowDetailModal(true); // Hiển thị modal
           };
 
-          // Hàm gọi API để lấy danh sách Monitors
-          const fetchMonitors = async () => {
-            try {
-              const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/monitors", {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-
-              // Map dữ liệu `assigned` để phù hợp với định dạng giao diện
-              const Monitors = response.data.map((Monitor) => ({
-                ...Monitor,
-                assigned: Monitor.assigned.map((user) => ({
-                  value: user._id,
-                  label: user.name,
-                  title: user.jobTitle || "Không xác định",
-                  departmentName: user.department || "Không xác định",
-                })),
-              }));
-              setData(Monitors);
-              console.log("Monitors fetched:", response.data); // Log dữ liệu
-            } catch (error) {
-              console.error("Error fetching Monitors:", error);
-            }
-          };
-
-          // Lấy danh sách users
-       
-          const fetchUsers = async () => {
-            try {
-              const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/users", {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              console.log("Dữ liệu từ API users:", response.data);
-
-              if (response.data && Array.isArray(response.data)) {
-                setUsers(
-                  response.data.map((user) => ({
-                    value: user._id,
-                    label: user.fullname,
-                    title: user.jobTitle || "Không xác định",
-                    departmentName: user.department || "Unknown",
-                    emailAddress : user.email,
-                  }))
-                );
-              } else {
-                console.error("API không trả về danh sách người dùng hợp lệ");
-                setUsers([]);
-              }
-            } catch (error) {
-              console.error("Lỗi khi lấy danh sách users:", error);
-              setUsers([]);
-            }
-          };
+          
 
           const handleClone = async (monitor) => {
             try {
@@ -219,6 +250,7 @@ const MonitorTable = () => {
                 ...clonedMonitorData,
                 serial: `${monitor.serial}_copy`,
                 assigned: monitor.assigned?.map((user) => user.value),
+                room: monitor.room?.value,
                 userId,
               };
           
@@ -412,6 +444,14 @@ const MonitorTable = () => {
                             console.error(`Hàng ${index + 1} bị thiếu dữ liệu bắt buộc.`);
                             return null;
                         }
+                        const roomName = row["Phòng (room)"]?.trim();
+                        const matchedRoom = rooms.find((room) => room.label === roomName);
+
+                        if (!matchedRoom) {
+                          console.error(`Phòng không hợp lệ ở dòng ${index + 1}: ${roomName}`);
+                          return null;
+                        }
+                      
                         const assignedFullnames = row["Người Dùng (assigned)"]
                             ? row["Người Dùng (assigned)"].split(",").map((name) => name.trim())
                             : [];
@@ -445,6 +485,7 @@ const MonitorTable = () => {
                                 display: row["Màn Hình (display)"] || "",
                             },
                             assigned: assignedIds,
+                            room: matchedRoom.value, // Gán ID của phòng
                             releaseYear: row["Năm đưa vào sử dụng (releaseYear)"] || "",
                         };
                     }).filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
@@ -532,16 +573,20 @@ const MonitorTable = () => {
           }
         };
 
-          useEffect(() => {
-            const fetchData = async () => {
-              try {
-                await fetchMonitors();
-                await fetchUsers();
-              } catch (error) {
-                }
-            };
-            fetchData();
-            }, []);
+        useEffect(() => {
+          const fetchData = async () => {
+            try {
+              await fetchRooms(); // Gọi API lấy danh sách phòng
+              await fetchUsers(); // Gọi API lấy danh sách người dùng
+              await fetchMonitors(); // Gọi API lấy danh sách Monitor
+              console.log("Danh sách gợi ý phòng:", filteredRooms);
+
+            } catch (error) {
+              console.error("Error fetching data:", error);
+            }
+          };
+          fetchData();
+        }, []);
 
 
             
@@ -827,6 +872,9 @@ const MonitorTable = () => {
                         </p>
                     </th>
                     <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                      <p className="text-sm font-bold text-gray-500">NƠI SỬ DỤNG</p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                         <p className="text-sm font-bold text-gray-500">TRẠNG THÁI
                         </p>
                     </th>
@@ -871,6 +919,26 @@ const MonitorTable = () => {
                       "Chưa bàn giao"
                     )}
                    </td>
+                   <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
+                          {item.room ? (
+                            <div>
+                              <p className="font-bold">{item.room.label || "N/A"}</p>
+                              {Array.isArray(item.room.location) && item.room.location.length > 0 ? (
+                                <span className="italic text-gray-400">
+                                  {item.room.location
+                                    .map((loc) => `Tòa nhà: ${loc.building || "N/A"}, tầng ${loc.floor || "N/A"}`)
+                                    .join("; ")}
+                                </span>
+                              ) : (
+                                <span className="italic text-gray-400">Không xác định</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="font-bold">N/A</p>
+                            </div>
+                          )}
+                        </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <div className="flex items-center">
                       {item.status === "Active" ? (
@@ -1163,7 +1231,9 @@ const MonitorTable = () => {
                             editingMonitor.assigned
                               ? editingMonitor.assigned.map((user) => user.value)
                               : selectedMonitor.assigned.map((user) => user.value),
+                        room: editingMonitor.room?.value || null, // Gửi ID phòng
                         };
+                        
                       
                         console.log("Payload gửi lên server:", payload);
 
@@ -1335,6 +1405,7 @@ const MonitorTable = () => {
                                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                                 placeholder="Nhập tên người sử dụng"
                                 value={editingMonitor.assigned[0]?.label || ""}
+
                                 onChange={(e) => {
                                   const query = e.target.value.toLowerCase();
 
@@ -1376,6 +1447,55 @@ const MonitorTable = () => {
                               )}
                             </ul>
                           )}
+                        </div>
+                        <div>
+                          <label className="block text-gray-600 font-medium mb-2">Phòng</label>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                            placeholder="Nhập tên phòng"
+                            value={editingMonitor.room?.label || ""}
+                            onChange={(e) => {
+                              const query = e.target.value.toLowerCase();
+
+                              // Lọc danh sách rooms phù hợp
+                              const filtered = rooms.filter((room) =>
+                                room.label.toLowerCase().includes(query)
+                              );
+
+                              setFilteredRooms(filtered);
+                              setShowRoomSuggestions(true);
+
+                              // Tạm thời gắn giá trị nhập vào room
+                              setEditingMonitor({
+                                ...editingMonitor,
+                                room: { label: e.target.value, value: null },
+                              });
+                            }}
+                            onBlur={() => setTimeout(() => setShowRoomSuggestions(false), 200)}
+                          />
+                          {showRoomSuggestions && filteredRooms.length > 0 && (
+                                <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
+                                {filteredRooms.map((room) => (
+                                  <li
+                                    key={room.value}
+                                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => {
+                                      setEditingMonitor({
+                                        ...editingMonitor,
+                                        room: { label: room.label, value: room.value }, // Cập nhật cả label và value
+                                      });
+                                      setShowRoomSuggestions(false); // Ẩn gợi ý
+                                    }}
+                                  >
+                                    <span className="font-bold">{room.label}</span>
+                                    <br />
+                                    <span className="italic text-gray-500">{room.location}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                              )}
+                        
                         </div>
                       </div>
                     </div>

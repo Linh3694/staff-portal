@@ -18,6 +18,7 @@ const projectorSchema = new mongoose.Schema({
   serial: { type: String, required: true },
   releaseYear: { type: Number },
   assigned: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  room: { type: mongoose.Schema.Types.ObjectId, ref: "Room"},
   status: { type: String, required: true },
   repairs: [repairSchema],
   updates: [  

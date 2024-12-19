@@ -71,20 +71,11 @@ exports.deleteRoom = async (req, res) => {
 
 // Lấy tất cả phòng với pagination
 exports.getAllRooms = async (req, res) => {
-    try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const skip = (page - 1) * limit;
-  
-      const totalRooms = await Room.countDocuments();
-      const rooms = await Room.find().skip(skip).limit(limit);
-  
-      res.json({
-        rooms,
-        totalPages: Math.ceil(totalRooms / limit),
-        currentPage: page,
-      });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+      try {
+        const rooms = await Room.find();
+        res.json({ rooms });
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách phòng:", error.message);
+        res.status(500).json({ message: "Có lỗi xảy ra khi lấy danh sách phòng." });
+      }
   };

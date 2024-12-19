@@ -124,7 +124,7 @@ if __name__ == "__main__":
     credentials_dir = "./"  # Thư mục chứa các file credentials
     credentials_files = [f for f in os.listdir(credentials_dir) if f.startswith("credentials") and f.endswith(".txt")]
 
-    days = 2
+    days = 18  # Số ngày cần lấy dữ liệu
 
     for credentials_file in credentials_files:
         print(f"\n[Đang đồng bộ từ file: {credentials_file}]")

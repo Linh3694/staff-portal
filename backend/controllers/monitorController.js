@@ -1,5 +1,6 @@
 const Monitor = require("../models/Monitor");
 const User = require("../models/Users");
+const Room = require("../models/Room");
 const mongoose = require("mongoose");
 const Notification = require('../models/notification');
 
@@ -7,7 +8,10 @@ const Notification = require('../models/notification');
 exports.getMonitors = async (req, res) => {
   try {
     // Lấy danh sách monitor từ database
-    const monitors = await Monitor.find().lean(); // Sử dụng `.lean()` để trả về plain objects
+    const monitors = await Monitor.find()
+      .populate('room', 'name location') // Populate room với trường name và location
+      .lean();
+
     console.log(`Fetched ${monitors.length} monitors.`);
 
     // Lấy tất cả ID từ trường "assigned" trong các monitor
@@ -24,8 +28,8 @@ exports.getMonitors = async (req, res) => {
       acc[user._id] = {
         _id: user._id,
         name: user.fullname || "Không xác định",
-        jobTitle: user.jobTitle || "Không xác định", // Giá trị mặc định nếu thiếu jobTitle
-        department: user.department || "Không xác định", // Giá trị mặc định nếu thiếu department
+        jobTitle: user.jobTitle || "Không xác định",
+        department: user.department || "Không xác định",
       };
       return acc;
     }, {});
@@ -55,14 +59,38 @@ exports.createMonitor = async (req, res) => {
   }
 };
 
-// Cập nhật monitor
 exports.updateMonitor = async (req, res) => {
   try {
-    const updatedMonitor = await Monitor.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json({ message: 'Monitor updated successfully', monitor: updatedMonitor });
+    const { id } = req.params;
+    const { room, ...updateData } = req.body;
+
+    // Kiểm tra nếu có cập nhật room
+    if (room) {
+      const isValidRoom = mongoose.Types.ObjectId.isValid(room);
+      if (!isValidRoom) {
+        return res.status(400).json({ message: "Room ID không hợp lệ" });
+      }
+
+      const existingRoom = await Room.findById(room);
+      if (!existingRoom) {
+        return res.status(400).json({ message: "Room không tồn tại" });
+      }
+    }
+
+    const updatedMonitor = await Monitor.findByIdAndUpdate(
+      id,
+      { ...updateData, room }, // Gán giá trị `room`
+      { new: true }
+    );
+
+    if (!updatedMonitor) {
+      return res.status(404).json({ message: "Monitor không tồn tại" });
+    }
+
+    res.status(200).json({ message: "Cập nhật Monitor thành công", monitor: updatedMonitor });
   } catch (error) {
-    console.error('Error updating monitor:', error);
-    res.status(500).json({ message: 'Server error', error });
+    console.error("Lỗi khi cập nhật monitor:", error.message);
+    res.status(500).json({ message: "Lỗi server", error });
   }
 };
 

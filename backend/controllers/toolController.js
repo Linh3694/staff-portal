@@ -8,6 +8,7 @@ exports.getTools = async (req, res) => {
   try {
     // Lấy danh sách tool từ database
     const tool = await Tool.find()
+    .populate('room')
     .lean(); // Sử dụng `.lean()` để trả về plain objects
     console.log(`Fetched ${Tool.length} Tool.`);
 
@@ -90,7 +91,7 @@ exports.createTools = async (req, res) => {
 exports.updateTools = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, manufacturer, serial, assigned, status, releaseYear, type } = req.body;
+    const { name, manufacturer, serial, assigned, status, releaseYear, type, room } = req.body;
 
     // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
     if (assigned && !Array.isArray(assigned)) {
@@ -99,7 +100,7 @@ exports.updateTools = async (req, res) => {
 
     const tool = await Tool.findByIdAndUpdate(
       id,
-      { name, manufacturer, serial, assigned, status, releaseYear, type  },
+      { name, manufacturer, serial, assigned, status, releaseYear, type, room  },
       { new: true } // Trả về tài liệu đã cập nhật
     );
 
