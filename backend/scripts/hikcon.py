@@ -93,7 +93,7 @@ class AcsEventRequester:
         return formatted_data
     
     def upload_to_backend(self, data):
-        url = "http://localhost:5001/api/users/attendance"  # API backend
+        url = "https://staff-portal.wellspring.edu.vn/api/users/attendance"  # API backend
         headers = {"Content-Type": "application/json"}
         successful_uploads = 0
         failed_uploads = 0

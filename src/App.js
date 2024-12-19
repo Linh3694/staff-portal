@@ -2,10 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
-import AdminPage from "./pages/AdminPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import ITProductCard from "./components/productcard/laptopProductCard";
-import LaptopTable from "./components/LaptopTable";
 import Profile from "./components/Profile";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -45,21 +42,6 @@ function App() {
         {/* Trang Login */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Trang Admin */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute allowedRoles="admin">
-              <AdminPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Trang IT Product Card */}
-        <Route
-          path="/itproductcard/:id"
-          element={<ITProductCard />}
-        />
         
         {/* Trang Dashboard */}
         <Route
