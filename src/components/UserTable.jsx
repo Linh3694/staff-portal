@@ -25,13 +25,22 @@ const UserTable = ({ handleSyncClients }) => {
   const [assignedItems, setAssignedItems] = useState([]);
   const [isLaptopModalOpen, setIsLaptopModalOpen] = useState(false);
   const [selectedLaptopData, setSelectedLaptopData] = useState(null);
+  const [newUser, setNewUser] = useState({
+    fullname: "",
+    email: "",
+    employeeCode: "",
+  });
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const bcrypt = require("bcryptjs"); // Import bcrypt for password hashing
+
+
   
 
 
-  // Lấy dữ liệu từ /api//users
+  // Lấy dữ liệu từ http://localhost:5001/api//users
   const fetchUsers = async () => {
     try {
-      const response = await fetch("/api/users", {
+      const response = await fetch("http://localhost:5001/api/users", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`, // Đảm bảo token đúng
@@ -81,7 +90,7 @@ const UserTable = ({ handleSyncClients }) => {
       laptopData.assigned.map(async (userId) => {
         try {
           console.log(localStorage.getItem("token"));
-          const response = await fetch(`/api/users/${userId}`, {
+          const response = await fetch(`http://localhost:5001/api/users/${userId}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           });
           console.log("Response Status:", response.status);
@@ -118,7 +127,7 @@ const UserTable = ({ handleSyncClients }) => {
 
   const confirmDeleteUser = async () => {
     try {
-      const response = await fetch(`/api/users/${userIdToDelete}`, {
+      const response = await fetch(`http://localhost:5001/api/users/${userIdToDelete}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -139,12 +148,58 @@ const UserTable = ({ handleSyncClients }) => {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!newUser.fullname.trim() || !newUser.email.trim() || !newUser.employeeCode.trim()) {
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc!");
+      return;
+    }
+  
+    if (newUser.active && newUser.password) {
+      if (typeof newUser.password === "string" && !newUser.password.startsWith("$2")) {
+        const salt = await bcrypt.genSalt(10);
+        newUser.password = await bcrypt.hash(newUser.password, salt);
+      }
+    }
+  
+    const payload = {
+      ...newUser,
+      jobTitle: newUser.jobTitle || "Not Provided",
+      department: newUser.department || "Unknown",
+      role: newUser.role || "user",
+    };
+  
+    console.log("Payload gửi lên:", payload); // Thêm log kiểm tra payload
+  
+    try {
+      const response = await fetch("http://localhost:5001/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(payload),
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi từ server: ${errorText}`);
+      }
+  
+      toast.success("Tạo người dùng mới thành công!");
+      setIsAddUserModalOpen(false);
+      setNewUser({ fullname: "", email: "", employeeCode: "", password: "" });
+      await fetchUsers();
+    } catch (error) {
+      console.error("Error creating user:", error.message);
+      toast.error(`Lỗi khi tạo người dùng: ${error.message}`);
+    }
+  };
 
   const handleShowProfile = async (user) => {
     setSelectedUser(user);
   
     try {
-      const response = await fetch(`/api/users/${user._id}/assigned-items`, {
+      const response = await fetch(`http://localhost:5001/api/users/${user._id}/assigned-items`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       if (!response.ok) throw new Error("Không thể tải danh sách thiết bị.");
@@ -188,7 +243,7 @@ const UserTable = ({ handleSyncClients }) => {
       console.log("Dữ liệu định dạng chuẩn:", formattedData);
   
       // Gửi toàn bộ dữ liệu dưới dạng mảng
-      const response = await fetch(`/api/users/bulk-update`, {
+      const response = await fetch(`http://localhost:5001/api/users/bulk-update`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -216,7 +271,7 @@ const UserTable = ({ handleSyncClients }) => {
         clients.map(async (client) => {
           try {
             // Fetch thông tin assigned-items cho từng user
-            const response = await fetch(`/api/users/${client._id}/assigned-items`, {
+            const response = await fetch(`http://localhost:5001/api/users/${client._id}/assigned-items`, {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
@@ -342,7 +397,7 @@ const UserTable = ({ handleSyncClients }) => {
           formData.append("avatar", avatarFile); // Thêm file avatar nếu có
         }
   
-      const response = await fetch(`/api/users/${updatedUser._id}`, {
+      const response = await fetch(`http://localhost:5001/api/users/${updatedUser._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -432,12 +487,12 @@ const UserTable = ({ handleSyncClients }) => {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <div className="flex justify-between items-right space-x-2 ">
-              {/* <button
-                onClick={handleSyncClients}
-                className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]"
+              <button
+                onClick={() => setIsAddUserModalOpen(true)}
+                className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-md hover:bg-orange-red-dark transform transition-transform duration-300 hover:scale-105"
               >
-                Đồng bộ
-              </button> */}
+                Tạo mới
+              </button>
               <button
                 onClick={handleExportToExcel}
                 className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
@@ -456,7 +511,7 @@ const UserTable = ({ handleSyncClients }) => {
                 htmlFor="upload-excel"
                 className="px-3 py-2 bg-[#009483] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#196619] cursor-pointer transform transition-transform duration-300 hover:scale-105"
               >
-                Tải lên Excel
+                Edit Excel
               </label>
         </div>
 
@@ -812,6 +867,111 @@ const UserTable = ({ handleSyncClients }) => {
                                 </div>
                               </div>
                             )}
+                {isAddUserModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                      <div className="bg-white rounded-lg shadow-lg p-6 w-[500px]">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xl font-bold text-gray-800">Tạo người dùng mới</h3>
+                          <button
+                            onClick={() => setIsAddUserModalOpen(false)}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                        <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              handleCreateUser();
+                            }}
+                          >
+                            <label className="block mt-4">
+                              Tên:
+                              <input
+                                type="text"
+                                value={newUser.fullname}
+                                onChange={(e) => setNewUser({ ...newUser, fullname: e.target.value })}
+                                className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                                required
+                                placeholder="Nhập tên đầy đủ"
+                              />
+                            </label>
+                            <label className="block mt-4">
+                              Email:
+                              <input
+                                type="email"
+                                value={newUser.email}
+                                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                                required
+                                placeholder="Nhập địa chỉ email"
+                              />
+                            </label>
+                            <label className="block mt-4">
+                              Mã nhân viên:
+                              <input
+                                type="text"
+                                value={newUser.employeeCode}
+                                onChange={(e) => setNewUser({ ...newUser, employeeCode: e.target.value })}
+                                className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                                required
+                                placeholder="Nhập mã nhân viên"
+                              />
+                            </label>
+                            <label className="block mt-4">
+                              Vai trò:
+                              <select
+                                value={newUser.role || "user"}
+                                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                                className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                              >
+                                <option value="user">Người dùng</option>
+                                <option value="admin">Quản trị viên</option>
+                              </select>
+                            </label>
+                            <div className="flex items-center justify-between mt-4">
+                              <label htmlFor="activateAccount" className="text-sm font-bold">
+                                Kích hoạt tài khoản
+                              </label>
+                              <input
+                                type="checkbox"
+                                id="activateAccount"
+                                checked={newUser.active || false}
+                                onChange={(e) => setNewUser({ ...newUser, active: e.target.checked })}
+                                className="toggle-switch"
+                              />
+                            </div>
+                            {newUser.active && (
+                              <label className="block mt-4">
+                                Mật khẩu:
+                                <input
+                                  type="password"
+                                  value={newUser.password || ""}
+                                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                  className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                                  placeholder="Nhập mật khẩu"
+                                  required
+                                />
+                              </label>
+                            )}
+                            <div className="flex justify-end mt-6">
+                              <button
+                                onClick={() => setIsAddUserModalOpen(false)}
+                                className="px-4 py-2 mr-2 bg-gray-300 text-gray-800 rounded shadow hover:bg-gray-400"
+                              >
+                                Hủy
+                              </button>
+                              <button
+                                type="submit"
+                                className="px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600"
+                              >
+                                Tạo
+                              </button>
+                            </div>
+                          </form>
+                      </div>
+                    </div>
+                  )}
               
       </div>
       {/* Pagination Buttons */}

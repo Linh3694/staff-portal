@@ -83,12 +83,16 @@ const MonitorTable = () => {
             // Map dữ liệu `assigned` để phù hợp với định dạng giao diện
             const Monitors = response.data.map((Monitor) => ({
               ...Monitor,
-              assigned: Monitor.assigned.map((user) => ({
-                value: user._id,
-                label: user.name,
-                title: user.jobTitle || "Không xác định",
-                departmentName: user.department || "Không xác định",
-              })),
+              assigned: Array.isArray(Monitor.assigned) // Kiểm tra assigned có phải mảng không
+                ? Monitor.assigned
+                    .filter((user) => user && user._id) // Loại bỏ user null hoặc thiếu _id
+                    .map((user) => ({
+                      value: user._id,
+                      label: user.name,
+                      title: user.jobTitle || "Không xác định",
+                      departmentName: user.department || "Không xác định",
+                    }))
+                : [],
               room: Monitor.room
                   ? { label: Monitor.room.name, value: Monitor.room._id, location: Monitor.room.location }
                   : null,

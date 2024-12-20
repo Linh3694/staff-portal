@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     minlength: 8, // Đảm bảo mật khẩu có độ dài tối thiểu
+    default: null
   },
   fullname: {
     type: String,
@@ -33,6 +34,9 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false, // Tài khoản có thể bị vô hiệu hóa bởi admin
   },
+  active: { 
+    type: Boolean, default: false 
+  }, // Mặc định là inactive
   avatarUrl: { 
     type: String 
   }, // Add this field for the avatar URL
@@ -66,15 +70,17 @@ const userSchema = new mongoose.Schema({
 
 // Middleware: Hash mật khẩu trước khi lưu
 
+// Middleware: Hash mật khẩu trước khi lưu
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  // Nếu password không tồn tại hoặc không được thay đổi, bỏ qua
+  if (!this.password || !this.isModified('password')) {
     return next();
   }
 
-  // Kiểm tra mật khẩu đã được hash chưa
+  // Hash mật khẩu nếu chưa được hash
   const isHashed = this.password.startsWith('$2b$');
   if (!isHashed) {
-    this.password = await bcrypt.hash(this.password, 10); // Chỉ hash nếu chưa hash
+    this.password = await bcrypt.hash(this.password, 10);
   }
 
   next();

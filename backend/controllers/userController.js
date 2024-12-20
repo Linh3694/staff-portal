@@ -85,26 +85,32 @@ exports.getUsers = async (req, res) => {
 
 exports.createUser = async (req, res) => {
   try {
-    const { fullname, email, password, role, employeeCode } = req.body;
+    console.log("Payload nhận được:", req.body);
 
-    // Kiểm tra nếu mã nhân viên đã tồn tại
-    const existingCode = await User.findOne({ employeeCode });
-    if (existingCode) {
-      return res.status(400).json({ message: "Mã nhân viên đã tồn tại." });
+    const { fullname, email, password, role, employeeCode, avatar, active = false } = req.body;
+
+    // Hash mật khẩu nếu được cung cấp
+    let hashedPassword = null;
+    if (password) {
+      console.log("Hashing password...");
+      hashedPassword = await bcrypt.hash(password, 10);
     }
 
+    console.log("Creating new user...");
     const newUser = new User({
       fullname,
       email,
-      password, // Nên hash mật khẩu trước khi lưu
+      password: hashedPassword, // Chỉ lưu nếu password được cung cấp
       role,
-      employeeCode, // Lưu mã nhân viên
+      employeeCode,
+      avatar,
+      active,
     });
 
     await newUser.save();
     res.status(201).json({ message: "Tạo người dùng thành công", user: newUser });
   } catch (error) {
-    console.error("Error creating user:", error);
+    console.error("Error creating user:", error.message);
     res.status(500).json({ message: "Server error", error });
   }
 };

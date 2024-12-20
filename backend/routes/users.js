@@ -102,25 +102,54 @@ module.exports = router;
 
 // Thêm người dùng mới
 router.post("/", async (req, res) => {
-  const { fullname, email, password, role, avatar } = req.body;
+  const { fullname, email, password, role, avatar, active = false, employeeCode } = req.body;
 
   // Kiểm tra các trường bắt buộc
-  if (!fullname || !email || !password || !role) {
-    return res.status(400).json({ message: "All fields are required." });
+  if (!fullname || !email || !role || !employeeCode) {
+    return res.status(400).json({ message: "Fullname, email, role, và mã nhân viên là bắt buộc." });
+  }
+
+  if (active && !password) {
+    return res.status(400).json({ message: "Password là bắt buộc khi người dùng được kích hoạt." });
   }
 
   try {
+    console.log("Payload nhận được:", req.body);
+
     // Kiểm tra email trùng lặp
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "Email already exists." });
+      return res.status(400).json({ message: "Email đã tồn tại." });
     }
 
-    // // Mã hóa mật khẩu
-    // const hashedPassword = await bcrypt.hash(password, 10);
+    // Kiểm tra mã nhân viên trùng lặp
+    const existingCode = await User.findOne({ employeeCode });
+    if (existingCode) {
+      return res.status(400).json({ message: "Mã nhân viên đã tồn tại." });
+    }
+    
+    console.log("Hashing password...");
 
-    // Tạo người dùng mới
-    const newUser = new User({ fullname, email, password, role, avatar });
+    let hashedPassword = null;
+    if (password && typeof password === "string") {
+      console.log("Hashing password...");
+
+      const salt = await bcrypt.genSalt(10);
+      hashedPassword = await bcrypt.hash(password, salt);
+    }
+
+    console.log("Creating new user...");
+
+    const newUser = new User({
+      fullname,
+      email,
+      password: hashedPassword,
+      role,
+      avatar,
+      active,
+      employeeCode,
+    });
+
     await newUser.save();
 
     // Trả về thông tin người dùng (không bao gồm password)
@@ -164,7 +193,7 @@ router.put("/bulk-update", async (req, res) => {
 });
 
 router.put("/:id", async (req, res) => {
-  const { fullname, disabled, department, jobTitle, role, password, employeeCode, newPassword } = req.body; // Bao gồm tất cả các trường cần cập nhật
+  const { fullname, disabled, department, jobTitle, role, password, newPassword, employeeCode, active } = req.body;
   const { id } = req.params;
 
   try {
@@ -176,40 +205,44 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ message: "Người dùng không tồn tại." });
     }
 
-    // Cập nhật thông tin người dùng
+    // Cập nhật thông tin cơ bản
     if (fullname) user.fullname = fullname;
-    if (typeof disabled === "boolean") user.disabled = disabled; // Chỉ cập nhật nếu disabled được gửi
+    if (typeof disabled === "boolean") user.disabled = disabled;
     if (department) user.department = department;
     if (jobTitle) user.jobTitle = jobTitle;
     if (role) user.role = role;
     if (employeeCode) user.employeeCode = employeeCode;
 
-    console.log("Cập nhật thông tin người dùng:", {
-      fullname: user.fullname,
-      disabled: user.disabled,
-      department: user.department,
-      jobTitle: user.jobTitle,
-      role: user.role,
-      employeeCode : user.employeeCode
-    });
+    // Xử lý trạng thái active/inactive
+    if (typeof active === "boolean") {
+      if (!user.active && active && (!password || !newPassword)) {
+        return res.status(400).json({
+          message: "Password là bắt buộc khi chuyển từ inactive sang active.",
+        });
+      }
+      user.active = active;
+    }
 
     // Xử lý cập nhật mật khẩu
-    if (newPassword || password) {
-      const isHashed = password && password.startsWith("$2");
+    if ((newPassword || password) && user.active) {
+      const passwordToHash = newPassword || password;
+
+      // Kiểm tra mật khẩu có phải đã hash chưa
+      const isHashed = typeof passwordToHash === "string" && passwordToHash.startsWith("$2");
       if (!isHashed) {
         const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword || password, salt);
+        user.password = await bcrypt.hash(passwordToHash, salt);
       } else {
-        user.password = password; // Nếu đã hash, giữ nguyên
+        user.password = passwordToHash; // Giữ nguyên nếu mật khẩu đã được hash
       }
     }
 
-    // Lưu thông tin người dùng vào cơ sở dữ liệu
+    // Lưu lại người dùng
     await user.save();
     console.log("Đã lưu thông tin người dùng thành công.");
 
-    // Trả về thông tin người dùng đã cập nhật
-    const { password: _, ...updatedUser } = user.toObject(); // Loại bỏ password khi trả về
+    // Loại bỏ password khi trả về
+    const { password: _, ...updatedUser } = user.toObject();
     res.status(200).json({ message: "Cập nhật thành công.", user: updatedUser });
   } catch (error) {
     console.error("Lỗi khi cập nhật người dùng:", error.message);
