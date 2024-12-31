@@ -30,7 +30,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [darkMode] = useState(false);
   const [currentUser, setCurrentUser] = useState({
     fullname: "",
     role: "",
@@ -45,15 +44,6 @@ const Dashboard = () => {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   
   // Chỉ thông báo chưa đọc
-  const darkModeColors = {
-    background: "#FFFFFF", // Nền tối hơn hiện tại
-    text: "#F1F5F9", // Text trắng xám để dịu mắt
-    cardBackground: "#334155", // Màu nền card
-    buttonBackground: "#475569", // Màu nền nút bấm
-    buttonHover: "#64748B", // Màu khi hover
-    tableHeader: "#1E293B", // Header table
-    tableRow: "#475569", // Row màu tối hơn
-  };
   const lightModeColors = {
     background: "#F8FAFC", // Nền sáng hơn
     text: "#1E293B", // Text đậm
@@ -74,8 +64,6 @@ const Dashboard = () => {
       setActiveTab(""); // Xóa giá trị tab đang hoạt động
     }
   }, [selectedCategory]);
-
-  const colors = darkMode ? darkModeColors : lightModeColors;
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
@@ -345,8 +333,8 @@ const renderContent = () => {
   
   return (
     
-    <div className="ml-64 min-h-screen bg-grey-100" >
-      <nav className="sticky top-4 z-40 flex items-center justify-between rounded-full bg-white/10 p-2 backdrop-blur-xl">
+    <div className="min-h-screen bg-[#f8f8f8]" >
+      <nav className="ml-64 sticky top-4 z-40 flex items-center justify-between rounded-full bg-white/10 p-2 backdrop-blur-xl">
         <div className="flex-1 flex justify-center">
            {tabs.length > 0 && ( 
                 <div className="flex items-center gap-1 h-[61px] bg-white p-4 rounded-full shadow-xl border">
@@ -371,14 +359,14 @@ const renderContent = () => {
                    )}
               </div> 
              
-                  <div className="flex items-center justify-end space-x-4 sm:w-auto gap-1 h-[61px] w-300 rounded-full bg-white px-4 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 border">
+                  <div className="flex items-center justify-end space-x-4 sm:w-auto gap-1 h-[61px] w-300 rounded-full bg-white px-4 py-2 shadow-xl shadow-shadow-500 border">
                         <span className="text-[#002147] text-sm mr-2">
                               Hi, {currentUser.fullname || "User"}
                         </span>
                         <Dropdown
                               button={
                                 <div className="relative cursor-pointer">
-                                  <IoMdNotificationsOutline className="h-6 w-6 text-gray-600 dark:text-white" />
+                                  <IoMdNotificationsOutline className="h-6 w-6 text-gray-600" />
                                   {unreadCount > 0 && (
                                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
                                       {unreadCount}
@@ -388,12 +376,12 @@ const renderContent = () => {
                               }
                               animation="origin-[65%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
                               children={
-                                <div className="flex w-[360px] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none sm:w-[460px]">
+                                <div className="flex w-[360px] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl shadow-shadow-500 sm:w-[460px]">
                                   <div className="flex items-center justify-between">
-                                    <p className="text-base font-bold text-navy-700 dark:text-white">Thông báo</p>
+                                    <p className="text-base font-bold text-navy-700 ">Thông báo</p>
                                     <p
                                       onClick={markAllAsRead}
-                                      className="text-sm font-bold text-navy-700 dark:text-white cursor-pointer"
+                                      className="text-sm font-bold text-navy-700  cursor-pointer"
                                     >
                                       Đánh dấu là đã đọc
                                     </p>
@@ -409,14 +397,14 @@ const renderContent = () => {
                                           <li
                                             key={notification._id}
                                             className={`flex justify-between items-center rounded-md px-3 py-2 cursor-pointer ${
-                                              notification.isRead ? 'bg-gray-100 dark:bg-gray-800' : 'bg-blue-100 dark:bg-blue-800'
+                                              notification.isRead ? 'bg-gray-100' : 'bg-blue-100'
                                             }`}onClick={() => markNotificationAsRead(notification._id)}
                                           >
                                             <div>
-                                              <p className="text-sm font-semibold text-navy-700 dark:text-white">
+                                              <p className="text-sm font-semibold text-navy-700 ">
                                                 {notification.message}
                                               </p>
-                                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                              <p className="text-xs text-gray-500 ">
                                                 {new Date(notification.timestamp).toLocaleString()}
                                               </p>
                                             </div>
@@ -438,35 +426,15 @@ const renderContent = () => {
                                 />
                               }
                               children={
-                                <div className="flex w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
-                                  <div className="p-4">
-                                    <div className="flex items-center gap-2">
-                                      <p className="text-sm font-bold text-navy-700 dark:text-white">
-                                        👋 Hey, Adela
-                                      </p>{" "}
-                                    </div>
-                                  </div>
-                                  <div className="h-px w-full bg-gray-200 dark:bg-white/20 " />
-
+                                <div className="flex w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500">
+ 
                                   <div className="flex flex-col p-4">
-                                    <a
-                                      href=" "
-                                      className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
-                                    >
-                                      Profile Settings
-                                    </a>
-                                    <a
-                                      href=" "
-                                      className="mt-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
-                                    >
-                                      Newsletter Settings
-                                    </a>
-                                    <a
-                                      href=" "
-                                      className="mt-3 text-sm font-medium text-red-500 hover:text-red-500 transition duration-150 ease-out hover:ease-in"
+                                    <button
+                                      onClick={handleLogout}
+                                      className="text-sm font-medium text-red-500 hover:text-red-500 transition duration-150 ease-out hover:ease-in"
                                     >
                                       Log Out
-                                    </a>
+                                    </button>
                                   </div>
                                 </div>
                               }
@@ -498,14 +466,13 @@ const renderContent = () => {
     <div className="flex">
       
       {/* Sidebar */}
-      <div className="w-64 fixed left-0 top-0 h-full shadow-lg z-50 flex flex-col border"
+      <div className="w-64 fixed left-0 top-0 h-full rounded-2xl shadow-lg z-50 flex flex-col border"
         style={{
-          zIndex: 1100,
-          backgroundColor: colors.cardBackground,
+          zIndex: 10,
         }}
       >
         {/* Sidebar giữ nguyên */}
-        <div className="p-6 text-center border-b border-gray-200 dark:border-gray-700">
+        <div className="p-6 text-center border-b border-gray-200 ">
           <div className="relative inline-block">
           <img
               src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
@@ -530,12 +497,8 @@ const renderContent = () => {
                     key={item.label}
                     className={`flex items-center font-semibold w-full px-3 py-2 rounded-md transform transition-colors transition-transform duration-300  hover:scale-105  ${
                       selectedCategory === item.label
-                        ? darkMode
-                          ? "bg-gray-800 text-white"
-                          : "bg-[#002147] text-white"
-                        : darkMode
-                        ? "hover:bg-gray-700 text-gray-400"
-                        : "hover:bg-gray-100 text-gray-700"
+                           ? "bg-[#002147] text-white"
+                           : "hover:bg-[#002147] hover:text-white text-gray-700"
                     }`}
                     onClick={() => setSelectedCategory(item.label)}
                   >
@@ -545,7 +508,7 @@ const renderContent = () => {
                 ))}
               </nav>
         
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4 border-t border-gray-200">
             {/* Users Section */}
             <button
               onClick={() => setSelectedCategory("User")}
@@ -574,7 +537,7 @@ const renderContent = () => {
       </div>
     </div>
       {/* Main Content */}
-      <div className="flex-1 p-8 z-10">
+      <div className="ml-64 h-full p-8 z-10">
         {renderContent()}
       </div>
 
@@ -596,7 +559,6 @@ const renderContent = () => {
               <Profile
                 ticketHistory={[]} // Truyền dữ liệu ticketHistory nếu có
                 assignedDevices={[]} // Truyền dữ liệu assignedDevices nếu có
-                darkMode={false} // Điều chỉnh chế độ sáng/tối
                 currentUser={currentUser} // Truyền ID người dùng
                 setCurrentUser={setCurrentUser}
               />

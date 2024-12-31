@@ -4,6 +4,8 @@ import { FaEye, FaEyeSlash, FaSpinner } from "react-icons/fa";
 import { useEffect } from "react"; // Import useEffect
 import axios from "axios";
 import "./login.css";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
   const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -60,7 +62,7 @@ import "./login.css";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     const newErrors = {};
     if (!formData.email) newErrors.email = "Vui lòng nhập email!";
     if (!formData.password) newErrors.password = "Vui lòng nhập mật khẩu!";
@@ -72,31 +74,33 @@ import "./login.css";
   
     try {
       setIsLoading(true);
-    
+  
       const response = await axios.post(`/api/auth/login`, {
         email: formData.email,
         password: formData.password,
       });
-    
+  
       const { token, user } = response.data;
-
+  
       if (!token) {
         console.error("Không tìm thấy token trong response.");
         return;
       }
-
+  
       console.log("Đăng nhập thành công:", user);
       localStorage.setItem("authToken", token);
       localStorage.setItem("role", user.role);
       localStorage.setItem("rememberedEmail", rememberMe ? formData.email : "");
       localStorage.setItem("currentUser", JSON.stringify(user)); // Lưu toàn bộ thông tin user
-      
-      
+  
       navigate("/dashboard");
-
     } catch (error) {
       console.error("Lỗi đăng nhập:", error.response?.data?.message || error.message);
-      setErrors({ general: error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại." });
+  
+      // Hiển thị thông báo lỗi qua Toast Notification
+      toast.error(
+        error.response?.data?.message || "Email hoặc mật khẩu không chính xác. Vui lòng thử lại!"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -105,10 +109,6 @@ import "./login.css";
           const rememberedEmail = localStorage.getItem("rememberedEmail");
           const authToken = localStorage.getItem("authToken");
           const role = localStorage.getItem("role");
-        
-          console.log("Kiểm tra rememberedEmail:", rememberedEmail);
-          console.log("Kiểm tra authToken:", authToken);
-          console.log("Kiểm tra vai trò:", role);
         
           if (rememberedEmail) {
             setFormData((prev) => ({ ...prev, email: rememberedEmail }));

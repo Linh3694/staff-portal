@@ -59,7 +59,7 @@ exports.updateAvatar = async (req, res) => {
     }
 
     // Cập nhật avatar
-    user.avatar = `/uploads/${req.file.filename}`;
+    user.avatarUrl = `/uploads/${req.file.filename}`;
     await user.save();
 
     res.status(200).json({
@@ -103,7 +103,7 @@ exports.createUser = async (req, res) => {
       password: hashedPassword, // Chỉ lưu nếu password được cung cấp
       role,
       employeeCode,
-      avatar,
+      avatarUrl: avatar,
       active,
     });
 

@@ -38,7 +38,8 @@ const userSchema = new mongoose.Schema({
     type: Boolean, default: false 
   }, // Mặc định là inactive
   avatarUrl: { 
-    type: String 
+    type: String,
+    default: "" 
   }, // Add this field for the avatar URL
 
   lastLogin: {

@@ -69,18 +69,6 @@ exports.createTools = async (req, res) => {
     const tool = new Tool({ name, manufacturer, serial, assigned, status, type });
     await tool.save();
 
-      
-          const user = await User.findById(userId);
-          if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-          }
-          const userFullname = user.fullname; // Lấy fullname của người dùng
-          const notification = new Notification({
-            message: `tool mới "${name}" đã được thêm bởi ${userFullname}.`,
-            type: 'info',
-          });
-          await notification.save(); // Lưu thông báo vào database
-
     res.status(201).json(tool);
   } catch (error) {
     console.error("Error creating tool:", error.message);

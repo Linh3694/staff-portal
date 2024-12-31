@@ -144,32 +144,6 @@ const ToolTable = () => {
             toolData: selectedTool,
             onDeleteRepair: handleDeleteRepair,
           });
-
-          // <laptopProductCard
-          //   laptopData={{
-          //     ...selectedLaptop,
-          //     repairs: selectedLaptop?.repairs || [], // Đảm bảo repairs là mảng
-          //   }}
-          //   onAddRepair={(repair) => {
-          //           // Gọi API thêm nhật ký sửa chữa
-          //           fetch(`http://localhost:5001/api/laptops/${selectedLaptop._id}/repairs`, {
-          //             method: "POST",
-          //             headers: { "Content-Type": "application/json" },
-          //             body: JSON.stringify(repair),
-          //           })
-          //             .then((response) => {
-          //               if (response.ok) {
-          //                 console.log("Repair saved successfully");
-                        
-          //               } else {
-          //                 console.error("Failed to save repair");                         
-          //               }
-          //             })
-          //             .catch((error) => console.error("Error saving repair:", error));
-          //      }}
-          //   currentUser={JSON.parse(localStorage.getItem("currentUser"))}
-          //   onDeleteRepair={handleDeleteRepair}
-          //   />
           
           const handleViewDetails = (tool) => {
             setSelectedTool(tool); // Lưu thiết bị được chọn
@@ -272,7 +246,7 @@ const ToolTable = () => {
                 }
                 );
                 fetchtool(); // Cập nhật lại danh sách sau khi xóa
-                toast.success("tool đã được xóa!",
+                toast.success("Xoá phụ kiện thành công!",
                   {
                     className: "toast-success",
                   }
@@ -311,16 +285,14 @@ const ToolTable = () => {
           };
           
           const handleAddTool = async (e) => {
-            e.preventDefault();
+            e.preventDefault(); // Ngăn chặn hành động mặc định của form
           
             try {
               // Kiểm tra dữ liệu nhập
               if (!newTool.name || !newTool.serial || !newTool.status) {
-                toast.error("Vui lòng điền đầy đủ thông tin!",
-                  {
-                    className: "toast-error",
-                  }
-                );
+                toast.error("Vui lòng điền đầy đủ thông tin!", {
+                  className: "toast-error",
+                });
                 return;
               }
           
@@ -328,10 +300,8 @@ const ToolTable = () => {
               const payload = {
                 ...newTool,
                 releaseYear: newTool.releaseYear || "",
-                
                 assigned: newTool.assigned?.map((user) => user.value) || [], // Xử lý danh sách người dùng
               };
-        
           
               // Gửi dữ liệu lên API
               const response = await axios.post("/api/tool", payload, {
@@ -340,17 +310,15 @@ const ToolTable = () => {
                 },
               });
           
+              // Kiểm tra response
               if (response.status === 201) {
-                toast.success("Thêm tool thành công!",
-                  {
-                    className: "toast-success",
-                    progressClassName: "Toastify__progress-bar",
-                  }
-                );
-          
-                // Cập nhật danh sách tool và đóng modal
-                fetchtool();
-                setShowAddModal(false);
+                toast.success("Thêm Tool thành công!", {
+                  className: "toast-success",
+                  progressClassName: "Toastify__progress-bar",
+                });
+
+                fetchtool(); // Làm mới danh sách Tool
+                setShowAddModal(false); // Đóng modal
                 setNewTool({
                   name: "",
                   manufacturer: "",
@@ -359,15 +327,18 @@ const ToolTable = () => {
                   assigned: [],
                   status: "Active",
                 });
+              } else {
+                throw new Error(`Unexpected response status: ${response.status}`);
               }
             } catch (error) {
               console.error("Lỗi khi thêm Tool:", error);
-              toast.error("Có lỗi xảy ra khi thêm Tool. Vui lòng thử lại!",
-                {
-                  className: "toast-error",
-                  progressClassName: "Toastify__progress-bar",
-                }
-              );
+          
+              // Kiểm tra lỗi cụ thể từ server
+              const errorMessage = error.response?.data?.message || "Có lỗi xảy ra khi thêm Tool. Vui lòng thử lại!";
+              toast.error(errorMessage, {
+                className: "toast-error",
+                progressClassName: "Toastify__progress-bar",
+              });
             }
           };
 
@@ -410,35 +381,40 @@ const ToolTable = () => {
                             return null;
                         }
 
-                        const roomName = row["Tên Phòng (Room Name)"]?.trim();
-                        const matchedRoom = rooms.find(
-                          (room) => room.label.toLowerCase() === roomName.toLowerCase()
-                        );
-                        
-                        if (!matchedRoom) {
-                          toast.error(`Tên phòng "${roomName}" không tồn tại trong hệ thống.`, {
-                            className: "toast-error",
-                          });
-                          throw new Error(`Tên phòng không tồn tại: ${roomName}`);
-                        }
+                        // const roomName = row["Tên Phòng (Room Name)"]?.trim() || ""; // Đặt giá trị mặc định là chuỗi rỗng
+                        // if (!roomName) {
+                        //   console.error(`Tên phòng bị thiếu ở dòng: ${JSON.stringify(row)}`);
+                        //   throw new Error("Tên phòng không được để trống.");
+                        // }
 
-                        const assignedFullnames = row["Người Dùng (assigned)"]
-                            ? row["Người Dùng (assigned)"].split(",").map((name) => name.trim())
-                            : [];
+                        // const matchedRoom = rooms.find(
+                        //   (room) => room.label.toLowerCase() === roomName.toLowerCase()
+                        // );
 
-                        const assignedIds = assignedFullnames.map((name) => {
-                           const normalizedFullname = name.trim().toLowerCase();
-                           const matchedUser = users.find(
-                            (user) => user.label.trim().toLowerCase() === normalizedFullname // So sánh tên đã chuẩn hóa
-                          );
-                            if (!matchedUser) {
-                              const suggestions = users.map((user) => user.label).join(", ");
-                              console.error(`Tên không hợp lệ: ${name}. Các tên hợp lệ: ${suggestions}`);
-                              toast.error(`Tên không hợp lệ: ${name}. Gợi ý: ${suggestions}`);
-                              throw new Error(`Tên không hợp lệ: ${name}`);
-                          }
-                            return matchedUser.value; // Lấy ID nếu khớp
-                        }); 
+                        // if (!matchedRoom) {
+                        //   toast.error(`Tên phòng "${roomName}" không tồn tại trong hệ thống.`, {
+                        //     className: "toast-error",
+                        //   });
+                        //   throw new Error(`Tên phòng không tồn tại: ${roomName}`);
+                        // }
+
+                        // const assignedFullnames = row["Người Dùng (assigned)"]
+                        //     ? row["Người Dùng (assigned)"].split(",").map((name) => name.trim())
+                        //     : [];
+
+                        // const assignedIds = assignedFullnames.map((name) => {
+                        //    const normalizedFullname = name.trim().toLowerCase();
+                        //    const matchedUser = users.find(
+                        //     (user) => user.label.trim().toLowerCase() === normalizedFullname // So sánh tên đã chuẩn hóa
+                        //   );
+                        //     if (!matchedUser) {
+                        //       const suggestions = users.map((user) => user.label).join(", ");
+                        //       console.error(`Tên không hợp lệ: ${name}. Các tên hợp lệ: ${suggestions}`);
+                        //       toast.error(`Tên không hợp lệ: ${name}. Gợi ý: ${suggestions}`);
+                        //       throw new Error(`Tên không hợp lệ: ${name}`);
+                        //   }
+                        //     return matchedUser.value; // Lấy ID nếu khớp
+                        // }); 
         
                         return {
                           name: row["Tên Thiết Bị (name)"] || "",
@@ -450,7 +426,7 @@ const ToolTable = () => {
                                 : row["Trạng Thái (status)"] === "Hỏng"
                                 ? "Broken"
                                 : "Không xác định",
-                          assigned: assignedIds,
+                          // assigned: assignedIds,
                           releaseYear: row["Năm đưa vào sử dụng (releaseYear)"] || "",
                         };
                     }).filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
@@ -927,7 +903,7 @@ const ToolTable = () => {
                   <div className="flex justify-between items-center">
                     {/* Nút tải file mẫu */}
                     <a
-                      href="/sample-template.xlsx"
+                      href="/tool-sample-upload.xlsx"
                       download
                       className="bg-[#002147] text-white px-4 py-2 rounded-md hover:bg-[#001635]"
                     >

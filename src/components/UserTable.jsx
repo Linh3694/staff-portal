@@ -36,11 +36,28 @@ const UserTable = ({ handleSyncClients }) => {
 
   
 
+  const fetchLaptopDetails = async (laptopId) => {
+    try {
+      const response = await fetch(`/api/laptops/${laptopId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+  
+      if (!response.ok) throw new Error("Không thể tải thông tin laptop!");
+  
+      const data = await response.json();
+      setSelectedLaptopData(data);
+    } catch (error) {
+      console.error("Error fetching laptop details:", error.message);
+      toast.error("Không thể tải thông tin laptop!");
+    }
+  };
 
-  // Lấy dữ liệu từ http://localhost:5001/api//users
+  // Lấy dữ liệu từ /api//users
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://localhost:5001/api/users", {
+      const response = await fetch("/api/users", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`, // Đảm bảo token đúng
@@ -90,7 +107,7 @@ const UserTable = ({ handleSyncClients }) => {
       laptopData.assigned.map(async (userId) => {
         try {
           console.log(localStorage.getItem("token"));
-          const response = await fetch(`http://localhost:5001/api/users/${userId}`, {
+          const response = await fetch(`/api/users/${userId}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           });
           console.log("Response Status:", response.status);
@@ -127,7 +144,7 @@ const UserTable = ({ handleSyncClients }) => {
 
   const confirmDeleteUser = async () => {
     try {
-      const response = await fetch(`http://localhost:5001/api/users/${userIdToDelete}`, {
+      const response = await fetch(`/api/users/${userIdToDelete}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -171,7 +188,7 @@ const UserTable = ({ handleSyncClients }) => {
     console.log("Payload gửi lên:", payload); // Thêm log kiểm tra payload
   
     try {
-      const response = await fetch("http://localhost:5001/api/users", {
+      const response = await fetch("/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -199,7 +216,7 @@ const UserTable = ({ handleSyncClients }) => {
     setSelectedUser(user);
   
     try {
-      const response = await fetch(`http://localhost:5001/api/users/${user._id}/assigned-items`, {
+      const response = await fetch(`/api/users/${user._id}/assigned-items`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       if (!response.ok) throw new Error("Không thể tải danh sách thiết bị.");
@@ -243,7 +260,7 @@ const UserTable = ({ handleSyncClients }) => {
       console.log("Dữ liệu định dạng chuẩn:", formattedData);
   
       // Gửi toàn bộ dữ liệu dưới dạng mảng
-      const response = await fetch(`http://localhost:5001/api/users/bulk-update`, {
+      const response = await fetch(`/api/users/bulk-update`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -271,7 +288,7 @@ const UserTable = ({ handleSyncClients }) => {
         clients.map(async (client) => {
           try {
             // Fetch thông tin assigned-items cho từng user
-            const response = await fetch(`http://localhost:5001/api/users/${client._id}/assigned-items`, {
+            const response = await fetch(`/api/users/${client._id}/assigned-items`, {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
@@ -397,7 +414,7 @@ const UserTable = ({ handleSyncClients }) => {
           formData.append("avatar", avatarFile); // Thêm file avatar nếu có
         }
   
-      const response = await fetch(`http://localhost:5001/api/users/${updatedUser._id}`, {
+      const response = await fetch(`/api/users/${updatedUser._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -448,7 +465,7 @@ const UserTable = ({ handleSyncClients }) => {
     formData.append('avatar', avatar);
     formData.append('userId', selectedUser._id); // Include the user ID
     try {
-      const response = await fetch('http://localhost:/upload-avatar', {
+      const response = await fetch('http://localhost:5001/upload-avatar', {
         method: 'POST',
         body: formData,
       });
@@ -580,7 +597,7 @@ const UserTable = ({ handleSyncClients }) => {
                 </td>
                 <td className="min-w-[150px] border-white/0 py-3 pr-4">
                   <p className="text-sm font-semibold text-navy-700">{client.jobTitle || "Not Provided"}</p>
-                  <p className="text-sm font-semibold italic">{client.department || "Not Provided"}</p>
+                  <p className="text-sm font-semibold italic text-gray-600">{client.department || "Not Provided"}</p>
                 </td>
                 <td className="min-w-[150px] border-white/0 py-3 pr-4">
                   <p className="text-sm font-semibold text-navy-700">{client.role}</p>
@@ -775,13 +792,47 @@ const UserTable = ({ handleSyncClients }) => {
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                     <div className="bg-white rounded-lg shadow-2xl p-6 w-[500px]">
                       {/* Header */}
-                      <div className="flex items-center justify-center mb-4">
+                      <div className="relative flex items-center justify-center mb-4">
+                        {/* Avatar */}
                         <img
                           src={selectedUser.avatarUrl || "https://via.placeholder.com/150"}
                           alt="Avatar"
                           className="w-32 h-32 rounded-full object-cover border-4 border-blue-100"
                         />
+
+                        {/* Icon Edit
+                        <label
+                          htmlFor="upload-avatar"
+                          className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md cursor-pointer hover:bg-gray-100 transition"
+                        >
+                          <FiEdit className="text-[#FF5733]" size={18} />
+                        </label>
+                        <input
+                          id="upload-avatar"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleAvatarChange}
+                        /> */}
                       </div>
+
+                          {/* Preview Avatar */}
+                          {avatarUrl && (
+                            <div className="text-center">
+                              <img
+                                src={avatarUrl}
+                                alt="Avatar Preview"
+                                className="w-20 h-20 rounded-full mx-auto"
+                              />
+                              <button
+                                onClick={handleAvatarUpload}
+                                className="mt-2 px-3 py-1 bg-blue-500 text-white text-sm font-bold rounded shadow hover:bg-blue-600"
+                              >
+                                Upload Avatar
+                              </button>
+                            </div>
+                          )}
+
                       
                       {/* Thông tin người dùng */}
                       <h3 className="text-2xl font-bold text-center text-gray-800 mb-2">
@@ -863,6 +914,7 @@ const UserTable = ({ handleSyncClients }) => {
                                       console.log("Xóa sửa chữa", laptopId, repairId)
                                     }
                                     onCloseModal={() => setIsLaptopModalOpen(false)}
+                                    fetchLaptopDetails={fetchLaptopDetails}
                                   />
                                 </div>
                               </div>

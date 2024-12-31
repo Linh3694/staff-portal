@@ -27,6 +27,7 @@ const Room = require("./models/Room");
 const { exec } = require('child_process');
 const AcsEvent = require('./models/AcsEvent');
 const attendanceRoutes = require("./routes/users");
+const activityRoutes = require('./routes/activityRoutes');
 
 
 
@@ -84,6 +85,7 @@ app.use("/api/projectors", projectorRoutes); // Route projectors
 app.use("/api/rooms", roomRoutes);
 app.use("/api/users", attendanceRoutes);
 app.use("/api/tool", toolRoutes);
+app.use('/api/activities', activityRoutes);
 
 
 const syncClientsFromAzure = require("./routes/clientsSync").syncClientsFromAzure;

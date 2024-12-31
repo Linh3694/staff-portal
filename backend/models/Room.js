@@ -18,7 +18,7 @@ const RoomSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Lớp học", "Phòng chức năng", "Phòng họp", "Phòng máy", "Phòng giáo viên", "Khác"],
+      enum: ["Lớp học", "Phòng chức năng", "Phòng họp", "Phòng máy ICT", "Phòng giáo viên", "Khác", "Phòng làm việc"],
     },
     createdAt: {
       type: Date,

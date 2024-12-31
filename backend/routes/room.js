@@ -5,6 +5,7 @@ const {
   addRoom,
   updateRoom,
   deleteRoom,
+  getRoomById,
 } = require("../controllers/roomController");
 const Room = require("../models/Room"); // Mô hình phòng từ cơ sở dữ liệu
 
@@ -13,6 +14,8 @@ router.get("/", getAllRooms);
 
 // Thêm phòng mới
 router.post("/", addRoom);
+
+router.get("/:id", getRoomById);
 
 // Cập nhật phòng
 router.put("/:id", updateRoom);

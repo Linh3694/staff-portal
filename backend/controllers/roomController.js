@@ -79,3 +79,21 @@ exports.getAllRooms = async (req, res) => {
         res.status(500).json({ message: "Có lỗi xảy ra khi lấy danh sách phòng." });
       }
   };
+
+  // Lấy chi tiết một phòng
+exports.getRoomById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const room = await Room.findById(id).lean();
+    if (!room) return res.status(404).json({ message: "Phòng không tồn tại" });
+
+    res.json({
+      ...room,
+      location: room.location?.map((loc) => `${loc.building} - Tầng ${loc.floor}`).join(", ") || "Chưa xác định",
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy chi tiết phòng:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+};

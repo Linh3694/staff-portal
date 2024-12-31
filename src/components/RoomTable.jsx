@@ -20,6 +20,8 @@ const RoomTable = () => {
     capacity: "",
     status: "Lớp học", // Giá trị mặc định
   });
+  const [isUploading, setIsUploading] = useState(false);
+
 
 
 
@@ -208,7 +210,7 @@ const RoomTable = () => {
         onChange={(e) => setSearchTerm(e.target.value)}
       />
     
-    <div className="flex justify-between items-right space-x-2 ">
+              <div className="flex justify-between items-right space-x-2 ">
               <button
                 onClick={() => setIsAddModalOpen(true)}
                 className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
@@ -263,7 +265,7 @@ const RoomTable = () => {
           {filteredRooms.map((room) => (
             <tr key={room._id} className="border-b border-gray-200 hover:bg-gray-50">
               <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">{room.name || "Not Provided"}</p>
+                  <p className="text-sm font-bold text-navy-700">{room.name || "Not Provided"}</p>
               </td>
               <td className="min-w-[150px] border-white/0 py-3 pr-4">
                 {room.location && room.location.length > 0 ? (
@@ -373,7 +375,7 @@ const RoomTable = () => {
                             />
                   
                         </div>
-                        <div>
+                        <div> 
                           <label className="block text-gray-600 font-medium mb-2">Tầng </label>
                           <input
                               type="number"
@@ -398,8 +400,9 @@ const RoomTable = () => {
                             <option value="Lớp học">Lớp học</option>
                             <option value="Phòng chức năng">Phòng chức năng</option>
                             <option value="Phòng họp">Phòng họp</option>
-                            <option value="Phòng máy">Phòng máy</option>
+                            <option value="Phòng máy">Phòng máy ICT</option>
                             <option value="Phòng giáo viên">Phòng giáo viên</option>
+                            <option value="Khác">Phòng làm việc</option>
                             <option value="Khác">Khác</option>
                           </select>
                         </div>
@@ -416,17 +419,19 @@ const RoomTable = () => {
                         
                       </div>
                     </div>
-                    <div className="flex justify-end space-x-4">
+                    <div className="flex justify-end space-x-2">
                       <button
                         type="button"
                         onClick={() => setIsAddModalOpen(false)}
-                        className="px-4 py-2 bg-orange-red text-gray-700 rounded"
+                        className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-md transform transition-transform duration-300 hover:scale-105"
                       >
                         Hủy
                       </button>
                       <button
                           type="submit" // Loại bỏ onClick tại đây
-                          className="px-4 py-2 bg-[#002147] text-white rounded"
+                          className={`px-3 py-2 rounded-md text-white text-sm font-bold ${
+                            isUploading ? "bg-gray-400 cursor-not-allowed" : "bg-[#002147] hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
+                          }`}
                         >
                           Lưu
                         </button>
@@ -445,13 +450,13 @@ const RoomTable = () => {
               <p>Bạn có chắc chắn muốn xóa phòng <strong>{selectedRoom?.name}</strong> không?</p>
               <div className="flex justify-end space-x-4 mt-4 gap-2">
                 <button
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg"
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
                   onClick={() => setIsDeleteModalOpen(false)}
                 >
                   Hủy
                 </button>
                 <button
-                  className="px-4 py-2 bg-[#FF5733] text-white rounded-lg"
+                  className="px-4 py-2 bg-[#FF5733] text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
                   onClick={async () => {
                     await fetch(`/api/rooms/${selectedRoom?._id}`, {
                       method: "DELETE",
@@ -574,13 +579,13 @@ const RoomTable = () => {
                 </div>
                 <div className="flex justify-end space-x-4">
                   <button
-                    className="px-4 py-2 bg-orange-red text-white rounded-lg"
+                    className="px-4 py-2 bg-orange-red text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
                     onClick={() => setIsEditModalOpen(false)}
                   >
                     Hủy
                   </button>
                   <button
-                    className="px-4 py-2 bg-[#002147] text-white rounded-lg"
+                    className="px-4 py-2 bg-[#002147] text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
                     onClick={handleEditRoom}
                   >
                     Lưu

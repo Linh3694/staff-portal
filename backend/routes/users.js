@@ -9,16 +9,60 @@ const Notification = require('../models/notification'); // Model cho thông báo
 const Laptop = require("../models/Laptop"); // Model Laptop
 
 
-
-
 // Lấy danh sách người dùng
 router.get("/", async (req, res) => {
   try {
+      const { search } = req.query;
+      let query = {};
+      if (search) {
+        query = {
+          $or: [
+            { fullname: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+          ],
+        };
+      }
     const users = await User.find({}, "-password"); // Loại bỏ password khỏi kết quả trả về
-    res.json(users);
+    res.status(200).json(users.map(user => ({
+      ...user.toObject(),
+      avatarUrl: user.avatarUrl,
+    })));
   } catch (error) {
     console.error("Error fetching users:", error.message);
     res.status(500).json({ message: "Error fetching users", error });
+  }
+});
+
+router.get("/search", async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    // Kiểm tra query có hợp lệ hay không
+    if (!query || query.trim() === "") {
+      return res.status(400).json({ message: "Query không hợp lệ." });
+    }
+
+    // Tạo điều kiện tìm kiếm với regex
+    const condition = {
+      $or: [
+        { fullname: { $regex: query, $options: "i" } }, // Tìm kiếm không phân biệt chữ hoa/thường
+        { email: { $regex: query, $options: "i" } },    // Tìm kiếm không phân biệt chữ hoa/thường
+      ],
+    };
+
+    // Tìm kiếm trong cơ sở dữ liệu
+    const users = await User.find(condition, "-password"); // Loại bỏ trường password khỏi kết quả trả về
+
+    // Nếu không tìm thấy kết quả
+    if (users.length === 0) {
+      return res.status(404).json({ message: "Không tìm thấy kết quả nào." });
+    }
+
+    // Trả về kết quả tìm kiếm
+    res.json(users);
+  } catch (err) {
+    console.error("Error in search API:", err);
+    res.status(500).json({ message: "Lỗi server", error: err.message });
   }
 });
 
