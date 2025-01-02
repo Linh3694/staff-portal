@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiEdit, FiCpu, FiHardDrive, FiMonitor, FiTrash2, FiPackage, FiRefreshCw } from "react-icons/fi";
+import { FiEdit, FiCpu, FiHardDrive, FiTool, FiTrash2, FiPackage, FiRefreshCw } from "react-icons/fi";
 import { FaMemory } from "react-icons/fa";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
@@ -14,18 +14,18 @@ import axios from "axios";
 import Dropdown from "../function/dropdown"; // Đường dẫn tới component Dropdown
 import { IoLocationOutline } from "react-icons/io5";
 
-console.log ("ProjectorProductCard.js");
+console.log ("ToolProductCard.js");
 
-const ProjectorProductCard = ({
-  projectorData,
+const ToolProductCard = ({
+  toolData,
   onCloseModal,
   onUpdateSpecs,
   onRevoke,
   onAssign,
-  setSelectedProjector,
-  fetchProjectorDetails,
-  onUpdateProjector,
-  refetchProjectors,
+  setSelectedTool,
+  fetchToolDetails,
+  onUpdateTool,
+  refetchTools,
   onUpdateRoom
 }) => {
 
@@ -66,9 +66,9 @@ const ProjectorProductCard = ({
   // Thêm state cho modal xác nhận thu hồi
   const [showRevokeModal, setShowRevokeModal] = useState(false);
   const [revokeReasons, setRevokeReasons] = useState([]);
-  // Thêm state “localProjectorStatus” để tạm giữ status hiển thị
-  const [localStatus, setLocalStatus] = useState(projectorData.status);
-  const [localProjector, setLocalProjector] = useState(projectorData);
+  // Thêm state “localToolStatus” để tạm giữ status hiển thị
+  const [localStatus, setLocalStatus] = useState(toolData.status);
+  const [localTool, setLocalTool] = useState(toolData);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState("");
   const [notes, setNotes] = useState("");
@@ -89,31 +89,23 @@ const ProjectorProductCard = ({
   const [rooms, setRooms] = useState([]); // Khai báo state cho danh sách phòng
   const [isHistoryOpen, setIsHistoryOpen] = useState(false); // Quản lý trạng thái mở/đóng danh sách
   const [showRoomEditModal, setShowRoomEditModal] = useState(false); // State để hiển thị modal chỉnh sửa phòng
-  const room = localProjector.room || null; // Lấy thông tin phòng từ localProjector
+  const room = localTool.room || null; // Lấy thông tin phòng từ localTool
   const [showRecycleModal, setShowRecycleModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
 
-  const fetchActivities = async (projectorId) => {
-    try {
-      const response = await axios.get(
-        `/api/activities/projector/${projectorId}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách hoạt động:", error);
-      toast.error("Không thể tải lịch sử hoạt động!");
-    }
+  const fetchActivities = async (entityType, entityId) => {
+    const response = await axios.get(`/api/activities/${entityType}/${entityId}`);
+    return response.data;
   };
   
   const addActivity = async (activity) => {
-    try {
-      const response = await axios.post("/api/activities", activity);
-      return response.data;
-    } catch (error) {
-      console.error("Lỗi khi thêm hoạt động:", error);
-      toast.error("Không thể thêm hoạt động!");
-    }
+  const response = await axios.post('/api/activities', {
+      ...activity,
+      entityType: "tool",
+      entityId: toolData._id,
+    });
+    return response.data;
   };
   
   const updateActivity = async (id, updates) => {
@@ -128,43 +120,43 @@ const ProjectorProductCard = ({
 
 
   useEffect(() => {
-    setRefreshKey((prev) => prev + 1); // Tăng giá trị mỗi lần localProjector thay đổi
-  }, [localProjector]);
+    setRefreshKey((prev) => prev + 1); // Tăng giá trị mỗi lần localTool thay đổi
+  }, [localTool]);
 
   useEffect(() => {
-    if (localProjector?.room) {
-      const detailedRoom = rooms.find((room) => room.value === localProjector.room._id);
-      setLocalRoom(detailedRoom || localProjector.room);
+    if (localTool?.room) {
+      const detailedRoom = rooms.find((room) => room.value === localTool.room._id);
+      setLocalRoom(detailedRoom || localTool.room);
     } else {
       setLocalRoom(null); // Nếu không có room
     }
-  }, [localProjector, rooms, showRoomEditModal,refreshKey]); // Thêm `showRoomEditModal` vào dependency
+  }, [localTool, rooms, showRoomEditModal,refreshKey]); // Thêm `showRoomEditModal` vào dependency
 
   useEffect(() => {
-    if (projectorData?.repairs) {
-      setRepairs(projectorData.repairs); // Chỉ đồng bộ khi thực sự cần thiết
-      setLocalStatus(projectorData.status);
+    if (toolData?.repairs) {
+      setRepairs(toolData.repairs); // Chỉ đồng bộ khi thực sự cần thiết
+      setLocalStatus(toolData.status);
     }
-  }, [projectorData]); // Chỉ chạy khi `projectorData` thay đổi
+  }, [toolData]); // Chỉ chạy khi `toolData` thay đổi
   
   useEffect(() => {
-    if (projectorData) {
-      setLocalProjector(projectorData); // Tránh gọi `setState` khi không cần thiết
-      setLocalStatus(projectorData.status);
+    if (toolData) {
+      setLocalTool(toolData); // Tránh gọi `setState` khi không cần thiết
+      setLocalStatus(toolData.status);
     }
-  }, [projectorData]); // Chỉ phụ thuộc vào `projectorData`
+  }, [toolData]); // Chỉ phụ thuộc vào `toolData`
 
   useEffect(() => {
     if (localStatus) {
-      fetchProjectorDetails(localProjector?._id);
+      fetchToolDetails(localTool?._id);
     }
   }, [localStatus]);
 
   useEffect(() => {
-    if (projectorData?._id) {
-        fetchProjectorDetails(projectorData._id);
+    if (toolData?._id) {
+        fetchToolDetails(toolData._id);
     }
-  }, [projectorData?._id]); // Chỉ phụ thuộc vào `_id`
+  }, [toolData?._id]); // Chỉ phụ thuộc vào `_id`
 
   useEffect(() => {
     const fetchAllUsers = async () => {
@@ -182,8 +174,8 @@ const ProjectorProductCard = ({
   }, []);
 
   useEffect(() => {
-    if (projectorData?.assignmentHistory?.length > 0) {
-      const holder = projectorData.assignmentHistory.find(
+    if (toolData?.assignmentHistory?.length > 0) {
+      const holder = toolData.assignmentHistory.find(
         (history) => !history.endDate
       );
       setCurrentHolder(holder || {
@@ -200,12 +192,12 @@ const ProjectorProductCard = ({
         },
       });
     }
-  }, [projectorData]);
+  }, [toolData]);
 
   useEffect(() => {
-    setLocalProjector(projectorData); // Đồng bộ dữ liệu khi projectorData thay đổi
-    setLocalStatus(projectorData.status); // Đồng bộ trạng thái
-  }, [projectorData]);
+    setLocalTool(toolData); // Đồng bộ dữ liệu khi toolData thay đổi
+    setLocalStatus(toolData.status); // Đồng bộ trạng thái
+  }, [toolData]);
 
   const handleSelectUser = (user) => {
     setSelectedUser(user);
@@ -214,23 +206,27 @@ const ProjectorProductCard = ({
   };
   useEffect(() => {
     const loadActivities = async () => {
+      if (!localTool?._id) {
+        console.error("Tool ID không hợp lệ:", localTool?._id);
+        toast.error("Không tìm thấy thông tin thiết bị.");
+        return;
+      }
+  
       try {
-        const activities = await fetchActivities(localProjector._id); // Lấy toàn bộ hoạt động
+        const activities = await fetchActivities("tool", localTool._id); // Gọi API với đúng entityType và entityId
         const repairList = activities.filter((activity) => activity.type === "repair");
         const updateList = activities.filter((activity) => activity.type === "update");
   
-        setRepairs(repairList); // Cập nhật danh sách sửa chữa
-        setUpdates(updateList); // Cập nhật danh sách cập nhật
+        setRepairs(repairList);
+        setUpdates(updateList);
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu hoạt động:", error);
         toast.error("Không thể tải lịch sử hoạt động!");
       }
     };
   
-    if (localProjector?._id) {
-      loadActivities();
-    }
-  }, [localProjector]);
+    loadActivities();
+  }, [localTool]);
 
   useEffect(() => {
     if (revokeReasons.includes("Máy hỏng")) {
@@ -264,29 +260,29 @@ const handleConfirmAssign = async () => {
     return;
   }
   console.log("Bắt đầu bàn giao với dữ liệu:", {
-    projectorId: projectorData._id,
+    toolId: toolData._id,
     selectedUser,
     notes,
   });
   try {
-    const response = await onAssign(projectorData._id, selectedUser, notes);
+    const response = await onAssign(toolData._id, selectedUser, notes);
     console.log("API response:", response);
     if (!response || !response._id) {
       throw new Error("API không trả về dữ liệu hợp lệ.");
     }
-    const updatedProjector = response; // API trả về dữ liệu đã cập nhật
+    const updatedTool = response; // API trả về dữ liệu đã cập nhật
     
     // Cập nhật state
-    setLocalProjector(updatedProjector); // Đồng bộ dữ liệu cục bộ
+    setLocalTool(updatedTool); // Đồng bộ dữ liệu cục bộ
     setCurrentHolder({
       user: selectedUser,
       assignedBy: JSON.parse(localStorage.getItem("currentUser")),
       startDate: new Date().toISOString(),
     });
-    onUpdateProjector(updatedProjector); // Đồng bộ với danh sách cha
+    onUpdateTool(updatedTool); // Đồng bộ với danh sách cha
 
     // Gọi lại API để cập nhật dữ liệu chi tiết trong modal
-    await fetchProjectorDetails(projectorData._id);
+    await fetchToolDetails(toolData._id);
   
     toast.success("Bàn giao thành công!");
     handleCloseModal();
@@ -296,7 +292,7 @@ const handleConfirmAssign = async () => {
   }
 };
 
-  const previousUsers = projectorData.assignmentHistory?.filter(
+  const previousUsers = toolData.assignmentHistory?.filter(
     (history) => history.endDate);
 
     
@@ -313,7 +309,7 @@ const handleConfirmAssign = async () => {
   const handleConfirmRecycle = async () => {
     try {
       const response = await axios.put(
-        `/api/projectors/${localProjector._id}/status`,
+        `/api/tools/${localTool._id}/status`,
         { status: "Standby" }, // Cập nhật trạng thái về Chờ cấp phát
         {
           headers: {
@@ -321,12 +317,13 @@ const handleConfirmAssign = async () => {
           },
         }
       );
-      const updatedProjector = response.data;
+      const updatedTool = response.data;
   
       // Cập nhật state
-      setLocalProjector(updatedProjector);
+      setLocalTool(updatedTool);
       setLocalStatus("Standby");
-      onUpdateProjector(updatedProjector);
+      onUpdateTool(updatedTool);
+  
       toast.success("Trạng thái đã được chuyển về Chờ cấp phát!");
       setShowRecycleModal(false); // Đóng modal
     } catch (error) {
@@ -384,7 +381,7 @@ const handleConfirmAssign = async () => {
     });
 };
 
-  const newProjectorData = { ...projectorData, assigned: [] };
+  const newToolData = { ...toolData, assigned: [] };
   // Xác nhận trong modal Thu hồi
 
   const confirmRevoke = async () => {
@@ -399,17 +396,18 @@ const handleConfirmAssign = async () => {
       if (otherReason.trim()) {
         reasonsToSave.push(`Lý do khác: ${otherReason}`);
       }
-      const response = await onRevoke(localProjector._id, reasonsToSave);
-      const updatedProjector = response.projector; // Lấy phần dữ liệu projector
+      const response = await onRevoke(localTool._id, reasonsToSave);
+      const updatedTool = response.tool; // Lấy phần dữ liệu tool
       console.log("Reasons:", reasonsToSave )
-      setLocalProjector(updatedProjector); // Đồng bộ dữ liệu chi tiết
-      setLocalStatus(updatedProjector.status); // Cập nhật lại trạng thái hiển thị
+      setLocalTool(updatedTool); // Đồng bộ dữ liệu chi tiết
+      setLocalStatus(updatedTool.status); // Cập nhật lại trạng thái hiển thị
       setCurrentHolder(null); // Xóa người sử dụng hiện tại
       setRevokeReasons([]);
       setOtherReason(""); // Reset lý do khác
       setShowRevokeModal(false);
-      onUpdateProjector(updatedProjector); // Đồng bộ với danh sách cha
-      await fetchProjectorDetails(localProjector._id);
+
+      onUpdateTool(updatedTool); // Đồng bộ với danh sách cha
+      await fetchToolDetails(localTool._id);
       toast.success("Thu hồi thành công!");
     } catch (error) {
       console.error("Lỗi khi thu hồi:", error);
@@ -442,7 +440,7 @@ const handleConfirmBroken = async () => {
 
   try {
     const response = await axios.put(
-      `/api/projectors/${localProjector._id}/status`,
+      `/api/tools/${localTool._id}/status`,
       { status: "Broken", brokenReason: brokenReason },
       {
         headers: {
@@ -450,12 +448,13 @@ const handleConfirmBroken = async () => {
         },
       }
     );
-    const updatedProjector = response.data;
+    const updatedTool = response.data;
 
     // Cập nhật state
-    setLocalProjector(updatedProjector);
+    setLocalTool(updatedTool);
     setLocalStatus("Broken");
-    onUpdateProjector(updatedProjector);
+    onUpdateTool(updatedTool);
+
     toast.success("Thiết bị đã được báo hỏng!");
     handleCloseBrokenModal();
   } catch (error) {
@@ -467,12 +466,13 @@ const handleConfirmBroken = async () => {
   // -----------------------------------------------------
   // 1) TÁCH LOGIC CHỈNH SỬA SPECS
   // -----------------------------------------------------
-  //
+  // Bấm “chỉnh sửa” (processor / ram / storage / display / releaseYear)
   const handleEditSpec = (field, currentValue) => {
     setEditField(field);
     setEditValue(currentValue || "");
   };
 
+  // Bấm “Lưu” khi chỉnh sửa specs => Gọi API /onUpdateSpecs
   const handleSaveSpec = (field, value) => {
     if (!field || value === undefined) {
       toast.error("Giá trị không hợp lệ. Vui lòng kiểm tra lại!");
@@ -490,12 +490,12 @@ const handleConfirmBroken = async () => {
   
     console.log("Payload gửi đi:", payload);
   
-    onUpdateSpecs(projectorData._id, payload)
-      .then((updatedProjector) => {
+    onUpdateSpecs(toolData._id, payload)
+      .then((updatedTool) => {
         toast.success("Cập nhật thông số thành công!");
         setEditField(null);
         setEditValue("");
-        setLocalProjector(updatedProjector); // Đồng bộ lại dữ liệu
+        setLocalTool(updatedTool); // Đồng bộ lại dữ liệu
       })
       .catch((error) => {
         console.error("Cập nhật thông số thất bại:", error);
@@ -516,7 +516,7 @@ const handleConfirmBroken = async () => {
       return;
     }
   
-    const fileUrl = `/api/projectors/BBBG/${filename}`;
+    const fileUrl = `/api/tools/BBBG/${filename}`;
     const token = localStorage.getItem("authToken");
   
     try {
@@ -586,13 +586,13 @@ const handleConfirmBroken = async () => {
         currentUserTitle: currentUser?.jobTitle || "Không xác định",
         nextUser: currentHolder.user?.fullname || "Không xác định",
         nextUserTitle: currentHolder.user?.jobTitle || "Không xác định",
-        //// Thông tin projector
-        projectorName: projectorData.name || "Không xác định",
-        projectorSerial: projectorData.serial,
-        projectorProcessor: projectorData.specs.processor,
-        projectorRam: projectorData.specs.ram,  
-        projectorStorage: projectorData.specs.storage,
-        projectorreleaseYear: projectorData.releaseYear,
+        //// Thông tin tool
+        toolName: toolData.name || "Không xác định",
+        toolSerial: toolData.serial,
+        toolProcessor: toolData.specs.processor,
+        toolRam: toolData.specs.ram,  
+        toolStorage: toolData.specs.storage,
+        toolreleaseYear: toolData.releaseYear,
         notes: notes || "Không có ghi chú.",
       });
     
@@ -622,11 +622,11 @@ const handleConfirmBroken = async () => {
     }
         const formData = new FormData();
         formData.append("file", file); // File tải lên
-        formData.append("projectorId", localProjector._id); // ID projector
+        formData.append("toolId", localTool._id); // ID tool
         formData.append("userId", currentHolder?.user?._id); // ID người dùng hiện tại
     
         axios
-        .post("/api/projectors/upload", formData, {
+        .post("/api/tools/upload", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -637,9 +637,9 @@ const handleConfirmBroken = async () => {
           toast.success("Tải lên thành công!");
 
           // Cập nhật dữ liệu trong frontend
-          const updatedProjector = response.data.projector;
-          setLocalProjector(updatedProjector); // Đồng bộ lại state
-          setLocalStatus(updatedProjector.status); // Cập nhật trạng thái hiển thị
+          const updatedTool = response.data.tool;
+          setLocalTool(updatedTool); // Đồng bộ lại state
+          setLocalStatus(updatedTool.status); // Cập nhật trạng thái hiển thị
 
           // Cập nhật dữ liệu trong frontend
           const updatedHolder = {
@@ -663,29 +663,29 @@ const handleConfirmBroken = async () => {
     }
   
     try {
-      // Cập nhật phòng cho projector qua API
+      // Cập nhật phòng cho tool qua API
       const response = await axios.put(
-        `/api/projectors/${localProjector._id}`,
+        `/api/tools/${localTool._id}`,
         { room: localRoom._id },
         { headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` } }
       );
   
-      const updatedProjector = response.data;
-      console.log("Updated projector:", updatedProjector);
+      const updatedTool = response.data;
+      console.log("Updated tool:", updatedTool);
   
       // Lấy thông tin chi tiết phòng
       const roomResponse = await axios.get(
-        `/api/rooms/${updatedProjector.room}`,
+        `/api/rooms/${updatedTool.room}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` } }
       );
       const detailedRoom = roomResponse.data;
       console.log("Detailed room:", detailedRoom);
   
-      // Đồng bộ lại state `localRoom` và `localProjector`
+      // Đồng bộ lại state `localRoom` và `localTool`
       setLocalRoom(detailedRoom); 
-      setLocalProjector((prev) => ({
+      setLocalTool((prev) => ({
         ...prev,
-        room: detailedRoom, // Gán phòng chi tiết vào projector
+        room: detailedRoom, // Gán phòng chi tiết vào tool
       }));
       setRefreshKey((prev) => prev + 1);
 
@@ -730,26 +730,6 @@ const handleConfirmBroken = async () => {
   };
 
   //--------------------------------------------------------------
-  const handleAddNewActivity = async () => {
-    const newActivity = {
-      projectorId: localProjector._id,
-      type: repairData.type, // repair hoặc update
-      description: repairData.description,
-      details: repairData.details,
-      date: repairData.date || new Date().toISOString(),
-      updatedBy: JSON.parse(localStorage.getItem('currentUser'))?.fullname,
-    };
-  
-    try {
-      const addedActivity = await addActivity(newActivity);
-      setRepairs([...repairs, addedActivity]);
-      setShowAddRepairModal(false);
-      toast.success('Thêm hoạt động thành công!');
-    } catch (error) {
-      console.error('Lỗi khi thêm hoạt động:', error);
-      toast.error('Không thể thêm hoạt động!');
-    }
-  };
   
   const handleDeleteRepair = async (id) => {
     try {
@@ -850,19 +830,21 @@ const handleConfirmBroken = async () => {
     try {
       const addedActivity = await addActivity({
         ...newActivity,
-        entityType: "projector", // Thay "monitor" thành "projector"
-        entityId: localProjector._id,
+        toolId: localTool._id,
         updatedBy: JSON.parse(localStorage.getItem("currentUser"))?.fullname,
+        date: new Date().toISOString(), // Thời gian tự động  
       });
   
       if (newActivity.type === "repair") {
-        setRepairs([...repairs, addedActivity]);
+        setRepairs((prev) => [...prev, addedActivity]); // Cập nhật danh sách sửa chữa
       } else {
-        setUpdates([...updates, addedActivity]);
+        setUpdates((prev) => [...prev, addedActivity]); // Cập nhật danh sách cập nhật
       }
-  
+
       setIsAddActivityModalOpen(false);
+
       toast.success("Thêm hoạt động mới thành công!");
+      handleCloseAddActivityModal();
     } catch (error) {
       console.error("Lỗi khi thêm hoạt động:", error);
       toast.error("Không thể thêm hoạt động!");
@@ -878,7 +860,7 @@ const handleConfirmBroken = async () => {
       {/* Hàng trên cùng */}
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[#002147]">{projectorData.name}</h2>
+          <h2 className="text-2xl font-bold text-[#002147]">{toolData.name}</h2>
           <span
             className={`inline-flex items-center px-3 py-1 rounded-full text-base font-bold mt-2`}
           >
@@ -913,7 +895,7 @@ const handleConfirmBroken = async () => {
               Thu hồi
             </button>
           )}
-          {projectorData.status === "Standby" && (
+          {toolData.status === "Standby" && (
             <>
             <button 
             onClick={handleOpenModal}
@@ -927,7 +909,7 @@ const handleConfirmBroken = async () => {
             </button>
             </>
           )}
-          {projectorData.status === "Broken" && (
+          {toolData.status === "Broken" && (
             <>
             
             <button className="px-4 py-2 bg-[#EA5050] text-white font-bold text-sm rounded-lg hover:bg-[#cc4529] transform transition-transform duration-300 hover:scale-105">
@@ -974,42 +956,6 @@ const handleConfirmBroken = async () => {
         {/* Block 1: Thông tin spec */}
         <div className="w-44 justify-evenly items-center">
 
-          {/* Màn hình Block */}
-          <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
-            <div className="flex items-center space-x-3">
-              <FiMonitor className="text-2xl text-[#FF5733]" />
-              <div>
-                <p className="text-sm text-theme-color-neutral-content">Màn hình</p>
-                {editField === "display" ? (
-                  <input
-                    type="text"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 h-6 font-semibold focus:outline-none rounded bg-transparent"
-                  />
-                ) : (
-                  <p className="font-semibold">{projectorData.specs?.display || "N/A"}</p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              {editField === "display" ? (
-                <>
-                  <button onClick={() => handleSaveSpec("display", editValue)}>
-                    <MdCheckCircle className="text-[#009483] hover:scale-110 mt-5 ml-2" size={15} />
-                  </button>
-                  <button onClick={handleCancelEdit}>
-                    <MdCancel className="text-[#DC0909] hover:scale-110 mt-5" size={15} />
-                  </button>
-                </>
-              ) : (
-                <button onClick={() => handleEditSpec("display", projectorData.specs?.display)}>
-                  <FiEdit className="text-[#FF5733] hover:scale-110" size={15} />
-                </button>
-              )}
-            </div>
-          </div>
-
           {/* Năm sản xuất */}
           <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
             <div className="flex items-center space-x-3">
@@ -1024,7 +970,7 @@ const handleConfirmBroken = async () => {
                     className="w-24 h-6 font-semibold focus:outline-none rounded bg-transparent"
                   />
                 ) : (
-                  <p className="font-semibold">{projectorData.releaseYear || "N/A"}</p>
+                  <p className="font-semibold">{toolData.releaseYear || "N/A"}</p>
                 )}
               </div>
             </div>
@@ -1039,7 +985,7 @@ const handleConfirmBroken = async () => {
                   </button>
                 </>
               ) : (
-                <button onClick={() => handleEditSpec("releaseYear", projectorData.releaseYear)}>
+                <button onClick={() => handleEditSpec("releaseYear", toolData.releaseYear)}>
                   <FiEdit className="text-[#FF5733] hover:scale-110" size={15} />
                 </button>
               )}
@@ -1059,7 +1005,7 @@ const handleConfirmBroken = async () => {
                   className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
                 />
               ) : (
-                <p className="font-semibold">{projectorData.manufacturer || "N/A"}</p>
+                <p className="font-semibold">{toolData.manufacturer || "N/A"}</p>
               )}
             </div>
           </div>
@@ -1074,7 +1020,7 @@ const handleConfirmBroken = async () => {
                 </button>
               </>
             ) : (
-              <button onClick={() => handleEditSpec("manufacturer", projectorData.manufacturer)}>
+              <button onClick={() => handleEditSpec("manufacturer", toolData.manufacturer)}>
                 <FiEdit className="text-[#FF5733] hover:scale-110" size={15} />
               </button>
             )}
@@ -1089,7 +1035,7 @@ const handleConfirmBroken = async () => {
                 <>
                   <div className="bg-[#EA5050] text-red-50 p-4 rounded-xl mb-4">
                     <p>Nguyên nhân hỏng:</p>
-                    <p>- {localProjector.brokenReason || 'Không rõ lý do'}</p>
+                    <p>- {localTool.brokenReason || 'Không rõ lý do'}</p>
                   </div>
                    <h3 className="text-base font-semibold mb-2">Thông tin sử dụng</h3>
                    <div className="justify-between items-center flex">
@@ -1104,8 +1050,8 @@ const handleConfirmBroken = async () => {
                              }
                              children={
                                <div className="flex flex-col gap-3 p-4 rounded-[20px] bg-white shadow-xl shadow-shadow-500 w-[360px] max-h-[400px] overflow-y-auto">
-                                 {projectorData.assignmentHistory?.length > 0 ? (
-                                   projectorData.assignmentHistory
+                                 {toolData.assignmentHistory?.length > 0 ? (
+                                   toolData.assignmentHistory
                                      .filter((hist) => !!hist.endDate)
                                      .sort((a, b) => new Date(b.endDate) - new Date(a.endDate))
                                      .map((hist) => (
@@ -1199,8 +1145,8 @@ const handleConfirmBroken = async () => {
                           }
                           children={
                             <div className="flex flex-col gap-3 p-4 rounded-[20px] bg-white shadow-xl shadow-shadow-500 w-[360px] max-h-[400px] overflow-y-auto">
-                              {projectorData.assignmentHistory?.length > 0 ? (
-                                projectorData.assignmentHistory
+                              {toolData.assignmentHistory?.length > 0 ? (
+                                toolData.assignmentHistory
                                   .filter((hist) => !!hist.endDate)
                                   .sort((a, b) => new Date(b.endDate) - new Date(a.endDate))
                                   .map((hist) => (
@@ -1871,4 +1817,4 @@ const handleConfirmBroken = async () => {
   );
 };
 
-export default ProjectorProductCard;
+export default ToolProductCard;

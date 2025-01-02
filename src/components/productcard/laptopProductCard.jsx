@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiEdit, FiCpu, FiHardDrive, FiMonitor, FiTrash2, FiPackage, FiRefreshCw } from "react-icons/fi";
+import { FiEdit, FiCpu, FiHardDrive, FiMonitor, FiTrash2, FiPackage, FiRefreshCw, FiGrid, FiArchive } from "react-icons/fi";
 import { FaMemory } from "react-icons/fa";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
@@ -94,15 +94,19 @@ const LaptopProductCard = ({
   const [refreshKey, setRefreshKey] = useState(0);
 
 
-  const fetchActivities = async (laptopId) => {
-    const response = await axios.get(`/api/activities/${laptopId}`);
+  const fetchActivities = async (entityType, entityId) => {
+    const response = await axios.get(`/api/activities/${entityType}/${entityId}`);
     return response.data;
   };
   
   const addActivity = async (activity) => {
-    const response = await axios.post('/api/activities', activity);
-    return response.data;
-  };
+  const response = await axios.post('/api/activities', {
+    ...activity,
+    entityType: "laptop",
+    entityId: laptopData._id,
+  });
+  return response.data;
+};
   
   const updateActivity = async (id, updates) => {
     const response = await axios.put(`/api/activities/${id}`, updates);
@@ -202,22 +206,26 @@ const LaptopProductCard = ({
   };
   useEffect(() => {
     const loadActivities = async () => {
+      if (!localLaptop?._id) {
+        console.error("Laptop ID không hợp lệ:", localLaptop?._id);
+        toast.error("Không tìm thấy thông tin thiết bị.");
+        return;
+      }
+  
       try {
-        const activities = await fetchActivities(localLaptop._id); // Lấy toàn bộ hoạt động
+        const activities = await fetchActivities("laptop", localLaptop._id); // Gọi API với đúng entityType và entityId
         const repairList = activities.filter((activity) => activity.type === "repair");
         const updateList = activities.filter((activity) => activity.type === "update");
   
-        setRepairs(repairList); // Cập nhật danh sách sửa chữa
-        setUpdates(updateList); // Cập nhật danh sách cập nhật
+        setRepairs(repairList);
+        setUpdates(updateList);
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu hoạt động:", error);
         toast.error("Không thể tải lịch sử hoạt động!");
       }
     };
   
-    if (localLaptop?._id) {
-      loadActivities();
-    }
+    loadActivities();
   }, [localLaptop]);
 
   useEffect(() => {
@@ -464,37 +472,35 @@ const handleConfirmBroken = async () => {
     setEditValue(currentValue || "");
   };
 
-  // Bấm “Lưu” khi chỉnh sửa specs => Gọi API /onUpdateSpecs
   const handleSaveSpec = (field, value) => {
-    if (!field) return;
-
-    // Tạo payload
-    let payload;
-    if (field === "releaseYear") {
-      // Cập nhật top-level
-      payload = {
-        releaseYear: value,
-        specs: { ...laptopData.specs },
-      };
+    if (!field || value === undefined) {
+      toast.error("Giá trị không hợp lệ. Vui lòng kiểm tra lại!");
+      return;
+    }
+  
+    let payload = {};
+    if (["releaseYear", "type", "manufacturer"].includes(field)) {
+      payload[field] = value || null;
     } else {
-      // Cập nhật specs
-      payload = {
-        ...laptopData.specs,
-        [field]: value,
+      payload.specs = {
+        [field]: value || null, // Chỉ gửi trường cần cập nhật
       };
     }
-
-  onUpdateSpecs(laptopData._id, payload)
-    .then((updatedLaptop) => {
-      toast.success("Cập nhật thông số thành công!");
-      setEditField(null);
-      setEditValue("");
-    })
-    .catch((error) => {
-      console.error("Cập nhật thông số thất bại:", error);
-      toast.error("Không thể cập nhật thông số!");
-    });
-  } ;
+  
+    console.log("Payload gửi đi:", payload);
+  
+    onUpdateSpecs(laptopData._id, payload)
+      .then((updatedLaptop) => {
+        toast.success("Cập nhật thông số thành công!");
+        setEditField(null);
+        setEditValue("");
+        setLocalLaptop(updatedLaptop); // Đồng bộ lại dữ liệu
+      })
+      .catch((error) => {
+        console.error("Cập nhật thông số thất bại:", error);
+        toast.error("Không thể cập nhật thông số!");
+      });
+  };
 
   // Hủy chế độ sửa “activity”
   const handleCancelEdit = () => {
@@ -723,26 +729,6 @@ const handleConfirmBroken = async () => {
   };
 
   //--------------------------------------------------------------
-  const handleAddNewActivity = async () => {
-    const newActivity = {
-      laptopId: localLaptop._id,
-      type: repairData.type, // repair hoặc update
-      description: repairData.description,
-      details: repairData.details,
-      date: repairData.date || new Date().toISOString(),
-      updatedBy: JSON.parse(localStorage.getItem('currentUser'))?.fullname,
-    };
-  
-    try {
-      const addedActivity = await addActivity(newActivity);
-      setRepairs([...repairs, addedActivity]);
-      setShowAddRepairModal(false);
-      toast.success('Thêm hoạt động thành công!');
-    } catch (error) {
-      console.error('Lỗi khi thêm hoạt động:', error);
-      toast.error('Không thể thêm hoạt động!');
-    }
-  };
   
   const handleDeleteRepair = async (id) => {
     try {
@@ -843,21 +829,19 @@ const handleConfirmBroken = async () => {
     try {
       const addedActivity = await addActivity({
         ...newActivity,
-        laptopId: localLaptop._id,
-        updatedBy: JSON.parse(localStorage.getItem("currentUser"))?.fullname,
-        date: new Date().toISOString(), // Thời gian tự động  
+        entityType: "laptop", // Thay đổi khi áp dụng cho entity khác
+        entityId: localLaptop._id, // ID thực thể
       });
   
+      // Cập nhật danh sách hoạt động
       if (newActivity.type === "repair") {
-        setRepairs((prev) => [...prev, addedActivity]); // Cập nhật danh sách sửa chữa
+        setRepairs((prev) => [...prev, addedActivity]);
       } else {
-        setUpdates((prev) => [...prev, addedActivity]); // Cập nhật danh sách cập nhật
+        setUpdates((prev) => [...prev, addedActivity]);
       }
-
+  
       setIsAddActivityModalOpen(false);
-
       toast.success("Thêm hoạt động mới thành công!");
-      handleCloseAddActivityModal();
     } catch (error) {
       console.error("Lỗi khi thêm hoạt động:", error);
       toast.error("Không thể thêm hoạt động!");
@@ -966,20 +950,56 @@ const handleConfirmBroken = async () => {
 
       {/* Bố cục chính với 3 block */}
       <div className="grid grid-cols-[180px,2fr,2fr] gap-4">
+      <div className="w-44 justify-evenly items-center">
         {/* Block 1: Thông tin spec */}
-        <div className="w-44 justify-evenly items-center">
+        {/* Type Block */}
+          <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
+            <div className="flex items-center space-x-3">
+              <FiGrid className="text-2xl text-[#FF5733]" />
+              <div>
+                <p className="text-xs text-theme-color-neutral-content">Loại</p>
+                {editField === "type" ? (
+                  <input
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
+                  />
+                ) : (
+                  <p className="font-semibold">{laptopData.type || "N/A"}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              {editField === "type" ? (
+                <>
+                  <button onClick={() => handleSaveSpec("type", editValue)}>
+                    <MdCheckCircle className="text-[#009483] hover:scale-110 mt-5 ml-2" size={15} />
+                  </button>
+                  <button onClick={handleCancelEdit}>
+                    <MdCancel className="text-[#DC0909] hover:scale-110 mt-5" size={15} />
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => handleEditSpec("type", laptopData.type)}>
+                  <FiEdit className="text-[#FF5733] hover:scale-110" size={15} />
+                </button>
+              )}
+            </div>
+          </div>
+        
           {/* Processor Block */}
           <div className="flex items-center justify-between bg-[#f8f8f8] p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
             <div className="flex items-center space-x-3">
               <FiCpu className="text-2xl text-[#FF5733]" />
               <div>
-                <p className="text-sm text-theme-color-neutral-content">Processor</p>
+                <p className="text-xs text-theme-color-neutral-content">Processor</p>
                 {editField === "processor" ? (
                   <input
                     type="text"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 h-6 font-semibold focus:outline-none rounded bg-transparent"
+                    className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
                   />
                 ) : (
                   <p className="font-semibold">{laptopData.specs?.processor || "N/A"}</p>
@@ -1009,13 +1029,13 @@ const handleConfirmBroken = async () => {
             <div className="flex items-center space-x-3">
               <FaMemory className="text-2xl text-[#FF5733]" />
               <div>
-                <p className="text-sm text-theme-color-neutral-content">RAM</p>
+                <p className="text-xs text-theme-color-neutral-content">RAM</p>
                 {editField === "ram" ? (
                   <input
                     type="text"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 h-6 font-semibold focus:outline-none rounded bg-transparent"
+                    className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
                   />
                 ) : (
                   <p className="font-semibold">{laptopData.specs?.ram || "N/A"}</p>
@@ -1045,13 +1065,13 @@ const handleConfirmBroken = async () => {
             <div className="flex items-center space-x-3">
               <FiHardDrive className="text-2xl text-[#FF5733]" />
               <div>
-                <p className="text-sm text-theme-color-neutral-content">Bộ nhớ</p>
+                <p className="text-xs text-theme-color-neutral-content">Bộ nhớ</p>
                 {editField === "storage" ? (
                   <input
                     type="text"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 h-6 font-semibold focus:outline-none rounded bg-transparent"
+                    className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
                   />
                 ) : (
                   <p className="font-semibold">{laptopData.specs?.storage || "N/A"}</p>
@@ -1081,13 +1101,13 @@ const handleConfirmBroken = async () => {
             <div className="flex items-center space-x-3">
               <FiMonitor className="text-2xl text-[#FF5733]" />
               <div>
-                <p className="text-sm text-theme-color-neutral-content">Màn hình</p>
+                <p className="text-xs text-theme-color-neutral-content">Màn hình</p>
                 {editField === "display" ? (
                   <input
                     type="text"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 h-6 font-semibold focus:outline-none rounded bg-transparent"
+                    className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
                   />
                 ) : (
                   <p className="font-semibold">{laptopData.specs?.display || "N/A"}</p>
@@ -1113,17 +1133,17 @@ const handleConfirmBroken = async () => {
           </div>
 
           {/* Năm sản xuất */}
-          <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mt-0 transform transition-transform duration-300 hover:scale-105">
+          <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
             <div className="flex items-center space-x-3">
-              <FiPackage className="text-2xl text-[#FF5733]" />
+              <FiArchive  className="text-2xl text-[#FF5733]" />
               <div>
-                <p className="text-sm text-theme-color-neutral-content">Năm Sản Xuất</p>
+                <p className="text-xs text-theme-color-neutral-content">Năm mua</p>
                 {editField === "releaseYear" ? (
                   <input
                     type="text"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 h-6 font-semibold focus:outline-none rounded bg-transparent"
+                    className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
                   />
                 ) : (
                   <p className="font-semibold">{laptopData.releaseYear || "N/A"}</p>
@@ -1147,6 +1167,41 @@ const handleConfirmBroken = async () => {
               )}
             </div>
           </div>
+          {/* Manufacturer Block */}
+        <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mt-0 transform transition-transform duration-300 hover:scale-105">
+          <div className="flex items-center space-x-3">
+            <FiPackage className="text-2xl text-[#FF5733]" />
+            <div>
+              <p className="text-xs text-theme-color-neutral-content">Nhà sản xuất</p>
+              {editField === "manufacturer" ? (
+                <input
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
+                />
+              ) : (
+                <p className="font-semibold">{laptopData.manufacturer || "N/A"}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            {editField === "manufacturer" ? (
+              <>
+                <button onClick={() => handleSaveSpec("manufacturer", editValue)}>
+                  <MdCheckCircle className="text-[#009483] hover:scale-110 mt-5 ml-2" size={15} />
+                </button>
+                <button onClick={handleCancelEdit}>
+                  <MdCancel className="text-[#DC0909] hover:scale-110 mt-5" size={15} />
+                </button>
+              </>
+            ) : (
+              <button onClick={() => handleEditSpec("manufacturer", laptopData.manufacturer)}>
+                <FiEdit className="text-[#FF5733] hover:scale-110" size={15} />
+              </button>
+            )}
+          </div>
+        </div>
         </div>
 
           {/* Block 2: Thông tin bàn giao */}

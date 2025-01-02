@@ -84,7 +84,7 @@ app.use("/api/printers", printerRoutes); // Route printers
 app.use("/api/projectors", projectorRoutes); // Route projectors
 app.use("/api/rooms", roomRoutes);
 app.use("/api/users", attendanceRoutes);
-app.use("/api/tool", toolRoutes);
+app.use("/api/tools", toolRoutes);
 app.use('/api/activities', activityRoutes);
 
 

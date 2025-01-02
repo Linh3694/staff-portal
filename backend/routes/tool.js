@@ -2,30 +2,68 @@ const express = require("express");
 const router = express.Router();
 const {
   getTools,
-  createTools,
-  updateTools,
-  deleteTools,
+  createTool,
+  updateTool,
+  deleteTool,
+  assignTool,
+  revokeTool,
+  updateToolStatus,
 } = require("../controllers/toolController");
 
 const Tool = require("../models/Tool"); // Import model
 const { bulkUploadTools } = require("../controllers/toolController");
 const validateToken = require("../middleware/validateToken");
+const multer = require('multer');
+const path = require('path');
+
+// Cấu hình thư mục lưu trữ
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'uploads', 'BBBG');
+    cb(null, uploadDir); // Đường dẫn thư mục BBBG
+  },
+  filename: (req, file, cb) => {
+    // Đặt tên file theo định dạng: toolId-currentHolderId-timestamp.pdf
+    const { toolId, userId } = req.body;
+    const timestamp = Date.now();
+    cb(null, `${toolId}-${userId}-${timestamp}.pdf`);
+  },
+});
+
+const fs = require("fs");
+
+const uploadPath = "./BBBG"; // Thư mục lưu file
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath);
+}
+
+// Middleware multer
+const upload = multer({ storage });
+
 
 router.use(validateToken);
+
+// Routes
 router.get("/", getTools);
-router.post("/", createTools);
-router.put("/:id", updateTools);
-router.delete("/:id", deleteTools);
+router.post("/", createTool);
+router.put("/:id", updateTool);
+router.delete("/:id", deleteTool);
 
 
 
-// Route lấy thông tin chi tiết Tool
+// Route lấy thông tin chi tiết tool
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
   const updateData = req.body;
   console.log("Payload nhận được từ client:", updateData);
   try {
-    const tool = await Tool.findById(id);
+    const tool = await Tool.findById(id)
+      .populate("assigned", "fullname email jobTitle avatarUrl")
+      .populate("room", "name location status")
+      .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl")
+      .populate("assignmentHistory.assignedBy", "fullname email jobTitle avatarUrl")
+      .populate("assignmentHistory.revokedBy", "fullname email jobTitle avatarUrl");
+
     if (!tool) {
       return res.status(404).send({ message: 'Không tìm thấy tool' });
     }
@@ -35,22 +73,43 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
 // Endpoint cập nhật thông tin specs
 router.put("/:id/specs", async (req, res) => {
   try {
-    const { id } = req.params;
+    console.log("Payload nhận được từ frontend:", req.body);
 
-    // Cập nhật chỉ mục `specs` của tool
-    const updatedTool = await Tool.findByIdAndUpdate(
-      id,
-      { new: true }
-    );
+    const { id } = req.params;
+    const { specs = {}, releaseYear, manufacturer, type } = req.body;
+
+    // Lấy tool hiện tại từ DB
+    const currentTool = await Tool.findById(id);
+    if (!currentTool) {
+      return res.status(404).json({ message: "Tool không tồn tại." });
+    }
+
+    // Làm sạch dữ liệu specs
+    const cleanedSpecs = {
+     
+    };
+
+    // Cập nhật payload
+    const updates = {
+      specs: cleanedSpecs,
+      releaseYear: releaseYear ?? currentTool.releaseYear,
+      manufacturer: manufacturer ?? currentTool.manufacturer,
+      type: type ?? currentTool.type,
+    };
+
+    console.log("Payload để cập nhật (sau khi làm sạch):", updates);
+
+    const updatedTool = await Tool.findByIdAndUpdate(id, updates, { new: true });
 
     if (!updatedTool) {
-      return res.status(404).json({ message: "Tool không tồn tại" });
+      return res.status(404).json({ message: "Không thể cập nhật tool." });
     }
-    console.log("Payload nhận được:", req.body);
 
+    console.log("Tool sau khi cập nhật:", updatedTool);
     res.status(200).json(updatedTool);
   } catch (error) {
     console.error("Lỗi khi cập nhật specs:", error);
@@ -58,102 +117,77 @@ router.put("/:id/specs", async (req, res) => {
   }
 });
 
-// router.post("/bulk-upload", bulkUploadTools);
+router.post("/bulk-upload", bulkUploadTools);
 
 
+// THÊM route cho bàn giao
+router.post("/:id/assign", assignTool);
 
-router.get("/:id/repairs", async (req, res) => {
+// THÊM route cho thu hồi
+router.post("/:id/revoke", revokeTool);
+
+router.put("/:id/status", updateToolStatus);
+
+// Endpoint upload tệp
+router.post("/upload", upload.single("file"), async (req, res) => {
   try {
-    const tool = await Tool.findById(req.params.id).populate("repairs.updatedBy", "name email");
+    const { toolId, userId } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "File không được tải lên." });
+    }
+
+    const filePath = `/BBBG/${req.file.filename}`; // Đường dẫn file
+
+    const tool = await Tool.findById(toolId);
     if (!tool) {
-      return res.status(404).json({ message: "Không tìm thấy thiết bị" });
-    }
-    res.status(200).json(tool.repairs);
-  } catch (error) {
-    res.status(500).json({ message: "Lỗi máy chủ", error });
-  }
-});
-
-router.post("/:id/repairs", async (req, res) => {
-  const { description, date, updatedBy, details } = req.body;
-
-  if (!description || !updatedBy) {
-    return res.status(400).json({ message: "Thông tin không hợp lệ" });
-  }
-
-  try {
-    const tool = await Tool.findById(req.params.id);
-    if (!tool) {
-      return res.status(404).json({ message: "Không tìm thấy thiết bị" });
+      return res.status(404).json({ message: "Không tìm thấy thiết bị." });
     }
 
-    const newRepair = { description, date: date || Date.now(), updatedBy, details };
-    tool.repairs.push(newRepair);
-    await tool.save();
-
-    res.status(201).json(newRepair);
-  } catch (error) {
-    res.status(500).json({ message: "Lỗi máy chủ", error });
-  }
-});
-
-router.put("/:id/repairs/:repairId", async (req, res) => {
-  const { description, date, updatedBy, details } = req.body;
-
-  try {
-    const tool = await Tool.findById(req.params.id);
-    if (!tool) {
-      return res.status(404).json({ message: "Không tìm thấy thiết bị" });
-    }
-
-    const repair = tool.repairs.id(req.params.repairId);
-    if (!repair) {
-      return res.status(404).json({ message: "Không tìm thấy nhật ký sửa chữa" });
-    }
-
-    repair.description = description || repair.description;
-    repair.date = date || repair.date;
-    repair.updatedBy = updatedBy || repair.updatedBy;
-    repair.details = details || repair.details;
-
-    await tool.save();
-
-    res.status(200).json(repair);
-  } catch (error) {
-    res.status(500).json({ message: "Lỗi máy chủ", error });
-  }
-});
-
-
-router.delete("/:id/repairs/:repairId", async (req, res) => {
-  const { id, repairId } = req.params;
-  console.log("tool ID:", id);
-  console.log("Repair ID:", repairId);
-
-  try {
-    const tool = await Tool.findById(id);
-    if (!tool) {
-      console.error("Không tìm thấy tool với ID:", id);
-      return res.status(404).json({ message: "Không tìm thấy thiết bị" });
-    }
-
-    console.log("tool trước khi xóa:", tool);
-
-    // Lọc bỏ repair khỏi mảng repairs
-    tool.repairs = tool.repairs.filter(
-      (repair) => repair._id.toString() !== repairId
+    // Tìm lịch sử bàn giao hiện tại (chưa có endDate)
+    // Tìm lịch sử bàn giao hiện tại (chưa có endDate)
+    const currentAssignment = tool.assignmentHistory.find(
+      (history) => history.user && history.user.toString() === userId && !history.endDate
     );
 
-    // Lưu lại tool sau khi sửa đổi
+    if (!currentAssignment) {
+      return res.status(404).json({
+        message: "Không tìm thấy lịch sử bàn giao hiện tại.",
+        assignmentHistory: tool.assignmentHistory, // In thêm dữ liệu để kiểm tra
+      });
+    }
+
+    // Cập nhật document cho lịch sử hiện tại
+    currentAssignment.document = filePath;
+
+    // Cập nhật trạng thái thiết bị (nếu cần)
+    tool.status = "Active";
+
+    // Lưu thay đổi
     await tool.save();
 
-    console.log("tool sau khi xóa repair:", tool);
-
-    res.status(200).json({ message: "Đã xóa nhật ký sửa chữa thành công" });
+    return res.status(200).json({
+      message: "Tải lên biên bản thành công!",
+      tool,
+    });
   } catch (error) {
-    console.error("Lỗi khi xóa repair log:", error.message);
-    res.status(500).json({ message: "Lỗi máy chủ", error });
+    console.error("Lỗi khi tải lên biên bản:", error);
+    res.status(500).json({ message: "Đã xảy ra lỗi server." });
   }
+});
+
+// Endpoint để trả file PDF
+router.get('/BBBG/:filename', async (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(__dirname, 'uploads', 'BBBG', filename);
+
+  // Kiểm tra file có tồn tại không
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: 'Không tìm thấy file.' });
+  }
+
+  // Gửi file PDF
+  res.sendFile(filePath);
 });
 
 module.exports = router;

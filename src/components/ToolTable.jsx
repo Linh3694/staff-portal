@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FiEdit, FiTrash2 } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import { FaSearch } from "react-icons/fa";
 import { toast } from "react-toastify";
+import ToolProductCard from "./productcard/toolProductCard";
 import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import "../css/table.css"
@@ -10,9 +11,10 @@ import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import Dropdown from "./function/dropdown";
 
 
+
 const ToolTable = () => {
         
-        const [data, setData] = useState([]); // State cho danh sách Tool
+        const [data, setData] = useState([]); // State cho danh sách tools
         const [users, setUsers] = useState([]); // Lưu danh sách users từ API
         const [showAddModal, setShowAddModal] = useState(false); // State để điều khiển modal 
         const [newTool, setNewTool] = useState({
@@ -20,16 +22,32 @@ const ToolTable = () => {
             manufacturer: "",
             serial: "",
             assigned: [],
-            status: "Active",
+            room: "",
+            status: "Standby",
+            reason: "",
             releaseYear: "",
+            specs: {
+              processor: "",
+              ram: "",
+              storage: "",
+              display: "",
+          },
           }); 
         const [editingTool, setEditingTool] = useState({
             name: "",
             manufacturer: "",
             serial: "",
             assigned: [],
+            room: "",
             status: "Active",
+            reason: "",
             releaseYear: "",
+            specs: {
+              processor: "",
+              ram: "",
+              storage: "",
+              display: "",
+          },
           });
         const [showEditModal, setShowEditModal] = useState(false);
         const [filteredUsers, setFilteredUsers] = useState([]); // Lưu danh sách gợi ý tạm thời
@@ -46,166 +64,58 @@ const ToolTable = () => {
         const [selectedDepartment, setSelectedDepartment] = useState("Tất cả phòng ban");
         const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
         const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
-        const [rooms, setRooms] = useState([]); // Lưu danh sách phòng
-        const [filteredRooms, setFilteredRooms] = useState([]); // Lưu danh sách gợi ý phòng tạm thời
-        const [showRoomSuggestions, setShowRoomSuggestions] = useState(false); // Kiểm soát hiển thị gợi ý phòng
-
+        const [selectedType, setSelectedType] = useState("Tất cả"); // Mặc định là Tất cả
+        const [rooms, setRooms] = useState([]); // Lưu danh sách rooms từ API
+        const [filteredRooms, setFilteredRooms] = useState([]); // Lưu gợi ý tìm kiếm
+        const [showRoomSuggestions, setShowRoomSuggestions] = useState(false); // Kiểm soát hiển thị gợi ý      
+        const [refreshKey, setRefreshKey] = useState(0);
+        const [currentPage, setCurrentPage] = useState(1);
+        const [totalPages, setTotalPages] = useState(0); 
+  
 
         
-
         const statusLabels = {
           Active: "Đang sử dụng",
-                  "Standby": "Chờ Cấp Phát",
-                  "Broken": "Hỏng",
-
-          default: "Không xác định",
+          Standby: "Chờ Cấp Phát",
+          Broken: "Hỏng",
+          PendingDocumentation: "Đã bàn giao - Chưa có biên bản", // Thêm trạng thái mới
         };
 
-      
-        const handleDeleteRepair = async (toolId, repairId) => {
-          if (!repairId) {
-            return Promise.reject("repairId không hợp lệ");
-          }
-        
-          try {
-            const token = localStorage.getItem("authToken");
-            const response = await axios.delete(
-              `/api/tool/${toolId}/repairs/${repairId}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-        
-            if (response.status === 200) {
-              setSelectedTool((prevTool) => ({
-                ...prevTool,
-                repairs: prevTool.repairs.filter((repair) => repair._id !== repairId),
-              }));
-              toast.success("Xóa nhật ký sửa chữa thành công!",{
-                className: "toast-success",
-              });
-              return Promise.resolve(); // Trả về Promise thành công
-            }
-            } catch (error) {
-                console.error("Error deleting repair log:", error);
-                toast.error("Không thể xóa nhật ký sửa chữa!",{
-                  className: "toast-error",
-                });
-              return Promise.reject(error); // Trả về Promise lỗi
-          }
-        };
-        
-          const handleAddRepair = async (repairData) => {
-              try {
-
-                const currentUser = JSON.parse(localStorage.getItem("currentUser")) || { fullname: "Không xác định" }; // Lấy thông tin người dùng hiện tại
-                const payload = {
-                  description: repairData.description || "Không có mô tả",
-                  date: repairData.date || new Date().toISOString(),
-                  updatedBy: currentUser.fullname,
-                };
-
-                console.log("Payload:", payload);
-                console.log("Gửi yêu cầu tới:", `/api/tool/${selectedTool._id}/repairs`);
-                console.log("Payload:", repairData);
-                console.log("Selected tool:", selectedTool);
-                console.log("Payload:", {
-                  description: repairData.description,
-                  date: repairData.date || new Date().toISOString(),
-                  updatedBy: currentUser.fullname,
-                });
-                console.log("Token:", localStorage.getItem("authToken"));
-                const response = await fetch(`/api/tool/${selectedTool._id}/repairs`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                  },
-                  body: JSON.stringify(payload),
-                });
-            
-                if (!response.ok) {
-                  const errorText = await response.text();
-                  console.error("API Error:", errorText);
-                  throw new Error(errorText || "Failed to add repair log");
-                }
-                const updatedRepair = await response.json();
-            
-                setSelectedTool((prevTool) => ({
-                  ...prevTool,
-                  repairs: [updatedRepair, ...(prevTool.repairs || [])], // Thêm nhật ký sửa chữa mới vào đầu danh sách
-                }));
-            
-                console.log("Repair log updated successfully:", updatedRepair);
-              } catch (error) {
-                console.error("Error adding repair log:", error);
+        const handleUpdateSpecs = (toolId, updatedSpecs) => {
+          const token = localStorage.getItem("authToken");
+          return axios
+            .put(`/api/tools/${toolId}/specs`, updatedSpecs, {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            })
+            .then((response) => {
+              // Dữ liệu tool đã được cập nhật
+              const updatedTool = response.data; 
+              // Cập nhật state cục bộ (nếu đang giữ selectedTool)
+              if (selectedTool && selectedTool._id === updatedTool._id) {
+                setSelectedTool(updatedTool);
               }
-          };
-          
-          console.log("Props truyền vào ToolProductCard:", {
-            toolData: selectedTool,
-            onDeleteRepair: handleDeleteRepair,
-          });
-          
+              return updatedTool; 
+            })
+            .catch((error) => {
+              console.error("Lỗi cập nhật specs:", error);
+              throw error;
+            });
+        };
+
+                
           const handleViewDetails = (tool) => {
-            setSelectedTool(tool); // Lưu thiết bị được chọn
-            setShowDetailModal(true); // Hiển thị modal
+            setSelectedTool(tool); // Chỉ truyền dữ liệu xuống ToolProductCard
+            setRefreshKey((prevKey) => prevKey + 1); // Tăng giá trị để ép render
+            setShowDetailModal(true);
           };
 
-          // Hàm gọi API để lấy danh sách tool
-          const fetchtool = async () => {
-            try {
-              const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/tool", {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-
-              // Map dữ liệu `assigned` để phù hợp với định dạng giao diện
-              const tool = response.data.map((tool) => ({
-                ...tool,
-                assigned: tool.assigned.map((user) => ({
-                  value: user._id,
-                  label: user.name,
-                  title: user.jobTitle || "Không xác định",
-                  departmentName: user.department || "Không xác định",
-                })),
-                room: tool.room
-                  ? { label: tool.room.name, value: tool.room._id, location: tool.room.location }
-                  : null,
-              }));
-              setData(tool);
-              console.log("tool fetched:", response.data); // Log dữ liệu
-            } catch (error) {
-              console.error("Error fetching tool:", error);
-            }
+          const handleRefreshData = async () => {
+            await fetchTools(); // Làm mới danh sách nếu cần
           };
-
-          // Lấy danh sách users
-          const fetchRooms = async () => {
-            try {
-              const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/rooms", {
-                headers: { Authorization: `Bearer ${token}` },
-              });
           
-              const roomsData = response.data.rooms || []; // Kiểm tra dữ liệu trả về từ API
-              if (!Array.isArray(roomsData)) {
-                throw new Error("API trả về dữ liệu không hợp lệ");
-              }
-          
-              const rooms = roomsData.map((room) => ({
-                value: room._id,
-                label: room.name || "Không xác định",
-                location: room.location
-                  ? room.location.map((loc) => `${loc.building}, tầng ${loc.floor}`).join("; ")
-                  : "Không xác định",
-              }));
-          
-              console.log("Danh sách rooms đã xử lý:", rooms); // Kiểm tra danh sách
-              setRooms(rooms);
-            } catch (error) {
-              console.error("Error fetching rooms:", error.response || error.message);
-              toast.error("Lỗi khi tải danh sách phòng! Vui lòng kiểm tra lại.");
-            }
-          };
 
           const fetchUsers = async () => {
             try {
@@ -213,16 +123,16 @@ const ToolTable = () => {
               const response = await axios.get("/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
-              console.log("Dữ liệu từ API users:", response.data);
 
               if (response.data && Array.isArray(response.data)) {
                 setUsers(
                   response.data.map((user) => ({
                     value: user._id,
                     label: user.fullname,
-                    title: user.jobTitle || "Không xác định",
+                    title: user.jobTitle || "Không",
                     departmentName: user.department || "Unknown",
                     emailAddress : user.email,
+                    avatarUrl: user.avatarUrl || "Không có",
                   }))
                 );
               } else {
@@ -235,18 +145,300 @@ const ToolTable = () => {
             }
           };
 
+          // Hàm gọi API để lấy danh sách tools
+          const fetchTools = async (page = 1) => {
+            try {
+              const token = localStorage.getItem("authToken");
+              const response = await axios.get(`/api/tools?page=${page}&limit=30`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+          
+              // Ghi log để kiểm tra dữ liệu trả về
+              console.log("Dữ liệu API tools:", response.data);
+          
+              // Cập nhật state
+              setData(
+                response.data.populatedTools.map((tool) => ({
+                  ...tool,
+                  room: tool.room
+                    ? {
+                        label: tool.room.name,
+                        value: tool.room._id,
+                        location: tool.room.location || ["Không xác định"],
+                        status: tool.room.status,
+                      }
+                    : { label: "Không xác định", location: ["Không xác định"] },
+                  assigned: Array.isArray(tool.assigned)
+                    ? tool.assigned.map((user) => ({
+                        value: user._id,
+                        label: user.fullname,
+                        departmentName: user.department || "Không xác định",
+                        title: user.jobTitle || "Không xác định",
+                        avatarUrl: user.avatarUrl || "",
+                      }))
+                    : [],
+                }))
+              );
+              setCurrentPage(response.data.currentPage);
+              setTotalPages(response.data.totalPages);
+            } catch (error) {
+              console.error("Error fetching tools:", error);
+            }
+          };
+
+          useEffect(() => {
+            fetchTools(currentPage);
+          }, [currentPage]);
+
+          // Lấy danh sách users
+       
+          
+          const fetchRooms = async () => {
+            try {
+              const token = localStorage.getItem("authToken");
+              const response = await axios.get("/api/rooms", {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+          
+              const roomsData = response.data.rooms || [];
+              const normalizedRooms = roomsData.map((room) => ({
+                value: room._id,
+                label: room.name,
+                location: Array.isArray(room.location)
+                  ? room.location.map((loc) => {
+                      if (typeof loc === "string") {
+                        const [building, floor] = loc.split(", ");
+                        return `Tòa nhà: ${building || "Không xác định"} | Tầng: ${floor || "Không rõ"}`;
+                      }
+                      return "Không xác định"; // Trả về mặc định nếu loc không hợp lệ
+                    })
+                  : ["Không xác định"], // Trả về mặc định nếu location không phải mảng
+              }));
+          
+              setRooms(normalizedRooms);
+            } catch (error) {
+              console.error("Error fetching rooms:", error);
+              toast.error("Không thể tải danh sách phòng!");
+            }
+          };
+          // const renderLocation = (locationArray) => {
+          //   // Nếu room không tồn tại hoặc locationArray không hợp lệ
+          //   if (!locationArray || !Array.isArray(locationArray) || locationArray.length === 0) {
+          //     return ""; 
+          //   }
+          
+          //   const locationString = locationArray[0]; 
+          //   const [building, floor] = locationString.split(", "); 
+          
+          //   if (!building && !floor) {
+          //     return "";
+          //   }
+        
+          //   return `Tòa nhà: ${building} | Tầng: ${floor}`;
+          // };
+
+           // ----------------------------------------------------
+            // Gọi API “thu hồi” (POST /tools/:id/revoke)
+            // ----------------------------------------------------
+            const handleRevokeTool = async (toolId, reasons) => {
+              try {
+                const token = localStorage.getItem("authToken");
+                const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
+                const response = await fetch(`/api/tools/${toolId}/revoke`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ revokedBy: currentUser?._id || null, reasons }),
+                });
+            
+                if (!response.ok) throw new Error("Không thể thu hồi tool!");
+            
+                const updatedTool = await response.json();
+                await fetchToolDetails(toolId); // Gọi API để đồng bộ lại chi tiết
+
+            
+                // Đồng bộ trạng thái với danh sách tools
+                setData((prevData) =>
+                  prevData.map((tool) => (tool._id === updatedTool._id ? updatedTool : tool))
+                );
+                setSelectedTool(updatedTool); // Cập nhật tool đang được chọn
+                toast.success("Thu hồi tool thành công!");
+                return updatedTool;
+              } catch (error) {
+                console.error("Error during revoke:", error);
+                toast.error("Đã xảy ra lỗi khi thu hồi tool!");
+              }
+            };
+
+            // ----------------------------------------------------
+            // Gọi API “bàn giao” (POST /tools/:id/assign)
+            // ----------------------------------------------------
+            const handleAssignTool = async (toolId, newUserId, notes) => {
+              try {
+                const token = localStorage.getItem("authToken");
+                const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+            
+                const response = await fetch(`/api/tools/${toolId}/assign`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({
+                    newUserId,
+                    notes,
+                    assignedBy: currentUser?._id || null,
+                  }),
+                });
+            
+                console.log("Response from API:", response); // Debug toàn bộ response
+            
+                if (!response.ok) {
+                  const error = await response.json();
+                  throw new Error(error.message || "API lỗi không xác định.");
+                }
+            
+                const data = await response.json();
+                console.log("Parsed data:", data); // Debug dữ liệu đã parse
+
+                if (!data || !data._id) {
+                  throw new Error("Dữ liệu trả về từ API không hợp lệ.");
+                }
+            
+                // Cập nhật state
+                if (Array.isArray(data)) {
+                  setData(
+                    data.map((tool) => ({
+                      ...tool,
+                      room: tool.room
+                        ? {
+                            ...tool.room,
+                            location: Array.isArray(tool.room.location)
+                              ? tool.room.location.map((loc) =>
+                                  typeof loc === "string"
+                                    ? loc
+                                    : "Không xác định"
+                                )
+                              : ["Không xác định"], // Giá trị mặc định nếu `location` không phải mảng
+                          }
+                        : { name: "Không xác định", location: ["Không xác định"] }, // Nếu `room` null
+                    }))
+                  );
+                }
+            
+                return data; // Trả về dữ liệu đã cập nhật
+              } catch (error) {
+                console.error("Error in handleAssignTool:", error);
+                throw error; // Throw lại lỗi để xử lý ở `ToolProductCard.jsx`
+              }
+            };
+
+            const fetchToolDetails = async (toolId) => {
+              try {
+                const token = localStorage.getItem("authToken");
+                const response = await axios.get(`/api/tools/${toolId}`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+            
+                // Cập nhật dữ liệu chi tiết
+                setSelectedTool(response.data);
+            
+                console.log("Dữ liệu backend", response.data);
+              } catch (error) {
+                console.error("Error fetching tool details:", error);
+                toast.error("Không thể tải thông tin tool!");
+              }
+            };
+
+            const updateToolState = (updatedTool) => {
+              if (!updatedTool || !updatedTool._id) {
+                console.error("updatedTool is invalid:", updatedTool);
+                return;
+              }
+
+              setData((prevData) =>
+                prevData.map((tool) =>
+                  tool && tool._id === updatedTool._id ? updatedTool : tool
+                )
+              );
+            };
+
+            const handleUpdateRoom = (updatedTool) => {
+              // Tìm thông tin phòng chi tiết
+              const updatedRoom = rooms.find((room) => room.value === updatedTool.room?.value);
+            
+              const newToolData = {
+                ...updatedTool,
+                room: updatedRoom || { value: updatedTool.room, label: "Không xác định" },
+              };
+            
+              // Cập nhật danh sách tại bảng
+              setData((prevData) =>
+                prevData.map((tool) =>
+                  tool._id === updatedTool._id ? newToolData : tool
+                )
+              );
+            
+              // Cập nhật tool đang chọn nếu cần
+              if (selectedTool && selectedTool._id === updatedTool._id) {
+                setSelectedTool(newToolData);
+              }
+            };
+
+            
+
+          const handleClone = async (tool) => {
+            try {
+              // Payload giữ nguyên thông tin tool, chỉ thay đổi serial
+              const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
+              const userId = currentUser ? currentUser._id : null; // Lấy ID người dùng
+              const clonedTool = {
+                ...tool,
+                serial: `${tool.serial}_copy`,
+                assigned: tool.assigned?.map((user) => user.value),
+                room: tool.room ? tool.room.value : null,
+                userId,
+              };
+          
+              // Gửi yêu cầu POST để tạo tool mới
+              const response = await axios.post(
+                "/api/tools",
+                clonedTool,
+                {
+                  headers: {
+                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                  },
+                }
+              );
+          
+              if (response.status === 201) {
+                toast.success("Nhân bản tool thành công!", {
+                  className: "toast-success",
+                });
+                fetchTools(); // Cập nhật lại danh sách
+              }
+            } catch (error) {
+              console.error("Error cloning tool:", error);
+              toast.error("Không thể nhân bản tool!", {
+                className: "toast-error",
+              });
+            }
+          };
+
           const handleDelete = async (id) => {
             if (!toolToDelete) return;
 
               try {
-                await axios.delete(`/api/tool/${toolToDelete._id}`, {
+                await axios.delete(`/api/tools/${toolToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
                 }
                 );
-                fetchtool(); // Cập nhật lại danh sách sau khi xóa
-                toast.success("Xoá phụ kiện thành công!",
+                fetchTools(); // Cập nhật lại danh sách sau khi xóa
+                toast.success("Tool đã được xóa!",
                   {
                     className: "toast-success",
                   }
@@ -260,24 +452,26 @@ const ToolTable = () => {
                 );
               } finally {
                 setShowConfirmModal(false); // Đóng modal
-                setToolToDelete(null); // Reset Tool cần xóa
+                setToolToDelete(null); // Reset tool cần xóa
               }
           };
 
-          const handleEdit = (item) => {
-              setEditingTool({
-                ...item,
-                releaseYear: item.releaseYear || "", // Đảm bảo có giá trị mặc định cho Năm sản xuất
-                
-                assigned: Array.isArray(item.assigned)
-                  ? item.assigned.map((user) => ({
-                      value: user.value || user._id, // Đảm bảo định dạng user
-                      label: user.label || user.fullname,
-                    }))
-                  : [],
-              });
-              setShowEditModal(true); // Hiển thị modal chỉnh sửa
-          };
+          // Xử lý trong handleEdit
+              const handleEdit = (item) => {
+                setEditingTool({
+                  ...item,
+                  assigned: Array.isArray(item.assigned)
+                    ? item.assigned.map((user) => ({
+                        value: user.value || user._id,
+                        label: user.label || user.fullname,
+                      }))
+                    : [],
+                  room: item.room
+                    ? { value: item.room._id, label: item.room.label }
+                    : null,
+                });
+                setShowEditModal(true);
+              };
 
           const confirmDelete = (tool) => {
             setToolToDelete(tool); // Đặt tool cần xóa
@@ -285,14 +479,24 @@ const ToolTable = () => {
           };
           
           const handleAddTool = async (e) => {
-            e.preventDefault(); // Ngăn chặn hành động mặc định của form
+            e.preventDefault();
           
             try {
               // Kiểm tra dữ liệu nhập
-              if (!newTool.name || !newTool.serial || !newTool.status) {
-                toast.error("Vui lòng điền đầy đủ thông tin!", {
-                  className: "toast-error",
-                });
+              if (!newTool.name || !newTool.serial) {
+                toast.error("Vui lòng điền đầy đủ thông tin!",
+                  {
+                    className: "toast-error",
+                  }
+                );
+                return;
+              }
+              const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Assuming currentUser is stored in localStorage
+              const userId = currentUser ? currentUser._id : null; // Retrieve the user's ID
+              console.log("Current User từ localStorage:", localStorage.getItem("currentUser"));
+
+              if (!userId) {
+                toast.error('User is not logged in. Please log in and try again.');
                 return;
               }
           
@@ -300,45 +504,65 @@ const ToolTable = () => {
               const payload = {
                 ...newTool,
                 releaseYear: newTool.releaseYear || "",
-                assigned: newTool.assigned?.map((user) => user.value) || [], // Xử lý danh sách người dùng
+                status: newTool.status || "Standby",
+                specs: {
+                  processor: newTool.specs?.processor || "",
+                  ram: newTool.specs?.ram || "",
+                  storage: newTool.specs?.storage || "",
+                  display: newTool.specs?.display || "",
+                },
+                assigned: newTool.status === "Active" ? newTool.assigned.map((user) => user.value) : [],
+                room: newTool.status !== "Active" ? newTool.room : null,
+                reason: newTool.status === "Broken" ? newTool.reason : null, // Thêm lý do hỏng nếu có
+                userId,
+                 // Xử lý danh sách người dùng
               };
+              console.log("Payload gửi lên:", payload);
+        
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("/api/tool", payload, {
+              const response = await axios.post("/api/tools", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
               });
           
-              // Kiểm tra response
               if (response.status === 201) {
-                toast.success("Thêm Tool thành công!", {
-                  className: "toast-success",
-                  progressClassName: "Toastify__progress-bar",
-                });
-
-                fetchtool(); // Làm mới danh sách Tool
-                setShowAddModal(false); // Đóng modal
+                toast.success("Thêm tool thành công!",
+                  {
+                    className: "toast-success",
+                    progressClassName: "Toastify__progress-bar",
+                  }
+                );
+                
+                // Cập nhật danh sách tools và đóng modal
+                fetchTools();
+                setShowAddModal(false);
                 setNewTool({
                   name: "",
                   manufacturer: "",
                   serial: "",
                   releaseYear: "",
+                  specs: {
+                    processor: "",
+                    ram: "",
+                    storage: "",
+                    display: "",
+                  },
                   assigned: [],
-                  status: "Active",
+                  status: "Standby",
+                  room:"",
+                  userId,
                 });
-              } else {
-                throw new Error(`Unexpected response status: ${response.status}`);
               }
             } catch (error) {
-              console.error("Lỗi khi thêm Tool:", error);
-          
-              // Kiểm tra lỗi cụ thể từ server
-              const errorMessage = error.response?.data?.message || "Có lỗi xảy ra khi thêm Tool. Vui lòng thử lại!";
-              toast.error(errorMessage, {
-                className: "toast-error",
-                progressClassName: "Toastify__progress-bar",
-              });
+              console.error("Lỗi khi thêm tool:", error);
+              toast.error("Có lỗi xảy ra khi thêm tool. Vui lòng thử lại!",
+                {
+                  className: "toast-error",
+                  progressClassName: "Toastify__progress-bar",
+                }
+              );
             }
           };
 
@@ -346,22 +570,16 @@ const ToolTable = () => {
             const file = e.target.files[0];
         
             if (!file) {
-                toast.error("Vui lòng chọn một tệp!",
-                  {
+                toast.error("Vui lòng chọn một tệp!", {
                     className: "toast-error",
-                    progressClassName: "Toastify__progress-bar",
-                  }
-                );
+                });
                 return;
             }
         
             if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
-                toast.error("Định dạng tệp không hợp lệ. Vui lòng chọn tệp Excel!",
-                  {
+                toast.error("Định dạng tệp không hợp lệ. Vui lòng chọn tệp Excel!", {
                     className: "toast-error",
-                    progressClassName: "Toastify__progress-bar",
-                  }
-                );
+                });
                 return;
             }
         
@@ -374,89 +592,82 @@ const ToolTable = () => {
                     const sheetName = workbook.SheetNames[0];
                     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
-                    // Chuẩn hóa dữ liệu
-                    const normalizedData = sheetData.map((row, index) => {
-                        if (!row["Tên Thiết Bị (name)"] || !row["Serial (serial)"]) {
-                            console.error(`Hàng ${index + 1} bị thiếu dữ liệu bắt buộc.`);
-                            return null;
-                        }
-
-                        // const roomName = row["Tên Phòng (Room Name)"]?.trim() || ""; // Đặt giá trị mặc định là chuỗi rỗng
-                        // if (!roomName) {
-                        //   console.error(`Tên phòng bị thiếu ở dòng: ${JSON.stringify(row)}`);
-                        //   throw new Error("Tên phòng không được để trống.");
-                        // }
-
-                        // const matchedRoom = rooms.find(
-                        //   (room) => room.label.toLowerCase() === roomName.toLowerCase()
-                        // );
-
-                        // if (!matchedRoom) {
-                        //   toast.error(`Tên phòng "${roomName}" không tồn tại trong hệ thống.`, {
-                        //     className: "toast-error",
-                        //   });
-                        //   throw new Error(`Tên phòng không tồn tại: ${roomName}`);
-                        // }
-
-                        // const assignedFullnames = row["Người Dùng (assigned)"]
-                        //     ? row["Người Dùng (assigned)"].split(",").map((name) => name.trim())
-                        //     : [];
-
-                        // const assignedIds = assignedFullnames.map((name) => {
-                        //    const normalizedFullname = name.trim().toLowerCase();
-                        //    const matchedUser = users.find(
-                        //     (user) => user.label.trim().toLowerCase() === normalizedFullname // So sánh tên đã chuẩn hóa
-                        //   );
-                        //     if (!matchedUser) {
-                        //       const suggestions = users.map((user) => user.label).join(", ");
-                        //       console.error(`Tên không hợp lệ: ${name}. Các tên hợp lệ: ${suggestions}`);
-                        //       toast.error(`Tên không hợp lệ: ${name}. Gợi ý: ${suggestions}`);
-                        //       throw new Error(`Tên không hợp lệ: ${name}`);
-                        //   }
-                        //     return matchedUser.value; // Lấy ID nếu khớp
-                        // }); 
+                    console.log("Dữ liệu thô từ Excel:", sheetData);
         
-                        return {
-                          name: row["Tên Thiết Bị (name)"] || "",
-                          serial: row["Serial (serial)"] || "",
-                          status: row["Trạng Thái (status)"] === "Đang sử dụng"
-                                ? "Active"
-                                : row["Trạng Thái (status)"] === "Chờ Cấp Phát"
-                                ? "Standby"
-                                : row["Trạng Thái (status)"] === "Hỏng"
-                                ? "Broken"
-                                : "Không xác định",
-                          // assigned: assignedIds,
-                          releaseYear: row["Năm đưa vào sử dụng (releaseYear)"] || "",
-                        };
-                    }).filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
+                    // Chuẩn hóa dữ liệu
+                    const normalizedData = sheetData
+                        .map((row, index) => {
+                            // Kiểm tra các trường bắt buộc
+                            if (!row["Tên Thiết Bị (name)"] || !row["Serial (serial)"]) {
+                                console.warn(`Hàng ${index + 1} bị bỏ qua: thiếu "Tên thiết bị" hoặc "Serial".`);
+                                return null; // Bỏ qua nếu thiếu trường bắt buộc
+                            }
+        
+                            // Chuẩn hóa các trường không bắt buộc
+                            const specs = {
+                                processor: typeof row["Bộ Xử Lý (processor)"] === "string" ? row["Bộ Xử Lý (processor)"].trim() : "",
+                                ram: typeof row["RAM (ram)"] === "string" ? row["RAM (ram)"].trim() : "",
+                                storage: typeof row["Bộ Nhớ (storage)"] === "string" ? row["Bộ Nhớ (storage)"].trim() : "",
+                                display: typeof row["Màn Hình (display)"] === "string" ? row["Màn Hình (display)"].trim() : "",
+                            };
+        
+                            const roomName = typeof row["Tên Phòng (Room Name)"] === "string" ? row["Tên Phòng (Room Name)"].trim() : "";
+                            const matchedRoom = roomName
+                                ? rooms.find((room) => room.label.toLowerCase() === roomName.toLowerCase())
+                                : null;
+        
+                            if (roomName && !matchedRoom) {
+                                console.warn(`Tên phòng "${roomName}" không tồn tại. Trường này sẽ bị bỏ qua.`);
+                            }
+        
+                            const assignedFullnames = row["Người Dùng (assigned)"]
+                                ? row["Người Dùng (assigned)"].split(",").map((name) => name.trim())
+                                : [];
+        
+                            const assignedIds = assignedFullnames
+                                .map((name) => {
+                                    const matchedUser = users.find(
+                                        (user) => user.label.trim().toLowerCase() === name.toLowerCase()
+                                    );
+                                    if (!matchedUser) {
+                                        console.warn(`Tên người dùng "${name}" không hợp lệ. Bỏ qua.`);
+                                        return null;
+                                    }
+                                    return matchedUser.value; // ID hợp lệ
+                                })
+                                .filter((id) => id !== null); // Loại bỏ các giá trị không hợp lệ
+        
+                            return {
+                                name: row["Tên Thiết Bị (name)"].trim(),
+                                serial: row["Serial (serial)"] ? String(row["Serial (serial)"]).trim() : "",
+                                manufacturer: typeof row["Nhà Sản Xuất (manufacturer)"] === "string" ? row["Nhà Sản Xuất (manufacturer)"].trim() : "",
+                                releaseYear: typeof row["Năm đưa vào sử dụng (releaseYear)"] === "string" ? row["Năm đưa vào sử dụng (releaseYear)"].trim() : "",
+                                status: typeof row["Trạng Thái (status)"] === "string" ? row["Trạng Thái (status)"].trim() : "Không xác định",
+                                specs: specs,
+                                assigned: assignedIds,
+                                room: matchedRoom?.value || "", // Nếu không hợp lệ hoặc trống, để trống
+                            };
+                        })
+                        .filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
         
                     console.log("Dữ liệu chuẩn hóa:", normalizedData);
         
                     if (normalizedData.length === 0) {
-                        toast.error("File Excel không chứa dữ liệu hợp lệ!",{
+                        toast.error("File Excel không chứa dữ liệu hợp lệ!", {
                             className: "toast-error",
-                            progressClassName: "Toastify__progress-bar",
-                          }
-                        );
+                        });
                         return;
                     }
         
                     setParsedData(normalizedData);
-                    toast.success("File Excel hợp lệ và đã được tải lên!",
-                      {
+                    toast.success("File Excel hợp lệ và đã được tải lên!", {
                         className: "toast-success",
-                        progressClassName: "Toastify__progress-bar",
-                      }
-                    );
+                    });
                 } catch (error) {
                     console.error("Lỗi khi xử lý tệp Excel:", error);
-                    toast.error("Đã xảy ra lỗi khi xử lý tệp. Vui lòng kiểm tra lại!",
-                      {
+                    toast.error("Đã xảy ra lỗi khi xử lý tệp. Vui lòng kiểm tra lại!", {
                         className: "toast-error",
-                        progressClassName: "Toastify__progress-bar",
-                      }
-                    );
+                    });
                 }
             };
         
@@ -466,90 +677,156 @@ const ToolTable = () => {
 
         const handleConfirmUpload = async () => {
           if (!parsedData || parsedData.length === 0) {
-            toast.error("Không có dữ liệu để upload. Vui lòng kiểm tra file Excel!");
-            return;
-          }
-        
-          // Kiểm tra serial trùng lặp trong file Excel
-          const serials = parsedData.map((item) => item.serial);
-          const duplicateSerials = serials.filter(
-            (serial, index) => serials.indexOf(serial) !== index
-          );
-        
-          if (duplicateSerials.length > 0) {
-            toast.error(`Serial trùng lặp trong file: ${duplicateSerials.join(", ")}`);
-            return;
-          }
-        
-          try {
-            console.log("Dữ liệu gửi lên (Tool):", parsedData);
-        
-            const response = await axios.post(
-              "/api/tool/bulk-upload",
-              { tools: parsedData },
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                },
-              }
-            );
-        
-            if (response.status === 201) {
-              toast.success("Dữ liệu phụ kiện đã được tải lên thành công!");
-              fetchtool(); // Làm mới danh sách
-              setShowUploadModal(false);
-            }
-          } catch (error) {
-            console.error("Error uploading Tool data:", error.response?.data || error);
-            toast.error("Đã xảy ra lỗi khi tải dữ liệu lên. Vui lòng thử lại!");
-          }
-        };
-
-          useEffect(() => {
-            const fetchData = async () => {
-              try {
-                await fetchtool();
-                await fetchUsers();
-                await fetchRooms();
-              } catch (error) {
+              toast.error("Không có dữ liệu để upload. Vui lòng kiểm tra file Excel!",
+                {
+                  className: "toast-error",
+                  progressClassName: "Toastify__progress-bar",
                 }
-            };
-            fetchData();
-            }, []);
+              );
+              return;
+          }
+      
+          try {
+              console.log("Dữ liệu gửi lên:", parsedData);
+      
+              const response = await axios.post(
+                  "/api/tools/bulk-upload",
+                  { tools: parsedData },
+                  {
+                      headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                      },
+                  }
+              );
+      
+              if (response.status === 201) {
+                  toast.success(`${response.data.addedTools} tool(s) đã được thêm thành công!`,
+                    {
+                      className: "toast-success",
+                      progressClassName: "Toastify__progress-bar",
+                    }
+                  );
+                  fetchTools();
+                  setShowUploadModal(false); 
+              }
+          } catch (error) {
+              console.error("Lỗi khi tải dữ liệu lên:", error);
+      
+              if (error.response?.status === 400) {
+                  const { errors } = error.response.data || {};
+                  if (errors && Array.isArray(errors)) {
+                      const duplicateSerials = errors
+                          .filter((err) => err.message.includes("đã tồn tại"))
+                          .map((err) => err.serial);
+                      
+                      if (duplicateSerials.length > 0) {
+                          toast.error(`Các serial bị trùng: ${duplicateSerials.join(", ")}`,
+                          {
+                            className: "toast-error",
+                            progressClassName: "Toastify__progress-bar",
+                          });
+                      } else {
+                          toast.error("File chứa lỗi không xác định.",
+                            {
+                              className: "toast-error",
+                              progressClassName: "Toastify__progress-bar",
+                            }
+                          );
+                      }
+                  } else {
+                      toast.error("Dữ liệu có lỗi, vui lòng kiểm tra lại.",
+                        {
+                          className: "toast-error",
+                          progressClassName: "Toastify__progress-bar",
+                        }
+                      );
+                  }
+              } else {
+                  toast.error("Đã xảy ra lỗi không xác định từ server!",
+                    {
+                      className: "toast-error",
+                      progressClassName: "Toastify__progress-bar",
+                    }
+                  );
+              }
+          }
+      };
+
+      useEffect(() => {
+        const fetchData = async () => {
+          await fetchTools();
+          await fetchUsers();
+          await fetchRooms();
+        };
+      
+        fetchData();
+      }, []);
+
+      useEffect(() => {
+        if (selectedTool) {
+          const updatedTool = data.find((tool) => tool._id === selectedTool._id);
+          if (updatedTool) setSelectedTool(updatedTool); // Đồng bộ dữ liệu mới
+        }
+      }, [data]);
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
         {/* Header */}
-        <div className="flex flex-col justify-between items-start mb-4">
-              {/* Search Input */}
-                    <div className="relative w-full mb-4">
+        <div className="flex flex-col justify-between items-start mb-2">
+                   {/* Search Input */}
+            <div className="flex items-center justify-between w-full mb-4">
+    
+                <div className="relative w-1/3">
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                           <input
                           type="text"
                           placeholder="Tìm kiếm tool..."
-                          className="pl-10 pr-4 py-2 border rounded-md w-100 focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          className="pl-10 pr-4 py-2 rounded-md w-100 px-3 "
                           onChange={(e) => {
-                            const query = e.target.value ? e.target.value.toLowerCase() : "";
+                            const query = e.target.value.toLowerCase();
                             if (query === "") {
-                              fetchtool();
+                              // Nếu ô tìm kiếm rỗng, khôi phục dữ liệu gốc
+                              fetchTools();
                             } else {
                               const filteredData = data.filter((item) =>
-                                item.name?.toLowerCase().includes(query) || // Dùng optional chaining để tránh undefined
-                                item.manufacturer?.toLowerCase().includes(query) ||
-                                item.serial?.toLowerCase().includes(query)
+                                item.name.toLowerCase().includes(query) ||
+                                item.manufacturer.toLowerCase().includes(query) ||
+                                item.serial.toLowerCase().includes(query)
                               );
-                              setData(filteredData);
+                              setData(filteredData); // Cập nhật danh sách được hiển thị
                             }
                           }}
                         />
                       </div>
+                  <div className="flex space-x-2">
+                        <button
+                            onClick={() => {
+                            setNewTool({
+                            name: "",
+                            manufacturer: "",
+                            serial: "",
+                            assigned: [],
+                      });
+                          setShowAddModal(true);
+                             }}
+                className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
+                         >
+                   Thêm mới
+                                        </button>
+                                        <button
+                                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
+                                          onClick={() => setShowUploadModal(true)}
+                                        >
+                                          Upload
+                                        </button>
+                      </div>  
+                </div>
            
-                <div className="flex items-center justify-between w-full space-x-4">
-                     <div className="flex space-x-4">
+                <div className="flex items-center justify-start w-full space-x-4 mb-4">   
                      <Dropdown
                           button={
-                            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147]">
+                            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">
                               {selectedOption === "Tất cả"
                                 ? "Trạng thái: Tất cả trạng thái"
                                 : `Trạng thái: ${selectedOption}`}
@@ -563,7 +840,7 @@ const ToolTable = () => {
                                 className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                 onClick={() => {
                                   setSelectedOption("Tất cả");
-                                  fetchtool(); // Lấy lại toàn bộ dữ liệu
+                                  fetchTools(); // Lấy lại toàn bộ dữ liệu
                                   setShowDropdown(false); // Đóng dropdown
                                 }}
                               >
@@ -575,6 +852,8 @@ const ToolTable = () => {
                                 { value: "Active", label: "Đang sử dụng" },
                                 { value: "Standby", label: "Chờ Cấp Phát" },
                                 { value: "Broken", label: "Hỏng" },
+                                { value: "PendingDocumentation", label: "Đã bàn giao - Chưa có biên bản" },
+
                               ].map((option) => (
                                 <button
                                   key={option.value}
@@ -591,39 +870,147 @@ const ToolTable = () => {
                             </div>
                           }
                         />
-                        </div>
-                             {/* Các nút hành động */}
-                                <div className="flex space-x-2">
+                        
+                        <Dropdown
+                            button={
+                              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                                {selectedDepartment === "Tất cả"
+                                  ? "Phòng ban"
+                                  : `Phòng ban: ${selectedDepartment}`}
+                              </button>
+                            }
+                            children={
+                              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                                {/* Tùy chọn "Tất cả phòng ban" */}
+                                <button
+                                  key="all"
+                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedDepartment("Tất cả");
+                                    fetchTools(); // Hiển thị toàn bộ dữ liệu
+                                  }}
+                                >
+                                  Tất cả phòng ban
+                                </button>
+
+                                {/* Lọc phòng ban từ cột Người sử dụng */}
+                                {Array.from(
+                                  new Set(
+                                    data.flatMap((item) =>
+                                      item.assigned?.map((user) => user.departmentName || "Unknown")
+                                    )
+                                  )
+                                ).map((department) => (
+                                  <button
+                                    key={department}
+                                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                    onClick={() => {
+                                      setSelectedDepartment(department);
+                                      setData(
+                                        data.filter((item) =>
+                                          item.assigned.some((user) => user.departmentName === department)
+                                        )
+                                      );
+                                    }}
+                                  >
+                                    {department}
+                                  </button>
+                                ))}
+                              </div>
+                            }
+                          />
+                            <Dropdown
+                                button={
+                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                                    {selectedManufacturer === "Tất cả"
+                                      ? "Nhà sản xuất"
+                                      : `Nhà sản xuất: ${selectedManufacturer}`}
+                                  </button>
+                                }
+                                children={
+                                  <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
+                                    {/* Option "Tất cả nhà sản xuất" */}
+                                    <button
+                                      key="all"
+                                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                      onClick={() => {
+                                        setSelectedManufacturer("Tất cả");
+                                        fetchTools(); // Lấy lại toàn bộ dữ liệu
+                                        setShowDropdown(false); // Đóng dropdown
+                                      }}
+                                    >
+                                      Tất cả nhà sản xuất
+                                    </button>
+
+                                    {/* Các nhà sản xuất */}
+                                    {Array.from(new Set(data.map((item) => item.manufacturer))).map(
+                                      (manufacturer) => (
                                         <button
+                                          key={manufacturer}
+                                          className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                           onClick={() => {
-                                            setNewTool({
-                                              name: "",
-                                              manufacturer: "",
-                                              serial: "",
-                                              assigned: [],
-                                              status: "Active",
-                                            });
-                                            setShowAddModal(true);
+                                            setSelectedManufacturer(manufacturer);
+                                            setData(data.filter((item) => item.manufacturer === manufacturer)); // Lọc theo nhà sản xuất
+                                            setShowDropdown(false); // Đóng dropdown
                                           }}
-                                          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635]"
                                         >
-                                          Thêm mới
+                                          {manufacturer}
                                         </button>
+                                      )
+                                    )}
+                                  </div>
+                                }
+                              />
+                              <Dropdown
+                                button={
+                                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                                    {selectedYear === "Tất cả"
+                                      ? "Năm sản xuất"
+                                      : `Năm sản xuất: ${selectedYear}`}
+                                  </button>
+                                }
+                                children={
+                                  <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
+                                    {/* Option "Tất cả năm sản xuất" */}
+                                    <button
+                                      key="all"
+                                      className="text-left px-4 py-2 hover:bg-[gray-100] rounded-lg"
+                                      onClick={() => {
+                                        setSelectedYear("Tất cả");
+                                        fetchTools(); // Lấy lại toàn bộ dữ liệu
+                                        setShowDropdown(false); // Đóng dropdown
+                                      }}
+                                    >
+                                      Tất cả năm sản xuất
+                                    </button>
+
+                                    {/* Các năm sản xuất */}
+                                    {Array.from(new Set(data.map((item) => item.releaseYear)))
+                                      .sort()
+                                      .map((year) => (
                                         <button
-                                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-md hover:bg-[#cc4529]"
-                                          onClick={() => setShowUploadModal(true)}
+                                          key={year}
+                                          className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                          onClick={() => {
+                                            setSelectedYear(year);
+                                            setData(data.filter((item) => item.releaseYear === year)); // Lọc theo năm
+                                            setShowDropdown(false); // Đóng dropdown
+                                          }}
                                         >
-                                          Upload
+                                          {year}
                                         </button>
-                               
-                                        </div>
-                        </div>
+                                      ))}
+                                  </div>
+                                }
+                              />
+                        
                     </div>
+                 </div>
 
       {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
-  <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
+  <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
     <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
-      <table className="w-full">
+      <table className="w-full ">
         <thead>
                   <tr className="!border-px !border-gray-400" >
                     <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
@@ -658,10 +1045,8 @@ const ToolTable = () => {
                 <tr key={index} className="border-b border-gray-200">
                   <td
                     onClick={() => handleViewDetails(item)} 
-                    className="cursor-pointer text-[#002147] min-w-[150px] border-white/0 py-3 pr-4"
+                    className="cursor-pointer text-[#002147] min-w-[150px] border-white/0 py-3 pr-4 "
                   >
-                    {console.log("Item Object:", item)}
-                    {console.log("Assigned Users:", item.assigned)}
                     <p className="text-sm font-bold text-navy-700">
                     {item.name}
                     </p>
@@ -674,52 +1059,59 @@ const ToolTable = () => {
                     </p>
                     </td>
                     <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
-                      {Array.isArray(item.assigned) && item.assigned.length > 0 ? (
-                      item.assigned.map((user) => (
-                        <div key={user.value || user._id}>
-                          <p className="font-bold">{user.label}</p>
-                          <span className="italic text-gray-400">
-                            {user.departmentName ? user.departmentName : "SS"}
-                          </span>
-                          {console.log("User Object:", user)}
-                        {console.log("User Department Name:", user.departmentName)}
+                    {Array.isArray(item.assigned) && item.assigned.length > 0 ? (
+                        item.assigned.map((user) => (
+                          <div key={user.value || user._id}>
+                            <p className="font-bold">{user.label}</p>
+                            <span className="italic text-gray-400">
+                              {user.departmentName ? user.departmentName : "Không xác định"}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div>
+                          <p className="font-bold">Chưa bàn giao</p>
                         </div>
-                      ))
+                      )}
+                    </td>
+                    <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
+                    {item.room ? (
+                      <div>
+                        <p className="font-bold">{item.room.label}</p>
+                        {Array.isArray(item.room.location) && item.room.location.length > 0 ? (
+                          item.room.location.map((loc, idx) => {
+                            if (typeof loc === "string" && loc.includes(", tầng ")) {
+                              const [building, floor] = loc.split(", tầng ");
+                              return (
+                                <p key={idx} className="italic text-gray-400">
+                                  Tòa nhà: {building.trim() || "Không xác định"} | Tầng: {floor.trim() || "Không rõ"}
+                                </p>
+                              );
+                            }
+                            return (
+                          "");
+                          })
+                        ) : (
+                          <p className="italic text-gray-400">Không xác định</p>
+                        )}
+                      </div>
                     ) : (
-                      "Chưa bàn giao"
+                      <p className="font-bold">Không xác định</p>
                     )}
-                   </td>
-                   <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
-                          {item.room ? (
-                            <div>
-                              <p className="font-bold">{item.room.label || "N/A"}</p>
-                              {Array.isArray(item.room.location) && item.room.location.length > 0 ? (
-                                <span className="italic text-gray-400">
-                                  {item.room.location
-                                    .map((loc) => `Tòa nhà: ${loc.building || "N/A"}, tầng ${loc.floor || "N/A"}`)
-                                    .join("; ")}
-                                </span>
-                              ) : (
-                                <span className="italic text-gray-400">Không xác định</span>
-                              )}
-                            </div>
-                          ) : (
-                            <div>
-                              <p className="font-bold">N/A</p>
-                            </div>
-                          )}
-                        </td>
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <div className="flex items-center">
+                  </td>
+                        <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <div className="flex items-center">
                       {item.status === "Active" ? (
                         <MdCheckCircle className="text-[#009483] me-1" />
                       ) : item.status === "Broken" ? (
                         <MdCancel className="text-orange-red me-1" />
                       ) : item.status === "Standby" ? (
                         <MdOutlineError className="text-amber-500 me-1" />
+                      ) : item.status === "PendingDocumentation" ? (
+                        <MdOutlineError className="text-[#FFC107] me-1" />
                       ) : null}
                       <p className="text-sm font-bold text-navy-700">
-                        {statusLabels[item.status] || statusLabels.default}
+                        {statusLabels[item.status] || "Không xác định"}
                       </p>
                     </div>
                   </td>
@@ -727,15 +1119,21 @@ const ToolTable = () => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleEdit(item)}
-                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg hover:bg-oxford-blue-dark"
+                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
                         >
                           <FiEdit size={14} />
                         </button>
                         <button
                           onClick={() => confirmDelete(item)}
-                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg hover:bg-orange-red-dark"
+                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
                         >
                           <FiTrash2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleClone(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-[#009483] rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiCopy size={14} />
                         </button>
                       </div>
                     </td>
@@ -743,6 +1141,32 @@ const ToolTable = () => {
               ))}
      </tbody>
     </table>
+    {/* Phân trang */}
+    <div className="flex justify-end items-center mt-4">
+      <button
+        disabled={currentPage === 1}
+        onClick={() => {
+          const newPage = currentPage - 1;
+          fetchTools(newPage);
+        }}
+        className="px-3 py-1 bg-[#FF5733] text-white text-sm font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
+      >
+        Trước
+      </button>
+      <span className="mx-4 text-xs font-bold">
+        {currentPage} / {totalPages}
+      </span>
+      <button
+        disabled={currentPage === totalPages}
+        onClick={() => {
+          const newPage = currentPage + 1;
+          fetchTools(newPage);
+        }}
+        className="px-3 py-1 bg-[#FF5733] text-white text-sm font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
+      >
+        Sau
+      </button>
+    </div>
   </div>
 </div>  
 
@@ -759,7 +1183,7 @@ const ToolTable = () => {
                   className="bg-white rounded-lg shadow-lg p-6 w-[50%]"
                   onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
                 >
-                  <h3 className="text-2xl font-bold mb-6 text-[#002147]">Thêm mới Tool</h3>
+                  <h3 className="text-2xl font-bold mb-6 text-[#002147]">Thêm mới tool</h3>
                   <form onSubmit={handleAddTool}>
                     {/* Thông tin chung */}
                     <div
@@ -822,37 +1246,6 @@ const ToolTable = () => {
                         </div>
                       </div>
                     </div>
-
-                    {/* Trạng thái */}
-                    <div
-                      className="border rounded-lg p-4 mb-4 relative"
-                      style={{ position: "relative", padding: "16px", marginBottom: "16px" }}
-                    >
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: "-12px",
-                          left: "16px",
-                          backgroundColor: "#fff",
-                          padding: "0 8px",
-                          fontWeight: "bold",
-                          color: "#002147",
-                          marginBottom: "16px"
-                        }}
-                      >
-                        Trạng thái
-                      </span>
-                      <select
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        value={newTool.status}
-                        onChange={(e) => setNewTool({ ...newTool, status: e.target.value })}
-                      >
-                        <option value="Active">Đang sử dụng</option>
-                        <option value="Standby">Chờ Cấp Phát</option>
-                        <option value="Broken">Hỏng</option>
-                      </select>
-                    </div>
-
                     <div className="flex justify-end space-x-4">
                       <button
                         type="button"
@@ -905,7 +1298,7 @@ const ToolTable = () => {
                     <a
                       href="/tool-sample-upload.xlsx"
                       download
-                      className="bg-[#002147] text-white px-4 py-2 rounded-md hover:bg-[#001635]"
+                      className="bg-[#009483] text-white px-4 py-2 rounded-md hover:bg-[#001635]"
                     >
                       Tải file mẫu
                     </a>
@@ -954,18 +1347,25 @@ const ToolTable = () => {
                       const payload = {
                         ...editingTool,
                         releaseYear: editingTool.releaseYear || "",
-                        assigned:
-                            editingTool.assigned
-                              ? editingTool.assigned.map((user) => user.value)
-                              : selectedTool.assigned.map((user) => user.value),
-                        room: editingTool.room?.value || null, // Gửi ID phòng
-      
-                        };
-                      
-                        console.log("Payload gửi lên server:", payload);
-
+                        reason: editingTool.reason || "",
+                        specs: {
+                          processor: editingTool.specs?.processor || "",
+                          ram: editingTool.specs?.ram || "",
+                          storage: editingTool.specs?.storage || "",
+                          display: editingTool.specs?.display || "",
+                        },
+                        assigned: Array.isArray(editingTool.assigned)
+                          ? editingTool.assigned
+                              .filter((user) => user.value) // Lọc bỏ user không có ID
+                              .map((user) => user.value) // Chỉ lấy ID
+                          : [],
+                        room: editingTool.room?.value || null, // Chỉ lấy ID phòng
+                      };
+                  
+                      console.log("Payload gửi lên server:", payload);
+                  
                       await axios.put(
-                        `/api/tool/${editingTool._id}`,
+                        `/api/tools/${editingTool._id}`,
                         payload,
                         {
                           headers: {
@@ -974,21 +1374,11 @@ const ToolTable = () => {
                         }
                       );
                       setShowEditModal(false);
-                      fetchtool(); // Cập nhật danh sách sau khi sửa
-                      toast.success("Cập nhật tool thành công!",
-                        {
-                          className: "toast-succes",
-                          progressClassName: "Toastify__progress-bar",
-                        }
-                      );
+                      fetchTools(); // Làm mới danh sách sau khi lưu
+                      toast.success("Cập nhật tool thành công!");
                     } catch (error) {
                       console.error("Error updating tool:", error);
-                      toast.error("Không thể cập nhật tool!",
-                        {
-                          className: "toast-error",
-                          progressClassName: "Toastify__progress-bar",
-                        }
-                      );
+                      toast.error("Không thể cập nhật tool!");
                     }
                   }}
                 >
@@ -1053,10 +1443,78 @@ const ToolTable = () => {
                     </div>
                   </div>
 
+                  {/* Cấu hình */}
+                  <div className="border rounded-lg p-4 mb-4 relative"
+                  style={{ position: "relative", padding: "16px", marginBottom: "30px" }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-12px",
+                        left: "16px",
+                        backgroundColor: "#fff",
+                        padding: "0 8px",
+                        fontWeight: "bold",
+                        color: "#002147",
+                      }}
+                    >
+                      Cấu hình
+                    </span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">Processor</label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập bộ xử lý"
+                          value={editingTool.specs?.processor || ""}
+                          onChange={(e) =>
+                            setEditingTool({ ...editingTool, specs: { ...editingTool.specs, processor: e.target.value } })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">RAM</label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập dung lượng RAM"
+                          value={editingTool.specs?.ram || ""}
+                          onChange={(e) =>
+                            setEditingTool({ ...editingTool, specs: { ...editingTool.specs, ram: e.target.value } })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">Bộ Nhớ</label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập dung lượng bộ nhớ"
+                          value={editingTool.specs?.storage || ""}
+                          onChange={(e) =>
+                            setEditingTool({ ...editingTool, specs: { ...editingTool.specs, storage: e.target.value } })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">Màn hình</label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập kích thước màn hình"
+                          value={editingTool.specs?.display || ""}
+                          onChange={(e) =>
+                            setEditingTool({ ...editingTool, specs: { ...editingTool.specs, display: e.target.value } })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Trạng thái */}
                     <div
-                      className="border rounded-lg p-4 mb-8 relative"
+                      className="border rounded-lg p-4 mb-4 relative justify-between"
                       style={{ position: "relative", padding: "16px", marginBottom: "30px" }}
                     >
                       <span
@@ -1072,9 +1530,8 @@ const ToolTable = () => {
                       >
                         Trạng thái
                       </span>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-4 items-center">
                         <div>
-                          <label className="block text-gray-600 font-medium mb-2">Tình trạng</label>
                           <select
                             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
                             value={editingTool.status}
@@ -1084,105 +1541,73 @@ const ToolTable = () => {
                             <option value="Standby">Chờ Cấp Phát</option>
                             <option value="Broken">Hỏng</option>
                           </select>
-                        </div>
-                        <div>
-                          <label className="block text-gray-600 font-medium mb-2">Người sử dụng</label>
-                          <input
-                                type="text"
-                                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                                placeholder="Nhập tên người sử dụng"
-                                value={editingTool.assigned[0]?.label || ""}
-                                onChange={(e) => {
-                                  const query = e.target.value.toLowerCase();
+                         </div>
+                        
+                        {/* Ô người sử dụng khi trạng thái là "Đang sử dụng" */}
+                        {editingTool.status === "Active" && (
+                          <div>
+                            <input
+                              type="text"
+                              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                              placeholder="Nhập tên người sử dụng"
+                              value={editingTool.assigned[0]?.label || ""}
+                              onChange={(e) => {
+                                const query = e.target.value.toLowerCase();
 
-                                  // Lọc danh sách người dùng phù hợp
-                                  const filtered = users.filter((user) =>
-                                    user.label.toLowerCase().includes(query) ||
-                                    user.emailAddress.toLowerCase().includes(query)
-                                  );
+                                // Lọc danh sách người dùng phù hợp
+                                const filtered = users.filter((user) =>
+                                  user.label.toLowerCase().includes(query) ||
+                                  user.emailAddress.toLowerCase().includes(query)
+                                );
 
-                                  setFilteredUsers(filtered);
-                                  setShowSuggestions(true);
+                                setFilteredUsers(filtered);
+                                setShowSuggestions(true);
 
-                                  // Tạm thời gắn giá trị nhập vào assigned
-                                  setEditingTool({
-                                    ...editingTool,
-                                    assigned: [{ label: e.target.value, value: null }],
-                                  });
-                                }}
-                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // Đợi người dùng chọn gợi ý
-                              />
-                          {showSuggestions && filteredUsers.length > 0 && (
-                            <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
-                              {filteredUsers.map((user) => (
-                                <li
-                                  key={user.value}
-                                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                                  onClick={() => {
-                                    setEditingTool({ ...editingTool, assigned: [user] });
-                                    setShowSuggestions(false);
-                                  }}
-                                >
-                                 <span className="font-bold">{user.label}</span>
-                                  <br />
-                                  <span className="italic text-gray-500">{user.emailAddress}</span>
-                                </li>
-                              ))}
-                              {filteredUsers.length === 0 && (
-                                <li className="px-4 py-2 text-gray-500 italic">Không tìm thấy kết quả</li>
-                              )}
-                            </ul>
-                          )}
-                        </div>
-                        <div>
-                          <label className="block text-gray-600 font-medium mb-2">Phòng</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            placeholder="Nhập tên phòng"
-                            value={editingTool.room?.label || ""}
-                            onChange={(e) => {
-                              const query = e.target.value.toLowerCase();
-
-                              // Lọc danh sách rooms phù hợp
-                              const filtered = rooms.filter((room) =>
-                                room.label.toLowerCase().includes(query)
-                              );
-
-                              setFilteredRooms(filtered);
-                              setShowRoomSuggestions(true);
-
-                              // Tạm thời gắn giá trị nhập vào room
-                              setEditingTool({
-                                ...editingTool,
-                                room: { label: e.target.value, value: null },
-                              });
-                            }}
-                            onBlur={() => setTimeout(() => setShowRoomSuggestions(false), 200)}
-                          />
-                          {showRoomSuggestions && filteredRooms.length > 0 && (
-                                <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
-                                {filteredRooms.map((room) => (
+                                // Tạm thời gắn giá trị nhập vào assigned
+                                setEditingTool({
+                                  ...editingTool,
+                                  assigned: [{ label: e.target.value, value: null }],
+                                });
+                              }}
+                              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // Đợi người dùng chọn gợi ý
+                            />
+                            {showSuggestions && filteredUsers.length > 0 && (
+                              <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
+                                {filteredUsers.map((user) => (
                                   <li
-                                    key={room.value}
+                                    key={user.value}
                                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                                     onClick={() => {
-                                      setEditingTool({
-                                        ...editingTool,
-                                        room: { label: room.label, value: room.value }, // Cập nhật cả label và value
-                                      });
-                                      setShowRoomSuggestions(false); // Ẩn gợi ý
+                                      setEditingTool({ ...editingTool, assigned: [user] });
+                                      setShowSuggestions(false);
                                     }}
                                   >
-                                    <span className="font-bold">{room.label}</span>
+                                    <span className="font-bold">{user.label}</span>
                                     <br />
-                                    <span className="italic text-gray-500">{room.location}</span>
+                                    <span className="italic text-gray-500">{user.emailAddress}</span>
                                   </li>
                                 ))}
                               </ul>
+                            )}
+                             </div>
+                            )}
+
+                            {/* Ô lý do hỏng khi trạng thái là "Hỏng" */}
+                            {editingTool.status === "Broken" && (
+                                <div>
+                                  <input
+                                    type="text"
+                                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                                    placeholder="Nhập lý do hỏng"
+                                    value={editingTool.reason || ""}
+                                    onChange={(e) =>
+                                      setEditingTool({ ...editingTool, reason: e.target.value })
+                                    }
+                                  />
+                                </div>
                               )}
-                        
-                        </div>
+                          </div>
+                       <div>   
                       </div>
                     </div>
 
@@ -1214,7 +1639,7 @@ const ToolTable = () => {
                         style={{ zIndex: 1050 }}>
               <h3 className="text-lg text-center font-semibold mb-4 text-[#002147]">Xác nhận xóa</h3>
               <p className="text-gray-600 mb-4">
-                Bạn có chắc chắn muốn xóa Tool <strong>{toolToDelete?.name}</strong> không?
+                Bạn có chắc chắn muốn xóa tool <strong>{toolToDelete?.name}</strong> không?
               </p>
               <div className="flex justify-end space-x-2">
                 <button
@@ -1235,39 +1660,44 @@ const ToolTable = () => {
           document.body
           )}
       {/* {-----------------------------------------/* Modal click thiết bị /-----------------------------------------} */}
-      {/* {showDetailModal && selectedtool && ReactDOM.createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-1000"
+      {showDetailModal && selectedTool && ReactDOM.createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
           style={{ zIndex: 1050 }}
           onClick={(e) => {
             // Đóng modal nếu người dùng nhấp ra ngoài modal
             if (e.target === e.currentTarget) {
-              setSelectedtool(null);
+              setSelectedTool(null);
             }
           }}
           >
-            <div className=" w-3/4 max-w-4xl"
-            style={{ zIndex: 1050 }}
+            <div className="  w-4/5 max-w-7xl rounded-lg shadow-lg relative overflow-y-auto max-h-[90vh]"
+            style={{ zIndex: 1990 }}
             onClick={(e) => e.stopPropagation()}>
-              <LaptopProductCard
-                laptopData={{
-                  ...selectedLaptop,
-                  assigned: selectedLaptop?.assigned.map((user) => ({
-                    ...user,
-                    jobTitle: user.jobTitle || "Không xác định", // Thêm jobTitle
-                  })) || [],
-                  releaseYear: selectedLaptop.releaseYear || "Không có",
-                }}
-                onAddRepair={handleAddRepair} // Truyền hàm vào đây
-                onDeleteRepair={handleDeleteRepair}
-                onCloseModal={() => {
-                  setSelectedLaptop(null); // Reset tool đã chọn
-                  setShowDetailModal(false); // Đóng modal
-                }} // Truyền hàm đóng modal
-              />
+              <ToolProductCard
+                  key={refreshKey} // Force re-render khi refreshKey thay đổi
+                  toolData={{
+                    ...selectedTool,
+                    releaseYear: selectedTool.releaseYear || "Không có",
+                  }}
+                  setSelectedTool={setSelectedTool}
+                  onUpdateSpecs={handleUpdateSpecs} // Bổ sung prop này
+                  onCloseModal={() => {
+                    setSelectedTool(null); // Reset tool đã chọn
+                    setShowDetailModal(false); // Đóng modal
+                    fetchTools(); // refresh sau khi thao tác
+                  }} // Truyền hàm đóng modal
+                  // Truyền vào 2 hàm thu hồi / bàn giao
+                  onRevoke={handleRevokeTool}
+                  onAssign={handleAssignTool}
+                  fetchToolDetails={fetchToolDetails} 
+                  onUpdateTool={updateToolState}
+                  onUpdateRoom={handleUpdateRoom}
+                  refetchTools={fetchTools}
+                />
             </div>
           </div>,
           document.body
-        )} */}
+        )}
     </div>
   );
 };

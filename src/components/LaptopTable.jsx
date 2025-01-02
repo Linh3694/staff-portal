@@ -11,7 +11,6 @@ import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import Dropdown from "./function/dropdown";
 
 
-
 const LaptopTable = () => {
         
         const [data, setData] = useState([]); // State cho danh sách laptops
@@ -68,9 +67,9 @@ const LaptopTable = () => {
         const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
         const [selectedType, setSelectedType] = useState("Tất cả"); // Mặc định là Tất cả
         const [rooms, setRooms] = useState([]); // Lưu danh sách rooms từ API
-        const [filteredRooms, setFilteredRooms] = useState([]); // Lưu gợi ý tìm kiếm
-        const [showRoomSuggestions, setShowRoomSuggestions] = useState(false); // Kiểm soát hiển thị gợi ý      
         const [refreshKey, setRefreshKey] = useState(0);
+        const [currentPage, setCurrentPage] = useState(1);
+        const [totalPages, setTotalPages] = useState(0);    
   
 
         
@@ -82,6 +81,7 @@ const LaptopTable = () => {
         };
 
         const handleUpdateSpecs = (laptopId, updatedSpecs) => {
+          console.log("Cập nhật specs cho laptop:", laptopId, updatedSpecs);
           const token = localStorage.getItem("authToken");
           return axios
             .put(`/api/laptops/${laptopId}/specs`, updatedSpecs, {
@@ -146,34 +146,50 @@ const LaptopTable = () => {
           };
 
           // Hàm gọi API để lấy danh sách laptops
-          const fetchLaptops = async () => {
+          const fetchLaptops = async (page = 1) => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/laptops", {
+              const response = await axios.get(`/api/laptops?page=${page}&limit=30`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
-              setData(response.data.laptops); // Cập nhật lại state data
+          
+              // Ghi log để kiểm tra dữ liệu trả về
               console.log("Dữ liệu API laptops:", response.data);
-              const laptops = response.data.map((laptop) => ({
-                ...laptop,
-                room: laptop.room
-                  ? { label: laptop.room.name, value: laptop.room._id, location: laptop.room.location, status: laptop.room.status }
-                  : null,
-                assigned: laptop.assigned.map((user) => ({
-                  value: user._id,
-                  label: user.fullname,
-                  departmentName: user.department || "Không xác định",
-                  title: user.jobTitle || "Không xác định",
-                  avatarUrl: user.avatarUrl,
-                })),
-              }));
-              
-              setData(laptops);
-            
+          
+              // Cập nhật state
+              setData(
+                response.data.populatedLaptops.map((laptop) => ({
+                  ...laptop,
+                  room: laptop.room
+                    ? {
+                        label: laptop.room.name,
+                        value: laptop.room._id,
+                        location: laptop.room.location || ["Không xác định"],
+                        status: laptop.room.status,
+                      }
+                    : { label: "Không xác định", location: ["Không xác định"] },
+                  assigned: Array.isArray(laptop.assigned)
+                    ? laptop.assigned.map((user) => ({
+                        value: user._id,
+                        label: user.fullname,
+                        departmentName: user.department || "Không xác định",
+                        title: user.jobTitle || "Không xác định",
+                        avatarUrl: user.avatarUrl || "",
+                      }))
+                    : [],
+                }))
+              );
+              setCurrentPage(response.data.currentPage);
+              setTotalPages(response.data.totalPages);
             } catch (error) {
               console.error("Error fetching laptops:", error);
             }
           };
+
+          useEffect(() => {
+            fetchLaptops(currentPage);
+          }, [currentPage]);
+        
 
           // Lấy danh sách users
        
@@ -924,26 +940,13 @@ const LaptopTable = () => {
                                 {/* Lọc phòng ban từ cột Người sử dụng */}
                                 {Array.from(
                                   new Set(
-                                    data.flatMap((item) =>
-                                      item.assigned?.map((user) => user.departmentName || "Unknown")
+                                    (Array.isArray(data) ? data : []).flatMap((item) =>
+                                      Array.isArray(item.assigned)
+                                        ? item.assigned.map((user) => user.departmentName || "Unknown")
+                                        : []
                                     )
                                   )
-                                ).map((department) => (
-                                  <button
-                                    key={department}
-                                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                    onClick={() => {
-                                      setSelectedDepartment(department);
-                                      setData(
-                                        data.filter((item) =>
-                                          item.assigned.some((user) => user.departmentName === department)
-                                        )
-                                      );
-                                    }}
-                                  >
-                                    {department}
-                                  </button>
-                                ))}
+                                )}
                               </div>
                             }
                           />
@@ -1176,6 +1179,32 @@ const LaptopTable = () => {
               ))}
      </tbody>
     </table>
+    {/* Phân trang */}
+    <div className="flex justify-end items-center mt-4">
+      <button
+        disabled={currentPage === 1}
+        onClick={() => {
+          const newPage = currentPage - 1;
+          fetchLaptops(newPage);
+        }}
+        className="px-3 py-1 bg-[#FF5733] text-white text-sm  font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
+      >
+        Trước
+      </button>
+      <span className="mx-4 text-xs font-bold">
+        {currentPage} / {totalPages}
+      </span>
+      <button
+        disabled={currentPage === totalPages}
+        onClick={() => {
+          const newPage = currentPage + 1;
+          fetchLaptops(newPage);
+        }}
+        className="px-3 py-1 bg-[#FF5733] text-white text-sm font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
+      >
+        Sau
+      </button>
+    </div>
   </div>
 </div>  
 
@@ -1829,7 +1858,7 @@ const LaptopTable = () => {
                   key={refreshKey} // Force re-render khi refreshKey thay đổi
                   laptopData={{
                     ...selectedLaptop,
-                    releaseYear: selectedLaptop.releaseYear || "Không có",
+                    releaseYear: selectedLaptop.releaseYear,
                   }}
                   setSelectedLaptop={setSelectedLaptop}
                   onUpdateSpecs={handleUpdateSpecs} // Bổ sung prop này

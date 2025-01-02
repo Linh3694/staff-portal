@@ -35,7 +35,9 @@ const laptopSchema = new mongoose.Schema({
     storage: { type: String },
     display: { type: String }
   },
+  
 });
+
 
 
 module.exports = mongoose.model("Laptop", laptopSchema);

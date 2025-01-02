@@ -7,8 +7,17 @@ const Notification = require('../models/notification');
 // Lấy danh sách laptop
 exports.getLaptops = async (req, res) => {
   try {
+    const { page = 1, limit = 30 } = req.query; // Nhận tham số phân trang
+    const skip = (page - 1) * limit;
+
+    // Lấy tổng số record để tính tổng số trang
+    const totalRecords = await Laptop.countDocuments();
+    const totalPages = Math.ceil(totalRecords / limit);
+
     // Lấy danh sách laptop từ database
     const laptops = await Laptop.find()
+    .skip(skip)
+    .limit(Number(limit))
     .populate("assigned", "fullname jobTitle department avatarUrl") // Populate thông tin người dùng
     .populate("room", "name location status") // Populate thông tin phòng
     .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl") // Thêm jobTitle
@@ -32,7 +41,11 @@ exports.getLaptops = async (req, res) => {
     }));
 
     // Trả về danh sách laptop đã được populate
-    res.status(200).json(populatedLaptops);
+    res.status(200).json({
+      populatedLaptops,
+      totalPages,
+      currentPage: Number(page),
+    });
   } catch (error) {
     console.error("Error fetching laptops:", error.message);
     res.status(500).json({ message: "Error fetching laptops", error: error.message });
@@ -53,6 +66,12 @@ exports.createLaptop = async (req, res) => {
 
     if (!specs || typeof specs !== "object") {
       return res.status(400).json({ message: "Thông tin specs không hợp lệ!" });
+    }
+
+    // Kiểm tra `serial` trùng lặp
+    const existingLaptop = await Laptop.findOne({ serial });
+    if (existingLaptop) {
+      return res.status(400).json({ message: `Serial "${serial}" đã tồn tại trong hệ thống.` });
     }
 
     // Kiểm tra `assigned` không hợp lệ
@@ -397,5 +416,36 @@ exports.updateLaptopStatus = async (req, res) => {
   } catch (error) {
     console.error("Lỗi updateLaptopStatus:", error);
     res.status(500).json({ message: "Lỗi server", error });
+  }
+};
+
+exports.searchLaptops = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+      return res.status(400).json({ message: "Từ khóa tìm kiếm không hợp lệ!" });
+    }
+
+    // Tìm kiếm theo Tên thiết bị, Serial và Người sử dụng
+    const searchQuery = {
+      $or: [
+        { name: { $regex: query, $options: "i" } }, // Tìm theo tên thiết bị
+        { serial: { $regex: query, $options: "i" } }, // Tìm theo serial
+        {
+          "assigned.fullname": { $regex: query, $options: "i" }, // Tìm theo tên người sử dụng
+        },
+      ],
+    };
+
+    const laptops = await Laptop.find(searchQuery)
+      .populate("assigned", "fullname jobTitle department avatarUrl")
+      .populate("room", "name location status")
+      .lean(); // Trả về object thường
+
+    res.status(200).json(laptops);
+  } catch (error) {
+    console.error("Error during search:", error.message);
+    res.status(500).json({ message: "Lỗi khi tìm kiếm laptops", error: error.message });
   }
 };

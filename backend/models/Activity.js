@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 
 const activitySchema = new mongoose.Schema({
-  laptopId: { type: mongoose.Schema.Types.ObjectId, ref: 'Laptop', required: true },
+  entityType: { type: String, required: true }, // Loại entity (VD: 'laptop', 'user', 'room', ...)
+  entityId: { type: mongoose.Schema.Types.ObjectId, required: true }, // ID của entity
   type: { type: String, enum: ['repair', 'update'], required: true },
   description: { type: String, required: true },
   details: { type: String },

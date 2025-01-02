@@ -1,9 +1,9 @@
 const Activity = require('../models/Activity');
 
 exports.getActivities = async (req, res) => {
-  const { laptopId } = req.params;
+  const { entityType, entityId } = req.params;
   try {
-    const activities = await Activity.find({ laptopId }).sort({ date: -1 });
+    const activities = await Activity.find({ entityType, entityId }).sort({ date: -1 });
     res.status(200).json(activities);
   } catch (error) {
     res.status(500).json({ message: 'Lỗi khi lấy lịch sử hoạt động', error });
@@ -11,13 +11,14 @@ exports.getActivities = async (req, res) => {
 };
 
 exports.addActivity = async (req, res) => {
-  const { laptopId, type, description, details, date, updatedBy } = req.body;
-  if (!laptopId) {
-    return res.status(400).json({ message: 'LaptopId là bắt buộc' });
+  const { entityType, entityId, type, description, details, date, updatedBy } = req.body;
+  if (!entityType || !entityId) {
+    return res.status(400).json({ message: 'entityType và entityId là bắt buộc' });
   }
   try {
     const newActivity = new Activity({
-      laptopId,
+      entityType,
+      entityId,
       type,
       description,
       details,

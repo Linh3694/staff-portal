@@ -1,85 +1,113 @@
 const Projector = require("../models/Projector");
 const User = require("../models/Users");
+const Room = require("../models/Room")
 const mongoose = require("mongoose");
 const Notification = require('../models/notification'); 
 
-// Lấy danh sách Projector
+// Lấy danh sách projector
 exports.getProjectors = async (req, res) => {
   try {
-    // Lấy danh sách Projector từ database
+    const { page = 1, limit = 30 } = req.query; // Nhận tham số phân trang
+    const skip = (page - 1) * limit;
+
+    // Lấy tổng số record để tính tổng số trang
+    const totalRecords = await Projector.countDocuments();
+    const totalPages = Math.ceil(totalRecords / limit);
+    // Lấy danh sách projector từ database
     const projectors = await Projector.find()
-    .populate('room')
+    .skip(skip)
+    .limit(Number(limit))
+    .populate("assigned", "fullname jobTitle department avatarUrl") // Populate thông tin người dùng
+    .populate("room", "name location status") // Populate thông tin phòng
+    .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl") // Thêm jobTitle
+    .populate("assignmentHistory.assignedBy", "fullname email title") // Populate thông tin assignedBy
+    .populate("assignmentHistory.revokedBy", "fullname email") // Populate thông tin revokedBy
     .lean(); // Sử dụng `.lean()` để trả về plain objects
-    console.log(`Fetched ${projectors.length} projectors.`);
-
-    // Lấy tất cả ID từ trường "assigned" trong các projector
-    const allAssignedIds = projectors
-      .filter((projector) => Array.isArray(projector.assigned))
-      .flatMap((projector) => projector.assigned);
-
-    // Truy vấn thông tin tất cả người dùng liên quan
-    const users = await User.find({ _id: { $in: allAssignedIds } }).lean();
-    console.log(`Fetched ${users.length} users for assigned projectors.`);
-
-    // Tạo một object để ánh xạ nhanh theo `_id`
-    const usersById = users.reduce((acc, user) => {
-      acc[user._id] = {
-        _id: user._id,
-        name: user.fullname || "Không xác định",
-        jobTitle: user.jobTitle || "Không xác định", // Giá trị mặc định nếu thiếu jobTitle
-        department: user.department || "Không xác định", // Giá trị mặc định nếu thiếu department
-      };
-      return acc;
-    }, {});
+    console.log(projectors);
 
     // Gắn thông tin "assigned" vào từng projector
     const populatedProjectors = projectors.map((projector) => ({
       ...projector,
-      assigned: (projector.assigned || [])
-        .map((userId) => usersById[userId] || null) // Nếu không tìm thấy user, trả về null
-        .filter(Boolean), // Loại bỏ giá trị null
+      assigned: projector.assigned || [], // Dữ liệu từ populate đã có
+      room: projector.room
+  ? {
+      ...projector.room,
+      location: projector.room.location?.map(
+        (loc) => `${loc.building}, tầng ${loc.floor}`
+      ) || ["Không xác định"],
+    }
+  : { name: "Không xác định", location: ["Không xác định"] }, // Gắn giá trị mặc định nếu room null
     }));
 
     // Trả về danh sách projector đã được populate
-    res.status(200).json(populatedProjectors);
+    res.status(200).json({
+      populatedProjectors,
+      totalPages,
+      currentPage: Number(page),
+    });
   } catch (error) {
-    console.error("Error fetching Projectors:", error.message);
-    res.status(500).json({ message: "Error fetching Projectors", error: error.message });
+    console.error("Error fetching projectors:", error.message);
+    res.status(500).json({ message: "Error fetching projectors", error: error.message });
   }
 };
 
-// Thêm mới Projector
+// Thêm mới projector
 exports.createProjector = async (req, res) => {
   try {
-    console.log("Request Body:", req.body); // Log dữ liệu nhận từ frontend
+    console.log("Request Body:", req.body);
 
-    const { name, manufacturer, serial, assigned, status, type } = req.body;
-    const userId = req.body.userId || req.headers['user-id'];
+    const { name, manufacturer, serial, assigned, status, type, room, reason } = req.body;
+    const userId = req.body.userId || req.headers["user-id"];
 
-    if (!name || !manufacturer || !serial) {
+    if (!name || !serial) {
       return res.status(400).json({ message: "Thiếu thông tin bắt buộc!" });
     }
 
-    // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
+     // Kiểm tra `serial` trùng lặp
+     const existingProjector = await Projector.findOne({ serial });
+     if (existingProjector) {
+       return res.status(400).json({ message: `Serial "${serial}" đã tồn tại trong hệ thống.` });
+     }
+
+    // Kiểm tra `assigned` không hợp lệ
     if (assigned && !Array.isArray(assigned)) {
       return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
 
-    const projector = new Projector({ name, manufacturer, serial, assigned, status, type });
+    // Kiểm tra `room` nếu có
+    if (room && !mongoose.Types.ObjectId.isValid(room)) {
+      return res.status(400).json({ message: "Room ID không hợp lệ!" });
+    }
+
+    if (status === "Broken" && !reason) {
+      return res.status(400).json({ message: "Lý do báo hỏng là bắt buộc khi trạng thái là 'Broken'!" });
+    }
+
+    // Kiểm tra `room` nếu có
+    if (room && !mongoose.Types.ObjectId.isValid(room)) {
+      return res.status(400).json({ message: "Room ID không hợp lệ!" });
+    }
+
+    if (status && !["Active", "Standby", "Broken", "PendingDocumentation"].includes(status)) {
+      return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+    }
+    // Kiểm tra `status` và thiết lập giá trị mặc định
+
+
+    const projector = new Projector({ name, manufacturer, serial, assigned, status, type, room, reason: status === "Broken" ? reason : undefined, });
+    
     await projector.save();
 
-      
-          const user = await User.findById(userId);
-          if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-          }
-          const userFullname = user.fullname; // Lấy fullname của người dùng
-          const notification = new Notification({
-            message: `projector mới "${name}" đã được thêm bởi ${userFullname}.`,
-            type: 'info',
-          });
-          await notification.save(); // Lưu thông báo vào database
-
+    // Tạo thông báo khi tạo mới projector
+    const user = await User.findById(userId);
+    if (user) {
+      const notification = new Notification({
+        message: `Projector mới "${name}" đã được thêm bởi ${user.fullname}.`,
+        type: "info",
+      });
+      await notification.save();
+    }
+   
     res.status(201).json(projector);
   } catch (error) {
     console.error("Error creating projector:", error.message);
@@ -88,20 +116,23 @@ exports.createProjector = async (req, res) => {
 };
 
 exports.updateProjector = async (req, res) => {
-  
   try {
-    console.log("Request Body:", req.body)
     const { id } = req.params;
-    const { name, manufacturer, serial, assigned, status, releaseYear, specs, type, room } = req.body;
+    const { name, manufacturer, serial, assigned, status, releaseYear, type, room, reason } = req.body;
 
     // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
     if (assigned && !Array.isArray(assigned)) {
       return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
 
+    // Kiểm tra `room` nếu có
+    if (room && !mongoose.Types.ObjectId.isValid(room)) {
+      return res.status(400).json({ message: "Room ID không hợp lệ!" });
+    }
+
     const projector = await Projector.findByIdAndUpdate(
       id,
-      { name, manufacturer, serial, assigned, status, releaseYear, specs, type, room },
+      { name, manufacturer, serial, assigned, status, releaseYear, type, room, reason: status === "Broken" ? reason : undefined, },
       { new: true } // Trả về tài liệu đã cập nhật
     );
 
@@ -122,32 +153,49 @@ exports.deleteProjector = async (req, res) => {
     await Projector.findByIdAndDelete(req.params.id);
     res.json({ message: "Projector deleted" });
   } catch (error) {
-    res.status(400).json({ message: "Error deleting Projector", error });
+    res.status(400).json({ message: "Error deleting projector", error });
   }
 };
 
 exports.bulkUploadProjectors = async (req, res) => {
   try {
     const { projectors } = req.body;
-
-    // Kiểm tra dữ liệu nhận được
+    console.log("Projectors:", projectors);
     if (!projectors || !Array.isArray(projectors) || projectors.length === 0) {
       return res.status(400).json({ message: "Không có dữ liệu hợp lệ để tải lên!" });
     }
+    
 
-    const errors = []; // Danh sách lỗi
-    const validProjectors = []; // Danh sách Projector hợp lệ
+    const errors = [];
+    const validProjectors = [];
 
-    // Xử lý từng Projector trong danh sách
     for (const projector of projectors) {
       try {
-        // Chuyển đổi `assigned` từ fullname sang ObjectId
+        // Kiểm tra `room` và xử lý giá trị không hợp lệ
+        // Thiết lập giá trị mặc định nếu thiếu
+        projector.room = projector.room && mongoose.Types.ObjectId.isValid(projector.room) ? projector.room : null;
+        projector.status = ["Active", "Standby", "Broken", "PendingDocumentation"].includes(projector.status)
+          ? projector.status
+          : "Standby";
+        // Kiểm tra `status` và thiết lập giá trị mặc định
+        if (!["Active", "Standby", "Broken", "PendingDocumentation"].includes(projector.status)) {
+          console.warn(`Status không hợp lệ: ${projector.status}. Thiết lập giá trị 'Standby'.`);
+          projector.status = "Standby"; // Gán giá trị mặc định
+        }
+        // Xử lý `assigned`
         if (projector.assigned && Array.isArray(projector.assigned)) {
-          const isObjectId = mongoose.Types.ObjectId.isValid(projector.assigned[0]);
-          if (!isObjectId) {
+          const isId = mongoose.Types.ObjectId.isValid(projector.assigned[0]);
+          if (isId) {
+            // Nếu là ID, kiểm tra sự tồn tại
+            const validIds = await User.find({ _id: { $in: projector.assigned } }).select("_id");
+            if (validIds.length !== projector.assigned.length) {
+              throw new Error("Một số ID người dùng không tồn tại trong hệ thống.");
+            }
+          } else {
+            // Nếu là fullname, ánh xạ sang ID
             const assignedIds = await Promise.all(
               projector.assigned.map(async (fullname) => {
-                const user = await User.findOne({ fullname }).select('_id');
+                const user = await User.findOne({ fullname: fullname.trim() }).select("_id");
                 if (!user) {
                   throw new Error(`Người dùng "${fullname}" không tồn tại trong hệ thống.`);
                 }
@@ -158,16 +206,21 @@ exports.bulkUploadProjectors = async (req, res) => {
           }
         }
 
-        // Kiểm tra thông tin bắt buộc
+        // Kiểm tra room
+        if (projector.room && !mongoose.Types.ObjectId.isValid(projector.room)) {
+          throw new Error(`Room ID "${projector.room}" không hợp lệ.`);
+        }
+
+        // Kiểm tra thông tin projector
         if (!projector.name || !projector.serial) {
           errors.push({
             serial: projector.serial || "Không xác định",
-            message: "Thông tin projector không hợp lệ (thiếu tên, nhà sản xuất hoặc serial).",
+            message: "Thông tin projector không hợp lệ (thiếu tên, serial).",
           });
-          continue; // Bỏ qua projector này
+          continue;
         }
 
-        // Kiểm tra serial đã tồn tại
+        // Kiểm tra trùng lặp serial
         const existingProjector = await Projector.findOne({ serial: projector.serial });
         if (existingProjector) {
           errors.push({
@@ -175,13 +228,11 @@ exports.bulkUploadProjectors = async (req, res) => {
             name: projector.name,
             message: `Serial ${projector.serial} đã tồn tại.`,
           });
-          continue; // Bỏ qua projector này
+          continue;
         }
 
-        // Nếu hợp lệ, thêm vào danh sách
         validProjectors.push(projector);
       } catch (error) {
-        // Bắt lỗi trong quá trình xử lý từng projector
         errors.push({
           serial: projector.serial || "Không xác định",
           message: error.message || "Lỗi không xác định khi xử lý projector.",
@@ -189,53 +240,176 @@ exports.bulkUploadProjectors = async (req, res) => {
       }
     }
 
-    // Nếu có lỗi, trả về danh sách lỗi
-    if (errors.length > 0) {
-      return res.status(400).json({
-        message: "Dữ liệu có lỗi",
-        errors, // Danh sách lỗi
-        addedProjectors: validProjectors.length, // Số lượng Projector hợp lệ
-      });
-    }
-
-    // Thêm các Projector hợp lệ vào database
     if (validProjectors.length > 0) {
       await Projector.insertMany(validProjectors);
     }
 
     res.status(201).json({
       message: "Thêm mới hàng loạt thành công!",
-      addedProjectors: validProjectors.length, // Số lượng Projector được thêm thành công
+      addedProjectors: validProjectors.length,
+      errors,
     });
   } catch (error) {
     console.error("Lỗi khi thêm mới hàng loạt:", error.message);
-    res.status(500).json({
-      message: "Lỗi khi thêm mới hàng loạt",
-      error: error.message,
-    });
+    res.status(500).json({ message: "Lỗi khi thêm mới hàng loạt", error: error.message });
   }
 };
 
-
-/// Repair Log
-exports.addRepairLog = async (req, res) => {
+// controllers/projectorController.js
+exports.assignProjector = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { description, date, updatedBy, details } = req.body; // Lấy thông tin từ request
+    const { id } = req.params;         // projectorId
+    const { newUserId, notes } = req.body;
 
-    const repairLog = { description, date, details, updatedBy };
-
-    const projector = await Projector.findById(id);
+    const projector = await Projector.findById(id).populate("assigned");
     if (!projector) {
-      return res.status(404).json({ message: "projector not found" });
+      return res.status(404).json({ message: "Không tìm thấy projector" });
+    }
+    // Đảm bảo tất cả các bản ghi trước đó có `endDate`
+    projector.assignmentHistory.forEach((entry) => {
+      if (!entry.endDate) {
+        entry.endDate = new Date();
+      }
+    });
+    // Lấy thông tin người thực hiện từ token
+    const currentUser = req.user; // Nếu bạn có middleware xác thực
+    console.log("Current User:", req.user);
+
+    // Đóng lịch sử sử dụng trước đó (nếu có)
+    if (projector.assigned?.length > 0) {
+      const oldUserId = projector.assigned[0]._id;
+      const lastHistory = projector.assignmentHistory.find(
+        (h) => h.user.toString() === oldUserId.toString() && !h.endDate
+      );
+      if (lastHistory) {
+        lastHistory.endDate = new Date();
+        lastHistory.revokedBy = currentUser._id; // Ghi lại người thu hồi
+      }
     }
 
-    projector.repairs.push(repairLog); // Thêm nhật ký sửa chữa
-    await projector.save(); // Lưu thay đổi vào cơ sở dữ liệu
+    // Tìm user mới
+    const newUser = await User.findById(newUserId);
+    if (!newUser) {
+      return res.status(404).json({ message: "Không tìm thấy user mới" });
+    }
+    console.log(newUser);
 
-    res.status(201).json(repairLog); // Trả về nhật ký sửa chữa vừa được thêm
+    // Thêm record vào assignmentHistory
+    projector.assignmentHistory.push({
+      user: newUser._id,
+      userName: newUser.fullname,
+      startDate: new Date(),
+      notes: notes || "",
+      assignedBy: currentUser.id,
+      jobTitle: newUser.jobTitle || "Không xác định", // Thêm jobTitle
+    });
+
+    // Cập nhật currentHolder
+    projector.currentHolder = {
+      id: newUser._id,
+      fullname: newUser.fullname,
+      jobTitle: newUser.jobTitle,
+      department: newUser.department,
+      avatarUrl: newUser.avatarUrl,
+    };
+
+    // Cập nhật assigned
+    projector.assigned = [newUser._id];
+    projector.status = "PendingDocumentation"; // tuỳ logic
+    await projector.save();
+
+    // Populate thông tin người dùng
+    const populatedProjector = await projector.populate({
+      path: "assignmentHistory.user",
+      select: "fullname jobTitle avatarUrl",
+    });
+    
+    res.status(200).json(
+      populatedProjector);
   } catch (error) {
-    console.error("Error adding repair log:", error);
-    res.status(500).json({ message: "Failed to add repair log" });
+    console.error("Lỗi assignProjector:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+};
+
+// controllers/projectorController.js
+exports.revokeProjector = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { revokedBy, reasons, status } = req.body;
+
+    const projector = await Projector.findById(id).populate("assigned");
+    if (!projector) {
+      return res.status(404).json({ message: "Projector không tồn tại" });
+    }
+
+    const currentUser = req.user; // Người thực hiện thu hồi
+
+    if (projector.assigned.length > 0) {
+      const oldUserId = projector.assigned[0]._id;
+      const lastHistory = projector.assignmentHistory.find(
+        (hist) => hist.user?.toString() === oldUserId.toString() && !hist.endDate
+      );
+      if (lastHistory) {
+        lastHistory.endDate = new Date();
+        lastHistory.revokedBy = currentUser.id; // Ghi lại người thu hồi
+        lastHistory.revokedReason = reasons; // Ghi lý do thu hồi vào bản ghi hiện tại
+      }
+    } else {
+      // Nếu không có bản ghi nào đang mở, thêm một bản ghi mới
+      projector.assignmentHistory.push({
+        revokedBy,
+        revokedReason: reasons,
+        endDate: new Date(),
+      });
+    }
+
+    // Cập nhật trạng thái thiết bị
+    projector.status = status || "Standby"; // Hoặc trạng thái bạn mong muốn
+    projector.currentHolder = null; // Xóa người đang giữ projector
+    projector.assigned = [];
+    await projector.save();
+
+    res.status(200).json({ message: "Thu hồi thành công", projector });
+  } catch (error) {
+    console.error("Lỗi revokeProjector:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+};
+
+exports.updateProjectorStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, brokenReason } = req.body;
+
+      if (!["Active", "Standby", "Broken", "PendingDocumentation"].includes(status)) {
+        return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+      }
+      if (status === "Broken" && !brokenReason) {
+        return res.status(400).json({ error: "Lý do báo hỏng là bắt buộc!" });
+      }    
+
+      try {
+        const projector = await Projector.findById(id);
+        if (!projector) {
+          return res.status(404).json({ message: "Không tìm thấy thiết bị" });
+        }
+    
+        // Lưu lý do báo hỏng vào `reason`
+        if (status === "Broken") {
+          projector.brokenReason = brokenReason || "Không xác định";
+        }
+    
+        projector.status = status;
+        await projector.save();
+    
+        res.status(200).json(projector);
+      } catch (error) {
+        console.error("Lỗi khi cập nhật trạng thái:", error);
+        res.status(500).json({ message: "Lỗi máy chủ", error });
+      }
+  } catch (error) {
+    console.error("Lỗi updateProjectorStatus:", error);
+    res.status(500).json({ message: "Lỗi server", error });
   }
 };

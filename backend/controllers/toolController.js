@@ -1,74 +1,107 @@
 const Tool = require("../models/Tool");
 const User = require("../models/Users");
+const Room = require("../models/Room")
 const mongoose = require("mongoose");
 const Notification = require('../models/notification'); 
 
-// Lấy danh sách Tool
+// Lấy danh sách tool
 exports.getTools = async (req, res) => {
   try {
+    const { page = 1, limit = 30 } = req.query; // Nhận tham số phân trang
+    const skip = (page - 1) * limit;
+
+    // Lấy tổng số record để tính tổng số trang
+    const totalRecords = await Tool.countDocuments();
+    const totalPages = Math.ceil(totalRecords / limit);
     // Lấy danh sách tool từ database
-    const tool = await Tool.find()
-    .populate('room')
+    const tools = await Tool.find()
+    .skip(skip)
+    .limit(Number(limit))
+    .populate("assigned", "fullname jobTitle department avatarUrl") // Populate thông tin người dùng
+    .populate("room", "name location status") // Populate thông tin phòng
+    .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl") // Thêm jobTitle
+    .populate("assignmentHistory.assignedBy", "fullname email title") // Populate thông tin assignedBy
+    .populate("assignmentHistory.revokedBy", "fullname email") // Populate thông tin revokedBy
     .lean(); // Sử dụng `.lean()` để trả về plain objects
-    console.log(`Fetched ${Tool.length} Tool.`);
-
-    // Lấy tất cả ID từ trường "assigned" trong các Tool
-    const allAssignedIds = tool
-      .filter((tool) => Array.isArray(tool.assigned))
-      .flatMap((tool) => tool.assigned);
-
-    // Truy vấn thông tin tất cả người dùng liên quanxá
-    const users = await User.find({ _id: { $in: allAssignedIds } }).lean();
-    console.log(`Fetched ${users.length} users for assigned tool.`);
-
-    // Tạo một object để ánh xạ nhanh theo `_id`
-    const usersById = users.reduce((acc, user) => {
-      acc[user._id] = {
-        _id: user._id,
-        name: user.fullname || "Không xác định",
-        jobTitle: user.jobTitle || "Không xác định", // Giá trị mặc định nếu thiếu jobTitle
-        department: user.department || "Không xác định", // Giá trị mặc định nếu thiếu department
-      };
-      return acc;
-    }, {});
+    console.log(tools);
 
     // Gắn thông tin "assigned" vào từng tool
-    const populatedtool = tool.map((tool) => ({
+    const populatedTools = tools.map((tool) => ({
       ...tool,
-      assigned: (tool.assigned || [])
-        .map((userId) => usersById[userId] || null) // Nếu không tìm thấy user, trả về null
-        .filter(Boolean), // Loại bỏ giá trị null
+      assigned: tool.assigned || [], // Dữ liệu từ populate đã có
+      room: tool.room
+  ? {
+      ...tool.room,
+      location: tool.room.location?.map(
+        (loc) => `${loc.building}, tầng ${loc.floor}`
+      ) || ["Không xác định"],
+    }
+  : { name: "Không xác định", location: ["Không xác định"] }, // Gắn giá trị mặc định nếu room null
     }));
 
     // Trả về danh sách tool đã được populate
-    res.status(200).json(populatedtool);
+    res.status(200).json({
+      populatedTools,
+      totalPages,
+      currentPage: Number(page),
+    });
   } catch (error) {
-    console.error("Error fetching tool:", error.message);
-    res.status(500).json({ message: "Error fetching tool", error: error.message });
+    console.error("Error fetching tools:", error.message);
+    res.status(500).json({ message: "Error fetching tools", error: error.message });
   }
 };
 
 // Thêm mới tool
-exports.createTools = async (req, res) => {
+exports.createTool = async (req, res) => {
   try {
-    console.log("Request Body:", req.body); // Log dữ liệu nhận từ frontend
+    console.log("Request Body:", req.body);
 
-    const { name, manufacturer, serial, assigned, status, type } = req.body;
-    const userId = req.body.userId || req.headers['user-id'];
-
-    if (!name) {
+    const { name, manufacturer, serial, assigned, status, specs, room, reason } = req.body;
+    
+    if (!name || !serial) {
       return res.status(400).json({ message: "Thiếu thông tin bắt buộc!" });
     }
 
+    if (!specs || typeof specs !== "object") {
+      return res.status(400).json({ message: "Thông tin specs không hợp lệ!" });
+    }
 
-    // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
+     // Kiểm tra `serial` trùng lặp
+     const existingTool = await Tool.findOne({ serial });
+     if (existingTool) {
+       return res.status(400).json({ message: `Serial "${serial}" đã tồn tại trong hệ thống.` });
+     }
+
+    // Kiểm tra `assigned` không hợp lệ
     if (assigned && !Array.isArray(assigned)) {
       return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
 
-    const tool = new Tool({ name, manufacturer, serial, assigned, status, type });
+    // Kiểm tra `room` nếu có
+    if (room && !mongoose.Types.ObjectId.isValid(room)) {
+      return res.status(400).json({ message: "Room ID không hợp lệ!" });
+    }
+
+    if (status === "Broken" && !reason) {
+      return res.status(400).json({ message: "Lý do báo hỏng là bắt buộc khi trạng thái là 'Broken'!" });
+    }
+
+    // Kiểm tra `room` nếu có
+    if (room && !mongoose.Types.ObjectId.isValid(room)) {
+      return res.status(400).json({ message: "Room ID không hợp lệ!" });
+    }
+
+    if (status && !["Active", "Standby", "Broken", "PendingDocumentation"].includes(status)) {
+      return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+    }
+    // Kiểm tra `status` và thiết lập giá trị mặc định
+
+
+    const tool = new Tool({ name, manufacturer, serial, assigned, specs, status, room, reason: status === "Broken" ? reason : undefined, });
+    
     await tool.save();
 
+   
     res.status(201).json(tool);
   } catch (error) {
     console.error("Error creating tool:", error.message);
@@ -76,19 +109,24 @@ exports.createTools = async (req, res) => {
   }
 };
 
-exports.updateTools = async (req, res) => {
+exports.updateTool = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, manufacturer, serial, assigned, status, releaseYear, type, room } = req.body;
+    const { name, manufacturer, serial, assigned, status, releaseYear, specs, room, reason } = req.body;
 
     // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
     if (assigned && !Array.isArray(assigned)) {
       return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
 
+    // Kiểm tra `room` nếu có
+    if (room && !mongoose.Types.ObjectId.isValid(room)) {
+      return res.status(400).json({ message: "Room ID không hợp lệ!" });
+    }
+
     const tool = await Tool.findByIdAndUpdate(
       id,
-      { name, manufacturer, serial, assigned, status, releaseYear, type, room  },
+      { name, manufacturer, serial, assigned, status, releaseYear, specs, room, reason: status === "Broken" ? reason : undefined, },
       { new: true } // Trả về tài liệu đã cập nhật
     );
 
@@ -104,37 +142,54 @@ exports.updateTools = async (req, res) => {
 };
 
 // Xóa tool
-exports.deleteTools = async (req, res) => {
+exports.deleteTool = async (req, res) => {
   try {
     await Tool.findByIdAndDelete(req.params.id);
     res.json({ message: "Tool deleted" });
   } catch (error) {
-    res.status(400).json({ message: "Error deleting Tool", error });
+    res.status(400).json({ message: "Error deleting tool", error });
   }
 };
 
-exports.bulkUploadtool = async (req, res) => {
+exports.bulkUploadTools = async (req, res) => {
   try {
-    const { tool } = req.body;
-
-    // Kiểm tra dữ liệu nhận được
-    if (!tool || !Array.isArray(tool) || tool.length === 0) {
+    const { tools } = req.body;
+    console.log("Tools:", tools);
+    if (!tools || !Array.isArray(tools) || tools.length === 0) {
       return res.status(400).json({ message: "Không có dữ liệu hợp lệ để tải lên!" });
     }
+    
 
-    const errors = []; // Danh sách lỗi
-    const validtool = []; // Danh sách tool hợp lệ
+    const errors = [];
+    const validTools = [];
 
-    // Xử lý từng tool trong danh sách
-    for (const tool of tool) {
+    for (const tool of tools) {
       try {
-        // Chuyển đổi `assigned` từ fullname sang ObjectId
+        // Kiểm tra `room` và xử lý giá trị không hợp lệ
+        // Thiết lập giá trị mặc định nếu thiếu
+        tool.room = tool.room && mongoose.Types.ObjectId.isValid(tool.room) ? tool.room : null;
+        tool.status = ["Active", "Standby", "Broken", "PendingDocumentation"].includes(tool.status)
+          ? tool.status
+          : "Standby";
+        // Kiểm tra `status` và thiết lập giá trị mặc định
+        if (!["Active", "Standby", "Broken", "PendingDocumentation"].includes(tool.status)) {
+          console.warn(`Status không hợp lệ: ${tool.status}. Thiết lập giá trị 'Standby'.`);
+          tool.status = "Standby"; // Gán giá trị mặc định
+        }
+        // Xử lý `assigned`
         if (tool.assigned && Array.isArray(tool.assigned)) {
-          const isObjectId = mongoose.Types.ObjectId.isValid(tool.assigned[0]);
-          if (!isObjectId) {
+          const isId = mongoose.Types.ObjectId.isValid(tool.assigned[0]);
+          if (isId) {
+            // Nếu là ID, kiểm tra sự tồn tại
+            const validIds = await User.find({ _id: { $in: tool.assigned } }).select("_id");
+            if (validIds.length !== tool.assigned.length) {
+              throw new Error("Một số ID người dùng không tồn tại trong hệ thống.");
+            }
+          } else {
+            // Nếu là fullname, ánh xạ sang ID
             const assignedIds = await Promise.all(
               tool.assigned.map(async (fullname) => {
-                const user = await User.findOne({ fullname }).select('_id');
+                const user = await User.findOne({ fullname: fullname.trim() }).select("_id");
                 if (!user) {
                   throw new Error(`Người dùng "${fullname}" không tồn tại trong hệ thống.`);
                 }
@@ -145,16 +200,21 @@ exports.bulkUploadtool = async (req, res) => {
           }
         }
 
-        // Kiểm tra thông tin bắt buộc
-        if (!tool.name || !tool.manufacturer || !tool.serial) {
-          errors.push({
-            serial: tool.serial || "Không xác định",
-            message: "Thông tin tool không hợp lệ (thiếu tên, nhà sản xuất hoặc serial).",
-          });
-          continue; // Bỏ qua tool này
+        // Kiểm tra room
+        if (tool.room && !mongoose.Types.ObjectId.isValid(tool.room)) {
+          throw new Error(`Room ID "${tool.room}" không hợp lệ.`);
         }
 
-        // Kiểm tra serial đã tồn tại
+        // Kiểm tra thông tin tool
+        if (!tool.name || !tool.serial) {
+          errors.push({
+            serial: tool.serial || "Không xác định",
+            message: "Thông tin tool không hợp lệ (thiếu tên, serial).",
+          });
+          continue;
+        }
+
+        // Kiểm tra trùng lặp serial
         const existingTool = await Tool.findOne({ serial: tool.serial });
         if (existingTool) {
           errors.push({
@@ -162,13 +222,11 @@ exports.bulkUploadtool = async (req, res) => {
             name: tool.name,
             message: `Serial ${tool.serial} đã tồn tại.`,
           });
-          continue; // Bỏ qua tool này
+          continue;
         }
 
-        // Nếu hợp lệ, thêm vào danh sách
-        validtool.push(tool);
+        validTools.push(tool);
       } catch (error) {
-        // Bắt lỗi trong quá trình xử lý từng tool
         errors.push({
           serial: tool.serial || "Không xác định",
           message: error.message || "Lỗi không xác định khi xử lý tool.",
@@ -176,53 +234,176 @@ exports.bulkUploadtool = async (req, res) => {
       }
     }
 
-    // Nếu có lỗi, trả về danh sách lỗi
-    if (errors.length > 0) {
-      return res.status(400).json({
-        message: "Dữ liệu có lỗi",
-        errors, // Danh sách lỗi
-        addedtool: validtool.length, // Số lượng tool hợp lệ
-      });
-    }
-
-    // Thêm các tool hợp lệ vào database
-    if (validtool.length > 0) {
-      await Tool.insertMany(validtool);
+    if (validTools.length > 0) {
+      await Tool.insertMany(validTools);
     }
 
     res.status(201).json({
       message: "Thêm mới hàng loạt thành công!",
-      addedtool: validtool.length, // Số lượng tool được thêm thành công
+      addedTools: validTools.length,
+      errors,
     });
   } catch (error) {
     console.error("Lỗi khi thêm mới hàng loạt:", error.message);
-    res.status(500).json({
-      message: "Lỗi khi thêm mới hàng loạt",
-      error: error.message,
-    });
+    res.status(500).json({ message: "Lỗi khi thêm mới hàng loạt", error: error.message });
   }
 };
 
-
-/// Repair Log
-exports.addRepairLog = async (req, res) => {
+// controllers/toolController.js
+exports.assignTool = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { description, date, updatedBy, details } = req.body; // Lấy thông tin từ request
+    const { id } = req.params;         // toolId
+    const { newUserId, notes } = req.body;
 
-    const repairLog = { description, date, details, updatedBy };
-
-    const tool = await Tool.findById(id);
+    const tool = await Tool.findById(id).populate("assigned");
     if (!tool) {
-      return res.status(404).json({ message: "tool not found" });
+      return res.status(404).json({ message: "Không tìm thấy tool" });
+    }
+    // Đảm bảo tất cả các bản ghi trước đó có `endDate`
+    tool.assignmentHistory.forEach((entry) => {
+      if (!entry.endDate) {
+        entry.endDate = new Date();
+      }
+    });
+    // Lấy thông tin người thực hiện từ token
+    const currentUser = req.user; // Nếu bạn có middleware xác thực
+    console.log("Current User:", req.user);
+
+    // Đóng lịch sử sử dụng trước đó (nếu có)
+    if (tool.assigned?.length > 0) {
+      const oldUserId = tool.assigned[0]._id;
+      const lastHistory = tool.assignmentHistory.find(
+        (h) => h.user.toString() === oldUserId.toString() && !h.endDate
+      );
+      if (lastHistory) {
+        lastHistory.endDate = new Date();
+        lastHistory.revokedBy = currentUser._id; // Ghi lại người thu hồi
+      }
     }
 
-    tool.repairs.push(repairLog); // Thêm nhật ký sửa chữa
-    await tool.save(); // Lưu thay đổi vào cơ sở dữ liệu
+    // Tìm user mới
+    const newUser = await User.findById(newUserId);
+    if (!newUser) {
+      return res.status(404).json({ message: "Không tìm thấy user mới" });
+    }
+    console.log(newUser);
 
-    res.status(201).json(repairLog); // Trả về nhật ký sửa chữa vừa được thêm
+    // Thêm record vào assignmentHistory
+    tool.assignmentHistory.push({
+      user: newUser._id,
+      userName: newUser.fullname,
+      startDate: new Date(),
+      notes: notes || "",
+      assignedBy: currentUser.id,
+      jobTitle: newUser.jobTitle || "Không xác định", // Thêm jobTitle
+    });
+
+    // Cập nhật currentHolder
+    tool.currentHolder = {
+      id: newUser._id,
+      fullname: newUser.fullname,
+      jobTitle: newUser.jobTitle,
+      department: newUser.department,
+      avatarUrl: newUser.avatarUrl,
+    };
+
+    // Cập nhật assigned
+    tool.assigned = [newUser._id];
+    tool.status = "PendingDocumentation"; // tuỳ logic
+    await tool.save();
+
+    // Populate thông tin người dùng
+    const populatedTool = await tool.populate({
+      path: "assignmentHistory.user",
+      select: "fullname jobTitle avatarUrl",
+    });
+    
+    res.status(200).json(
+      populatedTool);
   } catch (error) {
-    console.error("Error adding repair log:", error);
-    res.status(500).json({ message: "Failed to add repair log" });
+    console.error("Lỗi assignTool:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+};
+
+// controllers/toolController.js
+exports.revokeTool = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { revokedBy, reasons, status } = req.body;
+
+    const tool = await Tool.findById(id).populate("assigned");
+    if (!tool) {
+      return res.status(404).json({ message: "Tool không tồn tại" });
+    }
+
+    const currentUser = req.user; // Người thực hiện thu hồi
+
+    if (tool.assigned.length > 0) {
+      const oldUserId = tool.assigned[0]._id;
+      const lastHistory = tool.assignmentHistory.find(
+        (hist) => hist.user?.toString() === oldUserId.toString() && !hist.endDate
+      );
+      if (lastHistory) {
+        lastHistory.endDate = new Date();
+        lastHistory.revokedBy = currentUser.id; // Ghi lại người thu hồi
+        lastHistory.revokedReason = reasons; // Ghi lý do thu hồi vào bản ghi hiện tại
+      }
+    } else {
+      // Nếu không có bản ghi nào đang mở, thêm một bản ghi mới
+      tool.assignmentHistory.push({
+        revokedBy,
+        revokedReason: reasons,
+        endDate: new Date(),
+      });
+    }
+
+    // Cập nhật trạng thái thiết bị
+    tool.status = status || "Standby"; // Hoặc trạng thái bạn mong muốn
+    tool.currentHolder = null; // Xóa người đang giữ tool
+    tool.assigned = [];
+    await tool.save();
+
+    res.status(200).json({ message: "Thu hồi thành công", tool });
+  } catch (error) {
+    console.error("Lỗi revokeTool:", error);
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+};
+
+exports.updateToolStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, brokenReason } = req.body;
+
+      if (!["Active", "Standby", "Broken", "PendingDocumentation"].includes(status)) {
+        return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+      }
+      if (status === "Broken" && !brokenReason) {
+        return res.status(400).json({ error: "Lý do báo hỏng là bắt buộc!" });
+      }    
+
+      try {
+        const tool = await Tool.findById(id);
+        if (!tool) {
+          return res.status(404).json({ message: "Không tìm thấy thiết bị" });
+        }
+    
+        // Lưu lý do báo hỏng vào `reason`
+        if (status === "Broken") {
+          tool.brokenReason = brokenReason || "Không xác định";
+        }
+    
+        tool.status = status;
+        await tool.save();
+    
+        res.status(200).json(tool);
+      } catch (error) {
+        console.error("Lỗi khi cập nhật trạng thái:", error);
+        res.status(500).json({ message: "Lỗi máy chủ", error });
+      }
+  } catch (error) {
+    console.error("Lỗi updateToolStatus:", error);
+    res.status(500).json({ message: "Lỗi server", error });
   }
 };

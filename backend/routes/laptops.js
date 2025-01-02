@@ -77,21 +77,42 @@ router.get('/:id', async (req, res) => {
 // Endpoint cập nhật thông tin specs
 router.put("/:id/specs", async (req, res) => {
   try {
-    const { id } = req.params;
-    const { processor, ram, storage, display, releaseYear } = req.body;
+    console.log("Payload nhận được từ frontend:", req.body);
 
-    // Cập nhật chỉ mục `specs` của laptop
-    const updatedLaptop = await Laptop.findByIdAndUpdate(
-      id,
-      { "specs.processor": processor, "specs.ram": ram, "specs.storage": storage, "specs.display": display, "releaseYear": releaseYear, },
-      { new: true }
-    );
+    const { id } = req.params;
+    const { specs = {}, releaseYear, manufacturer, type } = req.body;
+
+    // Lấy laptop hiện tại từ DB
+    const currentLaptop = await Laptop.findById(id);
+    if (!currentLaptop) {
+      return res.status(404).json({ message: "Laptop không tồn tại." });
+    }
+
+    // Làm sạch dữ liệu specs
+    const cleanedSpecs = {
+      processor: specs.processor ?? currentLaptop.specs.processor,
+      ram: specs.ram ?? currentLaptop.specs.ram,
+      storage: specs.storage ?? currentLaptop.specs.storage,
+      display: specs.display ?? currentLaptop.specs.display,
+    };
+
+    // Cập nhật payload
+    const updates = {
+      specs: cleanedSpecs,
+      releaseYear: releaseYear ?? currentLaptop.releaseYear,
+      manufacturer: manufacturer ?? currentLaptop.manufacturer,
+      type: type ?? currentLaptop.type,
+    };
+
+    console.log("Payload để cập nhật (sau khi làm sạch):", updates);
+
+    const updatedLaptop = await Laptop.findByIdAndUpdate(id, updates, { new: true });
 
     if (!updatedLaptop) {
-      return res.status(404).json({ message: "Laptop không tồn tại" });
+      return res.status(404).json({ message: "Không thể cập nhật laptop." });
     }
-    console.log("Payload nhận được:", req.body);
 
+    console.log("Laptop sau khi cập nhật:", updatedLaptop);
     res.status(200).json(updatedLaptop);
   } catch (error) {
     console.error("Lỗi khi cập nhật specs:", error);
@@ -101,7 +122,6 @@ router.put("/:id/specs", async (req, res) => {
 
 router.post("/bulk-upload", bulkUploadLaptops);
 
-
 // THÊM route cho bàn giao
 router.post("/:id/assign", assignLaptop);
 
@@ -109,6 +129,8 @@ router.post("/:id/assign", assignLaptop);
 router.post("/:id/revoke", revokeLaptop);
 
 router.put("/:id/status", updateLaptopStatus);
+
+
 
 // Endpoint upload tệp
 router.post("/upload", upload.single("file"), async (req, res) => {
