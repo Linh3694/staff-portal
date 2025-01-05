@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   getAllRooms,
+  getDevicesByRoom,
   addRoom,
   updateRoom,
   deleteRoom,
@@ -9,6 +10,7 @@ const {
 } = require("../controllers/roomController");
 const Room = require("../models/Room"); // Mô hình phòng từ cơ sở dữ liệu
 
+router.get("/:roomId/devices", getDevicesByRoom);
 // Lấy tất cả phòng
 router.get("/", getAllRooms);
 

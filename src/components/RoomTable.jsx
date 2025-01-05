@@ -4,6 +4,13 @@ import "react-toastify/dist/ReactToastify.css";
 import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import * as XLSX from "xlsx";
 import Dropdown from "./function/dropdown";
+import { IoLocationOutline } from "react-icons/io5";
+import LaptopProductCard from "./productcard/laptopProductCard";
+import MonitorProductCard from "./productcard/monitorProductCard";
+import PrinterProductCard from "./productcard/printerProductCard";
+import ProjectorProductCard from "./productcard/projectorProductCard";
+import ToolProductCard from "./productcard/toolProductCard";
+
 
 
 const RoomTable = () => {
@@ -21,9 +28,45 @@ const RoomTable = () => {
     status: "Lớp học", // Giá trị mặc định
   });
   const [isUploading, setIsUploading] = useState(false);
-
-
-
+  const [selectedRoomDevices, setSelectedRoomDevices] = useState([]);
+  const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
+  const [isLaptopModalOpen, setIsLaptopModalOpen] = useState(false);
+  const [isMonitorModalOpen, setIsMonitorModalOpen] = useState(false);
+  const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
+  const [isProjectorModalOpen, setIsProjectorModalOpen] = useState(false);
+  const [isToolModalOpen, setIsToolModalOpen] = useState(false);
+  const [selectedLaptopData, setSelectedLaptopData] = useState(null);
+  const [selectedMonitorData, setSelectedMonitorData] = useState(null);
+  const [selectedProjectorData, setSelectedProjectorData] = useState(null);
+  const [selectedPrinterData, setSelectedPrinterData] = useState(null);
+  const [selectedToolData, setSelectedToolData] = useState(null);
+  
+  const handleOpenModal = (type, data) => {
+    switch (type) {
+      case "Laptop":
+        setSelectedLaptopData(data);
+        setIsLaptopModalOpen(true);
+        break;
+      case "Monitor":
+        setSelectedMonitorData(data);
+        setIsMonitorModalOpen(true);
+        break;
+      case "Printer":
+        setSelectedPrinterData(data);
+        setIsPrinterModalOpen(true);
+        break;
+      case "Projector":
+        setSelectedProjectorData(data);
+        setIsProjectorModalOpen(true);
+        break;
+      case "Tool":
+        setSelectedToolData(data);
+        setIsToolModalOpen(true);
+        break;
+      default:
+        console.warn("Unknown device type:", type);
+    }
+  };
 
   const fetchRooms = async () => {
     try {
@@ -70,6 +113,112 @@ const RoomTable = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const fetchDevicesByRoom = async (roomId) => {
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/devices`);
+      if (!response.ok) throw new Error("Không thể tải danh sách thiết bị.");
+    
+      const data = await response.json();
+  
+      console.log("Dữ liệu phòng:", data.room); // Kiểm tra dữ liệu phòng
+      console.log("Danh sách thiết bị:", data.devices); // Kiểm tra danh sách thiết bị
+  
+      // Cập nhật state
+      setSelectedRoom(data.room); // Đảm bảo room được gán đúng
+      setSelectedRoomDevices(data.devices); // Cập nhật danh sách thiết bị
+      setIsDeviceModalOpen(true); // Hiển thị modal
+    } catch (error) {
+      console.error("Error fetching devices by room:", error.message);
+      toast.error(`Lỗi khi tải danh sách thiết bị: ${error.message}`);
+    }
+  };
+
+  const fetchLaptopDetails = async (laptopId) => {
+    try {
+      const response = await fetch(`/api/laptops/${laptopId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+  
+      if (!response.ok) throw new Error("Không thể tải thông tin laptop!");
+  
+      const data = await response.json();
+      setSelectedLaptopData(data);
+    } catch (error) {
+      console.error("Error fetching laptop details:", error.message);
+      toast.error("Không thể tải thông tin laptop!");
+    }
+  };
+  const fetchMonitorDetails = async (monitorId) => {
+    try {
+      const response = await fetch(`/api/monitors/${monitorId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+  
+      if (!response.ok) throw new Error("Không thể tải thông tin Monitor!");
+  
+      const data = await response.json();
+      setSelectedMonitorData(data);
+    } catch (error) {
+      console.error("Error fetching Monitor details:", error.message);
+      toast.error("Không thể tải thông tin Monitor!");
+    }
+  };
+  const fetchPrinterDetails = async (printerId) => {
+    try {
+      const response = await fetch(`/api/printers/${printerId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+  
+      if (!response.ok) throw new Error("Không thể tải thông tin Printer!");
+  
+      const data = await response.json();
+      setSelectedPrinterData(data);
+    } catch (error) {
+      console.error("Error fetching Printer details:", error.message);
+      toast.error("Không thể tải thông tin Printer!");
+    }
+  };
+  const fetchProjectorDetails = async (projectorId) => {
+    try {
+      const response = await fetch(`/api/projectors/${projectorId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+  
+      if (!response.ok) throw new Error("Không thể tải thông tin Projector!");
+  
+      const data = await response.json();
+      setSelectedProjectorData(data);
+    } catch (error) {
+      console.error("Error fetching Projector details:", error.message);
+      toast.error("Không thể tải thông tin Projector!");
+    }
+  };
+  const fetchToolDetails = async (toolId) => {
+    try {
+      const response = await fetch(`/api/projectors/${toolId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+  
+      if (!response.ok) throw new Error("Không thể tải thông tin Tool!");
+  
+      const data = await response.json();
+      setSelectedToolData(data);
+    } catch (error) {
+      console.error("Error fetching Tool details:", error.message);
+      toast.error("Không thể tải thông tin Tool!");
+    }
+  };
 
   const handleAddRoom = async () => {
     try {
@@ -264,9 +413,14 @@ const RoomTable = () => {
         <tbody>
           {filteredRooms.map((room) => (
             <tr key={room._id} className="border-b border-gray-200 hover:bg-gray-50">
-              <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-bold text-navy-700">{room.name || "Not Provided"}</p>
-              </td>
+              <td className="min-w-[150px] border-white/0 py-3 pr-4 cursor-pointer">
+                  <p
+                    className="text-sm font-bold text-blue-600 hover:underline"
+                    onClick={() => fetchDevicesByRoom(room._id)} // Gọi API
+                  >
+                    {room.name || "Chưa xác định"}
+                  </p>
+                </td>
               <td className="min-w-[150px] border-white/0 py-3 pr-4">
                 {room.location && room.location.length > 0 ? (
                   <>
@@ -289,6 +443,7 @@ const RoomTable = () => {
                 </td>
                 <td className="min-w-[150px] border-white/0 py-3 pr-4 text-center">
                         <div className="flex justify-center space-x-2">
+                          
                           {/* Nút Edit */}
                           <button
                           onClick={() => {
@@ -441,6 +596,233 @@ const RoomTable = () => {
               </div>
           )}
 
+          {isDeviceModalOpen && selectedRoom && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+              onClick={() => setIsDeviceModalOpen(false)}
+            >
+              <div
+                className="bg-white rounded-lg shadow-lg p-6 w-[40%] max-h-[70%] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-2xl font-bold mb-6 text-[#002147]">
+                  Phòng: {selectedRoom?.name || "Không xác định"}
+                </h3>
+
+                {/* Hiển thị thông tin phòng */}
+                <h5 className=" font-bold mb-2 text-[#002147]"> Thông tin phòng</h5>
+                <div className="bg-gray-100 text-[#002147] rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 p-4 mb-6">  
+                  <div className="flex justify-between items-center mb-4">
+                  
+                    <div className="flex items-center space-x-4">
+                      <IoLocationOutline size={24} className="text-[#002147]" />
+                      <div>
+                        <p className="font-bold text-base">{selectedRoom?.name || "Không xác định"}</p>
+                        {Array.isArray(selectedRoom?.location) && selectedRoom.location.length > 0 ? (
+                          selectedRoom.location.map((loc, index) => (
+                            <div key={index}>
+                              Toà nhà: {loc.building || "Không xác định"} || Tầng: {loc.floor || "Không xác định"}
+                            </div>
+                          ))
+                        ) : (
+                          <div>Không có thông tin vị trí</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <hr className="my-2 border-t border-gray-300" />
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-2">
+                      <p>Công năng hiện tại:</p>
+                      <span className="px-3 py-1 bg-[#002147] text-white text-sm rounded-full">
+                        {selectedRoom?.status || "Không xác định trạng thái"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hiển thị danh sách thiết bị */}
+                <h5 className="font-bold mb-4 text-[#002147]">Thiết bị sử dụng</h5>
+                <div className="max-h-60 overflow-y-auto px-3 py-2 border rounded-lg bg-gray-50">                
+                  {/* Laptops */}
+                  {selectedRoomDevices.laptops?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#002147] mb-1">Laptops</h4>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {selectedRoomDevices.laptops.map((laptop) => (
+                          <div
+                            key={laptop._id}
+                            className="bg-[#002147] text-white rounded-lg px-3 py-1 text-sm font-bold cursor-pointer hover:opacity-90"
+                            onClick={() => handleOpenModal("Laptop", laptop)}
+                          >
+                            {laptop.name} (SN: {laptop.serial || "N/A"})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Monitors */}
+                  {selectedRoomDevices.monitors?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#009483] mb-1">Monitors</h4>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {selectedRoomDevices.monitors.map((monitor) => (
+                          <div
+                            key={monitor._id}
+                            className="bg-[#009483] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
+                            onClick={() => handleOpenModal("Monitor", monitor)}
+                          >
+                            {monitor.name} (SN: {monitor.serial || "N/A"})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Các loại thiết bị khác */}
+                  {/* Printers */}
+                  {selectedRoomDevices.printers?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#FF5733] mb-1">Printers</h4>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {selectedRoomDevices.printers.map((printer) => (
+                          <div
+                            key={printer._id}
+                            className="bg-[#FF5733] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
+                            onClick={() => handleOpenModal("Printer", printer)}
+                          >
+                            {printer.name} (SN: {printer.serial || "N/A"})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Projectors */}
+                  {selectedRoomDevices.projectors?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#F39C12] mb-1">Projectors</h4>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {selectedRoomDevices.projectors.map((projector) => (
+                          <div
+                            key={projector._id}
+                            className="bg-[#F39C12] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
+                            onClick={() => handleOpenModal("Projector", projector)}
+                          >
+                            {projector.name} (SN: {projector.serial || "N/A"})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tools */}
+                  {selectedRoomDevices.tools?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#6A1B9A] mb-1">Tools</h4>
+                      <div className="flex flex-wrap gap-2 mb-3 ">
+                        {selectedRoomDevices.tools.map((tool) => (
+                          <div
+                            key={tool._id}
+                            className="bg-[#6A1B9A] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
+                            onClick={() => handleOpenModal("Tool", tool)}
+                          >
+                            {tool.name} (SN: {tool.serial || "N/A"})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => setIsDeviceModalOpen(false)}
+                    className="px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+{isLaptopModalOpen && selectedLaptopData && (
+                              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50" onClick={() => setIsLaptopModalOpen(false)}>
+                                <div  onClick={(e) => e.stopPropagation()}>
+                                  <LaptopProductCard
+                                    laptopData={selectedLaptopData}
+                                    onAddRepair={(newRepair) => console.log("Thêm sửa chữa", newRepair)}
+                                    onDeleteRepair={(laptopId, repairId) =>
+                                      console.log("Xóa sửa chữa", laptopId, repairId)
+                                    }
+                                    onCloseModal={() => setIsLaptopModalOpen(false)}
+                                    fetchLaptopDetails={fetchLaptopDetails}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          {isMonitorModalOpen && selectedMonitorData && (
+                            <div
+                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+                              onClick={() => setIsMonitorModalOpen(false)}
+                            >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <MonitorProductCard
+                                  monitorData={selectedMonitorData}
+                                  onCloseModal={() => setIsMonitorModalOpen(false)}
+                                  fetchMonitorDetails={fetchMonitorDetails}
+
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {isPrinterModalOpen && selectedPrinterData && (
+                            <div
+                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+                              onClick={() => setIsPrinterModalOpen(false)}
+                            >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <PrinterProductCard
+                                  printerData={selectedPrinterData}
+                                  onCloseModal={() => setIsPrinterModalOpen(false)}
+                                  fetchPrinterDetails={fetchPrinterDetails}
+
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {isProjectorModalOpen && selectedProjectorData && (
+                            <div
+                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+                              onClick={() => setIsProjectorModalOpen(false)}
+                            >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <ProjectorProductCard
+                                  projectorData={selectedProjectorData}
+                                  onCloseModal={() => setIsProjectorModalOpen(false)}
+                                  fetchProjectorDetails={fetchProjectorDetails}
+
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {isToolModalOpen && selectedToolData && (
+                            <div
+                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+                              onClick={() => setIsToolModalOpen(false)}
+                            >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <ToolProductCard
+                                  toolData={selectedToolData}
+                                  onCloseModal={() => setIsToolModalOpen(false)}
+                                  fetchToolDetails={fetchToolDetails}
+
+                                />
+                              </div>
+                            </div>
+                          )}
 
 
               {isDeleteModalOpen && (

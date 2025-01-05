@@ -115,6 +115,39 @@ const LaptopTable = () => {
           const handleRefreshData = async () => {
             await fetchLaptops(); // Làm mới danh sách nếu cần
           };
+
+          const handleFilter = () => {
+            let filteredData = [...data]; // Sao chép dữ liệu gốc
+          
+            // Lọc theo trạng thái
+            if (selectedOption !== "Tất cả") {
+              filteredData = filteredData.filter((item) => statusLabels[item.status] === selectedOption);
+            }
+          
+            // Lọc theo loại
+            if (selectedType !== "Tất cả") {
+              filteredData = filteredData.filter((item) => item.type === selectedType);
+            }
+          
+            // Lọc theo phòng ban
+            if (selectedDepartment !== "Tất cả") {
+              filteredData = filteredData.filter((item) =>
+                item.assigned.some((user) => user.departmentName === selectedDepartment)
+              );
+            }
+          
+            // Lọc theo nhà sản xuất
+            if (selectedManufacturer !== "Tất cả") {
+              filteredData = filteredData.filter((item) => item.manufacturer === selectedManufacturer);
+            }
+          
+            // Lọc theo năm sản xuất
+            if (selectedYear !== "Tất cả") {
+              filteredData = filteredData.filter((item) => item.releaseYear === selectedYear);
+            }
+          
+            setData(filteredData); // Cập nhật danh sách được hiển thị
+          };
           
 
           const fetchUsers = async () => {
@@ -940,13 +973,26 @@ const LaptopTable = () => {
                                 {/* Lọc phòng ban từ cột Người sử dụng */}
                                 {Array.from(
                                   new Set(
-                                    (Array.isArray(data) ? data : []).flatMap((item) =>
-                                      Array.isArray(item.assigned)
-                                        ? item.assigned.map((user) => user.departmentName || "Unknown")
-                                        : []
+                                    data.flatMap((item) =>
+                                      item.assigned?.map((user) => user.departmentName || "Unknown")
                                     )
                                   )
-                                )}
+                                ).map((department) => (
+                                  <button
+                                    key={department}
+                                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                    onClick={() => {
+                                      setSelectedDepartment(department);
+                                      setData(
+                                        data.filter((item) =>
+                                          item.assigned.some((user) => user.departmentName === department)
+                                        )
+                                      );
+                                    }}
+                                  >
+                                    {department}
+                                  </button>
+                                ))}
                               </div>
                             }
                           />

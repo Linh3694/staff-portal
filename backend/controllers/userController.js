@@ -1,47 +1,48 @@
 const User = require("../models/Users"); // Correct import path for User model
 const Laptop = require("../models/Laptop"); // Import model Laptop
+const Monitor = require("../models/Monitor");
+const Projector = require("../models/Projector");
+const Printer = require("../models/Printer");
+const Tool = require("../models/Tool");
 const bcrypt = require("bcryptjs"); // Import bcrypt for password hashing
 
 // Gán thiết bị cho người dùng
-exports.assignDeviceToUser = async (req, res) => {
+exports.getAssignedItems = async (req, res) => {
   try {
-    const { laptopId, userId } = req.body;
-
-    // Kiểm tra input
-    if (!laptopId || !userId) {
-      return res.status(400).json({ message: "Thiếu thông tin gán thiết bị." });
+    // Kiểm tra nguồn dữ liệu: từ URL (GET) hoặc body (POST)
+    const userId = req.params.userId || req.body.userId;
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required." });
     }
 
-    // Tìm thiết bị và người dùng
-    const laptop = await Laptop.findById(laptopId);
-    const user = await User.findById(userId);
+    // Chuyển userId sang ObjectId
+    const mongoose = require("mongoose");
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
-    if (!laptop) {
-      return res.status(404).json({ message: "Không tìm thấy thiết bị." });
-    }
+    // Kiểm tra user có tồn tại không
+    const user = await User.findById(userObjectId);
     if (!user) {
-      return res.status(404).json({ message: "Không tìm thấy người dùng." });
+      return res.status(404).json({ message: "User not found." });
     }
 
-    // Cập nhật thông tin thiết bị
-    laptop.assignedTo = { userId: user._id, fullname: user.fullname };
-    await laptop.save();
+    // Truy vấn danh sách thiết bị
+    const laptops = await Laptop.find({ assigned: userObjectId }).lean();
+    const monitors = await Monitor.find({ assigned: userObjectId }).lean();
+    const projectors = await Projector.find({ assigned: userObjectId }).lean();
+    const printers = await Printer.find({ assigned: userObjectId }).lean();
+    const tools = await Tool.find({ assigned: userObjectId }).lean();
 
-    // Cập nhật danh sách thiết bị được gán trong User
-    user.assignedDevices = user.assignedDevices || [];
-    if (!user.assignedDevices.includes(laptop._id)) {
-      user.assignedDevices.push(laptop._id);
-      await user.save();
-    }
+    // Log kết quả để kiểm tra
+    console.log("Assigned laptops:", laptops);
 
+    // Trả về kết quả
     res.status(200).json({
-      message: "Gán thiết bị cho người dùng thành công.",
-      laptop,
-      user,
+      message: "Assigned items fetched successfully.",
+      items: { laptops, monitors, projectors, printers, tools },
     });
   } catch (error) {
-    console.error("Error assigning device to user:", error.message);
-    res.status(500).json({ message: "Lỗi khi gán thiết bị.", error: error.message });
+    console.error("Error fetching assigned items:", error.message);
+    res.status(500).json({ message: "Error fetching assigned items.", error });
   }
 };
 

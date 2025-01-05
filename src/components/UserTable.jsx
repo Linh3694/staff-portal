@@ -7,6 +7,10 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { MdEmail, MdWork, MdPerson, MdBusiness } from "react-icons/md";
 import LaptopProductCard from "./productcard/laptopProductCard";
+import MonitorProductCard from "./productcard/monitorProductCard";
+import PrinterProductCard from "./productcard/printerProductCard";
+import ProjectorProductCard from "./productcard/projectorProductCard";
+import ToolProductCard from "./productcard/toolProductCard";
 
 
 const UserTable = ({ handleSyncClients }) => {
@@ -24,7 +28,15 @@ const UserTable = ({ handleSyncClients }) => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [assignedItems, setAssignedItems] = useState([]);
   const [isLaptopModalOpen, setIsLaptopModalOpen] = useState(false);
+  const [isMonitorModalOpen, setIsMonitorModalOpen] = useState(false);
+  const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
+  const [isProjectorModalOpen, setIsProjectorModalOpen] = useState(false);
+  const [isToolModalOpen, setIsToolModalOpen] = useState(false);
   const [selectedLaptopData, setSelectedLaptopData] = useState(null);
+  const [selectedMonitorData, setSelectedMonitorData] = useState(null);
+  const [selectedProjectorData, setSelectedProjectorData] = useState(null);
+  const [selectedPrinterData, setSelectedPrinterData] = useState(null);
+  const [selectedToolData, setSelectedToolData] = useState(null);
   const [newUser, setNewUser] = useState({
     fullname: "",
     email: "",
@@ -35,6 +47,32 @@ const UserTable = ({ handleSyncClients }) => {
 
 
   
+  const handleOpenModal = (item) => {
+    switch (item.type) {
+      case "Laptop":
+        setSelectedLaptopData(item);
+        setIsLaptopModalOpen(true);
+        break;
+      case "Monitor":
+        setSelectedMonitorData(item);
+        setIsMonitorModalOpen(true);
+        break;
+      case "Printer":
+        setSelectedPrinterData(item);
+        setIsPrinterModalOpen(true);
+        break;
+      case "Projector":
+        setSelectedProjectorData(item);
+        setIsProjectorModalOpen(true);
+        break;
+      case "Tool":
+        setSelectedToolData(item);
+        setIsToolModalOpen(true);
+        break;
+      default:
+        console.warn("Unknown item type:", item.type);
+    }
+  };
 
   const fetchLaptopDetails = async (laptopId) => {
     try {
@@ -53,6 +91,75 @@ const UserTable = ({ handleSyncClients }) => {
       toast.error("Không thể tải thông tin laptop!");
     }
   };
+  const fetchMonitorDetails = async (monitorId) => {
+    try {
+      const response = await fetch(`/api/monitors/${monitorId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+  
+      if (!response.ok) throw new Error("Không thể tải thông tin Monitor!");
+  
+      const data = await response.json();
+      setSelectedMonitorData(data);
+    } catch (error) {
+      console.error("Error fetching Monitor details:", error.message);
+      toast.error("Không thể tải thông tin Monitor!");
+    }
+  };
+  const fetchPrinterDetails = async (printerId) => {
+    try {
+      const response = await fetch(`/api/printers/${printerId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+  
+      if (!response.ok) throw new Error("Không thể tải thông tin Printer!");
+  
+      const data = await response.json();
+      setSelectedPrinterData(data);
+    } catch (error) {
+      console.error("Error fetching Printer details:", error.message);
+      toast.error("Không thể tải thông tin Printer!");
+    }
+  };
+  const fetchProjectorDetails = async (projectorId) => {
+    try {
+      const response = await fetch(`/api/projectors/${projectorId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+  
+      if (!response.ok) throw new Error("Không thể tải thông tin Projector!");
+  
+      const data = await response.json();
+      setSelectedProjectorData(data);
+    } catch (error) {
+      console.error("Error fetching Projector details:", error.message);
+      toast.error("Không thể tải thông tin Projector!");
+    }
+  };
+  const fetchToolDetails = async (toolId) => {
+    try {
+      const response = await fetch(`/api/tools/${toolId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+  
+      if (!response.ok) throw new Error("Không thể tải thông tin Tool!");
+  
+      const data = await response.json();
+      setSelectedToolData(data);
+    } catch (error) {
+      console.error("Error fetching Tool details:", error.message);
+      toast.error("Không thể tải thông tin Tool!");
+    }
+  };
+  
 
   // Lấy dữ liệu từ /api//users
   const fetchUsers = async () => {
@@ -99,48 +206,6 @@ const UserTable = ({ handleSyncClients }) => {
     setIsDeleteModalOpen(true); // Hiển thị modal
   };
 
-  const handleOpenLaptopModal = async (laptopData) => {
-    console.log("Laptop Data Truyền vào:", laptopData);
-  
-    // Nếu `laptopData.assigned` chứa ID, fetch thêm thông tin chi tiết
-    const assignedDetails = await Promise.all(
-      laptopData.assigned.map(async (userId) => {
-        try {
-          console.log(localStorage.getItem("token"));
-          const response = await fetch(`/api/users/${userId}`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-          });
-          console.log("Response Status:", response.status);
-          console.log("Response Text:", await response.text());
-  
-          if (!response.ok) throw new Error("Không thể tải thông tin người dùng.");
-  
-          const userData = await response.json();
-          return {
-            id: userData._id,
-            fullname: userData.fullname || "Không xác định",
-            jobTitle: userData.jobTitle || "Không xác định",
-            department: userData.department || "Không xác định",
-          };
-        } catch (error) {
-          console.error("Error fetching user details:", error.message);
-          return { id: userId, fullname: "Không xác định", jobTitle: "-", department: "-" };
-        }
-      })
-    );
-  
-    setSelectedLaptopData({
-      ...laptopData,
-      name: laptopData.name || "Không xác định",
-      serial: laptopData.serial || "N/A",
-      manufacturer: laptopData.manufacturer || "N/A",
-      status: laptopData.status || "N/A",
-      specs: laptopData.specs || { processor: "N/A", ram: "N/A", storage: "N/A", display: "N/A" },
-      assigned: assignedDetails, // Thêm thông tin mở rộng
-    });
-  
-    setIsLaptopModalOpen(true);
-  };
 
   const confirmDeleteUser = async () => {
     try {
@@ -212,23 +277,46 @@ const UserTable = ({ handleSyncClients }) => {
     }
   };
 
-  const handleShowProfile = async (user) => {
-    setSelectedUser(user);
+  const handleShowProfile = async (userId) => {
+    const token = localStorage.getItem("authToken");
   
     try {
-      const response = await fetch(`/api/users/${user._id}/assigned-items`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      const userResponse = await fetch(`/api/users/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      if (!response.ok) throw new Error("Không thể tải danh sách thiết bị.");
   
-      const data = await response.json();
-      setAssignedItems(data); // Cập nhật danh sách thiết bị
+      if (!userResponse.ok) throw new Error("Không thể tải thông tin người dùng!");
+      const userData = await userResponse.json();
+  
+      const assignedItemsResponse = await fetch(`/api/users/${userId}/assigned-items`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (!assignedItemsResponse.ok) throw new Error("Không thể tải danh sách thiết bị được gán!");
+      const assignedItemsData = await assignedItemsResponse.json();
+      console.log("Dữ liệu từ API trước khi chuẩn hóa:", assignedItemsData);
+      // Chuẩn hóa dữ liệu: Gộp các loại thiết bị vào một mảng duy nhất
+      const items = [
+        ...(assignedItemsData.items?.laptops || []).map((item) => ({ ...item, type: "Laptop" })),
+        ...(assignedItemsData.items?.monitors || []).map((item) => ({ ...item, type: "Monitor" })),
+        ...(assignedItemsData.items?.printers || []).map((item) => ({ ...item, type: "Printer" })),
+        ...(assignedItemsData.items?.projectors || []).map((item) => ({ ...item, type: "Projector" })),
+        ...(assignedItemsData.items?.tools || []).map((item) => ({ ...item, type: "Tool" })),
+      ];
+  
+      console.log("Dữ liệu thiết bị sau khi chuẩn hóa:", items);
+  
+      setAssignedItems(items);
+      setSelectedUser(userData);
+      setIsProfileModalOpen(true);
     } catch (error) {
-      console.error("Error fetching assigned items:", error.message);
-      setAssignedItems([]); // Nếu lỗi, set danh sách rỗng
+      console.error("Error fetching user profile or assigned items:", error.message);
+      toast.error("Không thể tải thông tin người dùng hoặc thiết bị được gán!");
     }
-  
-    setIsProfileModalOpen(true);
   };
 
   const handleUploadExcel = async (e) => {
@@ -585,7 +673,7 @@ const UserTable = ({ handleSyncClients }) => {
               <tr key={client.id} className="border-b border-gray-200 hover:bg-gray-50">
                 <td className="min-w-[150px] border-white/0 py-3 pr-4">
                   <button
-                    onClick={() => handleShowProfile(client)}
+                    onClick={() => handleShowProfile(client._id)}
                     className="text-sm font-bold text-navy-700 hover:underline"
                   >
                     {client.fullname}
@@ -875,20 +963,49 @@ const UserTable = ({ handleSyncClients }) => {
                     </div>
 
                       {/* Assigned Items */}
-                          <div className="mt-6">
-                            <h4 className="text-lg font-semibold text-[#002147] mb-2">Thiết bị sử dụng</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {assignedItems.map((item, index) => (
-                                  <span
-                                    key={item.id || index} // Sử dụng `item.id` nếu có, nếu không fallback sang `index`
-                                    onClick={() => handleOpenLaptopModal(item)} 
-                                    className="px-3 py-1 bg-[#002147] text-white font-bold rounded-full text-xs cursor-pointer"
-                                  >
-                                    {item.name} - SN: {item.serial}
-                                  </span>
-                                ))}
+                      <div className="mt-6">
+                          <h4 className="text-lg font-semibold text-[#002147] mb-2">Thiết bị sử dụng</h4>
+
+                          {Array.isArray(assignedItems) && assignedItems.length === 0 ? (
+                            <p className="text-gray-500 italic">Người dùng chưa được gán thiết bị nào.</p>
+                          ) : (
+                            <div className="max-h-60 overflow-y-auto px-3 py-2 border rounded-lg bg-gray-50">
+                              {["Laptop", "Monitor", "Printer", "Projector", "Tool"].map((type) => {
+                                const itemsByType = assignedItems.filter((item) => item.type === type);
+                                return itemsByType.length > 0 ? (
+                                  <div key={type}>
+                                    <h5 className={`font-bold mb-1 text-${
+                                      type === "Laptop" ? "[#002147]"
+                                      : type === "Monitor" ? "[#009483]"
+                                      : type === "Printer" ? "red-600"
+                                      : type === "Projector" ? "yellow-600"
+                                      : "purple-600"
+                                    }`}>
+                                      {type}s
+                                    </h5>
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                      {itemsByType.map((item, index) => (
+                                        <span
+                                          key={index}
+                                          onClick={() => handleOpenModal(item)}
+                                          className={`cursor-pointer bg-${
+                                            type === "Laptop" ? "[#002147]"
+                                            : type === "Monitor" ? "[#009483]"
+                                            : type === "Printer" ? "red-500"
+                                            : type === "Projector" ? "yellow-500"
+                                            : "purple-500"
+                                          } text-white px-3 py-1 rounded-md text-sm font-bold`}
+                                        >
+                                          {item.name} (SN: {item.serial || "N/A"})
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : null;
+                              })}
                             </div>
-                          </div>
+                          )}
+                        </div>
                          
                 
                       {/* Footer */}
@@ -919,6 +1036,66 @@ const UserTable = ({ handleSyncClients }) => {
                                 </div>
                               </div>
                             )}
+                          {isMonitorModalOpen && selectedMonitorData && (
+                            <div
+                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+                              onClick={() => setIsMonitorModalOpen(false)}
+                            >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <MonitorProductCard
+                                  monitorData={selectedMonitorData}
+                                  onCloseModal={() => setIsMonitorModalOpen(false)}
+                                  fetchMonitorDetails={fetchMonitorDetails}
+
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {isPrinterModalOpen && selectedPrinterData && (
+                            <div
+                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+                              onClick={() => setIsPrinterModalOpen(false)}
+                            >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <PrinterProductCard
+                                  printerData={selectedPrinterData}
+                                  onCloseModal={() => setIsPrinterModalOpen(false)}
+                                  fetchPrinterDetails={fetchPrinterDetails}
+
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {isProjectorModalOpen && selectedProjectorData && (
+                            <div
+                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+                              onClick={() => setIsProjectorModalOpen(false)}
+                            >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <ProjectorProductCard
+                                  projectorData={selectedProjectorData}
+                                  onCloseModal={() => setIsProjectorModalOpen(false)}
+                                  fetchProjectorDetails={fetchProjectorDetails}
+
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {isToolModalOpen && selectedToolData && (
+                            <div
+                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+                              onClick={() => setIsToolModalOpen(false)}
+                            >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <ToolProductCard
+                                  toolData={selectedToolData}
+                                  onCloseModal={() => setIsToolModalOpen(false)}
+                                  fetchToolDetails={fetchToolDetails}
+
+                                />
+                              </div>
+                            </div>
+                          )}
                 {isAddUserModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                       <div className="bg-white rounded-lg shadow-lg p-6 w-[500px]">
