@@ -204,7 +204,7 @@ const RoomTable = () => {
   };
   const fetchToolDetails = async (toolId) => {
     try {
-      const response = await fetch(`/api/projectors/${toolId}`, {
+      const response = await fetch(`/api/tools/${toolId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
@@ -415,7 +415,7 @@ const RoomTable = () => {
             <tr key={room._id} className="border-b border-gray-200 hover:bg-gray-50">
               <td className="min-w-[150px] border-white/0 py-3 pr-4 cursor-pointer">
                   <p
-                    className="text-sm font-bold text-blue-600 hover:underline"
+                    className="text-sm font-bold text-[#002147] hover:underline"
                     onClick={() => fetchDevicesByRoom(room._id)} // Gọi API
                   >
                     {room.name || "Chưa xác định"}
@@ -647,7 +647,7 @@ const RoomTable = () => {
                   {/* Laptops */}
                   {selectedRoomDevices.laptops?.length > 0 && (
                     <div>
-                      <h4 className="font-bold text-[#002147] mb-1">Laptops</h4>
+                      <h4 className="font-bold text-[#002147] mb-1">Laptop || Desktop</h4>
                       <div className="flex flex-wrap gap-2 mb-3">
                         {selectedRoomDevices.laptops.map((laptop) => (
                           <div
@@ -665,7 +665,7 @@ const RoomTable = () => {
                   {/* Monitors */}
                   {selectedRoomDevices.monitors?.length > 0 && (
                     <div>
-                      <h4 className="font-bold text-[#009483] mb-1">Monitors</h4>
+                      <h4 className="font-bold text-[#009483] mb-1">Màn hình</h4>
                       <div className="flex flex-wrap gap-2 mb-3">
                         {selectedRoomDevices.monitors.map((monitor) => (
                           <div
@@ -684,7 +684,7 @@ const RoomTable = () => {
                   {/* Printers */}
                   {selectedRoomDevices.printers?.length > 0 && (
                     <div>
-                      <h4 className="font-bold text-[#FF5733] mb-1">Printers</h4>
+                      <h4 className="font-bold text-[#FF5733] mb-1">Máy in</h4>
                       <div className="flex flex-wrap gap-2 mb-3">
                         {selectedRoomDevices.printers.map((printer) => (
                           <div
@@ -702,7 +702,7 @@ const RoomTable = () => {
                   {/* Projectors */}
                   {selectedRoomDevices.projectors?.length > 0 && (
                     <div>
-                      <h4 className="font-bold text-[#F39C12] mb-1">Projectors</h4>
+                      <h4 className="font-bold text-[#F39C12] mb-1">Thiết bị trình chiếu</h4>
                       <div className="flex flex-wrap gap-2 mb-3">
                         {selectedRoomDevices.projectors.map((projector) => (
                           <div
@@ -720,7 +720,7 @@ const RoomTable = () => {
                   {/* Tools */}
                   {selectedRoomDevices.tools?.length > 0 && (
                     <div>
-                      <h4 className="font-bold text-[#6A1B9A] mb-1">Tools</h4>
+                      <h4 className="font-bold text-[#6A1B9A] mb-1">Công cụ khác</h4>
                       <div className="flex flex-wrap gap-2 mb-3 ">
                         {selectedRoomDevices.tools.map((tool) => (
                           <div

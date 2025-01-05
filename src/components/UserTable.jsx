@@ -977,9 +977,9 @@ const UserTable = ({ handleSyncClients }) => {
                                     <h5 className={`font-bold mb-1 text-${
                                       type === "Laptop" ? "[#002147]"
                                       : type === "Monitor" ? "[#009483]"
-                                      : type === "Printer" ? "red-600"
-                                      : type === "Projector" ? "yellow-600"
-                                      : "purple-600"
+                                      : type === "Printer" ? "[#FF5733]"
+                                      : type === "Projector" ? "[#F39C12]"
+                                      : "[#6A1B9A]"
                                     }`}>
                                       {type}s
                                     </h5>
@@ -991,9 +991,9 @@ const UserTable = ({ handleSyncClients }) => {
                                           className={`cursor-pointer bg-${
                                             type === "Laptop" ? "[#002147]"
                                             : type === "Monitor" ? "[#009483]"
-                                            : type === "Printer" ? "red-500"
-                                            : type === "Projector" ? "yellow-500"
-                                            : "purple-500"
+                                            : type === "Printer" ? "[#FF5733]"
+                                            : type === "Projector" ? "[#F39C12]"
+                                            : "[#6A1B9A]"
                                           } text-white px-3 py-1 rounded-md text-sm font-bold`}
                                         >
                                           {item.name} (SN: {item.serial || "N/A"})
