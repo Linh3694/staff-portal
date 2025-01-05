@@ -602,7 +602,7 @@ const RoomTable = () => {
               onClick={() => setIsDeviceModalOpen(false)}
             >
               <div
-                className="bg-white rounded-lg shadow-lg p-6 w-[40%] max-h-[70%] overflow-y-auto"
+                className="bg-white rounded-lg shadow-lg p-6 w-[500px] max-h-[70%] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 <h3 className="text-2xl font-bold mb-6 text-[#002147]">
@@ -647,7 +647,7 @@ const RoomTable = () => {
                   {/* Laptops */}
                   {selectedRoomDevices.laptops?.length > 0 && (
                     <div>
-                      <h4 className="font-bold text-[#002147] mb-1">Laptop || Desktop</h4>
+                      <h4 className="font-bold text-[#002147] mb-2">Laptop || Desktop</h4>
                       <div className="flex flex-wrap gap-2 mb-3">
                         {selectedRoomDevices.laptops.map((laptop) => (
                           <div
