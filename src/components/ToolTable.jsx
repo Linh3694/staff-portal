@@ -875,7 +875,7 @@ const ToolTable = () => {
                             button={
                               <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                 {selectedDepartment === "Tất cả"
-                                  ? "Phòng ban"
+                                  ? "Phòng ban: Tất cả phòng ban"
                                   : `Phòng ban: ${selectedDepartment}`}
                               </button>
                             }
@@ -923,7 +923,7 @@ const ToolTable = () => {
                                 button={
                                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                     {selectedManufacturer === "Tất cả"
-                                      ? "Nhà sản xuất"
+                                      ? "Nhà sản xuất: Tất cả nhà sản xuất"
                                       : `Nhà sản xuất: ${selectedManufacturer}`}
                                   </button>
                                 }
@@ -965,7 +965,7 @@ const ToolTable = () => {
                                 button={
                                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                     {selectedYear === "Tất cả"
-                                      ? "Năm sản xuất"
+                                      ? "Năm sản xuất: Tất cả năm sản xuất"
                                       : `Năm sản xuất: ${selectedYear}`}
                                   </button>
                                 }

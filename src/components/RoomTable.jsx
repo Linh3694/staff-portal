@@ -647,7 +647,7 @@ const RoomTable = () => {
                   {/* Laptops */}
                   {selectedRoomDevices.laptops?.length > 0 && (
                     <div>
-                      <h4 className="font-bold text-[#002147] mb-2">Laptop || Desktop</h4>
+                      <h4 className="font-bold text-[#002147] mb-2">Máy tính</h4>
                       <div className="flex flex-wrap gap-2 mb-3">
                         {selectedRoomDevices.laptops.map((laptop) => (
                           <div

@@ -111,43 +111,6 @@ const LaptopTable = () => {
             setRefreshKey((prevKey) => prevKey + 1); // Tăng giá trị để ép render
             setShowDetailModal(true);
           };
-
-          const handleRefreshData = async () => {
-            await fetchLaptops(); // Làm mới danh sách nếu cần
-          };
-
-          const handleFilter = () => {
-            let filteredData = [...data]; // Sao chép dữ liệu gốc
-          
-            // Lọc theo trạng thái
-            if (selectedOption !== "Tất cả") {
-              filteredData = filteredData.filter((item) => statusLabels[item.status] === selectedOption);
-            }
-          
-            // Lọc theo loại
-            if (selectedType !== "Tất cả") {
-              filteredData = filteredData.filter((item) => item.type === selectedType);
-            }
-          
-            // Lọc theo phòng ban
-            if (selectedDepartment !== "Tất cả") {
-              filteredData = filteredData.filter((item) =>
-                item.assigned.some((user) => user.departmentName === selectedDepartment)
-              );
-            }
-          
-            // Lọc theo nhà sản xuất
-            if (selectedManufacturer !== "Tất cả") {
-              filteredData = filteredData.filter((item) => item.manufacturer === selectedManufacturer);
-            }
-          
-            // Lọc theo năm sản xuất
-            if (selectedYear !== "Tất cả") {
-              filteredData = filteredData.filter((item) => item.releaseYear === selectedYear);
-            }
-          
-            setData(filteredData); // Cập nhật danh sách được hiển thị
-          };
           
 
           const fetchUsers = async () => {
@@ -255,25 +218,6 @@ const LaptopTable = () => {
               toast.error("Không thể tải danh sách phòng!");
             }
           };
-          // const renderLocation = (locationArray) => {
-          //   // Nếu room không tồn tại hoặc locationArray không hợp lệ
-          //   if (!locationArray || !Array.isArray(locationArray) || locationArray.length === 0) {
-          //     return ""; 
-          //   }
-          
-          //   const locationString = locationArray[0]; 
-          //   const [building, floor] = locationString.split(", "); 
-          
-          //   if (!building && !floor) {
-          //     return "";
-          //   }
-        
-          //   return `Tòa nhà: ${building} | Tầng: ${floor}`;
-          // };
-
-           // ----------------------------------------------------
-            // Gọi API “thu hồi” (POST /laptops/:id/revoke)
-            // ----------------------------------------------------
             const handleRevokeLaptop = async (laptopId, reasons) => {
               try {
                 const token = localStorage.getItem("authToken");
@@ -908,7 +852,9 @@ const LaptopTable = () => {
                         <Dropdown
                             button={
                               <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                                {selectedType === "Tất cả" ? "Loại: Tất cả" : `Loại: ${selectedType}`}
+                                {selectedType === "Tất cả" 
+                                ? "Loại: Tất cả" 
+                                : `Loại: ${selectedType}`}
                               </button>
                             }
                             children={
@@ -952,7 +898,7 @@ const LaptopTable = () => {
                             button={
                               <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                 {selectedDepartment === "Tất cả"
-                                  ? "Phòng ban"
+                                  ? "Phòng ban: Tất cả phòng ban"
                                   : `Phòng ban: ${selectedDepartment}`}
                               </button>
                             }
@@ -1000,7 +946,7 @@ const LaptopTable = () => {
                                 button={
                                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                     {selectedManufacturer === "Tất cả"
-                                      ? "Nhà sản xuất"
+                                      ? "Nhà sản xuất: Tất cả nhà sản xuất "
                                       : `Nhà sản xuất: ${selectedManufacturer}`}
                                   </button>
                                 }
@@ -1042,7 +988,7 @@ const LaptopTable = () => {
                                 button={
                                   <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                                     {selectedYear === "Tất cả"
-                                      ? "Năm sản xuất"
+                                      ? "Năm sản xuất: Tất cả năm sản xuất"
                                       : `Năm sản xuất: ${selectedYear}`}
                                   </button>
                                 }

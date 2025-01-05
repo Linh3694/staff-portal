@@ -46,7 +46,14 @@ const UserTable = ({ handleSyncClients }) => {
   const bcrypt = require("bcryptjs"); // Import bcrypt for password hashing
 
 
-  
+  const typeMappings = {
+    Laptop: { displayName: "Máy tính", color: "text-[#002147]" },
+    Monitor: { displayName: "Màn hình", color: "text-[#009483]" },
+    Printer: { displayName: "Máy in", color: "text-[#FF5733]" },
+    Projector: { displayName: "Máy chiếu", color: "text-[#F39C12]" },
+    Tool: { displayName: "Dụng cụ", color: "text-[#6A1B9A]" },
+  };
+
   const handleOpenModal = (item) => {
     switch (item.type) {
       case "Laptop":
@@ -972,17 +979,16 @@ const UserTable = ({ handleSyncClients }) => {
                             <div className="max-h-60 overflow-y-auto px-3 py-2 border rounded-lg bg-gray-50">
                               {["Laptop", "Monitor", "Printer", "Projector", "Tool"].map((type) => {
                                 const itemsByType = assignedItems.filter((item) => item.type === type);
+                                  if (itemsByType.length === 0) return null;
+
+                                  const { displayName, color } = typeMappings[type] || {
+                                    displayName: "Không xác định",
+                                    color: "text-gray-500",
+                                  };
+
                                 return itemsByType.length > 0 ? (
                                   <div key={type}>
-                                    <h5 className={`font-bold mb-1 text-${
-                                      type === "Laptop" ? "[#002147]"
-                                      : type === "Monitor" ? "[#009483]"
-                                      : type === "Printer" ? "[#FF5733]"
-                                      : type === "Projector" ? "[#F39C12]"
-                                      : "[#6A1B9A]"
-                                    }`}>
-                                      {type}s
-                                    </h5>
+                                    <h5 className={`font-bold mb-1 ${color}`}>{displayName}</h5>
                                     <div className="flex flex-wrap gap-2 mb-3">
                                       {itemsByType.map((item, index) => (
                                         <span
