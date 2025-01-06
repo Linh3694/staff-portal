@@ -7,48 +7,39 @@ const Notification = require('../models/notification');
 // Lấy danh sách printer
 exports.getPrinters = async (req, res) => {
   try {
-    const { page = 1, limit = 30 } = req.query; // Nhận tham số phân trang
-    const skip = (page - 1) * limit;
-
-    // Lấy tổng số record để tính tổng số trang
-    const totalRecords = await Printer.countDocuments();
-    const totalPages = Math.ceil(totalRecords / limit);
-
-    // Lấy danh sách printer từ database
     const printers = await Printer.find()
-    .skip(skip)
-    .limit(Number(limit))
-    .populate("assigned", "fullname jobTitle department avatarUrl") // Populate thông tin người dùng
-    .populate("room", "name location status") // Populate thông tin phòng
-    .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl") // Thêm jobTitle
-    .populate("assignmentHistory.assignedBy", "fullname email title") // Populate thông tin assignedBy
-    .populate("assignmentHistory.revokedBy", "fullname email") // Populate thông tin revokedBy
-    .lean(); // Sử dụng `.lean()` để trả về plain objects
-    console.log(printers);
+      .sort({ createdAt: -1 })  // sắp xếp giảm dần theo createdAt
+      .populate("assigned", "fullname jobTitle department avatarUrl")
+      .populate("room", "name location status")
+      .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl")
+      .populate("assignmentHistory.assignedBy", "fullname email title")
+      .populate("assignmentHistory.revokedBy", "fullname email")
+      .lean();
 
-    // Gắn thông tin "assigned" vào từng printer
+    // Nếu vẫn muốn reshape (thêm field `location` dạng string), bạn làm như cũ:
     const populatedPrinters = printers.map((printer) => ({
       ...printer,
-      assigned: printer.assigned || [], // Dữ liệu từ populate đã có
       room: printer.room
-  ? {
-      ...printer.room,
-      location: printer.room.location?.map(
-        (loc) => `${loc.building}, tầng ${loc.floor}`
-      ) || ["Không xác định"],
-    }
-  : { name: "Không xác định", location: ["Không xác định"] }, // Gắn giá trị mặc định nếu room null
+        ? {
+            ...printer.room,
+            location:
+              printer.room.location?.map(
+                (loc) => `${loc.building}, tầng ${loc.floor}`
+              ) || ["Không xác định"],
+          }
+        : { name: "Không xác định", location: ["Không xác định"] },
     }));
 
-    // Trả về danh sách printer đã được populate
-    res.status(200).json({
+    // Trả về *toàn bộ* mà không kèm totalPages/currentPage
+    return res.status(200).json({
       populatedPrinters,
-      totalPages,
-      currentPage: Number(page),
     });
   } catch (error) {
     console.error("Error fetching printers:", error.message);
-    res.status(500).json({ message: "Error fetching printers", error: error.message });
+    return res.status(500).json({
+      message: "Error fetching printers",
+      error: error.message,
+    });
   }
 };
 

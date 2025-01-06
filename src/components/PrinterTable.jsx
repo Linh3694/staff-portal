@@ -73,6 +73,8 @@ const PrinterTable = () => {
         const [refreshKey, setRefreshKey] = useState(0);
         const [currentPage, setCurrentPage] = useState(1);
         const [totalPages, setTotalPages] = useState(0); 
+        const [originalData, setOriginalData] = useState([]); 
+        const [filteredData, setFilteredData] = useState([]);
   
 
         
@@ -114,10 +116,6 @@ const PrinterTable = () => {
             setRefreshKey((prevKey) => prevKey + 1); // Tăng giá trị để ép render
             setShowDetailModal(true);
           };
-
-          const handleRefreshData = async () => {
-            await fetchPrinters(); // Làm mới danh sách nếu cần
-          };
           
 
           const fetchUsers = async () => {
@@ -149,49 +147,100 @@ const PrinterTable = () => {
           };
 
           // Hàm gọi API để lấy danh sách printers
-          const fetchPrinters = async (page = 1) => {
+          // Hàm gọi API để lấy danh sách printers
+          const fetchPrinters = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get(`/api/printers?page=${page}&limit=30`, {
+              const response = await axios.get("/api/printers", {
                 headers: { Authorization: `Bearer ${token}` },
               });
+              
+              // response.data.populatedPrinters là TẤT CẢ printers
+              const rawList = response.data.populatedPrinters;
+              
+              // Nếu cần map room, assigned:
+              const printers = rawList.map((printer) => ({
+                ...printer,
+                room: printer.room
+                  ? {
+                      label: printer.room.name,
+                      value: printer.room._id,
+                      location: printer.room.location || ["Không xác định"],
+                    }
+                  : { label: "Không xác định", location: ["Không xác định"] },
+                assigned: printer.assigned.map((user) => ({
+                  value: user._id,
+                  label: user.fullname,
+                  departmentName: user.department,
+                })),
+              }));
           
-              // Ghi log để kiểm tra dữ liệu trả về
-              console.log("Dữ liệu API printers:", response.data);
+              // Bỏ setData(...) ban đầu. Thay vào:
+              setOriginalData(printers);       // Lưu tất cả printers
+              setFilteredData(printers);       // Mặc định chưa filter thì = tất cả
+              setTotalPages(Math.ceil(printers.length / 30));
+              setCurrentPage(1);
+              // Hiển thị trước 30 items
+              setData(printers.slice(0, 30));
           
-              // Cập nhật state
-              setData(
-                response.data.populatedPrinters.map((printer) => ({
-                  ...printer,
-                  room: printer.room
-                    ? {
-                        label: printer.room.name,
-                        value: printer.room._id,
-                        location: printer.room.location || ["Không xác định"],
-                        status: printer.room.status,
-                      }
-                    : { label: "Không xác định", location: ["Không xác định"] },
-                  assigned: Array.isArray(printer.assigned)
-                    ? printer.assigned.map((user) => ({
-                        value: user._id,
-                        label: user.fullname,
-                        departmentName: user.department || "Không xác định",
-                        title: user.jobTitle || "Không xác định",
-                        avatarUrl: user.avatarUrl || "",
-                      }))
-                    : [],
-                }))
-              );
-              setCurrentPage(response.data.currentPage);
-              setTotalPages(response.data.totalPages);
+              console.log("Fetched total printers:", printers.length);
             } catch (error) {
               console.error("Error fetching printers:", error);
             }
           };
 
           useEffect(() => {
-            fetchPrinters(currentPage);
-          }, [currentPage]);
+            fetchPrinters();
+          }, []);
+
+          const applyFilters = (filters = {}) => {
+
+            let filtered = [...originalData];  
+        
+            // Lọc theo trạng thái
+            if (filters.status && filters.status !== "Tất cả") {
+                filtered = filtered.filter((item) => item.status === filters.status);
+            }
+        
+            // Lọc theo loại
+            if (filters.type && filters.type !== "Tất cả") {
+                filtered = filtered.filter((item) => item.type === filters.type);
+            }
+        
+            // Lọc theo nhà sản xuất
+            if (filters.manufacturer && filters.manufacturer !== "Tất cả") {
+                filtered = filtered.filter((item) => item.manufacturer === filters.manufacturer);
+            }
+        
+            // Lọc theo năm sản xuất
+            if (filters.releaseYear && filters.releaseYear !== "Tất cả") {
+                filtered = filtered.filter((item) => item.releaseYear === filters.releaseYear);
+            }
+        
+            // Lọc theo phòng ban
+            if (filters.department && filters.department !== "Tất cả") {
+                filtered = filtered.filter((item) =>
+                    item.assigned.some((user) => user.departmentName === filters.department)
+                );
+            }
+            console.log("Dữ liệu sau khi lọc:", filtered);
+  
+            // Cập nhật dữ liệu state
+            setFilteredData(filtered);
+  
+            const newTotalPages = Math.ceil(filtered.length / 30);
+            setTotalPages(newTotalPages);
+            setCurrentPage(1);
+            setData(filtered.slice(0, 30)); // Hiển thị trang đầu (chỉ 30 items)
+          };
+  
+          const handlePageChange = (newPage) => {
+            if (newPage < 1 || newPage > totalPages) return;
+            setCurrentPage(newPage);
+            
+            const startIndex = (newPage - 1) * 30;
+            setData(filteredData.slice(startIndex, startIndex + 30));
+          };
 
           // Lấy danh sách users
        
@@ -224,25 +273,7 @@ const PrinterTable = () => {
               toast.error("Không thể tải danh sách phòng!");
             }
           };
-          // const renderLocation = (locationArray) => {
-          //   // Nếu room không tồn tại hoặc locationArray không hợp lệ
-          //   if (!locationArray || !Array.isArray(locationArray) || locationArray.length === 0) {
-          //     return ""; 
-          //   }
-          
-          //   const locationString = locationArray[0]; 
-          //   const [building, floor] = locationString.split(", "); 
-          
-          //   if (!building && !floor) {
-          //     return "";
-          //   }
-        
-          //   return `Tòa nhà: ${building} | Tầng: ${floor}`;
-          // };
 
-           // ----------------------------------------------------
-            // Gọi API “thu hồi” (POST /printers/:id/revoke)
-            // ----------------------------------------------------
             const handleRevokePrinter = async (printerId, reasons) => {
               try {
                 const token = localStorage.getItem("authToken");
@@ -417,10 +448,17 @@ const PrinterTable = () => {
               );
           
               if (response.status === 201) {
+                const newClonedPrinter = response.data;
+                // Đưa printer clone lên đầu danh sách
+                setOriginalData((prevData) => [newClonedPrinter, ...prevData]);
+                setFilteredData((prevData) => [newClonedPrinter, ...prevData]);
+                setData((prevData) => [newClonedPrinter, ...prevData.slice(0, 29)]); // Hiển thị printer clone ở đầu
+                setTotalPages(Math.ceil((filteredData.length + 1) / 30));
+                setCurrentPage(1);
+                fetchPrinters(); // Cập nhật lại danh sách
                 toast.success("Nhân bản printer thành công!", {
                   className: "toast-success",
                 });
-                fetchPrinters(); // Cập nhật lại danh sách
               }
             } catch (error) {
               console.error("Error cloning printer:", error);
@@ -531,6 +569,12 @@ const PrinterTable = () => {
               });
           
               if (response.status === 201) {
+                setOriginalData((prevData) => [newPrinter, ...prevData]);
+                setFilteredData((prevData) => [newPrinter, ...prevData]);
+                setData((prevData) => [newPrinter, ...prevData.slice(0, 29)]); // Hiển thị printer mới ở đầu
+                setTotalPages(Math.ceil((filteredData.length + 1) / 30));
+                setCurrentPage(1);
+                fetchPrinters(); // Cập nhật lại danh sách
                 toast.success("Thêm printer thành công!",
                   {
                     className: "toast-success",
@@ -539,7 +583,6 @@ const PrinterTable = () => {
                 );
                 
                 // Cập nhật danh sách printers và đóng modal
-                fetchPrinters();
                 setShowAddModal(false);
                 setNewPrinter({
                   name: "",
@@ -757,22 +800,51 @@ const PrinterTable = () => {
           }
       };
 
+      // useEffect #1: fetch toàn bộ dữ liệu
       useEffect(() => {
         const fetchData = async () => {
-          await fetchPrinters();
-          await fetchUsers();
-          await fetchRooms();
+          await fetchPrinters();   // Lấy toàn bộ printers => setOriginalData(...)
+          await fetchUsers();     // Lấy toàn bộ user => setUsers(...)
+          await fetchRooms();     // Lấy toàn bộ room => setRooms(...)
         };
-      
+
         fetchData();
       }, []);
 
+      // useEffect #2: Mỗi khi originalData thay đổi, tự cập nhật filteredData, totalPages, data trang đầu
+      useEffect(() => {
+        if (originalData.length > 0) {
+          setFilteredData(originalData);
+          setTotalPages(Math.ceil(originalData.length / 30));
+          setData(originalData.slice(0, 30)); // Chỉ hiển thị 30 items đầu tiên
+          setCurrentPage(1);                 // Reset về trang 1
+        }
+        console.log("Original Data updated:", originalData);
+      }, [originalData]);
+    
+    // useEffect #3: Mỗi khi filteredData hoặc currentPage thay đổi => cắt 30 records hiển thị
+      useEffect(() => {
+        const startIndex = (currentPage - 1) * 30;
+        const paginatedData = filteredData.slice(startIndex, startIndex + 30);
+        setData(paginatedData);
+        console.log("Filtered Data updated:", filteredData);
+      }, [filteredData, currentPage]);;
+
+      // useEffect #4: Nếu đang mở detail (selectedPrinter), thì tìm printer mới nhất trong data
       useEffect(() => {
         if (selectedPrinter) {
-          const updatedPrinter = data.find((printer) => printer._id === selectedPrinter._id);
-          if (updatedPrinter) setSelectedPrinter(updatedPrinter); // Đồng bộ dữ liệu mới
+          const updatedPrinter = data.find(
+            (printer) => printer._id === selectedPrinter._id
+          );
+          if (updatedPrinter) setSelectedPrinter(updatedPrinter);
         }
       }, [data]);
+      // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
+      useEffect(() => {
+        console.log("Original Data:", originalData);
+        console.log("Filtered Data:", filteredData);
+        console.log("Displayed Data:", data);
+      }, [originalData, filteredData, data]);
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -844,7 +916,7 @@ const PrinterTable = () => {
                                 className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                 onClick={() => {
                                   setSelectedOption("Tất cả");
-                                  fetchPrinters(); // Lấy lại toàn bộ dữ liệu
+                                  applyFilters({ status: "Tất cả" });
                                   setShowDropdown(false); // Đóng dropdown
                                 }}
                               >
@@ -864,7 +936,7 @@ const PrinterTable = () => {
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
                                     setSelectedOption(option.label);
-                                    setData(data.filter((item) => item.status === option.value)); // Lọc theo trạng thái
+                                    applyFilters({ status: option.value });
                                     setShowDropdown(false); // Đóng dropdown
                                   }}
                                 >
@@ -877,75 +949,33 @@ const PrinterTable = () => {
                         <Dropdown
                             button={
                               <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                                {selectedType === "Tất cả" 
-                                ? "Loại: Tất cả" 
-                                : `Loại: ${selectedType}`}
+                                {selectedType === "Tất cả" ? "Loại: Tất cả" : `Loại: ${selectedType}`}
                               </button>
                             }
                             children={
                               <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                                {/* Tùy chọn Tất cả */}
                                 <button
+                                  key="all"
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
                                     setSelectedType("Tất cả");
-                                    fetchPrinters(); // Hiển thị toàn bộ dữ liệu
+                                    applyFilters({ type: "Tất cả" });
                                   }}
                                 >
                                   Tất cả
                                 </button>
-
-                                {/* Tùy chọn Máy in Màu */}
-                                <button
-                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                  onClick={() => {
-                                    setSelectedType("Máy in Màu");
-                                    setData(data.filter((item) => item.type === "Máy in Màu")); // Lọc theo Printer
-                                  }}
-                                >
-                                  Máy in Màu
-                                </button>
-
-                                {/* Tùy chọn Máy in Đen trắng */}
-                                <button
-                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                  onClick={() => {
-                                    setSelectedType("Máy in Đen trắng");
-                                    setData(data.filter((item) => item.type === "Máy in Đen trắng")); // Lọc theo Desktop
-                                  }}
-                                >
-                                  Máy in Đen trắng
-                                </button>
-                                {/* Tùy chọn Máy Scan */}
-                                <button
-                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                  onClick={() => {
-                                    setSelectedType("Máy Scan");
-                                    setData(data.filter((item) => item.type === "Máy Scan")); // Lọc theo Desktop
-                                  }}
-                                >
-                                  Máy Scan
-                                </button>
-                                {/* Tùy chọn Máy Scan */}
-                                <button
-                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                  onClick={() => {
-                                    setSelectedType("Máy Photocopier");
-                                    setData(data.filter((item) => item.type === "Máy Photocopier")); // Lọc theo Desktop
-                                  }}
-                                >
-                                  Máy Photocopier
-                                </button>
-                                {/* Tùy chọn Máy Scan */}
-                                <button
-                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                  onClick={() => {
-                                    setSelectedType("Máy đa chức năng");
-                                    setData(data.filter((item) => item.type === "Máy đa chức năng")); // Lọc theo Desktop
-                                  }}
-                                >
-                                  Máy đa chức năng
-                                </button>
+                                {Array.from(new Set(originalData.map((item) => item.type))).map((type) => (
+                                  <button
+                                    key={type}
+                                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                    onClick={() => {
+                                      setSelectedType(type);
+                                      applyFilters({ type });
+                                    }}
+                                  >
+                                    {type}
+                                  </button>
+                                ))}
                               </div>
                             }
                           />
@@ -965,7 +995,7 @@ const PrinterTable = () => {
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
                                     setSelectedDepartment("Tất cả");
-                                    fetchPrinters(); // Hiển thị toàn bộ dữ liệu
+                                    applyFilters({ department: "Tất cả" });
                                   }}
                                 >
                                   Tất cả phòng ban
@@ -984,11 +1014,7 @@ const PrinterTable = () => {
                                     className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                     onClick={() => {
                                       setSelectedDepartment(department);
-                                      setData(
-                                        data.filter((item) =>
-                                          item.assigned.some((user) => user.departmentName === department)
-                                        )
-                                      );
+                                      applyFilters({ department });
                                     }}
                                   >
                                     {department}
@@ -1013,7 +1039,7 @@ const PrinterTable = () => {
                                       className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                       onClick={() => {
                                         setSelectedManufacturer("Tất cả");
-                                        fetchPrinters(); // Lấy lại toàn bộ dữ liệu
+                                        applyFilters({ manufacturer: "Tất cả" });
                                         setShowDropdown(false); // Đóng dropdown
                                       }}
                                     >
@@ -1028,7 +1054,7 @@ const PrinterTable = () => {
                                           className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                           onClick={() => {
                                             setSelectedManufacturer(manufacturer);
-                                            setData(data.filter((item) => item.manufacturer === manufacturer)); // Lọc theo nhà sản xuất
+                                            applyFilters({ manufacturer });
                                             setShowDropdown(false); // Đóng dropdown
                                           }}
                                         >
@@ -1055,7 +1081,7 @@ const PrinterTable = () => {
                                       className="text-left px-4 py-2 hover:bg-[gray-100] rounded-lg"
                                       onClick={() => {
                                         setSelectedYear("Tất cả");
-                                        fetchPrinters(); // Lấy lại toàn bộ dữ liệu
+                                        applyFilters({ releaseYear: "Tất cả" });
                                         setShowDropdown(false); // Đóng dropdown
                                       }}
                                     >
@@ -1071,7 +1097,7 @@ const PrinterTable = () => {
                                           className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                           onClick={() => {
                                             setSelectedYear(year);
-                                            setData(data.filter((item) => item.releaseYear === year)); // Lọc theo năm
+                                            applyFilters({ releaseYear: year });
                                             setShowDropdown(false); // Đóng dropdown
                                           }}
                                         >

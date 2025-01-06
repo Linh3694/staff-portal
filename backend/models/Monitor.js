@@ -34,7 +34,7 @@ const monitorSchema = new mongoose.Schema({
     storage: { type: String },
     display: { type: String }
   },
-});
+},{ timestamps: true });
 
 
 module.exports = mongoose.model("Monitor", monitorSchema);

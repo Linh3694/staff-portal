@@ -8,6 +8,6 @@ const activitySchema = new mongoose.Schema({
   details: { type: String },
   date: { type: Date, required: true, default: Date.now }, // Thời gian mặc định
   updatedBy: { type: String }, // Người thực hiện
-});
+},{ timestamps: true } );
 
 module.exports = mongoose.model('Activity', activitySchema);

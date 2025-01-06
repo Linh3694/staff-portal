@@ -7,16 +7,9 @@ const Notification = require('../models/notification');
 // Lấy danh sách tool
 exports.getTools = async (req, res) => {
   try {
-    const { page = 1, limit = 30 } = req.query; // Nhận tham số phân trang
-    const skip = (page - 1) * limit;
-
-    // Lấy tổng số record để tính tổng số trang
-    const totalRecords = await Tool.countDocuments();
-    const totalPages = Math.ceil(totalRecords / limit);
     // Lấy danh sách tool từ database
     const tools = await Tool.find()
-    .skip(skip)
-    .limit(Number(limit))
+    .sort({ createdAt: -1 })  // sắp xếp giảm dần theo createdAt
     .populate("assigned", "fullname jobTitle department avatarUrl") // Populate thông tin người dùng
     .populate("room", "name location status") // Populate thông tin phòng
     .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl") // Thêm jobTitle
@@ -42,8 +35,6 @@ exports.getTools = async (req, res) => {
     // Trả về danh sách tool đã được populate
     res.status(200).json({
       populatedTools,
-      totalPages,
-      currentPage: Number(page),
     });
   } catch (error) {
     console.error("Error fetching tools:", error.message);

@@ -71,6 +71,8 @@ const ToolTable = () => {
         const [refreshKey, setRefreshKey] = useState(0);
         const [currentPage, setCurrentPage] = useState(1);
         const [totalPages, setTotalPages] = useState(0); 
+        const [originalData, setOriginalData] = useState([]); 
+        const [filteredData, setFilteredData] = useState([]);
   
 
         
@@ -146,49 +148,99 @@ const ToolTable = () => {
           };
 
           // Hàm gọi API để lấy danh sách tools
-          const fetchTools = async (page = 1) => {
+          const fetchTools = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get(`/api/tools?page=${page}&limit=30`, {
+              const response = await axios.get("/api/tools", {
                 headers: { Authorization: `Bearer ${token}` },
               });
+              
+              // response.data.populatedTools là TẤT CẢ tools
+              const rawList = response.data.populatedTools;
+              
+              // Nếu cần map room, assigned:
+              const tools = rawList.map((tool) => ({
+                ...tool,
+                room: tool.room
+                  ? {
+                      label: tool.room.name,
+                      value: tool.room._id,
+                      location: tool.room.location || ["Không xác định"],
+                    }
+                  : { label: "Không xác định", location: ["Không xác định"] },
+                assigned: tool.assigned.map((user) => ({
+                  value: user._id,
+                  label: user.fullname,
+                  departmentName: user.department,
+                })),
+              }));
           
-              // Ghi log để kiểm tra dữ liệu trả về
-              console.log("Dữ liệu API tools:", response.data);
+              // Bỏ setData(...) ban đầu. Thay vào:
+              setOriginalData(tools);       // Lưu tất cả tools
+              setFilteredData(tools);       // Mặc định chưa filter thì = tất cả
+              setTotalPages(Math.ceil(tools.length / 30));
+              setCurrentPage(1);
+              // Hiển thị trước 30 items
+              setData(tools.slice(0, 30));
           
-              // Cập nhật state
-              setData(
-                response.data.populatedTools.map((tool) => ({
-                  ...tool,
-                  room: tool.room
-                    ? {
-                        label: tool.room.name,
-                        value: tool.room._id,
-                        location: tool.room.location || ["Không xác định"],
-                        status: tool.room.status,
-                      }
-                    : { label: "Không xác định", location: ["Không xác định"] },
-                  assigned: Array.isArray(tool.assigned)
-                    ? tool.assigned.map((user) => ({
-                        value: user._id,
-                        label: user.fullname,
-                        departmentName: user.department || "Không xác định",
-                        title: user.jobTitle || "Không xác định",
-                        avatarUrl: user.avatarUrl || "",
-                      }))
-                    : [],
-                }))
-              );
-              setCurrentPage(response.data.currentPage);
-              setTotalPages(response.data.totalPages);
+              console.log("Fetched total tools:", tools.length);
             } catch (error) {
               console.error("Error fetching tools:", error);
             }
           };
 
           useEffect(() => {
-            fetchTools(currentPage);
-          }, [currentPage]);
+            fetchTools();
+          }, []);
+
+          const applyFilters = (filters = {}) => {
+
+            let filtered = [...originalData];  
+        
+            // Lọc theo trạng thái
+            if (filters.status && filters.status !== "Tất cả") {
+                filtered = filtered.filter((item) => item.status === filters.status);
+            }
+        
+            // Lọc theo loại
+            if (filters.type && filters.type !== "Tất cả") {
+                filtered = filtered.filter((item) => item.type === filters.type);
+            }
+        
+            // Lọc theo nhà sản xuất
+            if (filters.manufacturer && filters.manufacturer !== "Tất cả") {
+                filtered = filtered.filter((item) => item.manufacturer === filters.manufacturer);
+            }
+        
+            // Lọc theo năm sản xuất
+            if (filters.releaseYear && filters.releaseYear !== "Tất cả") {
+                filtered = filtered.filter((item) => item.releaseYear === filters.releaseYear);
+            }
+        
+            // Lọc theo phòng ban
+            if (filters.department && filters.department !== "Tất cả") {
+                filtered = filtered.filter((item) =>
+                    item.assigned.some((user) => user.departmentName === filters.department)
+                );
+            }
+            console.log("Dữ liệu sau khi lọc:", filtered);
+  
+            // Cập nhật dữ liệu state
+            setFilteredData(filtered);
+  
+            const newTotalPages = Math.ceil(filtered.length / 30);
+            setTotalPages(newTotalPages);
+            setCurrentPage(1);
+            setData(filtered.slice(0, 30)); // Hiển thị trang đầu (chỉ 30 items)
+          };
+
+          const handlePageChange = (newPage) => {
+            if (newPage < 1 || newPage > totalPages) return;
+            setCurrentPage(newPage);
+            
+            const startIndex = (newPage - 1) * 30;
+            setData(filteredData.slice(startIndex, startIndex + 30));
+          };
 
           // Lấy danh sách users
        
@@ -221,25 +273,7 @@ const ToolTable = () => {
               toast.error("Không thể tải danh sách phòng!");
             }
           };
-          // const renderLocation = (locationArray) => {
-          //   // Nếu room không tồn tại hoặc locationArray không hợp lệ
-          //   if (!locationArray || !Array.isArray(locationArray) || locationArray.length === 0) {
-          //     return ""; 
-          //   }
-          
-          //   const locationString = locationArray[0]; 
-          //   const [building, floor] = locationString.split(", "); 
-          
-          //   if (!building && !floor) {
-          //     return "";
-          //   }
-        
-          //   return `Tòa nhà: ${building} | Tầng: ${floor}`;
-          // };
-
-           // ----------------------------------------------------
-            // Gọi API “thu hồi” (POST /tools/:id/revoke)
-            // ----------------------------------------------------
+         
             const handleRevokeTool = async (toolId, reasons) => {
               try {
                 const token = localStorage.getItem("authToken");
@@ -414,6 +448,14 @@ const ToolTable = () => {
               );
           
               if (response.status === 201) {
+                const newClonedTool = response.data;
+
+                setOriginalData((prevData) => [newClonedTool, ...prevData]);
+                setFilteredData((prevData) => [newClonedTool, ...prevData]);
+                setData((prevData) => [newClonedTool, ...prevData.slice(0, 29)]); // Hiển thị Tool clone ở đầu
+                setTotalPages(Math.ceil((filteredData.length + 1) / 30));
+                setCurrentPage(1);
+                fetchTools(); // Cập nhật lại danh sách
                 toast.success("Nhân bản tool thành công!", {
                   className: "toast-success",
                 });
@@ -528,6 +570,11 @@ const ToolTable = () => {
               });
           
               if (response.status === 201) {
+                setOriginalData((prevData) => [newTool, ...prevData]);
+                setFilteredData((prevData) => [newTool, ...prevData]);
+                setData((prevData) => [newTool, ...prevData.slice(0, 29)]); // Hiển thị Tool mới ở đầu
+                setTotalPages(Math.ceil((filteredData.length + 1) / 30));
+                setCurrentPage(1);
                 toast.success("Thêm tool thành công!",
                   {
                     className: "toast-success",
@@ -763,12 +810,42 @@ const ToolTable = () => {
         fetchData();
       }, []);
 
+      // useEffect #2: Mỗi khi originalData thay đổi, tự cập nhật filteredData, totalPages, data trang đầu
+      useEffect(() => {
+        if (originalData.length > 0) {
+          setFilteredData(originalData);
+          setTotalPages(Math.ceil(originalData.length / 30));
+          setData(originalData.slice(0, 30)); // Chỉ hiển thị 30 items đầu tiên
+          setCurrentPage(1);                 // Reset về trang 1
+        }
+        console.log("Original Data updated:", originalData);
+      }, [originalData]);
+    
+    // useEffect #3: Mỗi khi filteredData hoặc currentPage thay đổi => cắt 30 records hiển thị
+      useEffect(() => {
+        const startIndex = (currentPage - 1) * 30;
+        const paginatedData = filteredData.slice(startIndex, startIndex + 30);
+        setData(paginatedData);
+        console.log("Filtered Data updated:", filteredData);
+      }, [filteredData, currentPage]);;
+
+      // useEffect #4: Nếu đang mở detail (selectedTool), thì tìm Tool mới nhất trong data
       useEffect(() => {
         if (selectedTool) {
-          const updatedTool = data.find((tool) => tool._id === selectedTool._id);
-          if (updatedTool) setSelectedTool(updatedTool); // Đồng bộ dữ liệu mới
+          const updatedTool = data.find(
+            (tool) => tool._id === selectedTool._id
+          );
+          if (updatedTool) setSelectedTool(updatedTool);
         }
       }, [data]);
+      // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
+      useEffect(() => {
+        console.log("Original Data:", originalData);
+        console.log("Filtered Data:", filteredData);
+        console.log("Displayed Data:", data);
+      }, [originalData, filteredData, data]);
+
+      
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -840,7 +917,7 @@ const ToolTable = () => {
                                 className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                 onClick={() => {
                                   setSelectedOption("Tất cả");
-                                  fetchTools(); // Lấy lại toàn bộ dữ liệu
+                                  applyFilters({ status: "Tất cả" });
                                   setShowDropdown(false); // Đóng dropdown
                                 }}
                               >
@@ -860,7 +937,7 @@ const ToolTable = () => {
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
                                     setSelectedOption(option.label);
-                                    setData(data.filter((item) => item.status === option.value)); // Lọc theo trạng thái
+                                    applyFilters({ status: option.value });
                                     setShowDropdown(false); // Đóng dropdown
                                   }}
                                 >
@@ -874,46 +951,31 @@ const ToolTable = () => {
                         <Dropdown
                             button={
                               <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                                {selectedDepartment === "Tất cả"
-                                  ? "Phòng ban: Tất cả phòng ban"
-                                  : `Phòng ban: ${selectedDepartment}`}
+                                {selectedType === "Tất cả" ? "Loại: Tất cả" : `Loại: ${selectedType}`}
                               </button>
                             }
                             children={
                               <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                                {/* Tùy chọn "Tất cả phòng ban" */}
                                 <button
                                   key="all"
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
-                                    setSelectedDepartment("Tất cả");
-                                    fetchTools(); // Hiển thị toàn bộ dữ liệu
+                                    setSelectedType("Tất cả");
+                                    applyFilters({ type: "Tất cả" });
                                   }}
                                 >
-                                  Tất cả phòng ban
+                                  Tất cả
                                 </button>
-
-                                {/* Lọc phòng ban từ cột Người sử dụng */}
-                                {Array.from(
-                                  new Set(
-                                    data.flatMap((item) =>
-                                      item.assigned?.map((user) => user.departmentName || "Unknown")
-                                    )
-                                  )
-                                ).map((department) => (
+                                {Array.from(new Set(originalData.map((item) => item.type))).map((type) => (
                                   <button
-                                    key={department}
+                                    key={type}
                                     className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                     onClick={() => {
-                                      setSelectedDepartment(department);
-                                      setData(
-                                        data.filter((item) =>
-                                          item.assigned.some((user) => user.departmentName === department)
-                                        )
-                                      );
+                                      setSelectedType(type);
+                                      applyFilters({ type });
                                     }}
                                   >
-                                    {department}
+                                    {type}
                                   </button>
                                 ))}
                               </div>
@@ -935,7 +997,7 @@ const ToolTable = () => {
                                       className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                       onClick={() => {
                                         setSelectedManufacturer("Tất cả");
-                                        fetchTools(); // Lấy lại toàn bộ dữ liệu
+                                        applyFilters({ manufacturer: "Tất cả" });
                                         setShowDropdown(false); // Đóng dropdown
                                       }}
                                     >
@@ -950,7 +1012,7 @@ const ToolTable = () => {
                                           className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                           onClick={() => {
                                             setSelectedManufacturer(manufacturer);
-                                            setData(data.filter((item) => item.manufacturer === manufacturer)); // Lọc theo nhà sản xuất
+                                            applyFilters({ manufacturer });
                                             setShowDropdown(false); // Đóng dropdown
                                           }}
                                         >
@@ -977,7 +1039,7 @@ const ToolTable = () => {
                                       className="text-left px-4 py-2 hover:bg-[gray-100] rounded-lg"
                                       onClick={() => {
                                         setSelectedYear("Tất cả");
-                                        fetchTools(); // Lấy lại toàn bộ dữ liệu
+                                        applyFilters({ releaseYear: "Tất cả" });
                                         setShowDropdown(false); // Đóng dropdown
                                       }}
                                     >
@@ -993,7 +1055,7 @@ const ToolTable = () => {
                                           className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                           onClick={() => {
                                             setSelectedYear(year);
-                                            setData(data.filter((item) => item.releaseYear === year)); // Lọc theo năm
+                                            applyFilters({ releaseYear: year });
                                             setShowDropdown(false); // Đóng dropdown
                                           }}
                                         >
@@ -1143,13 +1205,10 @@ const ToolTable = () => {
     </table>
     {/* Phân trang */}
     <div className="flex justify-end items-center mt-4">
-      <button
+    <button
         disabled={currentPage === 1}
-        onClick={() => {
-          const newPage = currentPage - 1;
-          fetchTools(newPage);
-        }}
-        className="px-3 py-1 bg-[#FF5733] text-white text-sm font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
+        onClick={() => handlePageChange(currentPage - 1)}
+        className="px-3 py-1 bg-[#FF5733] text-white text-sm  font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
       >
         Trước
       </button>
@@ -1158,10 +1217,7 @@ const ToolTable = () => {
       </span>
       <button
         disabled={currentPage === totalPages}
-        onClick={() => {
-          const newPage = currentPage + 1;
-          fetchTools(newPage);
-        }}
+        onClick={() => handlePageChange(currentPage + 1)}
         className="px-3 py-1 bg-[#FF5733] text-white text-sm font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
       >
         Sau

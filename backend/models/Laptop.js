@@ -36,7 +36,7 @@ const laptopSchema = new mongoose.Schema({
     display: { type: String }
   },
   
-});
+},{ timestamps: true });
 
 
 

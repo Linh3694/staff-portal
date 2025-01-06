@@ -35,7 +35,7 @@ const printerSchema = new mongoose.Schema({
     storage: { type: String },
     display: { type: String }
   },
-});
+}, { timestamps: true });
 
 
 module.exports = mongoose.model("Printer", printerSchema);

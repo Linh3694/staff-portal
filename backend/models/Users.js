@@ -65,7 +65,7 @@ const userSchema = new mongoose.Schema({
         createdAt: { type: Date, default: Date.now },
       },
     ]
-});
+}, { timestamps: true });
 
 
 

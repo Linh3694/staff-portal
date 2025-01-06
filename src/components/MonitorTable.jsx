@@ -73,6 +73,8 @@ const MonitorTable = () => {
         const [refreshKey, setRefreshKey] = useState(0);
         const [currentPage, setCurrentPage] = useState(1);
         const [totalPages, setTotalPages] = useState(0); 
+        const [originalData, setOriginalData] = useState([]); 
+        const [filteredData, setFilteredData] = useState([]);
   
 
         
@@ -114,9 +116,6 @@ const MonitorTable = () => {
             setShowDetailModal(true);
           };
 
-          const handleRefreshData = async () => {
-            await fetchMonitors(); // Làm mới danh sách nếu cần
-          };
           
 
           const fetchUsers = async () => {
@@ -148,52 +147,95 @@ const MonitorTable = () => {
           };
 
           // Hàm gọi API để lấy danh sách monitors
-          const fetchMonitors = async (page = 1) => {
+          const fetchMonitors = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get(`/api/monitors?page=${page}&limit=30`, {
+              const response = await axios.get("/api/monitors", {
                 headers: { Authorization: `Bearer ${token}` },
               });
+              
+              // response.data.populatedMonitors là TẤT CẢ monitors
+              const rawList = response.data.populatedMonitors;
+              
+              // Nếu cần map room, assigned:
+              const monitors = rawList.map((monitor) => ({
+                ...monitor,
+                room: monitor.room
+                  ? {
+                      label: monitor.room.name,
+                      value: monitor.room._id,
+                      location: monitor.room.location || ["Không xác định"],
+                    }
+                  : { label: "Không xác định", location: ["Không xác định"] },
+                assigned: monitor.assigned.map((user) => ({
+                  value: user._id,
+                  label: user.fullname,
+                  departmentName: user.department,
+                })),
+              }));
           
-              // Ghi log để kiểm tra dữ liệu trả về
-              console.log("Dữ liệu API monitors:", response.data);
+              // Bỏ setData(...) ban đầu. Thay vào:
+              setOriginalData(monitors);       // Lưu tất cả monitors
+              setFilteredData(monitors);       // Mặc định chưa filter thì = tất cả
+              setTotalPages(Math.ceil(monitors.length / 30));
+              setCurrentPage(1);
+              // Hiển thị trước 30 items
+              setData(monitors.slice(0, 30));
           
-              // Cập nhật state
-              setData(
-                response.data.populatedMonitors.map((monitor) => ({
-                  ...monitor,
-                  room: monitor.room
-                    ? {
-                        label: monitor.room.name,
-                        value: monitor.room._id,
-                        location: monitor.room.location || ["Không xác định"],
-                        status: monitor.room.status,
-                      }
-                    : { label: "Không xác định", location: ["Không xác định"] },
-                  assigned: Array.isArray(monitor.assigned)
-                    ? monitor.assigned.map((user) => ({
-                        value: user._id,
-                        label: user.fullname,
-                        departmentName: user.department || "Không xác định",
-                        title: user.jobTitle || "Không xác định",
-                        avatarUrl: user.avatarUrl || "",
-                      }))
-                    : [],
-                }))
-              );
-              setCurrentPage(response.data.currentPage);
-              setTotalPages(response.data.totalPages);
+              console.log("Fetched total monitors:", monitors.length);
             } catch (error) {
               console.error("Error fetching monitors:", error);
             }
           };
 
           useEffect(() => {
-            fetchMonitors(currentPage);
-          }, [currentPage]);
-          // Lấy danh sách users
+            fetchMonitors();
+          }, []);
        
-          
+          const applyFilters = (filters = {}) => {
+
+            let filtered = [...originalData];  
+        
+            // Lọc theo trạng thái
+            if (filters.status && filters.status !== "Tất cả") {
+                filtered = filtered.filter((item) => item.status === filters.status);
+            }
+        
+            // Lọc theo nhà sản xuất
+            if (filters.manufacturer && filters.manufacturer !== "Tất cả") {
+                filtered = filtered.filter((item) => item.manufacturer === filters.manufacturer);
+            }
+        
+            // Lọc theo năm sản xuất
+            if (filters.releaseYear && filters.releaseYear !== "Tất cả") {
+                filtered = filtered.filter((item) => item.releaseYear === filters.releaseYear);
+            }
+        
+            // Lọc theo phòng ban
+            if (filters.department && filters.department !== "Tất cả") {
+                filtered = filtered.filter((item) =>
+                    item.assigned.some((user) => user.departmentName === filters.department)
+                );
+            }
+            console.log("Dữ liệu sau khi lọc:", filtered);
+  
+            // Cập nhật dữ liệu state
+            setFilteredData(filtered);
+  
+            const newTotalPages = Math.ceil(filtered.length / 30);
+            setTotalPages(newTotalPages);
+            setCurrentPage(1);
+            setData(filtered.slice(0, 30)); // Hiển thị trang đầu (chỉ 30 items)
+          };
+  
+          const handlePageChange = (newPage) => {
+            if (newPage < 1 || newPage > totalPages) return;
+            setCurrentPage(newPage);
+            
+            const startIndex = (newPage - 1) * 30;
+            setData(filteredData.slice(startIndex, startIndex + 30));
+          };
+
           const fetchRooms = async () => {
             try {
               const token = localStorage.getItem("authToken");
@@ -222,25 +264,7 @@ const MonitorTable = () => {
               toast.error("Không thể tải danh sách phòng!");
             }
           };
-          // const renderLocation = (locationArray) => {
-          //   // Nếu room không tồn tại hoặc locationArray không hợp lệ
-          //   if (!locationArray || !Array.isArray(locationArray) || locationArray.length === 0) {
-          //     return ""; 
-          //   }
-          
-          //   const locationString = locationArray[0]; 
-          //   const [building, floor] = locationString.split(", "); 
-          
-          //   if (!building && !floor) {
-          //     return "";
-          //   }
-        
-          //   return `Tòa nhà: ${building} | Tầng: ${floor}`;
-          // };
 
-           // ----------------------------------------------------
-            // Gọi API “thu hồi” (POST /monitors/:id/revoke)
-            // ----------------------------------------------------
             const handleRevokeMonitor = async (monitorId, reasons) => {
               try {
                 const token = localStorage.getItem("authToken");
@@ -415,10 +439,17 @@ const MonitorTable = () => {
               );
           
               if (response.status === 201) {
+                const newClonedMonitor = response.data;
+                // Đưa monitor clone lên đầu danh sách
+                setOriginalData((prevData) => [newClonedMonitor, ...prevData]);
+                setFilteredData((prevData) => [newClonedMonitor, ...prevData]);
+                setData((prevData) => [newClonedMonitor, ...prevData.slice(0, 29)]); // Hiển thị monitor clone ở đầu
+                setTotalPages(Math.ceil((filteredData.length + 1) / 30));
+                setCurrentPage(1);
+                fetchMonitors(); // Cập nhật lại danh sách
                 toast.success("Nhân bản monitor thành công!", {
                   className: "toast-success",
                 });
-                fetchMonitors(); // Cập nhật lại danh sách
               }
             } catch (error) {
               console.error("Error cloning monitor:", error);
@@ -529,15 +560,19 @@ const MonitorTable = () => {
               });
           
               if (response.status === 201) {
+                setOriginalData((prevData) => [newMonitor, ...prevData]);
+                setFilteredData((prevData) => [newMonitor, ...prevData]);
+                setData((prevData) => [newMonitor, ...prevData.slice(0, 29)]); // Hiển thị monitor mới ở đầu
+                setTotalPages(Math.ceil((filteredData.length + 1) / 30));
+                setCurrentPage(1);
+                fetchMonitors(); // Cập nhật lại danh sách
                 toast.success("Thêm monitor thành công!",
                   {
                     className: "toast-success",
                     progressClassName: "Toastify__progress-bar",
                   }
                 );
-                
-                // Cập nhật danh sách monitors và đóng modal
-                fetchMonitors();
+ 
                 setShowAddModal(false);
                 setNewMonitor({
                   name: "",
@@ -754,22 +789,51 @@ const MonitorTable = () => {
           }
       };
 
+      // useEffect #1: fetch toàn bộ dữ liệu
       useEffect(() => {
         const fetchData = async () => {
-          await fetchMonitors();
-          await fetchUsers();
-          await fetchRooms();
+          await fetchMonitors();   // Lấy toàn bộ monitors => setOriginalData(...)
+          await fetchUsers();     // Lấy toàn bộ user => setUsers(...)
+          await fetchRooms();     // Lấy toàn bộ room => setRooms(...)
         };
-      
+
         fetchData();
       }, []);
 
+      // useEffect #2: Mỗi khi originalData thay đổi, tự cập nhật filteredData, totalPages, data trang đầu
+      useEffect(() => {
+        if (originalData.length > 0) {
+          setFilteredData(originalData);
+          setTotalPages(Math.ceil(originalData.length / 30));
+          setData(originalData.slice(0, 30)); // Chỉ hiển thị 30 items đầu tiên
+          setCurrentPage(1);                 // Reset về trang 1
+        }
+        console.log("Original Data updated:", originalData);
+      }, [originalData]);
+    
+    // useEffect #3: Mỗi khi filteredData hoặc currentPage thay đổi => cắt 30 records hiển thị
+      useEffect(() => {
+        const startIndex = (currentPage - 1) * 30;
+        const paginatedData = filteredData.slice(startIndex, startIndex + 30);
+        setData(paginatedData);
+        console.log("Filtered Data updated:", filteredData);
+      }, [filteredData, currentPage]);;
+
+      // useEffect #4: Nếu đang mở detail (selectedMonitor), thì tìm monitor mới nhất trong data
       useEffect(() => {
         if (selectedMonitor) {
-          const updatedMonitor = data.find((monitor) => monitor._id === selectedMonitor._id);
-          if (updatedMonitor) setSelectedMonitor(updatedMonitor); // Đồng bộ dữ liệu mới
+          const updatedMonitor = data.find(
+            (monitor) => monitor._id === selectedMonitor._id
+          );
+          if (updatedMonitor) setSelectedMonitor(updatedMonitor);
         }
       }, [data]);
+      // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
+      useEffect(() => {
+        console.log("Original Data:", originalData);
+        console.log("Filtered Data:", filteredData);
+        console.log("Displayed Data:", data);
+      }, [originalData, filteredData, data]);
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -841,7 +905,7 @@ const MonitorTable = () => {
                                 className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                 onClick={() => {
                                   setSelectedOption("Tất cả");
-                                  fetchMonitors(); // Lấy lại toàn bộ dữ liệu
+                                  applyFilters({ status: "Tất cả" });
                                   setShowDropdown(false); // Đóng dropdown
                                 }}
                               >
@@ -861,8 +925,7 @@ const MonitorTable = () => {
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
                                     setSelectedOption(option.label);
-                                    setData(data.filter((item) => item.status === option.value)); // Lọc theo trạng thái
-                                    setShowDropdown(false); // Đóng dropdown
+                                    applyFilters({ status: option.value });                                    setShowDropdown(false); // Đóng dropdown
                                   }}
                                 >
                                   {option.label}
@@ -888,7 +951,7 @@ const MonitorTable = () => {
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
                                     setSelectedDepartment("Tất cả");
-                                    fetchMonitors(); // Hiển thị toàn bộ dữ liệu
+                                    applyFilters({ type: "Tất cả" });
                                   }}
                                 >
                                   Tất cả phòng ban
@@ -907,11 +970,7 @@ const MonitorTable = () => {
                                     className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                     onClick={() => {
                                       setSelectedDepartment(department);
-                                      setData(
-                                        data.filter((item) =>
-                                          item.assigned.some((user) => user.departmentName === department)
-                                        )
-                                      );
+                                      applyFilters({ department });
                                     }}
                                   >
                                     {department}
@@ -936,7 +995,7 @@ const MonitorTable = () => {
                                       className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                       onClick={() => {
                                         setSelectedManufacturer("Tất cả");
-                                        fetchMonitors(); // Lấy lại toàn bộ dữ liệu
+                                        applyFilters({ manufacturer: "Tất cả" });
                                         setShowDropdown(false); // Đóng dropdown
                                       }}
                                     >
@@ -951,7 +1010,7 @@ const MonitorTable = () => {
                                           className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                           onClick={() => {
                                             setSelectedManufacturer(manufacturer);
-                                            setData(data.filter((item) => item.manufacturer === manufacturer)); // Lọc theo nhà sản xuất
+                                            applyFilters({ manufacturer });
                                             setShowDropdown(false); // Đóng dropdown
                                           }}
                                         >
@@ -978,7 +1037,7 @@ const MonitorTable = () => {
                                       className="text-left px-4 py-2 hover:bg-[gray-100] rounded-lg"
                                       onClick={() => {
                                         setSelectedYear("Tất cả");
-                                        fetchMonitors(); // Lấy lại toàn bộ dữ liệu
+                                        applyFilters({ releaseYear: "Tất cả" });
                                         setShowDropdown(false); // Đóng dropdown
                                       }}
                                     >
@@ -994,7 +1053,7 @@ const MonitorTable = () => {
                                           className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                           onClick={() => {
                                             setSelectedYear(year);
-                                            setData(data.filter((item) => item.releaseYear === year)); // Lọc theo năm
+                                            applyFilters({ releaseYear: year });
                                             setShowDropdown(false); // Đóng dropdown
                                           }}
                                         >
@@ -1144,12 +1203,9 @@ const MonitorTable = () => {
     </table>
     {/* Phân trang */}
     <div className="flex justify-end items-center mt-4">
-      <button
+    <button
         disabled={currentPage === 1}
-        onClick={() => {
-          const newPage = currentPage - 1;
-          fetchMonitors(newPage);
-        }}
+        onClick={() => handlePageChange(currentPage - 1)}
         className="px-3 py-1 bg-[#FF5733] text-white text-sm  font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
       >
         Trước
@@ -1159,11 +1215,8 @@ const MonitorTable = () => {
       </span>
       <button
         disabled={currentPage === totalPages}
-        onClick={() => {
-          const newPage = currentPage + 1;
-          fetchMonitors(newPage);
-        }}
-        className="px-3 py-1 bg-[#FF5733] text-white text-sm  font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
+        onClick={() => handlePageChange(currentPage + 1)}
+        className="px-3 py-1 bg-[#FF5733] text-white text-sm font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
       >
         Sau
       </button>

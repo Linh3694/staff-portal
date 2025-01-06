@@ -25,7 +25,7 @@ const RoomSchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  { versionKey: false }
+  { versionKey: false }, { timestamps: true }
 );
 
 module.exports = mongoose.model("Room", RoomSchema);

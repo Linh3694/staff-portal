@@ -6,51 +6,42 @@ const Notification = require('../models/notification');
 
 // Lấy danh sách monitor
 exports.getMonitors = async (req, res) => {
-  try {
-    const { page = 1, limit = 30 } = req.query; // Nhận tham số phân trang
-    const skip = (page - 1) * limit;
-
-    // Lấy tổng số record để tính tổng số trang
-    const totalRecords = await Monitor.countDocuments();
-    const totalPages = Math.ceil(totalRecords / limit);
-
-    // Lấy danh sách monitor từ database
-    const monitors = await Monitor.find()
-    .skip(skip)
-    .limit(Number(limit))
-    .populate("assigned", "fullname jobTitle department avatarUrl") // Populate thông tin người dùng
-    .populate("room", "name location status") // Populate thông tin phòng
-    .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl") // Thêm jobTitle
-    .populate("assignmentHistory.assignedBy", "fullname email title") // Populate thông tin assignedBy
-    .populate("assignmentHistory.revokedBy", "fullname email") // Populate thông tin revokedBy
-    .lean(); // Sử dụng `.lean()` để trả về plain objects
-    console.log(monitors);
-
-    // Gắn thông tin "assigned" vào từng monitor
-    const populatedMonitors = monitors.map((monitor) => ({
-      ...monitor,
-      assigned: monitor.assigned || [], // Dữ liệu từ populate đã có
-      room: monitor.room
-  ? {
-      ...monitor.room,
-      location: monitor.room.location?.map(
-        (loc) => `${loc.building}, tầng ${loc.floor}`
-      ) || ["Không xác định"],
+    try {
+      const monitors = await Monitor.find()
+        .sort({ createdAt: -1 })  // sắp xếp giảm dần theo createdAt
+        .populate("assigned", "fullname jobTitle department avatarUrl")
+        .populate("room", "name location status")
+        .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl")
+        .populate("assignmentHistory.assignedBy", "fullname email title")
+        .populate("assignmentHistory.revokedBy", "fullname email")
+        .lean();
+  
+      // Nếu vẫn muốn reshape (thêm field `location` dạng string), bạn làm như cũ:
+      const populatedMonitors = monitors.map((monitor) => ({
+        ...monitor,
+        room: monitor.room
+          ? {
+              ...monitor.room,
+              location:
+                monitor.room.location?.map(
+                  (loc) => `${loc.building}, tầng ${loc.floor}`
+                ) || ["Không xác định"],
+            }
+          : { name: "Không xác định", location: ["Không xác định"] },
+      }));
+  
+      // Trả về *toàn bộ* mà không kèm totalPages/currentPage
+      return res.status(200).json({
+        populatedMonitors,
+      });
+    } catch (error) {
+      console.error("Error fetching monitors:", error.message);
+      return res.status(500).json({
+        message: "Error fetching monitors",
+        error: error.message,
+      });
     }
-  : { name: "Không xác định", location: ["Không xác định"] }, // Gắn giá trị mặc định nếu room null
-    }));
-
-    // Trả về danh sách monitor đã được populate
-    res.status(200).json({
-      populatedMonitors,
-      totalPages,
-      currentPage: Number(page),
-    });
-  } catch (error) {
-    console.error("Error fetching monitors:", error.message);
-    res.status(500).json({ message: "Error fetching monitors", error: error.message });
-  }
-};
+  };
 
 // Thêm mới monitor
 exports.createMonitor = async (req, res) => {

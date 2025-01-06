@@ -59,7 +59,8 @@ const ProjectorTable = () => {
         const [refreshKey, setRefreshKey] = useState(0);
         const [currentPage, setCurrentPage] = useState(1);
         const [totalPages, setTotalPages] = useState(0); 
-  
+        const [originalData, setOriginalData] = useState([]); 
+        const [filteredData, setFilteredData] = useState([]);
 
         
         const statusLabels = {
@@ -105,50 +106,100 @@ const ProjectorTable = () => {
             }
           };
 
-          // Hàm gọi API để lấy danh sách projectors
-          const fetchProjectors = async (page = 1) => {
+          const fetchProjectors = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get(`/api/projectors?page=${page}&limit=30`, {
+              const response = await axios.get("/api/projectors", {
                 headers: { Authorization: `Bearer ${token}` },
               });
+              
+              // response.data.populatedProjectors là TẤT CẢ projectors
+              const rawList = response.data.populatedProjectors;
+              
+              // Nếu cần map room, assigned:
+              const projectors = rawList.map((projector) => ({
+                ...projector,
+                room: projector.room
+                  ? {
+                      label: projector.room.name,
+                      value: projector.room._id,
+                      location: projector.room.location || ["Không xác định"],
+                    }
+                  : { label: "Không xác định", location: ["Không xác định"] },
+                assigned: projector.assigned.map((user) => ({
+                  value: user._id,
+                  label: user.fullname,
+                  departmentName: user.department,
+                })),
+              }));
           
-              // Ghi log để kiểm tra dữ liệu trả về
-              console.log("Dữ liệu API projectors:", response.data);
+              // Bỏ setData(...) ban đầu. Thay vào:
+              setOriginalData(projectors);       // Lưu tất cả projectors
+              setFilteredData(projectors);       // Mặc định chưa filter thì = tất cả
+              setTotalPages(Math.ceil(projectors.length / 30));
+              setCurrentPage(1);
+              // Hiển thị trước 30 items
+              setData(projectors.slice(0, 30));
           
-              // Cập nhật state
-              setData(
-                response.data.populatedProjectors.map((projector) => ({
-                  ...projector,
-                  room: projector.room
-                    ? {
-                        label: projector.room.name,
-                        value: projector.room._id,
-                        location: projector.room.location || ["Không xác định"],
-                        status: projector.room.status,
-                      }
-                    : { label: "Không xác định", location: ["Không xác định"] },
-                  assigned: Array.isArray(projector.assigned)
-                    ? projector.assigned.map((user) => ({
-                        value: user._id,
-                        label: user.fullname,
-                        departmentName: user.department || "Không xác định",
-                        title: user.jobTitle || "Không xác định",
-                        avatarUrl: user.avatarUrl || "",
-                      }))
-                    : [],
-                }))
-              );
-              setCurrentPage(response.data.currentPage);
-              setTotalPages(response.data.totalPages);
+              console.log("Fetched total projectors:", projectors.length);
             } catch (error) {
               console.error("Error fetching projectors:", error);
             }
           };
 
           useEffect(() => {
-            fetchProjectors(currentPage);
-          }, [currentPage]);
+            fetchProjectors();
+          }, []);
+
+          
+          const applyFilters = (filters = {}) => {
+
+            let filtered = [...originalData];  
+        
+            // Lọc theo trạng thái
+            if (filters.status && filters.status !== "Tất cả") {
+                filtered = filtered.filter((item) => item.status === filters.status);
+            }
+        
+            // Lọc theo loại
+            if (filters.type && filters.type !== "Tất cả") {
+                filtered = filtered.filter((item) => item.type === filters.type);
+            }
+        
+            // Lọc theo nhà sản xuất
+            if (filters.manufacturer && filters.manufacturer !== "Tất cả") {
+                filtered = filtered.filter((item) => item.manufacturer === filters.manufacturer);
+            }
+        
+            // Lọc theo năm sản xuất
+            if (filters.releaseYear && filters.releaseYear !== "Tất cả") {
+                filtered = filtered.filter((item) => item.releaseYear === filters.releaseYear);
+            }
+        
+            // Lọc theo phòng ban
+            if (filters.department && filters.department !== "Tất cả") {
+                filtered = filtered.filter((item) =>
+                    item.assigned.some((user) => user.departmentName === filters.department)
+                );
+            }
+            console.log("Dữ liệu sau khi lọc:", filtered);
+  
+            // Cập nhật dữ liệu state
+            setFilteredData(filtered);
+  
+            const newTotalPages = Math.ceil(filtered.length / 30);
+            setTotalPages(newTotalPages);
+            setCurrentPage(1);
+            setData(filtered.slice(0, 30)); // Hiển thị trang đầu (chỉ 30 items)
+          };
+  
+          const handlePageChange = (newPage) => {
+            if (newPage < 1 || newPage > totalPages) return;
+            setCurrentPage(newPage);
+            
+            const startIndex = (newPage - 1) * 30;
+            setData(filteredData.slice(startIndex, startIndex + 30));
+          };
 
           // Lấy danh sách users
        
@@ -398,10 +449,17 @@ const ProjectorTable = () => {
               );
           
               if (response.status === 201) {
+                const newClonedProjector = response.data;
+                // Đưa projector clone lên đầu danh sách
+                setOriginalData((prevData) => [newClonedProjector, ...prevData]);
+                setFilteredData((prevData) => [newClonedProjector, ...prevData]);
+                setData((prevData) => [newClonedProjector, ...prevData.slice(0, 29)]); // Hiển thị projector clone ở đầu
+                setTotalPages(Math.ceil((filteredData.length + 1) / 30));
+                setCurrentPage(1);
+                fetchProjectors(); // Cập nhật lại danh sách
                 toast.success("Nhân bản projector thành công!", {
                   className: "toast-success",
                 });
-                fetchProjectors(); // Cập nhật lại danh sách
               }
             } catch (error) {
               console.error("Error cloning projector:", error);
@@ -506,6 +564,12 @@ const ProjectorTable = () => {
               });
           
               if (response.status === 201) {
+                setOriginalData((prevData) => [newProjector, ...prevData]);
+                setFilteredData((prevData) => [newProjector, ...prevData]);
+                setData((prevData) => [newProjector, ...prevData.slice(0, 29)]); // Hiển thị projector mới ở đầu
+                setTotalPages(Math.ceil((filteredData.length + 1) / 30));
+                setCurrentPage(1);
+                fetchProjectors(); // Cập nhật lại danh sách
                 toast.success("Thêm projector thành công!",
                   {
                     className: "toast-success",
@@ -717,22 +781,51 @@ const ProjectorTable = () => {
           }
       };
 
+      // useEffect #1: fetch toàn bộ dữ liệu
       useEffect(() => {
         const fetchData = async () => {
-          await fetchProjectors();
-          await fetchUsers();
-          await fetchRooms();
+          await fetchProjectors();   // Lấy toàn bộ projectors => setOriginalData(...)
+          await fetchUsers();     // Lấy toàn bộ user => setUsers(...)
+          await fetchRooms();     // Lấy toàn bộ room => setRooms(...)
         };
-      
+
         fetchData();
       }, []);
 
+      // useEffect #2: Mỗi khi originalData thay đổi, tự cập nhật filteredData, totalPages, data trang đầu
+      useEffect(() => {
+        if (originalData.length > 0) {
+          setFilteredData(originalData);
+          setTotalPages(Math.ceil(originalData.length / 30));
+          setData(originalData.slice(0, 30)); // Chỉ hiển thị 30 items đầu tiên
+          setCurrentPage(1);                 // Reset về trang 1
+        }
+        console.log("Original Data updated:", originalData);
+      }, [originalData]);
+    
+    // useEffect #3: Mỗi khi filteredData hoặc currentPage thay đổi => cắt 30 records hiển thị
+      useEffect(() => {
+        const startIndex = (currentPage - 1) * 30;
+        const paginatedData = filteredData.slice(startIndex, startIndex + 30);
+        setData(paginatedData);
+        console.log("Filtered Data updated:", filteredData);
+      }, [filteredData, currentPage]);;
+
+      // useEffect #4: Nếu đang mở detail (selectedProjector), thì tìm projector mới nhất trong data
       useEffect(() => {
         if (selectedProjector) {
-          const updatedProjector = data.find((projector) => projector._id === selectedProjector._id);
-          if (updatedProjector) setSelectedProjector(updatedProjector); // Đồng bộ dữ liệu mới
+          const updatedProjector = data.find(
+            (projector) => projector._id === selectedProjector._id
+          );
+          if (updatedProjector) setSelectedProjector(updatedProjector);
         }
       }, [data]);
+      // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
+      useEffect(() => {
+        console.log("Original Data:", originalData);
+        console.log("Filtered Data:", filteredData);
+        console.log("Displayed Data:", data);
+      }, [originalData, filteredData, data]);
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -804,7 +897,7 @@ const ProjectorTable = () => {
                                 className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                 onClick={() => {
                                   setSelectedOption("Tất cả");
-                                  fetchProjectors(); // Lấy lại toàn bộ dữ liệu
+                                  applyFilters({ status: "Tất cả" });
                                   setShowDropdown(false); // Đóng dropdown
                                 }}
                               >
@@ -824,7 +917,7 @@ const ProjectorTable = () => {
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
                                     setSelectedOption(option.label);
-                                    setData(data.filter((item) => item.status === option.value)); // Lọc theo trạng thái
+                                    applyFilters({ status: option.value });
                                     setShowDropdown(false); // Đóng dropdown
                                   }}
                                 >
@@ -834,57 +927,36 @@ const ProjectorTable = () => {
                             </div>
                           }
                         />
-                        <Dropdown
+                         <Dropdown
                             button={
                               <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                                {selectedType === "Tất cả" 
-                                ? "Loại: Tất cả" 
-                                : `Loại: ${selectedType}`}
+                                {selectedType === "Tất cả" ? "Loại: Tất cả" : `Loại: ${selectedType}`}
                               </button>
                             }
                             children={
                               <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                                {/* Tùy chọn Tất cả */}
                                 <button
+                                  key="all"
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
                                     setSelectedType("Tất cả");
-                                    fetchProjectors(); // Hiển thị toàn bộ dữ liệu
+                                    applyFilters({ type: "Tất cả" });
                                   }}
                                 >
                                   Tất cả
                                 </button>
-
-                                {/* Tùy chọn Máy chiếu */}
-                                <button
-                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                  onClick={() => {
-                                    setSelectedType("Máy chiếu");
-                                    setData(data.filter((item) => item.type === "Máy chiếu")); // Lọc theo Projector
-                                  }}
-                                >
-                                  Máy chiếu
-                                </button>
-
-                                {/* Tùy chọn Tivi */}
-                                <button
-                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                  onClick={() => {
-                                    setSelectedType("Tivi");
-                                    setData(data.filter((item) => item.type === "Tivi")); // Lọc theo Tivi
-                                  }}
-                                >
-                                  Tivi
-                                </button>
-                                <button
-                                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                                  onClick={() => {
-                                    setSelectedType("Màn hình tương tác");
-                                    setData(data.filter((item) => item.type === "Màn hình tương tác")); // Lọc theo Màn hình tương tác
-                                  }}
-                                >
-                                  Màn hình tương tác
-                                </button>
+                                {Array.from(new Set(originalData.map((item) => item.type))).map((type) => (
+                                  <button
+                                    key={type}
+                                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                                    onClick={() => {
+                                      setSelectedType(type);
+                                      applyFilters({ type });
+                                    }}
+                                  >
+                                    {type}
+                                  </button>
+                                ))}
                               </div>
                             }
                           />
@@ -904,7 +976,7 @@ const ProjectorTable = () => {
                                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                   onClick={() => {
                                     setSelectedDepartment("Tất cả");
-                                    fetchProjectors(); // Hiển thị toàn bộ dữ liệu
+                                    applyFilters({ department: "Tất cả" });
                                   }}
                                 >
                                   Tất cả phòng ban
@@ -923,11 +995,8 @@ const ProjectorTable = () => {
                                     className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                     onClick={() => {
                                       setSelectedDepartment(department);
-                                      setData(
-                                        data.filter((item) =>
-                                          item.assigned.some((user) => user.departmentName === department)
-                                        )
-                                      );
+                                      applyFilters({ department });
+
                                     }}
                                   >
                                     {department}
@@ -952,7 +1021,7 @@ const ProjectorTable = () => {
                                       className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                       onClick={() => {
                                         setSelectedManufacturer("Tất cả");
-                                        fetchProjectors(); // Lấy lại toàn bộ dữ liệu
+                                        applyFilters({ manufacturer: "Tất cả" });
                                         setShowDropdown(false); // Đóng dropdown
                                       }}
                                     >
@@ -967,7 +1036,7 @@ const ProjectorTable = () => {
                                           className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                           onClick={() => {
                                             setSelectedManufacturer(manufacturer);
-                                            setData(data.filter((item) => item.manufacturer === manufacturer)); // Lọc theo nhà sản xuất
+                                            applyFilters({ manufacturer });
                                             setShowDropdown(false); // Đóng dropdown
                                           }}
                                         >
@@ -994,7 +1063,7 @@ const ProjectorTable = () => {
                                       className="text-left px-4 py-2 hover:bg-[gray-100] rounded-lg"
                                       onClick={() => {
                                         setSelectedYear("Tất cả");
-                                        fetchProjectors(); // Lấy lại toàn bộ dữ liệu
+                                        applyFilters({ releaseYear: "Tất cả" });
                                         setShowDropdown(false); // Đóng dropdown
                                       }}
                                     >
@@ -1010,7 +1079,7 @@ const ProjectorTable = () => {
                                           className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                                           onClick={() => {
                                             setSelectedYear(year);
-                                            setData(data.filter((item) => item.releaseYear === year)); // Lọc theo năm
+                                            applyFilters({ releaseYear: year });
                                             setShowDropdown(false); // Đóng dropdown
                                           }}
                                         >
@@ -1167,12 +1236,9 @@ const ProjectorTable = () => {
     </table>
     {/* Phân trang */}
     <div className="flex justify-end items-center mt-4">
-      <button
+    <button
         disabled={currentPage === 1}
-        onClick={() => {
-          const newPage = currentPage - 1;
-          fetchProjectors(newPage);
-        }}
+        onClick={() => handlePageChange(currentPage - 1)}
         className="px-3 py-1 bg-[#FF5733] text-white text-sm  font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
       >
         Trước
@@ -1182,11 +1248,8 @@ const ProjectorTable = () => {
       </span>
       <button
         disabled={currentPage === totalPages}
-        onClick={() => {
-          const newPage = currentPage + 1;
-          fetchProjectors(newPage);
-        }}
-        className="px-3 py-1 bg-[#FF5733] text-white text-sm  font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
+        onClick={() => handlePageChange(currentPage + 1)}
+        className="px-3 py-1 bg-[#FF5733] text-white text-sm font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
       >
         Sau
       </button>
