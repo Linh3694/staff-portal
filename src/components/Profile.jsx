@@ -30,7 +30,7 @@ const Profile = ({
     formData.append("avatar", file);
 
     try {
-      const response = await fetch(`http://localhost:5001/api/users/${currentUser.id}/avatar`, {
+      const response = await fetch(`/api/users/${currentUser.id}/avatar`, {
         method: "PUT",
         body: formData,
       });

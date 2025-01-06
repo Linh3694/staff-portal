@@ -90,7 +90,7 @@ const MonitorTable = () => {
         const handleUpdateSpecs = (monitorId, updatedSpecs) => {
           const token = localStorage.getItem("authToken");
           return axios
-            .put(`http://localhost:5001/api/monitors/${monitorId}/specs`, updatedSpecs, {
+            .put(`/api/monitors/${monitorId}/specs`, updatedSpecs, {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
@@ -123,7 +123,7 @@ const MonitorTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/users", {
+              const response = await axios.get("/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -152,7 +152,7 @@ const MonitorTable = () => {
           const fetchMonitors = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/monitors", {
+              const response = await axios.get("/api/monitors", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               
@@ -241,7 +241,7 @@ const MonitorTable = () => {
           const fetchRooms = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/rooms", {
+              const response = await axios.get("/api/rooms", {
                 headers: { Authorization: `Bearer ${token}` },
               });
           
@@ -271,7 +271,7 @@ const MonitorTable = () => {
               try {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
-                const response = await fetch(`http://localhost:5001/api/monitors/${monitorId}/revoke`, {
+                const response = await fetch(`/api/monitors/${monitorId}/revoke`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -307,7 +307,7 @@ const MonitorTable = () => {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser"));
             
-                const response = await fetch(`http://localhost:5001/api/monitors/${monitorId}/assign`, {
+                const response = await fetch(`/api/monitors/${monitorId}/assign`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -365,7 +365,7 @@ const MonitorTable = () => {
             const fetchMonitorDetails = async (monitorId) => {
               try {
                 const token = localStorage.getItem("authToken");
-                const response = await axios.get(`http://localhost:5001/api/monitors/${monitorId}`, {
+                const response = await axios.get(`/api/monitors/${monitorId}`, {
                   headers: { Authorization: `Bearer ${token}` },
                 });
             
@@ -431,7 +431,7 @@ const MonitorTable = () => {
           
               // Gửi yêu cầu POST để tạo monitor mới
               const response = await axios.post(
-                "http://localhost:5001/api/monitors",
+                "/api/monitors",
                 clonedMonitor,
                 {
                   headers: {
@@ -465,7 +465,7 @@ const MonitorTable = () => {
             if (!monitorToDelete) return;
 
               try {
-                await axios.delete(`http://localhost:5001/api/monitors/${monitorToDelete._id}`, {
+                await axios.delete(`/api/monitors/${monitorToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -555,7 +555,7 @@ const MonitorTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("http://localhost:5001/api/monitors", payload, {
+              const response = await axios.post("/api/monitors", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -775,7 +775,7 @@ const MonitorTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "http://localhost:5001/api/monitors/bulk-upload",
+                  "/api/monitors/bulk-upload",
                   { monitors: parsedData },
                   {
                       headers: {
@@ -1537,7 +1537,7 @@ const MonitorTable = () => {
                       console.log("Payload gửi lên server:", payload);
                   
                       await axios.put(
-                        `http://localhost:5001/api/monitors/${editingMonitor._id}`,
+                        `/api/monitors/${editingMonitor._id}`,
                         payload,
                         {
                           headers: {

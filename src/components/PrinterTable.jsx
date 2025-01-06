@@ -91,7 +91,7 @@ const PrinterTable = () => {
           console.log("Dữ liệu cập nhật specs:", updatedSpecs);
           const token = localStorage.getItem("authToken");
           return axios
-            .put(`http://localhost:5001/api/printers/${printerId}/specs`, updatedSpecs, {
+            .put(`/api/printers/${printerId}/specs`, updatedSpecs, {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
@@ -123,7 +123,7 @@ const PrinterTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/users", {
+              const response = await axios.get("/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -153,7 +153,7 @@ const PrinterTable = () => {
           const fetchPrinters = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/printers", {
+              const response = await axios.get("/api/printers", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               
@@ -250,7 +250,7 @@ const PrinterTable = () => {
           const fetchRooms = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/rooms", {
+              const response = await axios.get("/api/rooms", {
                 headers: { Authorization: `Bearer ${token}` },
               });
           
@@ -280,7 +280,7 @@ const PrinterTable = () => {
               try {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
-                const response = await fetch(`http://localhost:5001/api/printers/${printerId}/revoke`, {
+                const response = await fetch(`/api/printers/${printerId}/revoke`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -316,7 +316,7 @@ const PrinterTable = () => {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser"));
             
-                const response = await fetch(`http://localhost:5001/api/printers/${printerId}/assign`, {
+                const response = await fetch(`/api/printers/${printerId}/assign`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -374,7 +374,7 @@ const PrinterTable = () => {
             const fetchPrinterDetails = async (printerId) => {
               try {
                 const token = localStorage.getItem("authToken");
-                const response = await axios.get(`http://localhost:5001/api/printers/${printerId}`, {
+                const response = await axios.get(`/api/printers/${printerId}`, {
                   headers: { Authorization: `Bearer ${token}` },
                 });
             
@@ -440,7 +440,7 @@ const PrinterTable = () => {
           
               // Gửi yêu cầu POST để tạo printer mới
               const response = await axios.post(
-                "http://localhost:5001/api/printers",
+                "/api/printers",
                 clonedPrinter,
                 {
                   headers: {
@@ -474,7 +474,7 @@ const PrinterTable = () => {
             if (!printerToDelete) return;
 
               try {
-                await axios.delete(`http://localhost:5001/api/printers/${printerToDelete._id}`, {
+                await axios.delete(`/api/printers/${printerToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -564,7 +564,7 @@ const PrinterTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("http://localhost:5001/api/printers", payload, {
+              const response = await axios.post("/api/printers", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -788,7 +788,7 @@ const PrinterTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "http://localhost:5001/api/printers/bulk-upload",
+                  "/api/printers/bulk-upload",
                   { printers: parsedData },
                   {
                       headers: {
@@ -1628,7 +1628,7 @@ const PrinterTable = () => {
                       console.log("Payload gửi lên server:", payload);
                   
                       await axios.put(
-                        `http://localhost:5001/api/printers/${editingPrinter._id}`,
+                        `/api/printers/${editingPrinter._id}`,
                         payload,
                         {
                           headers: {

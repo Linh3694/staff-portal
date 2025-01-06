@@ -87,7 +87,7 @@ const ToolTable = () => {
         const handleUpdateSpecs = (toolId, updatedSpecs) => {
           const token = localStorage.getItem("authToken");
           return axios
-            .put(`http://localhost:5001/api/tools/${toolId}/specs`, updatedSpecs, {
+            .put(`/api/tools/${toolId}/specs`, updatedSpecs, {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
@@ -123,7 +123,7 @@ const ToolTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/users", {
+              const response = await axios.get("/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -152,7 +152,7 @@ const ToolTable = () => {
           const fetchTools = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/tools", {
+              const response = await axios.get("/api/tools", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               
@@ -249,7 +249,7 @@ const ToolTable = () => {
           const fetchRooms = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("http://localhost:5001/api/rooms", {
+              const response = await axios.get("/api/rooms", {
                 headers: { Authorization: `Bearer ${token}` },
               });
           
@@ -279,7 +279,7 @@ const ToolTable = () => {
               try {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
-                const response = await fetch(`http://localhost:5001/api/tools/${toolId}/revoke`, {
+                const response = await fetch(`/api/tools/${toolId}/revoke`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -315,7 +315,7 @@ const ToolTable = () => {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser"));
             
-                const response = await fetch(`http://localhost:5001/api/tools/${toolId}/assign`, {
+                const response = await fetch(`/api/tools/${toolId}/assign`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -373,7 +373,7 @@ const ToolTable = () => {
             const fetchToolDetails = async (toolId) => {
               try {
                 const token = localStorage.getItem("authToken");
-                const response = await axios.get(`http://localhost:5001/api/tools/${toolId}`, {
+                const response = await axios.get(`/api/tools/${toolId}`, {
                   headers: { Authorization: `Bearer ${token}` },
                 });
             
@@ -439,7 +439,7 @@ const ToolTable = () => {
           
               // Gửi yêu cầu POST để tạo tool mới
               const response = await axios.post(
-                "http://localhost:5001/api/tools",
+                "/api/tools",
                 clonedTool,
                 {
                   headers: {
@@ -474,7 +474,7 @@ const ToolTable = () => {
             if (!toolToDelete) return;
 
               try {
-                await axios.delete(`http://localhost:5001/api/tools/${toolToDelete._id}`, {
+                await axios.delete(`/api/tools/${toolToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -564,7 +564,7 @@ const ToolTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("http://localhost:5001/api/tools", payload, {
+              const response = await axios.post("/api/tools", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -787,7 +787,7 @@ const ToolTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "http://localhost:5001/api/tools/bulk-upload",
+                  "/api/tools/bulk-upload",
                   { tools: parsedData },
                   {
                       headers: {
@@ -1467,7 +1467,7 @@ const ToolTable = () => {
                       console.log("Payload gửi lên server:", payload);
                   
                       await axios.put(
-                        `http://localhost:5001/api/tools/${editingTool._id}`,
+                        `/api/tools/${editingTool._id}`,
                         payload,
                         {
                           headers: {
