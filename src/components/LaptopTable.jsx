@@ -72,7 +72,8 @@ const LaptopTable = () => {
         const [totalPages, setTotalPages] = useState(0);   
         const [originalData, setOriginalData] = useState([]); 
         const [filteredData, setFilteredData] = useState([]);
-  
+        const [searchTerm, setSearchTerm] = useState("");
+        const [suggestions, setSuggestions] = useState([]); // Lưu danh sách gợi ý  
         
         const statusLabels = {
           Active: "Đang sử dụng",
@@ -85,7 +86,7 @@ const LaptopTable = () => {
           console.log("Cập nhật specs cho laptop:", laptopId, updatedSpecs);
           const token = localStorage.getItem("authToken");
           return axios
-            .put(`/api/laptops/${laptopId}/specs`, updatedSpecs, {
+            .put(`http://localhost:5001/api/laptops/${laptopId}/specs`, updatedSpecs, {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
@@ -117,7 +118,7 @@ const LaptopTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/users", {
+              const response = await axios.get("http://localhost:5001/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -146,7 +147,7 @@ const LaptopTable = () => {
           const fetchLaptops = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/laptops", {
+              const response = await axios.get("http://localhost:5001/api/laptops", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               
@@ -244,7 +245,7 @@ const LaptopTable = () => {
           const fetchRooms = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/rooms", {
+              const response = await axios.get("http://localhost:5001/api/rooms", {
                 headers: { Authorization: `Bearer ${token}` },
               });
           
@@ -273,7 +274,7 @@ const LaptopTable = () => {
               try {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
-                const response = await fetch(`/api/laptops/${laptopId}/revoke`, {
+                const response = await fetch(`http://localhost:5001/api/laptops/${laptopId}/revoke`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -309,7 +310,7 @@ const LaptopTable = () => {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser"));
             
-                const response = await fetch(`/api/laptops/${laptopId}/assign`, {
+                const response = await fetch(`http://localhost:5001/api/laptops/${laptopId}/assign`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -367,7 +368,7 @@ const LaptopTable = () => {
             const fetchLaptopDetails = async (laptopId) => {
               try {
                 const token = localStorage.getItem("authToken");
-                const response = await axios.get(`/api/laptops/${laptopId}`, {
+                const response = await axios.get(`http://localhost:5001/api/laptops/${laptopId}`, {
                   headers: { Authorization: `Bearer ${token}` },
                 });
             
@@ -433,7 +434,7 @@ const LaptopTable = () => {
           
               // Gửi yêu cầu POST để tạo laptop mới
               const response = await axios.post(
-                "/api/laptops",
+                "http://localhost:5001/api/laptops",
                 clonedLaptop,
                 {
                   headers: {
@@ -467,7 +468,7 @@ const LaptopTable = () => {
             if (!laptopToDelete) return;
 
               try {
-                await axios.delete(`/api/laptops/${laptopToDelete._id}`, {
+                await axios.delete(`http://localhost:5001/api/laptops/${laptopToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -557,7 +558,7 @@ const LaptopTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("/api/laptops", payload, {
+              const response = await axios.post("http://localhost:5001/api/laptops", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -607,6 +608,54 @@ const LaptopTable = () => {
               );
             }
           };
+          
+          const handleSearchChange = (e) => {
+            const query = e.target.value.toLowerCase();
+            setSearchTerm(query);
+          
+            if (!query) {
+              // Người dùng xóa hết => Hiển thị all
+              setFilteredData(originalData);
+              setTotalPages(Math.ceil(originalData.length / 30));
+              setData(originalData.slice(0, 30));
+              setCurrentPage(1);
+              setSuggestions([]); // Xóa gợi ý
+              return;
+            }
+          
+            // Nếu có từ khóa, lọc
+            const filtered = originalData.filter((item) => {
+              // Gom nhiều trường để kiểm tra (name, manufacturer, serial, assigned user, room...)
+              const assignedNames = Array.isArray(item.assigned)
+                ? item.assigned.map((u) => `${u.label} ${u.departmentName}`).join(" ")
+                : "";
+              const roomInfo = item.room
+                ? `${item.room.label} ${(item.room.location || []).join(" ")}`
+                : "";
+          
+              const combinedText = [
+                item.name,
+                item.manufacturer,
+                item.serial,
+                assignedNames,
+                roomInfo,
+              ]
+                .join(" ")
+                .toLowerCase();
+          
+              return combinedText.includes(query);
+            });
+          
+            // Cập nhật filteredData
+            setFilteredData(filtered);
+            setTotalPages(Math.ceil(filtered.length / 30));
+            setData(filtered.slice(0, 30));
+            setCurrentPage(1);
+          
+            // Sinh mảng suggestions (10 item gợi ý đầu tiên)
+            setSuggestions(filtered.slice(0, 10));
+          };
+
 
           const handleFileChange = (e) => {
             const file = e.target.files[0];
@@ -733,7 +782,7 @@ const LaptopTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "/api/laptops/bulk-upload",
+                  "http://localhost:5001/api/laptops/bulk-upload",
                   { laptops: parsedData },
                   {
                       headers: {
@@ -849,53 +898,43 @@ const LaptopTable = () => {
                    {/* Search Input */}
             <div className="flex items-center justify-between w-full mb-4">
     
-                <div className="relative w-1/3">
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                          <input
-                          type="text"
-                          placeholder="Tìm kiếm laptop..."
-                          className="pl-10 pr-4 py-2 rounded-md w-100 px-3 "
-                          onChange={(e) => {
-                            const query = e.target.value.toLowerCase();
-                            if (query === "") {
-                                setFilteredData(originalData); // Khôi phục dữ liệu gốc
-                            } else {
-                                const filtered = originalData.filter(
-                                    (item) =>
-                                        item.name.toLowerCase().includes(query) ||
-                                        item.manufacturer.toLowerCase().includes(query) ||
-                                        item.serial.toLowerCase().includes(query)
-                                );
-                                setFilteredData(filtered);
-                                setTotalPages(Math.ceil(filtered.length / 30)); // Tính lại số trang
-                                setData(filtered.slice(0, 30)); // Hiển thị trang đầu tiên
-                                setCurrentPage(1);
-                            }
-                        }}
-                        />
-                      </div>
-                  <div className="flex space-x-2">
-                        <button
-                            onClick={() => {
-                            setNewLaptop({
-                            name: "",
-                            manufacturer: "",
-                            serial: "",
-                            assigned: [],
-                      });
-                          setShowAddModal(true);
-                             }}
-                className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
-                         >
-                   Thêm mới
-                                        </button>
-                                        <button
-                                          className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
-                                          onClick={() => setShowUploadModal(true)}
-                                        >
-                                          Upload
-                                        </button>
-                      </div>  
+            <div className="relative w-1/3">
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm laptop..."
+                  className="pl-10 pr-4 py-2 rounded-md w-100 px-3"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  // Thêm onFocus để hiện gợi ý khi focus (nếu muốn)
+                  onFocus={() => {
+                    if (searchTerm && suggestions.length > 0) {
+                      setSuggestions(suggestions); 
+                    }
+                  }}
+                />
+
+                {/* Hiển thị suggestions (nếu có) */}
+              </div>
+                      <div className="flex space-x-2">
+                            <button
+                                onClick={() => {
+                                setNewLaptop({
+                                name: "",
+                                manufacturer: "",
+                                serial: "",
+                                assigned: [],
+                                });
+                                setShowAddModal(true);}}
+                                className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 ">
+                                Thêm mới
+                            </button>
+                            <button
+                                className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
+                                onClick={() => setShowUploadModal(true)}>
+                                Upload
+                            </button>
+                          </div>  
                 </div>
            
                 <div className="flex items-center justify-start w-full space-x-4 mb-4">   
@@ -1524,7 +1563,7 @@ const LaptopTable = () => {
                       console.log("Payload gửi lên server:", payload);
                   
                       await axios.put(
-                        `/api/laptops/${editingLaptop._id}`,
+                        `http://localhost:5001http://localhost:5001/api/laptops/${editingLaptop._id}`,
                         payload,
                         {
                           headers: {

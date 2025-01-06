@@ -75,6 +75,8 @@ const PrinterTable = () => {
         const [totalPages, setTotalPages] = useState(0); 
         const [originalData, setOriginalData] = useState([]); 
         const [filteredData, setFilteredData] = useState([]);
+        const [searchTerm, setSearchTerm] = useState("");
+        const [suggestions, setSuggestions] = useState([]); // Lưu danh sách gợi ý 
   
 
         
@@ -89,7 +91,7 @@ const PrinterTable = () => {
           console.log("Dữ liệu cập nhật specs:", updatedSpecs);
           const token = localStorage.getItem("authToken");
           return axios
-            .put(`/api/printers/${printerId}/specs`, updatedSpecs, {
+            .put(`http://localhost:5001/api/printers/${printerId}/specs`, updatedSpecs, {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
@@ -121,7 +123,7 @@ const PrinterTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/users", {
+              const response = await axios.get("http://localhost:5001/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -151,7 +153,7 @@ const PrinterTable = () => {
           const fetchPrinters = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/printers", {
+              const response = await axios.get("http://localhost:5001/api/printers", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               
@@ -248,7 +250,7 @@ const PrinterTable = () => {
           const fetchRooms = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/rooms", {
+              const response = await axios.get("http://localhost:5001/api/rooms", {
                 headers: { Authorization: `Bearer ${token}` },
               });
           
@@ -278,7 +280,7 @@ const PrinterTable = () => {
               try {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
-                const response = await fetch(`/api/printers/${printerId}/revoke`, {
+                const response = await fetch(`http://localhost:5001/api/printers/${printerId}/revoke`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -314,7 +316,7 @@ const PrinterTable = () => {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser"));
             
-                const response = await fetch(`/api/printers/${printerId}/assign`, {
+                const response = await fetch(`http://localhost:5001/api/printers/${printerId}/assign`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -372,7 +374,7 @@ const PrinterTable = () => {
             const fetchPrinterDetails = async (printerId) => {
               try {
                 const token = localStorage.getItem("authToken");
-                const response = await axios.get(`/api/printers/${printerId}`, {
+                const response = await axios.get(`http://localhost:5001/api/printers/${printerId}`, {
                   headers: { Authorization: `Bearer ${token}` },
                 });
             
@@ -438,7 +440,7 @@ const PrinterTable = () => {
           
               // Gửi yêu cầu POST để tạo printer mới
               const response = await axios.post(
-                "/api/printers",
+                "http://localhost:5001/api/printers",
                 clonedPrinter,
                 {
                   headers: {
@@ -472,7 +474,7 @@ const PrinterTable = () => {
             if (!printerToDelete) return;
 
               try {
-                await axios.delete(`/api/printers/${printerToDelete._id}`, {
+                await axios.delete(`http://localhost:5001/api/printers/${printerToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -562,7 +564,7 @@ const PrinterTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("/api/printers", payload, {
+              const response = await axios.post("http://localhost:5001/api/printers", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -611,6 +613,55 @@ const PrinterTable = () => {
               );
             }
           };
+
+          const handleSearchChange = (e) => {
+            const query = e.target.value.toLowerCase();
+            setSearchTerm(query);
+          
+            if (!query) {
+              // Người dùng xóa hết => Hiển thị all
+              setFilteredData(originalData);
+              setTotalPages(Math.ceil(originalData.length / 30));
+              setData(originalData.slice(0, 30));
+              setCurrentPage(1);
+              setSuggestions([]); // Xóa gợi ý
+              return;
+            }
+          
+            // Nếu có từ khóa, lọc
+            const filtered = originalData.filter((item) => {
+              // Gom nhiều trường để kiểm tra (name, manufacturer, serial, assigned user, room...)
+              const assignedNames = Array.isArray(item.assigned)
+                ? item.assigned.map((u) => `${u.label} ${u.departmentName}`).join(" ")
+                : "";
+              const roomInfo = item.room
+                ? `${item.room.label} ${(item.room.location || []).join(" ")}`
+                : "";
+          
+              const combinedText = [
+                item.name,
+                item.manufacturer,
+                item.serial,
+                assignedNames,
+                roomInfo,
+              ]
+                .join(" ")
+                .toLowerCase();
+          
+              return combinedText.includes(query);
+            });
+          
+            // Cập nhật filteredData
+            setFilteredData(filtered);
+            setTotalPages(Math.ceil(filtered.length / 30));
+            setData(filtered.slice(0, 30));
+            setCurrentPage(1);
+          
+            // Sinh mảng suggestions (10 item gợi ý đầu tiên)
+            setSuggestions(filtered.slice(0, 10));
+          };
+
+
 
           const handleFileChange = (e) => {
             const file = e.target.files[0];
@@ -737,7 +788,7 @@ const PrinterTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "/api/printers/bulk-upload",
+                  "http://localhost:5001/api/printers/bulk-upload",
                   { printers: parsedData },
                   {
                       headers: {
@@ -853,28 +904,24 @@ const PrinterTable = () => {
                    {/* Search Input */}
             <div className="flex items-center justify-between w-full mb-4">
     
-                <div className="relative w-1/3">
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                          <input
-                          type="text"
-                          placeholder="Tìm kiếm printer..."
-                          className="pl-10 pr-4 py-2 rounded-md w-100 px-3 "
-                          onChange={(e) => {
-                            const query = e.target.value.toLowerCase();
-                            if (query === "") {
-                              // Nếu ô tìm kiếm rỗng, khôi phục dữ liệu gốc
-                              fetchPrinters();
-                            } else {
-                              const filteredData = data.filter((item) =>
-                                item.name.toLowerCase().includes(query) ||
-                                item.manufacturer.toLowerCase().includes(query) ||
-                                item.serial.toLowerCase().includes(query)
-                              );
-                              setData(filteredData); // Cập nhật danh sách được hiển thị
-                            }
-                          }}
-                        />
-                      </div>
+            <div className="relative w-1/3">
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm máy in..."
+                  className="pl-10 pr-4 py-2 rounded-md w-100 px-3"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  // Thêm onFocus để hiện gợi ý khi focus (nếu muốn)
+                  onFocus={() => {
+                    if (searchTerm && suggestions.length > 0) {
+                      setSuggestions(suggestions); 
+                    }
+                  }}
+                />
+
+                {/* Hiển thị suggestions (nếu có) */}
+              </div>
                   <div className="flex space-x-2">
                         <button
                             onClick={() => {
@@ -1581,7 +1628,7 @@ const PrinterTable = () => {
                       console.log("Payload gửi lên server:", payload);
                   
                       await axios.put(
-                        `/api/printers/${editingPrinter._id}`,
+                        `http://localhost:5001/api/printers/${editingPrinter._id}`,
                         payload,
                         {
                           headers: {

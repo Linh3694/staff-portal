@@ -75,6 +75,8 @@ const MonitorTable = () => {
         const [totalPages, setTotalPages] = useState(0); 
         const [originalData, setOriginalData] = useState([]); 
         const [filteredData, setFilteredData] = useState([]);
+        const [searchTerm, setSearchTerm] = useState("");
+        const [suggestions, setSuggestions] = useState([]); // Lưu danh sách gợi ý 
   
 
         
@@ -88,7 +90,7 @@ const MonitorTable = () => {
         const handleUpdateSpecs = (monitorId, updatedSpecs) => {
           const token = localStorage.getItem("authToken");
           return axios
-            .put(`/api/monitors/${monitorId}/specs`, updatedSpecs, {
+            .put(`http://localhost:5001/api/monitors/${monitorId}/specs`, updatedSpecs, {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
@@ -121,7 +123,7 @@ const MonitorTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/users", {
+              const response = await axios.get("http://localhost:5001/api/users", {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -150,7 +152,7 @@ const MonitorTable = () => {
           const fetchMonitors = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/monitors", {
+              const response = await axios.get("http://localhost:5001/api/monitors", {
                 headers: { Authorization: `Bearer ${token}` },
               });
               
@@ -239,7 +241,7 @@ const MonitorTable = () => {
           const fetchRooms = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/rooms", {
+              const response = await axios.get("http://localhost:5001/api/rooms", {
                 headers: { Authorization: `Bearer ${token}` },
               });
           
@@ -269,7 +271,7 @@ const MonitorTable = () => {
               try {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
-                const response = await fetch(`/api/monitors/${monitorId}/revoke`, {
+                const response = await fetch(`http://localhost:5001/api/monitors/${monitorId}/revoke`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -305,7 +307,7 @@ const MonitorTable = () => {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser"));
             
-                const response = await fetch(`/api/monitors/${monitorId}/assign`, {
+                const response = await fetch(`http://localhost:5001/api/monitors/${monitorId}/assign`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -363,7 +365,7 @@ const MonitorTable = () => {
             const fetchMonitorDetails = async (monitorId) => {
               try {
                 const token = localStorage.getItem("authToken");
-                const response = await axios.get(`/api/monitors/${monitorId}`, {
+                const response = await axios.get(`http://localhost:5001/api/monitors/${monitorId}`, {
                   headers: { Authorization: `Bearer ${token}` },
                 });
             
@@ -429,7 +431,7 @@ const MonitorTable = () => {
           
               // Gửi yêu cầu POST để tạo monitor mới
               const response = await axios.post(
-                "/api/monitors",
+                "http://localhost:5001/api/monitors",
                 clonedMonitor,
                 {
                   headers: {
@@ -463,7 +465,7 @@ const MonitorTable = () => {
             if (!monitorToDelete) return;
 
               try {
-                await axios.delete(`/api/monitors/${monitorToDelete._id}`, {
+                await axios.delete(`http://localhost:5001/api/monitors/${monitorToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -553,7 +555,7 @@ const MonitorTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("/api/monitors", payload, {
+              const response = await axios.post("http://localhost:5001/api/monitors", payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -600,6 +602,53 @@ const MonitorTable = () => {
                 }
               );
             }
+          };
+
+          const handleSearchChange = (e) => {
+            const query = e.target.value.toLowerCase();
+            setSearchTerm(query);
+          
+            if (!query) {
+              // Người dùng xóa hết => Hiển thị all
+              setFilteredData(originalData);
+              setTotalPages(Math.ceil(originalData.length / 30));
+              setData(originalData.slice(0, 30));
+              setCurrentPage(1);
+              setSuggestions([]); // Xóa gợi ý
+              return;
+            }
+          
+            // Nếu có từ khóa, lọc
+            const filtered = originalData.filter((item) => {
+              // Gom nhiều trường để kiểm tra (name, manufacturer, serial, assigned user, room...)
+              const assignedNames = Array.isArray(item.assigned)
+                ? item.assigned.map((u) => `${u.label} ${u.departmentName}`).join(" ")
+                : "";
+              const roomInfo = item.room
+                ? `${item.room.label} ${(item.room.location || []).join(" ")}`
+                : "";
+          
+              const combinedText = [
+                item.name,
+                item.manufacturer,
+                item.serial,
+                assignedNames,
+                roomInfo,
+              ]
+                .join(" ")
+                .toLowerCase();
+          
+              return combinedText.includes(query);
+            });
+          
+            // Cập nhật filteredData
+            setFilteredData(filtered);
+            setTotalPages(Math.ceil(filtered.length / 30));
+            setData(filtered.slice(0, 30));
+            setCurrentPage(1);
+          
+            // Sinh mảng suggestions (10 item gợi ý đầu tiên)
+            setSuggestions(filtered.slice(0, 10));
           };
 
           const handleFileChange = (e) => {
@@ -726,7 +775,7 @@ const MonitorTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "/api/monitors/bulk-upload",
+                  "http://localhost:5001/api/monitors/bulk-upload",
                   { monitors: parsedData },
                   {
                       headers: {
@@ -842,28 +891,24 @@ const MonitorTable = () => {
                    {/* Search Input */}
             <div className="flex items-center justify-between w-full mb-4">
     
-                <div className="relative w-1/3">
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                          <input
-                          type="text"
-                          placeholder="Tìm kiếm monitor..."
-                          className="pl-10 pr-4 py-2 rounded-md w-100 px-3 "
-                          onChange={(e) => {
-                            const query = e.target.value.toLowerCase();
-                            if (query === "") {
-                              // Nếu ô tìm kiếm rỗng, khôi phục dữ liệu gốc
-                              fetchMonitors();
-                            } else {
-                              const filteredData = data.filter((item) =>
-                                item.name.toLowerCase().includes(query) ||
-                                item.manufacturer.toLowerCase().includes(query) ||
-                                item.serial.toLowerCase().includes(query)
-                              );
-                              setData(filteredData); // Cập nhật danh sách được hiển thị
-                            }
-                          }}
-                        />
-                      </div>
+            <div className="relative w-1/3">
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm màn hình..."
+                  className="pl-10 pr-4 py-2 rounded-md w-100 px-3"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  // Thêm onFocus để hiện gợi ý khi focus (nếu muốn)
+                  onFocus={() => {
+                    if (searchTerm && suggestions.length > 0) {
+                      setSuggestions(suggestions); 
+                    }
+                  }}
+                />
+
+                {/* Hiển thị suggestions (nếu có) */}
+              </div>
                   <div className="flex space-x-2">
                         <button
                             onClick={() => {
@@ -1492,7 +1537,7 @@ const MonitorTable = () => {
                       console.log("Payload gửi lên server:", payload);
                   
                       await axios.put(
-                        `/api/monitors/${editingMonitor._id}`,
+                        `http://localhost:5001/api/monitors/${editingMonitor._id}`,
                         payload,
                         {
                           headers: {
