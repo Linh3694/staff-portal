@@ -16,6 +16,7 @@ import ToolProductCard from "./productcard/toolProductCard";
 const UserTable = ({ handleSyncClients }) => {
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState([]); // thêm
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -326,6 +327,36 @@ const UserTable = ({ handleSyncClients }) => {
     }
   };
 
+  const handleSearchChange = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchTerm(query);
+  
+    // Nếu ô search trống, hiển thị toàn bộ + xóa gợi ý
+    if (!query) {
+      setSuggestions([]);
+      return; 
+    }
+  
+    // Tạo mảng filtered tạm để lấy suggestions
+    const filtered = clients.filter((client) => {
+      // Gom nhiều trường (fullname, email, jobTitle, department…)
+      const combinedText = [
+        client.fullname || "",
+        client.email || "",
+        client.employeeCode || "",
+        client.jobTitle || "",
+        client.department || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+  
+      return combinedText.includes(query);
+    });
+  
+    // Gợi ý => lấy 5-10 item đầu
+    setSuggestions(filtered.slice(0, 5));
+  };
+
   const handleUploadExcel = async (e) => {
     const file = e.target.files[0];
     if (!file) {
@@ -436,12 +467,22 @@ const UserTable = ({ handleSyncClients }) => {
 
   // Lọc clients theo từ khóa tìm kiếm
   const filteredClients = useMemo(() => {
+    if (!searchTerm) return clients; // Nếu ô search trống
+  
+    const keyword = searchTerm.toLowerCase();
+  
     return clients.filter((client) => {
-      const keyword = searchTerm.toLowerCase();
-      return (
-        (client.fullname?.toLowerCase().includes(keyword) || false) ||
-        (client.email?.toLowerCase().includes(keyword) || false)
-      );
+      const combinedText = [
+        client.fullname || "",
+        client.email || "",
+        client.employeeCode || "",
+        client.jobTitle || "",
+        client.department || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+  
+      return combinedText.includes(keyword);
     });
   }, [clients, searchTerm]);
 
@@ -591,13 +632,19 @@ const UserTable = ({ handleSyncClients }) => {
 
       {/* Thanh tìm kiếm */}
       <div className="flex justify-between items-center mb-2 mt-1">
-        <input
-          type="text"
-          placeholder="Tìm kiếm theo tên hoặc email"
-          className="border border-gray-300 rounded-md px-4 py-2 w-[300px]"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <input
+        type="text"
+        placeholder="Tìm kiếm người dùng..."
+        className="border border-gray-300 rounded-md px-4 py-2 w-[300px]"
+        value={searchTerm}
+        onChange={handleSearchChange}
+        onFocus={() => {
+          // Khi focus, nếu searchTerm đã có thì hiển thị suggestions
+          if (searchTerm && suggestions.length > 0) {
+            setSuggestions(suggestions);
+          }
+        }}
+      />
         <div className="flex justify-between items-right space-x-2 ">
               <button
                 onClick={() => setIsAddUserModalOpen(true)}
