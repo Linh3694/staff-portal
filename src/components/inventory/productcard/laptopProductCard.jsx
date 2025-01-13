@@ -918,7 +918,7 @@ const handleConfirmBroken = async () => {
       return;
     }
   
-    const fileUrl = `https://staff-portal.wellspring.edu.vn${lastInspection.documentUrl}`;
+    const fileUrl = `https://42.96.42.197:5001${lastInspection.documentUrl}`;
     window.open(fileUrl, "_blank"); // Mở file trong tab mới
   };
   
@@ -1444,7 +1444,7 @@ const handleConfirmBroken = async () => {
                     <div className=" text-white shadow mb-2 flex justify-between items-center">
                       <div className="flex items-center space-x-3">
                         <img
-                          src={currentHolder?.user?.avatarUrl ? `https://staff-portal.wellspring.edu.vn${currentHolder?.user?.avatarUrl}` : "/default-avatar.png"}
+                          src={currentHolder?.user?.avatarUrl ? `https://42.96.42.197:5001${currentHolder?.user?.avatarUrl}` : "/default-avatar.png"}
                           alt="Avatar"
                           className="w-16 h-16 rounded-full object-cover"
                         />

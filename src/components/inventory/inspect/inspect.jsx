@@ -531,7 +531,7 @@ const handleCompleteInspection = async () => {
                             <div>
                                 <div className="flex items-center text-sm bg-[#002147] p-3 mb-2 rounded-lg">
                                 <img
-                                  src={user?.avatarUrl ? `https://staff-portal.wellspring.edu.vn${user.avatarUrl}` : "/default-avatar.png"}
+                                  src={user?.avatarUrl ? `https://42.96.42.197:5001${user.avatarUrl}` : "/default-avatar.png"}
                                   alt="Avatar"
                                   className="w-16 h-16 rounded-full mr-4 object-cover"
                                 />  

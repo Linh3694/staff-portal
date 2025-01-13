@@ -153,7 +153,7 @@ const EventManagement = () => {
                     <div className="w-1/2 p-6 overflow-y-auto border-r">
                         <h3 className="text-2xl font-bold mb-4">{selectedEvent.name}</h3>
                         <img
-                          src={selectedEvent.image ? `http://42.96.42.197:5001${selectedEvent.image}` : "/default-image.jpg"}
+                          src={selectedEvent.image ? `https://42.96.42.197:5001${selectedEvent.image}` : "/default-image.jpg"}
                           alt={selectedEvent.name || "Event Image"}
                           className="w-1/2 h-40 object-cover rounded-lg"
                         />
@@ -182,7 +182,7 @@ const EventManagement = () => {
                             onClick={() => setSelectedPhoto(photo)} // Xử lý khi click vào ảnh
                             >
                             <img
-                                  src={`http://42.96.42.197:5001${photo.url}`} // Sửa lại để tạo URL đầy đủ
+                                  src={`https://42.96.42.197:5001${photo.url}`} // Sửa lại để tạo URL đầy đủ
                                   alt={photo.message}
                                   className="w-full h-32 object-cover"
                                 />
@@ -329,7 +329,7 @@ const EventManagement = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg shadow-lg w-[40%] max-w-[500px] p-6">
                     <img
-                        src={`http://42.96.42.197:5001${selectedPhoto.url}`}
+                        src={`https://42.96.42.197:5001${selectedPhoto.url}`}
                         alt={selectedPhoto.message}
                         className="w-full h-auto max-h-[300px] object-contain rounded-lg mb-4"
                     />
