@@ -277,8 +277,8 @@ const Dashboard = () => {
         fullname: data.fullname || "Không xác định",
         jobTitle: data.jobTitle || "Không xác định",
         avatarUrl: data.avatarUrl
-          ? `https://42.96.42.197:5001${data.avatarUrl}`
-          : "http://via.placeholder.com/150",
+            ? `https://staff-portal.wellspring.edu.vn/uploads${data.avatarUrl}`
+            : "http://via.placeholder.com/150",
         email: data.email || "",
         department: data.department || "Không xác định",
         attendance: data.attendanceLog || [],
