@@ -39,7 +39,7 @@ const Profile = ({ user, onBack, onSave, onAvatarUpload }) => {
   
   // Thêm base URL nếu cần
   useEffect(() => {
-    const baseURL = "http://46.92.42.197:5001"; // Đổi thành base URL của backend
+    const baseURL = "https://staff-portal.wellspring.edu.vn"; // Đổi thành base URL của backend
     setAvatarUrl(user.avatarUrl ? `${baseURL}${user.avatarUrl}` : "");
   }, [user]);
 
