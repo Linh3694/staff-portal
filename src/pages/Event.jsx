@@ -256,7 +256,7 @@ const handleAddComment = async () => {
           {leaderboard.map((photo) => (
             <div key={photo.id} className="min-w-[150px] mr-4">
               <img
-                src={`https://staff-portal.wellspring.edu.vn${photo.url}`} // Sửa lại để tạo URL đầy đủ
+                src={`http://42.96.42.197:5001${photo.url}`} // Sửa lại để tạo URL đầy đủ
                 alt={photo.message}
                 className="w-full h-32 object-cover"
               />
@@ -281,7 +281,7 @@ const handleAddComment = async () => {
                   >
                     {/* Hiển thị hình ảnh */}
                     <img
-                      src={`https://staff-portal.wellspring.edu.vn${event.image}`} // Đảm bảo đường dẫn ảnh đầy đủ
+                      src={`http://42.96.42.197:5001${event.image}`} // Đảm bảo đường dẫn ảnh đầy đủ
                       alt={event.name}
                       className="w-full h-40 object-cover rounded-lg"
                     />
@@ -304,7 +304,7 @@ const handleAddComment = async () => {
 
                 {/* Ảnh sự kiện */}
                 <img
-                  src={`https://staff-portal.wellspring.edu.vn${selectedEvent.image}`}
+                  src={`http://42.96.42.197:5001${selectedEvent.image}`}
                   alt={selectedEvent.name || "No Image"}
                   className="w-full h-40 object-cover rounded-lg mb-4"
                 />
@@ -366,7 +366,7 @@ const handleAddComment = async () => {
                         }}
                       >
                         <img
-                          src={`https://staff-portal.wellspring.edu.vn${photo.url}`} // Sửa lại để tạo URL đầy đủ
+                          src={`http://42.96.42.197:5001${photo.url}`} // Sửa lại để tạo URL đầy đủ
                           alt={photo.message}
                           className="w-full h-32 object-cover"
                         />
@@ -457,7 +457,7 @@ const handleAddComment = async () => {
       {/* Phần Ảnh */}
       <div className="w-1/2 bg-gray-100 flex justify-center items-center p-6">
       <img
-        src={`https://staff-portal.wellspring.edu.vn${previewPhoto.url}`} // Sửa lại để tạo URL đầy đủ
+        src={`http://42.96.42.197:5001${previewPhoto.url}`} // Sửa lại để tạo URL đầy đủ
         alt={previewPhoto.message}
         className="max-w-full max-h-full rounded-lg"
       />

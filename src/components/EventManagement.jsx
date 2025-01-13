@@ -16,7 +16,7 @@ const EventManagement = () => {
   const fetchEvents = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get("/api/events");
+      const response = await axios.get("http://localhost:5001/api/events");
       setEvents(response.data); // Cập nhật danh sách sự kiện
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -29,7 +29,7 @@ const EventManagement = () => {
   const fetchPhotosByEvent = async (eventId) => {
     try {
       setIsPhotoLoading(true);
-      const response = await axios.get(`/api/photos?eventId=${eventId}`);
+      const response = await axios.get(`http://localhost:5001/api/photos?eventId=${eventId}`);
       setPhotos(response.data);
     } catch (error) {
       console.error("Error fetching photos:", error);
@@ -48,7 +48,7 @@ const EventManagement = () => {
     if (!window.confirm("Bạn có chắc muốn xóa sự kiện này?")) return;
 
     try {
-      await axios.delete(`/api/events/${eventId}`);
+      await axios.delete(`http://localhost:5001/api/events/${eventId}`);
       toast.success("Xóa sự kiện thành công!");
       fetchEvents(); // Tải lại danh sách sau khi xóa
     } catch (error) {
@@ -231,7 +231,7 @@ const EventManagement = () => {
                         for (let pair of formData.entries()) {
                           console.log(`${pair[0]}: ${pair[1]}`);
                         }
-                        const response = await axios.post("/api/events", formData, {
+                        const response = await axios.post("http://localhost:5001/api/events", formData, {
                         headers: {
                             "Content-Type": "multipart/form-data",
                         },
