@@ -24,13 +24,16 @@ const Printer = require("./models/Printer");
 const Projector = require("./models/Projector");
 const Tool = require("./models/Tool");
 const Room = require("./models/Room");
+const Inspect = require("./models/Inspect");
 const { exec } = require('child_process');
 const AcsEvent = require('./models/AcsEvent');
 const attendanceRoutes = require("./routes/users");
 const activityRoutes = require('./routes/activityRoutes');
-
-
-
+const ticketRoutes = require("./routes/tickets");
+const eventRoutes = require("./routes/eventRoutes");
+const photoRoutes = require("./routes/photoRoutes");
+const inspectRoutes = require("./routes/inspect")
+const uploadReport = require("./middleware/uploadReport");
 
 
 require("dotenv").config();
@@ -49,24 +52,26 @@ const connectDB = async () => {
 };
 connectDB();
 
+// Đảm bảo thư mục tồn tại
+const uploadPath = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+}
+
+// Cấu hình multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = '/var/www/uploads/';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
+    cb(null, uploadPath); // Đặt file tại `backend/uploads/reports`
   },
   filename: (req, file, cb) => {
-// Loại bỏ ký tự đặc biệt và thay thế khoảng trắng bằng dấu gạch dưới
-    const sanitizedFilename = file.originalname
-      .replace(/[^a-zA-Z0-9.]/g, '_')  // Chỉ giữ lại ký tự chữ, số và dấu chấm
-      .replace(/\s+/g, '_');           // Thay thế khoảng trắng bằng gạch dưới
-    cb(null, `${Date.now()}-${file.originalname}`);
+    const uniqueSuffix = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueSuffix);
   },
 });
 
 const upload = multer({ storage });
+
+module.exports = upload;
 
 // Tạo app Express
 
@@ -74,8 +79,8 @@ app.use(express.json());
 app.use(cors());
 
 app.use("/api/laptops", laptopRoutes);
-app.use("/uploads", express.static("uploads"));
-app.use("/api/auth", authRoutes); // Route xác thực
+app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Phục vụ thư mục uploads
+app.use("/api/auth", authRoutes);
 app.use("/api/monitors", monitorRoutes); // Route laptops
 app.use("/api/users", userRoutes); // Route users
 app.use("/api/clients-sync", clientsSync.router); // Use the clientsSync router
@@ -86,6 +91,10 @@ app.use("/api/rooms", roomRoutes);
 app.use("/api/users", attendanceRoutes);
 app.use("/api/tools", toolRoutes);
 app.use('/api/activities', activityRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/api/photos", photoRoutes);
+app.use("/api/inspects", inspectRoutes);
 
 
 const syncClientsFromAzure = require("./routes/clientsSync").syncClientsFromAzure;
@@ -329,36 +338,6 @@ app.post('/api/sync-attendance', (req, res) => {
   });
 });
 
-app.post('/upload-avatar', upload.single('avatar'), async (req, res) => {
-  console.log('File:', req.file);
-  console.log('Body:', req.body);
-  if (!req.file) {
-    return res.status(400).send('No file uploaded.');
-  }
-
-  const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`; // Đường dẫn avatar
-  const userId = req.body.userId; // Lấy userId từ request body
-
-  try {
-    // Tìm user theo ID
-    const user = await User.findById(userId);
-    console.log('User found:', user);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Cập nhật avatarUrl
-    user.avatarUrl = avatarUrl;
-    await user.save(); // Lưu lại vào database
-    console.log('User updated:', user);
-
-    res.json({ avatarUrl });
-  } catch (error) {
-    console.error('Error updating user avatar:', error);
-    res.status(500).json({ message: 'Server error', error });
-  }
-});
 
 // Endpoint to fetch unread notifications
 app.get('/api/notifications/unread', async (req, res) => {
@@ -411,4 +390,42 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+});
+
+app.post("/api/reports", uploadReport.single("file"), async (req, res) => {
+  console.log("Report file:", req.file); // Kiểm tra file được upload
+  console.log("Inspect ID:", req.body.inspectId); // Kiểm tra ID truyền vào
+
+  try {
+    const { inspectId } = req.body;
+    const reportFile = req.file;
+
+    if (!reportFile) {
+      return res.status(400).json({ message: "Không có file được tải lên" });
+    }
+
+    // Tìm và cập nhật Inspect record
+    const updatedInspect = await Inspect.findByIdAndUpdate(
+      inspectId,
+      {
+        report: {
+          fileName: reportFile.filename,
+          filePath: `/uploads/reports/${reportFile.filename}`,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedInspect) {
+      return res.status(404).json({ message: "Dữ liệu kiểm tra không tìm thấy" });
+    }
+
+    res.status(201).json({
+      message: "Biên bản đã được lưu",
+      data: updatedInspect,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lưu biên bản:", error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
 });

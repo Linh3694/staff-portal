@@ -8,7 +8,11 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
+    const cleanName = file.originalname
+      .normalize("NFD") // Loại bỏ dấu tiếng Việt
+      .replace(/[\u0300-\u036f]/g, "") // Loại bỏ các ký tự đặc biệt
+      .replace(/[^a-zA-Z0-9.]/g, "_"); // Thay thế ký tự đặc biệt bằng "_"
+    cb(null, `${file.fieldname}-${uniqueSuffix}-${cleanName}`);
   },
 });
 

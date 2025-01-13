@@ -6,12 +6,8 @@ const upload = require("../middleware/upload");
 const validateToken = require("../middleware/validateToken");
 const userController = require('../controllers/userController'); // Controller xử lý logic
 const Notification = require('../models/notification'); // Model cho thông báo (cần tạo)
-const Laptop = require("../models/Laptop"); // Model Laptop
-const Monitor = require("../models/Monitor"); // Model Monitor
-const Projector = require("../models/Projector"); // Model Projector
-const Printer = require("../models/Printer"); // Model Printer
-const Tool = require("../models/Tool"); // Model Tool 
-const mongoose = require("mongoose");
+const uploadAvatar = require("../middleware/uploadAvatar");
+
 
 
 
@@ -387,7 +383,7 @@ router.get("/attendance/:employeeCode", async (req, res) => {
 
 
 // Cập nhật avatar người dùng
-router.put('/:id/avatar', upload.single('avatar'), userController.updateAvatar);
+router.put('/:id/avatar', uploadAvatar.single('avatar'), userController.updateAvatar);
 
 router.post("/assign-device", userController.getAssignedItems);
 

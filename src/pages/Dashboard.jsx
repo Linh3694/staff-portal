@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import LaptopTable from "../components/LaptopTable";
-import ToolTable from "../components/ToolTable";
-import PrinterTable from "../components/PrinterTable";
-import ProjectorTable from "../components/ProjectorTable";
-import MonitorTable from "../components/MonitorTable";
+import LaptopTable from "../components/inventory/LaptopTable";
+import ToolTable from "../components/inventory/ToolTable";
+import PrinterTable from "../components/inventory/PrinterTable";
+import ProjectorTable from "../components/inventory/ProjectorTable";
+import MonitorTable from "../components/inventory/MonitorTable";
 import UserTable from "../components/UserTable";
 import RoomTable from '../components/RoomTable'; 
 import Attendance from '../components/Attendance'; // Adjust the path as necessary
@@ -11,16 +11,24 @@ import { useNavigate } from "react-router-dom";
 import { FiHome, FiPackage, FiUser, FiBook, FiClock, FiFileText, FiBriefcase } from "react-icons/fi";
 import {IoMdNotificationsOutline} from "react-icons/io";
 import axios from "axios";
-import Profile from "../components/Profile";
 import Dropdown from "../components/function/dropdown";
+import TicketAdminTable from "../components/ticket/TicketAdminTable";
+import TeamManagement from "../components/ticket/TeamManagement";
+import TicketReports from "../components/ticket/TicketReports";
+import EventManagement from "../components/EventManagement"
+import Profile from "../components/Profile";
+import { toast } from "react-toastify";
 
 
 
 const Dashboard = () => {
   const tabMapping = {
     "Quản lý thiết bị": ["Laptop || Desktop", "Màn hình", "Máy in", "Thiết bị trình chiếu", "Khác"],
+    "Quản lý tickets": ["Ticket lists", "Teams", "Reports"],
     "Quản lý chấm công": ["Báo cáo chấm công", "Phê duyệt đơn"],
     "Quản lý người dùng": ["Tài khoản", "Quyền hạn", "Hoạt động gần đây"],
+    "Quản lý sự kiện": ["Danh sách sự kiện"],
+
   };
 
   const [activeTab, setActiveTab] = useState("Laptop || Desktop");
@@ -31,28 +39,17 @@ const Dashboard = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState({
+    id:"",
     fullname: "",
     role: "",
     avatarUrl: "",
     email: "",
-    title: "",
+    jobTitle: "",
     department: "",
-    attendanceLog: [],
   });
   const profileMenuRef = useRef(null);
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
-  
-  // Chỉ thông báo chưa đọc
-  const lightModeColors = {
-    background: "#F8FAFC", // Nền sáng hơn
-    text: "#1E293B", // Text đậm
-    cardBackground: "#FFFFFF", // Màu nền card
-    buttonBackground: "#002147", // Màu nền nút bấm
-    buttonHover: "#CBD5E1", // Màu khi hover
-    tableHeader: "#E2E8F0", // Header table
-    tableRow: "#F1F5F9", // Row màu nhạt hơn
-  };
   
   useEffect(() => {
     if (tabMapping[selectedCategory]) {
@@ -65,7 +62,6 @@ const Dashboard = () => {
     }
   }, [selectedCategory]);
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   useEffect(() => {
     // Fetch unread notifications when the component mounts
@@ -118,6 +114,66 @@ const Dashboard = () => {
     localStorage.removeItem("role");
     localStorage.removeItem("rememberedEmail");
     navigate("/login");
+  };
+
+  const handleSaveProfile = async (updatedUser, avatarFile) => {
+    console.log ("Payload",updatedUser)
+    try {
+      // Kiểm tra nếu tài khoản được kích hoạt nhưng chưa nhập mật khẩu
+      const isReactivatingAccount = currentUser.disabled && !updatedUser.disabled;
+
+      if (isReactivatingAccount && !updatedUser.newPassword) {
+        toast.error("Vui lòng nhập mật khẩu mới để kích hoạt tài khoản!");
+        return;
+      }
+      if (!updatedUser.id) {
+        throw new Error("ID của người dùng không tồn tại.");
+      }
+  
+      console.log("Updated User Payload:", updatedUser);
+
+      // Sử dụng FormData để gửi dữ liệu, bao gồm cả file
+        const formData = new FormData();
+        formData.append("fullname", updatedUser.fullname);
+        formData.append("disabled", updatedUser.disabled);
+        formData.append("jobTitle", updatedUser.jobTitle);
+        formData.append("department", updatedUser.department);
+        formData.append("role", updatedUser.role);
+        formData.append("employeeCode", updatedUser.employeeCode);
+        if (updatedUser.newPassword) {
+          formData.append("newPassword", updatedUser.newPassword);
+        }
+        const response = await fetch(`/api/users/${updatedUser.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(updatedUser),formData,
+      });
+  
+      if (response.status === 400) {
+        toast.error("Dữ liệu không hợp lệ. Vui lòng kiểm tra và thử lại!");
+        return
+      } else if (response.status === 404) {
+        toast.error("Người dùng không tồn tại!");
+        return;
+      } else if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+  
+      toast.success("Cập nhật người dùng thành công!");
+      const updatedClient = await response.json(); // Lấy dữ liệu cập nhật từ backend
+      setClients((prevClients) =>
+        prevClients.map((client) =>
+          client._id === updatedClient._id
+            ? { ...client, ...updatedClient }
+            : client
+        )
+      );
+    } catch (error) {
+      console.error("Error updating user:", error.message);
+      toast.error("Lỗi khi cập nhật người dùng.");
+    }
   };
 
 // Hàm đồng bộ client
@@ -200,6 +256,7 @@ const Dashboard = () => {
   }, [profileMenuRef]);
 
   useEffect(() => {
+
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
@@ -216,14 +273,18 @@ const Dashboard = () => {
 
       const data = await response.json();
       setCurrentUser({
+        id: data._id,
         fullname: data.fullname || "Không xác định",
-        title: data.jobTitle || "Không xác định",
-        avatarUrl: data.avatarUrl || "http://via.placeholder.com/150",
+        jobTitle: data.jobTitle || "Không xác định",
+        avatarUrl: data.avatarUrl
+          ? `http://42.96.42.197:5001${data.avatarUrl}`
+          : "http://via.placeholder.com/150",
         email: data.email || "",
         department: data.department || "Không xác định",
         attendance: data.attendanceLog || [],
+        role:data.role
       });
-
+      console.log(data)
       // Cập nhật localStorage
       localStorage.setItem("currentUser", JSON.stringify(data));
     } catch (error) {
@@ -254,6 +315,22 @@ const renderContent = () => {
                     {activeTab === "Máy in" && <PrinterTable />}
                     {activeTab === "Thiết bị trình chiếu" && <ProjectorTable />}
                     {activeTab === "Khác" && <ToolTable />}
+                  </div>
+                );
+
+                case "Quản lý tickets":
+                  return (
+                    <div>
+                      {activeTab === "Ticket lists" && <TicketAdminTable currentUser={currentUser} />}
+                      {activeTab === "Teams" && <TeamManagement />}
+                      {activeTab === "Reports" && <TicketReports />}
+                    </div>
+                  );
+
+                case "Quản lý sự kiện":
+                return (
+                  <div>
+                    {activeTab === "Danh sách sự kiện" && <EventManagement />} {/* Component quản lý danh sách */}
                   </div>
                 );
 
@@ -323,9 +400,10 @@ const renderContent = () => {
   const menuItems = [
     // { label: "Bảng tin", icon: <FiHome /> },
     { label: "Quản lý thiết bị", icon: <FiPackage /> },
-    { label: "Quản lý chấm công", icon: <FiClock /> },
-    // { label: "Nhật ký hệ thống", icon: <FiFileText /> },
-    { label: "Quản lý tài liệu", icon: <FiBook /> },
+    { label: "Quản lý tickets", icon: <FiFileText /> },
+    // { label: "Quản lý chấm công", icon: <FiClock /> },
+    // { label: "Quản lý tài liệu", icon: <FiBook /> },
+    { label: "Quản lý sự kiện", icon: <FiBook /> }, // Thêm mục mới
     // { label: "User Management", icon: <FiUser /> },
     // { label: "Departments", icon: <FiBriefcase /> },
   ];
@@ -425,10 +503,23 @@ const renderContent = () => {
                                   alt="Elon Musk"
                                 />
                               }
+                              animation="origin-top-right md:origin-top-right transition-all duration-300 ease-in-out"
                               children={
-                                <div className="flex w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500">
- 
-                                  <div className="flex flex-col p-4">
+                                <div className="flex w-40 flex-col rounded-[20px] bg-[#f8f8f8] bg-cover bg-no-repeat shadow-xl shadow-shadow-500">
+                                  <div className="flex flex-col p-2">
+                                  <button
+                                    onClick={() => setIsProfileModalOpen(true)} // Mở Modal Profile
+                                    className="text-sm font-medium text-[#002147] transition duration-150 ease-out hover:ease-in items-end"
+                                  >
+                                    Profile
+                                  </button>
+                                  <button
+                                    onClick={() => navigate("/ticket")} // Redirect đến trang /ticket
+                                    className="text-sm font-medium text-[#002147] transition duration-150 ease-out hover:ease-in items-end"
+                                  >
+                                    Ticket Portal
+                                  </button>
+                                  <hr className="my-2 border-t border-gray-800" />
                                     <button
                                       onClick={handleLogout}
                                       className="text-sm font-medium text-red-500 hover:text-red-500 transition duration-150 ease-out hover:ease-in"
@@ -438,31 +529,11 @@ const renderContent = () => {
                                   </div>
                                 </div>
                               }
-                              classNames={"py-2 top-8 -left-[180px] w-max"}
+                              classNames={"py-2 top-10 -left-[140px] w-max"}
                             />
+                            
              </div>
       </nav>  
-
-              {isProfileMenuOpen && (
-                  <div 
-                    ref={profileMenuRef}
-                    className="absolute right-0 top-14 bg-white rounded-lg shadow-lg p-4 w-48 mt-7 z-50">
-                    <button
-                      onClick={() => {
-                        setIsProfileModalOpen(true);
-                      }}
-                      className="block w-full text-left px-3 py-2 text-[#002147] hover:bg-gray-300 rounded-md"
-                    >
-                      Profile
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-3 py-2 text-[#002147] hover:bg-gray-300 rounded-md"
-                    >
-                      Log Out
-                    </button>
-                  </div>
-                )}
     <div className="flex">
       
       {/* Sidebar */}
@@ -487,7 +558,7 @@ const renderContent = () => {
               {currentUser.fullname || "Chưa đăng nhập"}
               </h2>
               <p className={`text-xs italic "text-gray-300" : "text-gray-600"`} style={{ fontFamily: 'Mulish, sans-serif' }}>
-              {currentUser.title || "Chưa xác định"}
+              {currentUser.jobTitle || "Chưa xác định"}
               </p>
             </div>
              {/* Navigation */}
@@ -540,32 +611,17 @@ const renderContent = () => {
       <div className="ml-64 h-full p-8 z-10">
         {renderContent()}
       </div>
-
-      {/* Profile Modal */}
       {isProfileModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-3xl">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-lg font-semibold">Edit Profile</h2>
-              <button
-                onClick={() => setIsProfileModalOpen(false)} // Đóng modal
-                className="text-gray-500 hover:text-gray-800"
-              >
-                ✕
-              </button>
-            </div>
-            <div>
-              {/* Tích hợp component Profile */}
-              <Profile
-                ticketHistory={[]} // Truyền dữ liệu ticketHistory nếu có
-                assignedDevices={[]} // Truyền dữ liệu assignedDevices nếu có
-                currentUser={currentUser} // Truyền ID người dùng
-                setCurrentUser={setCurrentUser}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+                                      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                                        <div className="bg-white rounded-lg shadow-lg p-6 w-[90%] max-w-7xl">
+                                          <Profile
+                                            user={currentUser}
+                                            onSave={handleSaveProfile}
+                                            onBack={() => setIsProfileModalOpen(false)} // Đóng Modal
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
     </div>
   );
 }

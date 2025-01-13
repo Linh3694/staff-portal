@@ -47,6 +47,8 @@ exports.getAssignedItems = async (req, res) => {
 };
 
 exports.updateAvatar = async (req, res) => {
+  console.log("Controller updateAvatar được gọi");
+  console.log("Payload:", req.body);
   const { id } = req.params;
 
   if (!req.file) {
@@ -60,12 +62,12 @@ exports.updateAvatar = async (req, res) => {
     }
 
     // Cập nhật avatar
-    user.avatarUrl = `/uploads/${req.file.filename}`;
+    user.avatarUrl = `/uploads/Avatar/${req.file.filename}`;
     await user.save();
 
     res.status(200).json({
       message: "Avatar updated successfully",
-      avatar: user.avatar,
+      avatar: user.avatarUrl, // Cập nhật đường dẫn mới
     });
   } catch (error) {
     console.error("Error updating avatar:", error);
@@ -118,12 +120,11 @@ exports.createUser = async (req, res) => {
 
 // Update User
 exports.updateUser = async (req, res) => {
+  console.log(req.body)
   try {
     const { id } = req.params;
     const { fullname, email, department, jobTitle, role, status, password, employeeCode } = req.body;
     const updates = { fullname, email, department, jobTitle, role, status, employeeCode };
-
-
     if (employeeCode) {
       updates.employeeCode = employeeCode;
     }

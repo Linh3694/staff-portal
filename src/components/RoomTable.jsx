@@ -5,11 +5,11 @@ import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import * as XLSX from "xlsx";
 import Dropdown from "./function/dropdown";
 import { IoLocationOutline } from "react-icons/io5";
-import LaptopProductCard from "./productcard/laptopProductCard";
-import MonitorProductCard from "./productcard/monitorProductCard";
-import PrinterProductCard from "./productcard/printerProductCard";
-import ProjectorProductCard from "./productcard/projectorProductCard";
-import ToolProductCard from "./productcard/toolProductCard";
+import LaptopProductCard from "./inventory/productcard/laptopProductCard";
+import MonitorProductCard from "./inventory/productcard/monitorProductCard";
+import PrinterProductCard from "./inventory/productcard/printerProductCard";
+import ProjectorProductCard from "./inventory/productcard/projectorProductCard";
+import ToolProductCard from "./inventory/productcard/toolProductCard";
 
 
 

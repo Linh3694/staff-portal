@@ -6,11 +6,13 @@ import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { MdEmail, MdWork, MdPerson, MdBusiness } from "react-icons/md";
-import LaptopProductCard from "./productcard/laptopProductCard";
-import MonitorProductCard from "./productcard/monitorProductCard";
-import PrinterProductCard from "./productcard/printerProductCard";
-import ProjectorProductCard from "./productcard/projectorProductCard";
-import ToolProductCard from "./productcard/toolProductCard";
+import LaptopProductCard from "./inventory/productcard/laptopProductCard";
+import MonitorProductCard from "./inventory/productcard/monitorProductCard";
+import PrinterProductCard from "./inventory/productcard/printerProductCard";
+import ProjectorProductCard from "./inventory/productcard/projectorProductCard";
+import ToolProductCard from "./inventory/productcard/toolProductCard";
+import Profile from "./Profile";
+
 
 
 const UserTable = ({ handleSyncClients }) => {
@@ -26,7 +28,9 @@ const UserTable = ({ handleSyncClients }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userIdToDelete, setUserIdToDelete] = useState(null);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isProfileView, setIsProfileView] = useState(false); // Quản lý trạng thái hiển thị
+  const [isEditModalOpen, setIsProfileModalOpen] = useState(false);
   const [assignedItems, setAssignedItems] = useState([]);
   const [isLaptopModalOpen, setIsLaptopModalOpen] = useState(false);
   const [isMonitorModalOpen, setIsMonitorModalOpen] = useState(false);
@@ -297,6 +301,7 @@ const UserTable = ({ handleSyncClients }) => {
   
       if (!userResponse.ok) throw new Error("Không thể tải thông tin người dùng!");
       const userData = await userResponse.json();
+      console.log("User data:", userData);
   
       const assignedItemsResponse = await fetch(`/api/users/${userId}/assigned-items`, {
         headers: {
@@ -306,21 +311,28 @@ const UserTable = ({ handleSyncClients }) => {
   
       if (!assignedItemsResponse.ok) throw new Error("Không thể tải danh sách thiết bị được gán!");
       const assignedItemsData = await assignedItemsResponse.json();
-      console.log("Dữ liệu từ API trước khi chuẩn hóa:", assignedItemsData);
-      // Chuẩn hóa dữ liệu: Gộp các loại thiết bị vào một mảng duy nhất
-      const items = [
-        ...(assignedItemsData.items?.laptops || []).map((item) => ({ ...item, type: "Laptop" })),
-        ...(assignedItemsData.items?.monitors || []).map((item) => ({ ...item, type: "Monitor" })),
-        ...(assignedItemsData.items?.printers || []).map((item) => ({ ...item, type: "Printer" })),
-        ...(assignedItemsData.items?.projectors || []).map((item) => ({ ...item, type: "Projector" })),
-        ...(assignedItemsData.items?.tools || []).map((item) => ({ ...item, type: "Tool" })),
-      ];
-  
-      console.log("Dữ liệu thiết bị sau khi chuẩn hóa:", items);
-  
-      setAssignedItems(items);
-      setSelectedUser(userData);
-      setIsProfileModalOpen(true);
+      
+      // Lấy danh sách tickets mà người dùng là creator
+      const ticketsResponse = await fetch(`/api/tickets`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!ticketsResponse.ok) throw new Error("Không thể tải danh sách tickets!");
+      const ticketsData = await ticketsResponse.json();
+      console.log("Tickets Data:", ticketsData); 
+      console.log("User ID:", userId); 
+      // Lọc tickets theo userId
+      // Lọc tickets theo người dùng dựa trên `creator._id`
+      const userTickets = ticketsData.tickets.filter(
+        (ticket) => ticket.creator?._id === userId
+      );
+        console.log("User tickets:", userTickets); 
+      console.log("Assigned items:", assignedItemsData);
+      setAssignedItems(assignedItemsData);
+      setSelectedUser({ ...userData, assignedItems: assignedItemsData, tickets: userTickets });      
+      setIsProfileView(true); // Chuyển sang chế độ xem profile
     } catch (error) {
       console.error("Error fetching user profile or assigned items:", error.message);
       toast.error("Không thể tải thông tin người dùng hoặc thiết bị được gán!");
@@ -413,57 +425,65 @@ const UserTable = ({ handleSyncClients }) => {
       const enrichedClients = await Promise.all(
         clients.map(async (client) => {
           try {
-            // Fetch thông tin assigned-items cho từng user
+            console.log(`Đang lấy assigned items cho user: ${client.fullname}`);
             const response = await fetch(`/api/users/${client._id}/assigned-items`, {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
             });
+            console.log("Response:", response);
+            if (!response.ok) {
+              console.warn(`Không thể lấy assigned items cho user: ${client.fullname}`);
+              return { ...client, assignedItems: "Không có thiết bị" };
+            }
   
-            if (!response.ok) throw new Error("Failed to fetch assigned items.");
+            const responseData = await response.json();
+            const items = [
+              ...(responseData.items?.laptops || []).map((item) => ({ ...item, type: "Laptop" })),
+              ...(responseData.items?.monitors || []).map((item) => ({ ...item, type: "Monitor" })),
+              ...(responseData.items?.printers || []).map((item) => ({ ...item, type: "Printer" })),
+              ...(responseData.items?.projectors || []).map((item) => ({ ...item, type: "Projector" })),
+              ...(responseData.items?.tools || []).map((item) => ({ ...item, type: "Tool" })),
+            ];
   
-            const assignedItems = await response.json();
+            const assignedItems =
+              items.length > 0
+                ? items.map((item) => `${item.type}: ${item.name} (SN: ${item.serial || "N/A"})`).join("; ")
+                : "Không có thiết bị";
   
             return {
               ...client,
-              assignedItems: assignedItems.map(
-                (item) => `${item.name || "Không xác định"} (SN: ${item.serial || "N/A"})`
-              ),
+              assignedItems,
             };
           } catch (error) {
-            console.error(`Error fetching assigned items for user ${client._id}:`, error.message);
-            return {
-              ...client,
-              assignedItems: ["Không có"],
-            };
+            
+            return { ...client, assignedItems: "Không có thiết bị" };
           }
         })
       );
   
-      // Chuẩn bị dữ liệu cho Excel
       const dataToExport = enrichedClients.map((client) => ({
-        Tên: client.fullname || "Không có",
-        Email: client.email || "Không có",
-        Mã_nhân_viên: client.employeeCode || "Không có",
-        Chức_Vụ: client.jobTitle || "Không có",
-        Phòng_Ban: client.department || "Không có",
-        Vai_Trò: client.role || "Không có",
-        "Thiết_bị_sử_dụng": client.assignedItems.join("; "), // Nối các thiết bị thành chuỗi
+        "Tên người dùng": client.fullname || "Không có",
+        "Email": client.email || "Không có",
+        "Mã nhân viên": client.employeeCode || "Không có",
+        "Chức vụ": client.jobTitle || "Không có",
+        "Phòng ban": client.department || "Không có",
+        "Vai trò": client.role || "Không có",
+        "Thiết bị được gán": client.assignedItems || "Không có thiết bị",
       }));
   
-      // Tạo worksheet và workbook
       const worksheet = XLSX.utils.json_to_sheet(dataToExport);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách người dùng");
   
-      // Xuất file Excel
-      XLSX.writeFile(workbook, "Danh_sach_nguoi_dung.xlsx");
+      XLSX.writeFile(workbook, "DanhSachNguoiDung.xlsx");
       toast.success("Xuất file Excel thành công!");
     } catch (error) {
-      console.error("Error exporting Excel:", error.message);
-      toast.error("Lỗi khi xuất file Excel.");
+      console.error("Lỗi khi xuất file Excel:", error.message);
+      toast.error("Lỗi khi xuất file Excel. Vui lòng thử lại!");
     }
   };
+
 
   // Lọc clients theo từ khóa tìm kiếm
   const filteredClients = useMemo(() => {
@@ -523,9 +543,12 @@ const UserTable = ({ handleSyncClients }) => {
   };
 
   const handleSaveUser = async (updatedUser, avatarFile) => {
+    console.log (updatedUser)
     try {
       // Kiểm tra nếu tài khoản được kích hoạt nhưng chưa nhập mật khẩu
-      if (!updatedUser.disabled && !updatedUser.newPassword) {
+      const isReactivatingAccount = selectedUser.disabled && !updatedUser.disabled;
+
+      if (isReactivatingAccount && !updatedUser.newPassword) {
         toast.error("Vui lòng nhập mật khẩu mới để kích hoạt tài khoản!");
         return;
       }
@@ -549,8 +572,8 @@ const UserTable = ({ handleSyncClients }) => {
         if (avatar) {
           formData.append("avatar", avatarFile); // Thêm file avatar nếu có
         }
-  
-      const response = await fetch(`/api/users/${updatedUser._id}`, {
+        console.log("formdata",formData)
+        const response = await fetch(`/api/users/${updatedUser._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -574,7 +597,9 @@ const UserTable = ({ handleSyncClients }) => {
       const updatedClient = await response.json(); // Lấy dữ liệu cập nhật từ backend
       setClients((prevClients) =>
         prevClients.map((client) =>
-          client._id === updatedClient._id ? { ...client, ...updatedClient } : client
+          client._id === updatedClient._id
+            ? { ...client, ...updatedClient }
+            : client
         )
       );
       setIsModalOpen(false);
@@ -588,34 +613,35 @@ const UserTable = ({ handleSyncClients }) => {
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
+    if (!file) {
+      toast.error("Vui lòng chọn một file hợp lệ.");
+      return;
+    }
     setAvatar(file);
     const fileUrl = URL.createObjectURL(file);
     setAvatarUrl(fileUrl);
   };
 
-  const handleAvatarUpload = async () => {
-    if (!avatar) return;
-
-
+  const handleAvatarUpload = async (file, userId) => {
+    console.log(userId)
     const formData = new FormData();
-    formData.append('avatar', avatar);
-    formData.append('userId', selectedUser._id); // Include the user ID
+    formData.append("avatar", file);
+  
     try {
-      const response = await fetch('http://localhost:5001/upload-avatar', {
-        method: 'POST',
+      const response = await fetch(`/api/users/${userId}/avatar`, {
+        method: "PUT",
         body: formData,
       });
-
+  
       if (response.ok) {
         const data = await response.json();
-        setAvatarUrl(data.avatarUrl); // Assuming the server returns the URL of the uploaded avatar
-        toast.success('Avatar uploaded successfully!');
+        console.log("Avatar updated successfully:", data);
       } else {
-        toast.error('Failed to upload avatar.');
+        const errorText = await response.text();
+        throw new Error(errorText);
       }
     } catch (error) {
-      console.error('Error uploading avatar:', error);
-      toast.error('Error uploading avatar.');
+      console.error("Error uploading avatar:", error.message);
     }
   };
 
@@ -626,6 +652,8 @@ const UserTable = ({ handleSyncClients }) => {
 
   return (
     <div className="w-full h-full px-6 pb-6 border sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
+       {!isProfileView ? (
+      <>
           <div className="flex justify-between items-center mb-4 mt-3">
             <div className="text-2xl font-bold text-navy-700">Danh sách người dùng</div>
           </div>
@@ -725,13 +753,11 @@ const UserTable = ({ handleSyncClients }) => {
           <tbody>
             {paginatedClients.map((client) => (
               <tr key={client.id} className="border-b border-gray-200 hover:bg-gray-50">
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <button
-                    onClick={() => handleShowProfile(client._id)}
-                    className="text-sm font-bold text-navy-700 hover:underline"
-                  >
-                    {client.fullname}
-                  </button> <br/>
+                <td>
+                <button 
+                className="font-bold text-navy-700 hover:text-navy-900"
+                onClick={() => handleShowProfile(client._id)}>{client.fullname}</button>
+               <br/>
                   <span className="text-gray-500 italic text-sm">{client.email || "Not Provided"}</span>
                 </td>
                 <td className="min-w-[150px] border-white/0 py-3 pr-4">
@@ -777,6 +803,52 @@ const UserTable = ({ handleSyncClients }) => {
             ))}
           </tbody>
         </table>
+        </div>
+        <div className="flex justify-between items-center mt-4">
+            <div>
+            <button
+              disabled={currentPage === 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+              className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147] disabled:bg-[#002147] disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            <span className="text-xs px-4 py-2">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+              className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147] disabled:bg-[#002147] disabled:cursor-not-allowed"
+            >
+              Tiếp
+            </button>
+            </div>
+                <div className="flex items-center space-x-2">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
+                  className="border border-gray-300 font-semibold rounded-md px-5 py-1 text-sm"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-sm">Users/Page</span>
+                </div>
+    </div>
+
+        </>
+        ) : (
+        <Profile
+          user={{ ...selectedUser, assignedItems }}
+          onBack={() => setIsProfileView(false)} // Quay lại trang UserTable
+          onSave={handleSaveUser} // Cập nhật thông tin
+          onAvatarUpload={handleAvatarUpload} // Upload ảnh
+        />
+      )}
+      
         {/* ------------------------------------------------------------------------------- Modal delete -------------------------------------------------------- */}
         {isDeleteModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -929,226 +1001,8 @@ const UserTable = ({ handleSyncClients }) => {
                 </div>
               </div>
             )}
-            {/* ------------------------------------------------------------------------------- Modal Profile -------------------------------------------------------- */}
-            {isProfileModalOpen && selectedUser && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white rounded-lg shadow-2xl p-6 w-[500px]">
-                      {/* Header */}
-                      <div className="relative flex items-center justify-center mb-4">
-                        {/* Avatar */}
-                        <img
-                          src={selectedUser.avatarUrl || "https://via.placeholder.com/150"}
-                          alt="Avatar"
-                          className="w-32 h-32 rounded-full object-cover border-4 border-blue-100"
-                        />
-
-                        {/* Icon Edit
-                        <label
-                          htmlFor="upload-avatar"
-                          className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md cursor-pointer hover:bg-gray-100 transition"
-                        >
-                          <FiEdit className="text-[#FF5733]" size={18} />
-                        </label>
-                        <input
-                          id="upload-avatar"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleAvatarChange}
-                        /> */}
-                      </div>
-
-                          {/* Preview Avatar */}
-                          {avatarUrl && (
-                            <div className="text-center">
-                              <img
-                                src={avatarUrl}
-                                alt="Avatar Preview"
-                                className="w-20 h-20 rounded-full mx-auto"
-                              />
-                              <button
-                                onClick={handleAvatarUpload}
-                                className="mt-2 px-3 py-1 bg-blue-500 text-white text-sm font-bold rounded shadow hover:bg-blue-600"
-                              >
-                                Upload Avatar
-                              </button>
-                            </div>
-                          )}
-
-                      
-                      {/* Thông tin người dùng */}
-                      <h3 className="text-2xl font-bold text-center text-gray-800 mb-2">
-                        {selectedUser.fullname || "Không có tên"}
-                      </h3>
-                      <p className="text-gray-600 text-center mb-4 font-bold text-sm italic">
-                         {selectedUser.employeeCode || "Chưa cập nhật"}
-                      </p>
-                
-                      <div className="space-y-2 text-center">
-                        <div className="flex items-center text-sm font-bold text-navy-700 bg-grey-100">
-                          <MdEmail className="mr-2 text-[#FF5733]" />
-                          <span>{selectedUser.email || "Chưa cập nhật"}</span>
-                        </div>
-                        <div className="flex items-center text-sm font-bold text-gray-700">
-                          <MdWork className="mr-2 text-[#FF5733]" />
-                          <span>{selectedUser.jobTitle || "Chưa cập nhật"}</span>
-                        </div>
-                        <div className="flex items-center text-sm font-bold text-gray-700">
-                          <MdBusiness className="mr-2 text-[#FF5733]" />
-                          <span>{selectedUser.department || "Chưa cập nhật"}</span>
-                        </div>
-                        <div className="flex items-center text-sm font-bold text-gray-700">
-                          <MdPerson className="mr-2 text-[#FF5733]" />
-                          <span>Vai trò: {selectedUser.role || "Chưa cập nhật"}</span>
-                        </div>
-                        <div className="flex items-center text-sm font-bold text-gray-700">
-                        {selectedUser.disabled ? (
-                          <>
-                            <MdCancel className="mr-2 text-[#FF5733]" />
-                            <span>Trạng thái: Inactive</span>
-                          </>
-                        ) : (
-                          <>
-                            <MdCheckCircle className="mr-2 text-[#009483]" />
-                            <span>Trạng thái: Active</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                      {/* Assigned Items */}
-                      <div className="mt-6">
-                          <h4 className="text-lg font-semibold text-[#002147] mb-2">Thiết bị sử dụng</h4>
-
-                          {Array.isArray(assignedItems) && assignedItems.length === 0 ? (
-                            <p className="text-gray-500 italic">Người dùng chưa được gán thiết bị nào.</p>
-                          ) : (
-                            <div className="max-h-60 overflow-y-auto px-3 py-2 border rounded-lg bg-gray-50">
-                              {["Laptop", "Monitor", "Printer", "Projector", "Tool"].map((type) => {
-                                const itemsByType = assignedItems.filter((item) => item.type === type);
-                                  if (itemsByType.length === 0) return null;
-
-                                  const { displayName, color } = typeMappings[type] || {
-                                    displayName: "Không xác định",
-                                    color: "text-gray-500",
-                                  };
-
-                                return itemsByType.length > 0 ? (
-                                  <div key={type}>
-                                    <h5 className={`font-bold mb-1 ${color}`}>{displayName}</h5>
-                                    <div className="flex flex-wrap gap-2 mb-3">
-                                      {itemsByType.map((item, index) => (
-                                        <span
-                                          key={index}
-                                          onClick={() => handleOpenModal(item)}
-                                          className={`cursor-pointer bg-${
-                                            type === "Laptop" ? "[#002147]"
-                                            : type === "Monitor" ? "[#009483]"
-                                            : type === "Printer" ? "[#FF5733]"
-                                            : type === "Projector" ? "[#F39C12]"
-                                            : "[#6A1B9A]"
-                                          } text-white px-3 py-1 rounded-md text-sm font-bold`}
-                                        >
-                                          {item.name} (SN: {item.serial || "N/A"})
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ) : null;
-                              })}
-                            </div>
-                          )}
-                        </div>
-                         
-                
-                      {/* Footer */}
-                      <div className="mt-6 flex justify-end">
-                        <button
-                          onClick={() => setIsProfileModalOpen(false)}
-                          className="px-4 py-2 bg-gray-300 text-gray-800 rounded shadow hover:bg-gray-400"
-                        >
-                          Đóng
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                        {isLaptopModalOpen && selectedLaptopData && (
-                              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50" onClick={() => setIsLaptopModalOpen(false)}>
-                                <div  onClick={(e) => e.stopPropagation()}>
-                                  <LaptopProductCard
-                                    laptopData={selectedLaptopData}
-                                    onAddRepair={(newRepair) => console.log("Thêm sửa chữa", newRepair)}
-                                    onDeleteRepair={(laptopId, repairId) =>
-                                      console.log("Xóa sửa chữa", laptopId, repairId)
-                                    }
-                                    onCloseModal={() => setIsLaptopModalOpen(false)}
-                                    fetchLaptopDetails={fetchLaptopDetails}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          {isMonitorModalOpen && selectedMonitorData && (
-                            <div
-                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-                              onClick={() => setIsMonitorModalOpen(false)}
-                            >
-                              <div onClick={(e) => e.stopPropagation()}>
-                                <MonitorProductCard
-                                  monitorData={selectedMonitorData}
-                                  onCloseModal={() => setIsMonitorModalOpen(false)}
-                                  fetchMonitorDetails={fetchMonitorDetails}
-
-                                />
-                              </div>
-                            </div>
-                          )}
-                          {isPrinterModalOpen && selectedPrinterData && (
-                            <div
-                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-                              onClick={() => setIsPrinterModalOpen(false)}
-                            >
-                              <div onClick={(e) => e.stopPropagation()}>
-                                <PrinterProductCard
-                                  printerData={selectedPrinterData}
-                                  onCloseModal={() => setIsPrinterModalOpen(false)}
-                                  fetchPrinterDetails={fetchPrinterDetails}
-
-                                />
-                              </div>
-                            </div>
-                          )}
-                          {isProjectorModalOpen && selectedProjectorData && (
-                            <div
-                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-                              onClick={() => setIsProjectorModalOpen(false)}
-                            >
-                              <div onClick={(e) => e.stopPropagation()}>
-                                <ProjectorProductCard
-                                  projectorData={selectedProjectorData}
-                                  onCloseModal={() => setIsProjectorModalOpen(false)}
-                                  fetchProjectorDetails={fetchProjectorDetails}
-
-                                />
-                              </div>
-                            </div>
-                          )}
-                          {isToolModalOpen && selectedToolData && (
-                            <div
-                              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-                              onClick={() => setIsToolModalOpen(false)}
-                            >
-                              <div onClick={(e) => e.stopPropagation()}>
-                                <ToolProductCard
-                                  toolData={selectedToolData}
-                                  onCloseModal={() => setIsToolModalOpen(false)}
-                                  fetchToolDetails={fetchToolDetails}
-
-                                />
-                              </div>
-                            </div>
-                          )}
+           
+            
                 {isAddUserModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                       <div className="bg-white rounded-lg shadow-lg p-6 w-[500px]">
@@ -1255,42 +1109,9 @@ const UserTable = ({ handleSyncClients }) => {
                     </div>
                   )}
               
-      </div>
+      
       {/* Pagination Buttons */}
-      <div className="flex justify-between items-center mt-4">
-        <div>
-        <button
-          disabled={currentPage === 1}
-          onClick={() => handlePageChange(currentPage - 1)}
-          className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147] disabled:bg-[#002147] disabled:cursor-not-allowed"
-        >
-          Trước
-        </button>
-        <span className="text-xs px-4 py-2">
-          {currentPage} / {totalPages}
-        </span>
-        <button
-          disabled={currentPage === totalPages}
-          onClick={() => handlePageChange(currentPage + 1)}
-          className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147] disabled:bg-[#002147] disabled:cursor-not-allowed"
-        >
-          Tiếp
-        </button>
-        </div>
-        <div className="flex items-center space-x-2">
-        <select
-          value={itemsPerPage}
-          onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
-          className="border border-gray-300 font-semibold rounded-md px-5 py-1 text-sm"
-        >
-          <option value={10}>10</option>
-          <option value={20}>20</option>
-          <option value={50}>50</option>
-          <option value={100}>100</option>
-        </select>
-        <span className="text-sm">Users/Page</span>
-        </div>
-    </div>
+      
   </div> 
   );
 };
