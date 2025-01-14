@@ -50,7 +50,7 @@ const TicketAdminTable = ({ currentUser }) => {
   const fetchTickets = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await axios.get("http://localhost:5001/api/tickets", {
+      const response = await axios.get("/api/tickets", {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("Danh sách tickets:", response.data.tickets);
@@ -69,7 +69,7 @@ const TicketAdminTable = ({ currentUser }) => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await axios.get("http://localhost:5001/api/users", {
+      const response = await axios.get("/api/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
       let allUsers = [];
@@ -252,7 +252,7 @@ const TicketAdminTable = ({ currentUser }) => {
       console.log("[Accept] Gửi lên server:", updatedTicket);
       
       const response = await axios.put(
-        `http://localhost:5001/api/tickets/${assignedTicket._id}`,
+        `/api/tickets/${assignedTicket._id}`,
         updatedTicket,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -282,7 +282,7 @@ const TicketAdminTable = ({ currentUser }) => {
       console.log("[Cancel] Gửi lên server:", updatedTicket);
 
       const response = await axios.put(
-        `http://localhost:5001/api/tickets/${assignedTicket._id}`,
+        `/api/tickets/${assignedTicket._id}`,
         updatedTicket,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -318,7 +318,7 @@ const TicketAdminTable = ({ currentUser }) => {
       console.log("[Transfer] Gửi lên server:", updatedTicket);
 
       const response = await axios.put(
-        `http://localhost:5001/api/tickets/${assignedTicket._id}`,
+        `/api/tickets/${assignedTicket._id}`,
         updatedTicket,
         { headers: { Authorization: `Bearer ${token}` } }
       );
