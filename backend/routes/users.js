@@ -9,8 +9,6 @@ const Notification = require('../models/notification'); // Model cho thông báo
 const uploadAvatar = require("../middleware/uploadAvatar");
 
 
-
-
 // Lấy danh sách người dùng
 router.get("/", async (req, res) => {
   try {
@@ -110,41 +108,62 @@ router.put("/attendance", async (req, res) => {
 });
 
 // Endpoint cập nhật thông tin người dùng
-router.put('/users/:id', async (req, res) => {
-  const userId = req.params.id;
-  const updatedFields = req.body;
-
+router.put("/:id", uploadAvatar.single("avatar"), async (req, res) => {
+  console.log("PUT /users/:id =>", req.params.id);
+  console.log(req.params)
   try {
-    const user = await User.findById(userId);
+    const { id } = req.params;
+    const { fullname, disabled, department, jobTitle, role, employeeCode, password, newPassword } = req.body;
+
+    // Tìm user
+    const user = await User.findById(id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found." });
     }
 
-    // Lưu lịch sử cập nhật (nếu cần)
-    const originalData = user.toObject();
-    Object.keys(updatedFields).forEach((field) => {
-      user[field] = updatedFields[field];
-    });
+    // Nếu có file avatar -> cập nhật avatarUrl
+    if (req.file) {
+      // Giả sử middleware uploadAvatar lưu file vào /uploads/Avatar/<filename>
+      user.avatarUrl = `/uploads/Avatar/${req.file.filename}`;
+    }
+
+    // Cập nhật các field khác
+    if (fullname)   user.fullname = fullname;
+    if (department) user.department = department;
+    if (jobTitle)   user.jobTitle = jobTitle;
+    if (role)       user.role = role;
+    if (employeeCode) user.employeeCode = employeeCode;
+
+    // disabled là boolean
+    if (typeof disabled === "string") {
+      user.disabled = disabled === "true";
+    } else if (typeof disabled === "boolean") {
+      user.disabled = disabled;
+    }
+
+    // Nếu có newPassword -> hash lại
+    if (newPassword) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+    } else if (password) {
+      // Trường hợp API vẫn gửi "password" cũ, hoặc rename
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+    }
+
     await user.save();
+    console.log("Đã cập nhật user thành công:", user.fullname);
 
-    // Gửi thông báo nếu có thay đổi
-    const updatedFieldsList = Object.keys(updatedFields).join(', ');
-    const notification = new Notification({
-      message: `User ${user.fullname} (ID: ${userId}) updated fields: ${updatedFieldsList}`,
-      type: 'info',
-      timestamp: new Date(),
-      updatedBy: req.user._id, // Lấy ID người cập nhật
-    });
-    await notification.save();
+    // Ẩn password trước khi trả response
+    const userObj = user.toObject();
+    delete userObj.password;
 
-    res.status(200).json({ message: 'User updated successfully', user });
+    return res.status(200).json(userObj);
   } catch (error) {
-    console.error('Error updating user:', error);
-    res.status(500).json({ message: 'Server error', error });
+    console.error("Error updating user:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 });
-
-module.exports = router;
 
 // Thêm người dùng mới
 router.post("/", async (req, res) => {
@@ -238,64 +257,6 @@ router.put("/bulk-update", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
-  const { fullname, disabled, department, jobTitle, role, password, newPassword, employeeCode, active } = req.body;
-  const { id } = req.params;
-
-  try {
-    // Tìm người dùng theo ID
-    const user = await User.findById(id);
-
-    if (!user) {
-      console.log("Không tìm thấy người dùng.");
-      return res.status(404).json({ message: "Người dùng không tồn tại." });
-    }
-
-    // Cập nhật thông tin cơ bản
-    if (fullname) user.fullname = fullname;
-    if (typeof disabled === "boolean") user.disabled = disabled;
-    if (department) user.department = department;
-    if (jobTitle) user.jobTitle = jobTitle;
-    if (role) user.role = role;
-    if (employeeCode) user.employeeCode = employeeCode;
-
-    // Xử lý trạng thái active/inactive
-    if (typeof active === "boolean") {
-      if (!user.active && active && (!password || !newPassword)) {
-        return res.status(400).json({
-          message: "Password là bắt buộc khi chuyển từ inactive sang active.",
-        });
-      }
-      user.active = active;
-    }
-
-    // Xử lý cập nhật mật khẩu
-    if ((newPassword || password) && user.active) {
-      const passwordToHash = newPassword || password;
-
-      // Kiểm tra mật khẩu có phải đã hash chưa
-      const isHashed = typeof passwordToHash === "string" && passwordToHash.startsWith("$2");
-      if (!isHashed) {
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(passwordToHash, salt);
-      } else {
-        user.password = passwordToHash; // Giữ nguyên nếu mật khẩu đã được hash
-      }
-    }
-
-    // Lưu lại người dùng
-    await user.save();
-    console.log("Đã lưu thông tin người dùng thành công.");
-
-    // Loại bỏ password khi trả về
-    const { password: _, ...updatedUser } = user.toObject();
-    res.status(200).json({ message: "Cập nhật thành công.", user: updatedUser });
-  } catch (error) {
-    console.error("Lỗi khi cập nhật người dùng:", error.message);
-    res.status(500).json({ message: "Lỗi máy chủ.", error: error.message });
-  }
-});
-
 // Xóa người dùng
 router.delete("/:id", async (req, res) => {
   try {
@@ -307,50 +268,6 @@ router.delete("/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting user:", error.message);
     res.status(500).json({ message: "Error deleting user", error });
-  }
-});
-
-router.put("/:id", async (req, res) => {
-  const { fullname, disabled, department, jobTitle,  password, newPassword } = req.body; // Bao gồm cả password và newPassword
-  const { id } = req.params;
-
-  try {
-    // Tìm người dùng theo ID
-    const user = await User.findById(id);
-
-    if (!user) {
-      console.log("Không tìm thấy người dùng.");
-      return res.status(404).json({ message: "Người dùng không tồn tại." });
-    }
-
-    // Cập nhật thông tin người dùng
-    user.fullname = fullname || user.fullname;
-    console.log("Cập nhật fullname:", user.fullname);
-    user.disabled = disabled;
-    user.department = department || user.department;
-    console.log("Cập nhật department:", user.department);
-    user.jobTitle = jobTitle || user.jobTitle;
-
-
-     // Xử lý mật khẩu
-     if (newPassword || password) {
-      // Kiểm tra mật khẩu đã hash chưa
-      const isHashed = password && password.startsWith("$2");
-      if (!isHashed) {
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword || password, salt);
-      } else {
-        user.password = password; // Giữ nguyên nếu mật khẩu đã được hash
-      }
-    }
-    // Lưu lại người dùng
-    await user.save();
-    console.log("Đã lưu thành công.");
-
-    res.status(200).json({ message: "Cập nhật thành công.", user });
-  } catch (error) {
-    console.error("Lỗi khi cập nhật người dùng:", error.message);
-    res.status(500).json({ message: "Lỗi máy chủ.", error: error.message });
   }
 });
 
@@ -383,8 +300,6 @@ router.get("/attendance/:employeeCode", async (req, res) => {
 
 
 // Cập nhật avatar người dùng
-router.put('/:id/avatar', uploadAvatar.single('avatar'), userController.updateAvatar);
-
 router.post("/assign-device", userController.getAssignedItems);
 
 router.get("/:userId/assigned-items", userController.getAssignedItems);

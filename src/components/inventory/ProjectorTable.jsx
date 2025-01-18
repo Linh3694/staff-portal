@@ -8,6 +8,7 @@ import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import Dropdown from "../function/dropdown";
+import { API_URL, UPLOAD_URL, BASE_URL } from "../../config"; // import từ file config
 
 
 
@@ -82,7 +83,7 @@ const ProjectorTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/users", {
+              const response = await axios.get(`${API_URL}/users`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -110,7 +111,7 @@ const ProjectorTable = () => {
           const fetchProjectors = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/projectors", {
+              const response = await axios.get(`${API_URL}/projectors`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
               
@@ -208,7 +209,7 @@ const ProjectorTable = () => {
           const fetchRooms = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/rooms", {
+              const response = await axios.get(`${API_URL}/rooms`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
           
@@ -256,7 +257,7 @@ const ProjectorTable = () => {
               try {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
-                const response = await fetch(`/api/projectors/${projectorId}/revoke`, {
+                const response = await fetch(`${API_URL}/projectors/${projectorId}/revoke`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -292,7 +293,7 @@ const ProjectorTable = () => {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser"));
             
-                const response = await fetch(`/api/projectors/${projectorId}/assign`, {
+                const response = await fetch(`${API_URL}/projectors/${projectorId}/assign`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -350,7 +351,7 @@ const ProjectorTable = () => {
             const fetchProjectorDetails = async (projectorId) => {
               try {
                 const token = localStorage.getItem("authToken");
-                const response = await axios.get(`/api/projectors/${projectorId}`, {
+                const response = await axios.get(`${API_URL}/projectors/${projectorId}`, {
                   headers: { Authorization: `Bearer ${token}` },
                 });
             
@@ -403,7 +404,7 @@ const ProjectorTable = () => {
               console.log("Dữ liệu cập nhật specs:", updatedSpecs);
               const token = localStorage.getItem("authToken");
               return axios
-                .put(`/api/projectors/${projectorId}/specs`, updatedSpecs, {
+                .put(`${API_URL}/projectors/${projectorId}/specs`, updatedSpecs, {
                   headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
@@ -440,7 +441,7 @@ const ProjectorTable = () => {
           
               // Gửi yêu cầu POST để tạo projector mới
               const response = await axios.post(
-                "/api/projectors",
+                `${API_URL}/projectors`,
                 clonedProjector,
                 {
                   headers: {
@@ -474,7 +475,7 @@ const ProjectorTable = () => {
             if (!projectorToDelete) return;
 
               try {
-                await axios.delete(`/api/projectors/${projectorToDelete._id}`, {
+                await axios.delete(`${API_URL}/projectors/${projectorToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -558,7 +559,7 @@ const ProjectorTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("/api/projectors", payload, {
+              const response = await axios.post(`${API_URL}/projectors`, payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -768,7 +769,7 @@ const ProjectorTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "/api/projectors/bulk-upload",
+                  `${API_URL}/projectors/bulk-upload`,
                   { projectors: parsedData },
                   {
                       headers: {
@@ -1511,7 +1512,7 @@ const ProjectorTable = () => {
                       console.log("Payload gửi lên server:", payload);
                   
                       await axios.put(
-                        `/api/projectors/${editingProjector._id}`,
+                        `${API_URL}/projectors/${editingProjector._id}`,
                         payload,
                         {
                           headers: {

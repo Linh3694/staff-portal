@@ -1,18 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { MdCancel, MdCheckCircle, } from "react-icons/md";
 import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { MdEmail, MdWork, MdPerson, MdBusiness } from "react-icons/md";
-import LaptopProductCard from "./inventory/productcard/laptopProductCard";
-import MonitorProductCard from "./inventory/productcard/monitorProductCard";
-import PrinterProductCard from "./inventory/productcard/printerProductCard";
-import ProjectorProductCard from "./inventory/productcard/projectorProductCard";
-import ToolProductCard from "./inventory/productcard/toolProductCard";
 import Profile from "./Profile";
-
+import { API_URL, UPLOAD_URL, BASE_URL } from "../config"; // import từ file config
 
 
 const UserTable = ({ handleSyncClients }) => {
@@ -28,20 +21,9 @@ const UserTable = ({ handleSyncClients }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userIdToDelete, setUserIdToDelete] = useState(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isProfileView, setIsProfileView] = useState(false); // Quản lý trạng thái hiển thị
-  const [isEditModalOpen, setIsProfileModalOpen] = useState(false);
   const [assignedItems, setAssignedItems] = useState([]);
-  const [isLaptopModalOpen, setIsLaptopModalOpen] = useState(false);
-  const [isMonitorModalOpen, setIsMonitorModalOpen] = useState(false);
-  const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
-  const [isProjectorModalOpen, setIsProjectorModalOpen] = useState(false);
-  const [isToolModalOpen, setIsToolModalOpen] = useState(false);
-  const [selectedLaptopData, setSelectedLaptopData] = useState(null);
-  const [selectedMonitorData, setSelectedMonitorData] = useState(null);
-  const [selectedProjectorData, setSelectedProjectorData] = useState(null);
-  const [selectedPrinterData, setSelectedPrinterData] = useState(null);
-  const [selectedToolData, setSelectedToolData] = useState(null);
+  
   const [newUser, setNewUser] = useState({
     fullname: "",
     email: "",
@@ -49,134 +31,12 @@ const UserTable = ({ handleSyncClients }) => {
   });
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const bcrypt = require("bcryptjs"); // Import bcrypt for password hashing
-
-
-  const typeMappings = {
-    Laptop: { displayName: "Máy tính", color: "text-[#002147]" },
-    Monitor: { displayName: "Màn hình", color: "text-[#009483]" },
-    Printer: { displayName: "Máy in", color: "text-[#FF5733]" },
-    Projector: { displayName: "Máy chiếu", color: "text-[#F39C12]" },
-    Tool: { displayName: "Dụng cụ", color: "text-[#6A1B9A]" },
-  };
-
-  const handleOpenModal = (item) => {
-    switch (item.type) {
-      case "Laptop":
-        setSelectedLaptopData(item);
-        setIsLaptopModalOpen(true);
-        break;
-      case "Monitor":
-        setSelectedMonitorData(item);
-        setIsMonitorModalOpen(true);
-        break;
-      case "Printer":
-        setSelectedPrinterData(item);
-        setIsPrinterModalOpen(true);
-        break;
-      case "Projector":
-        setSelectedProjectorData(item);
-        setIsProjectorModalOpen(true);
-        break;
-      case "Tool":
-        setSelectedToolData(item);
-        setIsToolModalOpen(true);
-        break;
-      default:
-        console.warn("Unknown item type:", item.type);
-    }
-  };
-
-  const fetchLaptopDetails = async (laptopId) => {
-    try {
-      const response = await fetch(`/api/laptops/${laptopId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-  
-      if (!response.ok) throw new Error("Không thể tải thông tin laptop!");
-  
-      const data = await response.json();
-      setSelectedLaptopData(data);
-    } catch (error) {
-      console.error("Error fetching laptop details:", error.message);
-      toast.error("Không thể tải thông tin laptop!");
-    }
-  };
-  const fetchMonitorDetails = async (monitorId) => {
-    try {
-      const response = await fetch(`/api/monitors/${monitorId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-  
-      if (!response.ok) throw new Error("Không thể tải thông tin Monitor!");
-  
-      const data = await response.json();
-      setSelectedMonitorData(data);
-    } catch (error) {
-      console.error("Error fetching Monitor details:", error.message);
-      toast.error("Không thể tải thông tin Monitor!");
-    }
-  };
-  const fetchPrinterDetails = async (printerId) => {
-    try {
-      const response = await fetch(`/api/printers/${printerId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-  
-      if (!response.ok) throw new Error("Không thể tải thông tin Printer!");
-  
-      const data = await response.json();
-      setSelectedPrinterData(data);
-    } catch (error) {
-      console.error("Error fetching Printer details:", error.message);
-      toast.error("Không thể tải thông tin Printer!");
-    }
-  };
-  const fetchProjectorDetails = async (projectorId) => {
-    try {
-      const response = await fetch(`/api/projectors/${projectorId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-  
-      if (!response.ok) throw new Error("Không thể tải thông tin Projector!");
-  
-      const data = await response.json();
-      setSelectedProjectorData(data);
-    } catch (error) {
-      console.error("Error fetching Projector details:", error.message);
-      toast.error("Không thể tải thông tin Projector!");
-    }
-  };
-  const fetchToolDetails = async (toolId) => {
-    try {
-      const response = await fetch(`/api/tools/${toolId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-  
-      if (!response.ok) throw new Error("Không thể tải thông tin Tool!");
-  
-      const data = await response.json();
-      setSelectedToolData(data);
-    } catch (error) {
-      console.error("Error fetching Tool details:", error.message);
-      toast.error("Không thể tải thông tin Tool!");
-    }
-  };
   
 
-  // Lấy dữ liệu từ /api//users
+  // Lấy dữ liệu từ ${API_URL}//users
   const fetchUsers = async () => {
     try {
-      const response = await fetch("/api/users", {
+      const response = await fetch(`${API_URL}/users`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`, // Đảm bảo token đúng
@@ -221,7 +81,7 @@ const UserTable = ({ handleSyncClients }) => {
 
   const confirmDeleteUser = async () => {
     try {
-      const response = await fetch(`/api/users/${userIdToDelete}`, {
+      const response = await fetch(`${API_URL}/users/${userIdToDelete}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -265,7 +125,7 @@ const UserTable = ({ handleSyncClients }) => {
     console.log("Payload gửi lên:", payload); // Thêm log kiểm tra payload
   
     try {
-      const response = await fetch("/api/users", {
+      const response = await fetch(`${API_URL}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -293,7 +153,7 @@ const UserTable = ({ handleSyncClients }) => {
     const token = localStorage.getItem("authToken");
   
     try {
-      const userResponse = await fetch(`/api/users/${userId}`, {
+      const userResponse = await fetch(`${API_URL}/users/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -303,7 +163,7 @@ const UserTable = ({ handleSyncClients }) => {
       const userData = await userResponse.json();
       console.log("User data:", userData);
   
-      const assignedItemsResponse = await fetch(`/api/users/${userId}/assigned-items`, {
+      const assignedItemsResponse = await fetch(`${API_URL}/users/${userId}/assigned-items`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -313,7 +173,7 @@ const UserTable = ({ handleSyncClients }) => {
       const assignedItemsData = await assignedItemsResponse.json();
       
       // Lấy danh sách tickets mà người dùng là creator
-      const ticketsResponse = await fetch(`/api/tickets`, {
+      const ticketsResponse = await fetch(`${API_URL}/tickets`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -398,7 +258,7 @@ const UserTable = ({ handleSyncClients }) => {
       console.log("Dữ liệu định dạng chuẩn:", formattedData);
   
       // Gửi toàn bộ dữ liệu dưới dạng mảng
-      const response = await fetch(`/api/users/bulk-update`, {
+      const response = await fetch(`${API_URL}/users/bulk-update`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -426,7 +286,7 @@ const UserTable = ({ handleSyncClients }) => {
         clients.map(async (client) => {
           try {
             console.log(`Đang lấy assigned items cho user: ${client.fullname}`);
-            const response = await fetch(`/api/users/${client._id}/assigned-items`, {
+            const response = await fetch(`${API_URL}/users/${client._id}/assigned-items`, {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,
               },
@@ -543,65 +403,45 @@ const UserTable = ({ handleSyncClients }) => {
   };
 
   const handleSaveUser = async (updatedUser, avatarFile) => {
-    console.log (updatedUser)
     try {
-      // Kiểm tra nếu tài khoản được kích hoạt nhưng chưa nhập mật khẩu
-      const isReactivatingAccount = selectedUser.disabled && !updatedUser.disabled;
-
-      if (isReactivatingAccount && !updatedUser.newPassword) {
-        toast.error("Vui lòng nhập mật khẩu mới để kích hoạt tài khoản!");
-        return;
+      const formData = new FormData();
+      formData.append("fullname", updatedUser.fullname);
+      formData.append("disabled", updatedUser.disabled);
+      formData.append("jobTitle", updatedUser.jobTitle);
+      formData.append("department", updatedUser.department);
+      formData.append("role", updatedUser.role);
+      formData.append("employeeCode", updatedUser.employeeCode);
+  
+      if (updatedUser.newPassword) {
+        formData.append("newPassword", updatedUser.newPassword);
       }
-      if (!updatedUser._id) {
-        throw new Error("ID của người dùng không tồn tại.");
+      if (avatarFile) {
+        // Ảnh
+        formData.append("avatar", avatarFile);
       }
   
-      console.log("Updated User Payload:", updatedUser);
-
-      // Sử dụng FormData để gửi dữ liệu, bao gồm cả file
-        const formData = new FormData();
-        formData.append("fullname", updatedUser.fullname);
-        formData.append("disabled", updatedUser.disabled);
-        formData.append("jobTitle", updatedUser.jobTitle);
-        formData.append("department", updatedUser.department);
-        formData.append("role", updatedUser.role);
-        formData.append("employeeCode", updatedUser.employeeCode);
-        if (updatedUser.newPassword) {
-          formData.append("newPassword", updatedUser.newPassword);
-        }
-        if (avatar) {
-          formData.append("avatar", avatarFile); // Thêm file avatar nếu có
-        }
-        console.log("formdata",formData)
-        const response = await fetch(`/api/users/${updatedUser._id}`, {
+      const response = await fetch(`${API_URL}/users/${updatedUser._id}`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          // KHÔNG set "Content-Type"
+          // fetch sẽ tự thêm boundary cho multipart/form-data
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
-        body: JSON.stringify(updatedUser),formData,
+        body: formData,
       });
   
-      if (response.status === 400) {
-        toast.error("Dữ liệu không hợp lệ. Vui lòng kiểm tra và thử lại!");
+      if (!response.ok) {
+        if (response.status === 400) toast.error("Dữ liệu không hợp lệ!");
+        else if (response.status === 404) toast.error("Người dùng không tồn tại!");
+        else toast.error(`Có lỗi xảy ra: ${response.statusText}`);
         return;
-      } else if (response.status === 404) {
-        toast.error("Người dùng không tồn tại!");
-        return;
-      } else if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
       }
   
+      const updatedUserFromServer = await response.json();
+      // updatedUserFromServer.avatarUrl có thể là "/uploads/Avatar/xxxx.jpg"
+  
       toast.success("Cập nhật người dùng thành công!");
-      await fetchUsers(); // Làm mới dữ liệu
-      const updatedClient = await response.json(); // Lấy dữ liệu cập nhật từ backend
-      setClients((prevClients) =>
-        prevClients.map((client) =>
-          client._id === updatedClient._id
-            ? { ...client, ...updatedClient }
-            : client
-        )
-      );
+      await fetchUsers(); // gọi lại để refresh danh sách
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error updating user:", error.message);
@@ -609,7 +449,6 @@ const UserTable = ({ handleSyncClients }) => {
     }
   };
 
-  
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -623,25 +462,29 @@ const UserTable = ({ handleSyncClients }) => {
   };
 
   const handleAvatarUpload = async (file, userId) => {
-    console.log(userId)
+    console.log("Uploading avatar for user:", userId, "File:", file);
+  
     const formData = new FormData();
     formData.append("avatar", file);
   
     try {
-      const response = await fetch(`/api/users/${userId}/avatar`, {
+      const response = await fetch(`${API_URL}/users/${userId}/avatar`, {
         method: "PUT",
         body: formData,
       });
   
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Avatar updated successfully:", data);
-      } else {
+      if (!response.ok) {
         const errorText = await response.text();
+        console.error("Server error:", errorText);
         throw new Error(errorText);
       }
+  
+      const data = await response.json();
+      console.log("Avatar updated successfully:", data);
+      toast.success("Avatar uploaded successfully!");
     } catch (error) {
       console.error("Error uploading avatar:", error.message);
+      toast.error("Lỗi khi tải lên avatar!");
     }
   };
 
@@ -841,11 +684,9 @@ const UserTable = ({ handleSyncClients }) => {
 
         </>
         ) : (
-        <Profile
-          user={{ ...selectedUser, assignedItems }}
-          onBack={() => setIsProfileView(false)} // Quay lại trang UserTable
-          onSave={handleSaveUser} // Cập nhật thông tin
-          onAvatarUpload={handleAvatarUpload} // Upload ảnh
+          <Profile
+          userId={selectedUser._id}          // <= chỉ cần ID
+          onBack={() => setIsProfileView(false)}
         />
       )}
       

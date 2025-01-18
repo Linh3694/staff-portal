@@ -4,6 +4,7 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
+      wellcome_title: "Wellcome Wiser",
       welcome: "Welcome to Tet 2025",
       participate_event: "Participate in the event and share your joy!",
       upload_photo: "Upload Photo & Wish",
@@ -26,6 +27,7 @@ const resources = {
   },
   vi: {
     translation: {
+      wellcome_title: "Chào mừng WISER",
       welcome: "Chào mừng Tết 2025",
       participate_event: "Tham gia sự kiện và chia sẻ niềm vui!",
       upload_photo: "Tải Ảnh & Lời Chúc",

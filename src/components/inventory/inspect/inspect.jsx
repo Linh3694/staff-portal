@@ -1,17 +1,16 @@
 import React, { useState,useEffect } from "react";
-import { Worker, Viewer } from "@react-pdf-viewer/core";
-import "@react-pdf-viewer/core/lib/styles/index.css";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import { saveAs } from "file-saver";
 import { toast } from "react-toastify";
-
+import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
 
 
 const Inspect = ({ laptopData, onClose, user , onInspectionComplete }) => {
   console.log(laptopData)
   console.log(user)
   const [currentStep, setCurrentStep] = useState(1);
+  const [numPages, setNumPages] = useState(null);
   const [isGuidelinesChecked, setIsGuidelinesChecked] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Tổng thể"); // Lựa chọn danh mục
   const [evaluation, setEvaluation] = useState({}); // Lưu trữ đánh giá từng danh mục
@@ -24,7 +23,7 @@ const Inspect = ({ laptopData, onClose, user , onInspectionComplete }) => {
   useEffect(() => {
   const token = localStorage.getItem("authToken");
   if (selectedCategory === "Màn hình" && laptopData.type === "Desktop") {
-    fetch("/api/monitors", {
+    fetch(`${API_URL}/monitors`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((response) => response.json())
@@ -115,7 +114,7 @@ const Inspect = ({ laptopData, onClose, user , onInspectionComplete }) => {
     try {
       if (inspectId) {
         // Nếu đã có inspectId, thực hiện cập nhật
-        const response = await fetch(`/api/inspects/${inspectId}`, {
+        const response = await fetch(`${API_URL}/inspects/${inspectId}`, {
           method: "PUT", // Sử dụng PATCH hoặc PUT
           headers: {
             "Content-Type": "application/json",
@@ -133,7 +132,7 @@ const Inspect = ({ laptopData, onClose, user , onInspectionComplete }) => {
         }
       } else {
         // Nếu chưa có inspectId, thực hiện tạo mới
-        const response = await fetch("/api/inspects", {
+        const response = await fetch(`${API_URL}/inspects`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -222,7 +221,7 @@ const Inspect = ({ laptopData, onClose, user , onInspectionComplete }) => {
     if (currentStep === 4) {
       const fetchInspectionData = async () => {
         try {
-          const response = await fetch(`/api/inspects/${inspectId}`, {
+          const response = await fetch(`${API_URL}/inspects/${inspectId}`, {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("authToken")}`,
             },
@@ -432,7 +431,7 @@ const handleCompleteInspection = async () => {
     formData.append("file", new File([output], `inspection_report.docx`));
     formData.append("inspectId", inspectId);  // <-- Gửi inspectId lên backend
     console.log(formData)
-    const saveResponse = await fetch("/api/reports", {
+    const saveResponse = await fetch(`${API_URL}/reports`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -463,6 +462,17 @@ const handleCompleteInspection = async () => {
       }));
     }
   }, [selectedCategory]);
+
+   // Handler khi Document PDF load xong:
+   const onDocumentLoadSuccess = (pdf) => {
+    setNumPages(pdf.numPages);
+  };
+
+  const stepOneImages = [
+    "/logo.png",
+    "/logo192.png",
+    "/logo512.png",
+  ];
 
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
@@ -500,28 +510,36 @@ const handleCompleteInspection = async () => {
 
       {/* Content Section */}
       <div className="w-3/4 pl-6 border-l border-gray-200">
-        {currentStep === 1 && (
-          <div>
-            <h3 className="text-xl font-bold mb-4">Hướng dẫn kiểm tra</h3>
-            <div className="h-80 rounded-lg mb-4 overflow-hidden border p-2">
-              <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-                <Viewer fileUrl="/inspect_guidlines.pdf" />
-              </Worker>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="guidelinesCheck"
-                checked={isGuidelinesChecked}
-                onChange={(e) => setIsGuidelinesChecked(e.target.checked)}
-                className="w-4 h-4 border border-gray-300 rounded focus:ring-2 focus:ring-[#002147] checked:bg-[#002147]"
+      {currentStep === 1 && (
+        <div>
+          <h3 className="text-xl font-bold mb-4">Hướng dẫn kiểm tra</h3>
+          <div className="h-80 rounded-lg mb-4 overflow-auto border p-2">
+            {/* Thay thế hiển thị PDF bằng hiển thị ảnh */}
+            {stepOneImages.map((imgSrc, idx) => (
+              <img
+                key={idx}
+                src={imgSrc}
+                alt={`Hướng dẫn kiểm tra ${idx + 1}`}
+                className="mb-2 w-full h-auto rounded-lg"
               />
-              <label htmlFor="guidelinesCheck" className="text-red-600 text-sm">
-                Tôi đã đọc kỹ hướng dẫn và hiểu nội dung bên trong
-              </label>
-            </div>
+            ))}
           </div>
-        )}
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="guidelinesCheck"
+              checked={isGuidelinesChecked}
+              onChange={(e) => setIsGuidelinesChecked(e.target.checked)}
+              className="w-4 h-4 border border-gray-300 rounded focus:ring-2 
+                        focus:ring-[#002147] checked:bg-[#002147]"
+            />
+            <label htmlFor="guidelinesCheck" className="text-red-600 text-sm">
+              Tôi đã đọc kỹ hướng dẫn và hiểu nội dung bên trong
+            </label>
+          </div>
+        </div>
+      )}
 
             {currentStep === 2 && (
         <div >
@@ -531,7 +549,7 @@ const handleCompleteInspection = async () => {
                             <div>
                                 <div className="flex items-center text-sm bg-[#002147] p-3 mb-2 rounded-lg">
                                 <img
-                                  src={user?.avatarUrl ? `https://42.96.42.197:5001${user.avatarUrl}` : "/default-avatar.png"}
+                                  src={user?.avatarUrl ? `${BASE_URL}${user.avatarUrl}` : "/default-avatar.png"}
                                   alt="Avatar"
                                   className="w-16 h-16 rounded-full mr-4 object-cover"
                                 />  

@@ -17,8 +17,11 @@ import TeamManagement from "../components/ticket/TeamManagement";
 import TicketReports from "../components/ticket/TicketReports";
 import EventManagement from "../components/EventManagement"
 import Profile from "../components/Profile";
+import StudentTable from "../components/StudentTable"
 import { toast } from "react-toastify";
+import { API_URL, UPLOAD_URL, BASE_URL } from "../config"; // import từ file config
 
+console.log(API_URL, UPLOAD_URL, BASE_URL)
 
 
 const Dashboard = () => {
@@ -72,7 +75,7 @@ const Dashboard = () => {
   const fetchLatestNotifications = async () => {
     setLoadingNotifications(true);
     try {
-      const response = await axios.get('/api/notifications/latest', {
+      const response = await axios.get(`${API_URL}/notifications/latest`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
       });
       setNotifications(response.data.notifications); // Update notifications
@@ -85,7 +88,7 @@ const Dashboard = () => {
 
   const markAllAsRead = async () => {
     try {
-      await axios.post('/api/notifications/mark-all-as-read', {}, {
+      await axios.post(`${API_URL}/notifications/mark-all-as-read`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
       });
       setNotifications(notifications.map(notification => ({ ...notification, isRead: true }))); // Mark all as read
@@ -96,7 +99,7 @@ const Dashboard = () => {
 
  const markNotificationAsRead = async (notificationId) => {
     try {
-      await axios.post(`/api/notifications/${notificationId}/mark-as-read`, {}, {
+      await axios.post(`${API_URL}/notifications/${notificationId}/mark-as-read`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
       });
       setNotifications(notifications.map(notification =>
@@ -143,7 +146,7 @@ const Dashboard = () => {
         if (updatedUser.newPassword) {
           formData.append("newPassword", updatedUser.newPassword);
         }
-        const response = await fetch(`/api/users/${updatedUser.id}`, {
+        const response = await fetch(`${API_URL}/users/${updatedUser.id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -185,7 +188,7 @@ const Dashboard = () => {
         navigate("/login");
         return;
       }
-      await axios.post("/api/sync-clients",{},
+      await axios.post(`${API_URL}/sync-clients`,{},
         {
           method: "POST",
           headers: {
@@ -209,7 +212,7 @@ const Dashboard = () => {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch('/api/users', {
+      const response = await fetch(`${API_URL}/users`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -260,7 +263,7 @@ const Dashboard = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("/api/users/me", {
+      const response = await fetch(`${API_URL}/users/me`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -277,7 +280,7 @@ const Dashboard = () => {
         fullname: data.fullname || "Không xác định",
         jobTitle: data.jobTitle || "Không xác định",
         avatarUrl: data.avatarUrl
-            ? `https://staff-portal.wellspring.edu.vn${data.avatarUrl}`
+            ? `${BASE_URL}${data.avatarUrl}`
             : "http://via.placeholder.com/150",
         email: data.email || "",
         department: data.department || "Không xác định",
@@ -331,6 +334,13 @@ const renderContent = () => {
                 return (
                   <div>
                     {activeTab === "Danh sách sự kiện" && <EventManagement />} {/* Component quản lý danh sách */}
+                  </div>
+                );
+
+                case "Quản lý học sinh":
+                return (
+                  <div>
+                    <StudentTable />
                   </div>
                 );
 
@@ -401,7 +411,7 @@ const renderContent = () => {
     // { label: "Bảng tin", icon: <FiHome /> },
     { label: "Quản lý thiết bị", icon: <FiPackage /> },
     { label: "Quản lý tickets", icon: <FiFileText /> },
-    // { label: "Quản lý chấm công", icon: <FiClock /> },
+    { label: "Quản lý học sinh", icon: <FiUser /> },
     // { label: "Quản lý tài liệu", icon: <FiBook /> },
     { label: "Quản lý sự kiện", icon: <FiBook /> }, // Thêm mục mới
     // { label: "User Management", icon: <FiUser /> },
@@ -614,11 +624,10 @@ const renderContent = () => {
       {isProfileModalOpen && (
                                       <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
                                         <div className="bg-white rounded-lg shadow-lg p-6 w-[90%] max-w-7xl">
-                                          <Profile
-                                            user={currentUser}
-                                            onSave={handleSaveProfile}
-                                            onBack={() => setIsProfileModalOpen(false)} // Đóng Modal
-                                          />
+                                        <Profile
+                                          userId={currentUser.id}    // HOẶC userId nào bạn muốn hiển thị
+                                          onBack={() => setIsProfileModalOpen(false)}
+                                        />
                                         </div>
                                       </div>
                                     )}

@@ -33,6 +33,7 @@ const ticketRoutes = require("./routes/tickets");
 const eventRoutes = require("./routes/eventRoutes");
 const photoRoutes = require("./routes/photoRoutes");
 const inspectRoutes = require("./routes/inspect")
+const studentRoutes = require("./routes/students");
 const uploadReport = require("./middleware/uploadReport");
 
 
@@ -77,7 +78,6 @@ module.exports = upload;
 
 app.use(express.json());
 app.use(cors());
-
 app.use("/api/laptops", laptopRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Phục vụ thư mục uploads
 app.use("/api/auth", authRoutes);
@@ -95,7 +95,7 @@ app.use("/api/tickets", ticketRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/photos", photoRoutes);
 app.use("/api/inspects", inspectRoutes);
-
+app.use("/api/students", studentRoutes);
 
 const syncClientsFromAzure = require("./routes/clientsSync").syncClientsFromAzure;
 app.get("/api/sync-clients", async (req, res) => {

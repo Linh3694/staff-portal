@@ -32,6 +32,7 @@
     "node-cron": "^3.0.3",
     "react-select": "^5.8.3",
     "simple-oauth2": "^5.1.0",
+    "swiper": "^11.2.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -1,14 +1,41 @@
 const express = require("express");
 const router = express.Router();
 const photoController = require("../controllers/photoController");
-const upload = require("../middleware/uploadPhoto"); // Import cấu hình Multer mới
-const authMiddleware = require("../middleware/authMiddleware");
+const uploadEvent = require("../middleware/uploadEvent"); // middleware cho upload file
 
+
+// Lấy danh sách ảnh đã được phê duyệt
 router.get("/", photoController.getPhotosByEvent);
-router.post("/", upload.single("photo"), photoController.uploadPhoto); // Sử dụng Multer để xử lý upload ảnh
-router.post("/:id/vote", authMiddleware, photoController.votePhoto);
+
+// Lấy danh sách ảnh chưa được phê duyệt (admin only)
+router.get("/pending", photoController.getPendingPhotos);
+
+// Phê duyệt ảnh (admin only)
+router.put("/:id/approve", photoController.approvePhoto);
+
+// Tải lên ảnh mới
+router.post("/", uploadEvent.single("file"), photoController.uploadPhoto);
+
+// Xóa ảnh
 router.delete("/:id", photoController.deletePhoto);
-router.post("/:id/comment", authMiddleware, photoController.addComment);
+
+// Vote cho ảnh
+router.post("/:id/vote", photoController.votePhoto);
+
+// Thêm bình luận
+router.post("/:id/comment", photoController.addComment);
+
+// Lấy danh sách bình luận
 router.get("/:id/comments", photoController.getComments);
+
+// Lấy danh sách photo để làm leaderboard
+router.get("/leaderboard", photoController.getLeaderboard);
+
+router.get("/leaderboard-all", photoController.getLeaderboardAll);
+
+// Lấy chi tiết ảnh theo ID
+router.get("/:id", photoController.getPhotoById);
+
+
 
 module.exports = router;

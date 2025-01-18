@@ -6,6 +6,8 @@ import axios from "axios";
 import "./login.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { API_URL, UPLOAD_URL } from "../config"; // import từ file config
+
 
   const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -75,7 +77,7 @@ import "react-toastify/dist/ReactToastify.css";
     try {
       setIsLoading(true);
   
-      const response = await axios.post(`/api/auth/login`, {
+      const response = await axios.post(`${API_URL}/auth/login`, {
         email: formData.email,
         password: formData.password,
       });

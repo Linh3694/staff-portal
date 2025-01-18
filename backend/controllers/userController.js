@@ -32,9 +32,6 @@ exports.getAssignedItems = async (req, res) => {
     const printers = await Printer.find({ assigned: userObjectId }).lean();
     const tools = await Tool.find({ assigned: userObjectId }).lean();
 
-    // Log kết quả để kiểm tra
-    console.log("Assigned laptops:", laptops);
-
     // Trả về kết quả
     res.status(200).json({
       message: "Assigned items fetched successfully.",
@@ -43,35 +40,6 @@ exports.getAssignedItems = async (req, res) => {
   } catch (error) {
     console.error("Error fetching assigned items:", error.message);
     res.status(500).json({ message: "Error fetching assigned items.", error });
-  }
-};
-
-exports.updateAvatar = async (req, res) => {
-  console.log("Controller updateAvatar được gọi");
-  console.log("Payload:", req.body);
-  const { id } = req.params;
-
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
-  }
-
-  try {
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Cập nhật avatar
-    user.avatarUrl = `/uploads/Avatar/${req.file.filename}`;
-    await user.save();
-
-    res.status(200).json({
-      message: "Avatar updated successfully",
-      avatar: user.avatarUrl, // Cập nhật đường dẫn mới
-    });
-  } catch (error) {
-    console.error("Error updating avatar:", error);
-    res.status(500).json({ message: "Server error", error });
   }
 };
 

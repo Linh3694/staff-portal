@@ -8,6 +8,7 @@ import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import Dropdown from "../function/dropdown";
+import { API_URL, UPLOAD_URL, BASE_URL } from "../../config"; // import từ file config
 
 
 
@@ -90,7 +91,7 @@ const PrinterTable = () => {
           console.log("Dữ liệu cập nhật specs:", updatedSpecs);
           const token = localStorage.getItem("authToken");
           return axios
-            .put(`/api/printers/${printerId}/specs`, updatedSpecs, {
+            .put(`${API_URL}/printers/${printerId}/specs`, updatedSpecs, {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
@@ -122,7 +123,7 @@ const PrinterTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/users", {
+              const response = await axios.get(`${API_URL}/users`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -152,7 +153,7 @@ const PrinterTable = () => {
           const fetchPrinters = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/printers", {
+              const response = await axios.get(`${API_URL}/printers`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
               
@@ -249,7 +250,7 @@ const PrinterTable = () => {
           const fetchRooms = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/rooms", {
+              const response = await axios.get(`${API_URL}/rooms`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
           
@@ -279,7 +280,7 @@ const PrinterTable = () => {
               try {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
-                const response = await fetch(`/api/printers/${printerId}/revoke`, {
+                const response = await fetch(`${API_URL}/printers/${printerId}/revoke`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -315,7 +316,7 @@ const PrinterTable = () => {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser"));
             
-                const response = await fetch(`/api/printers/${printerId}/assign`, {
+                const response = await fetch(`${API_URL}/printers/${printerId}/assign`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -373,7 +374,7 @@ const PrinterTable = () => {
             const fetchPrinterDetails = async (printerId) => {
               try {
                 const token = localStorage.getItem("authToken");
-                const response = await axios.get(`/api/printers/${printerId}`, {
+                const response = await axios.get(`${API_URL}/printers/${printerId}`, {
                   headers: { Authorization: `Bearer ${token}` },
                 });
             
@@ -439,7 +440,7 @@ const PrinterTable = () => {
           
               // Gửi yêu cầu POST để tạo printer mới
               const response = await axios.post(
-                "/api/printers",
+                `${API_URL}/printers`,
                 clonedPrinter,
                 {
                   headers: {
@@ -473,7 +474,7 @@ const PrinterTable = () => {
             if (!printerToDelete) return;
 
               try {
-                await axios.delete(`/api/printers/${printerToDelete._id}`, {
+                await axios.delete(`${API_URL}/printers/${printerToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -563,7 +564,7 @@ const PrinterTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("/api/printers", payload, {
+              const response = await axios.post(`${API_URL}/printers`, payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -787,7 +788,7 @@ const PrinterTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "/api/printers/bulk-upload",
+                  `${API_URL}/printers/bulk-upload`,
                   { printers: parsedData },
                   {
                       headers: {
@@ -1627,7 +1628,7 @@ const PrinterTable = () => {
                       console.log("Payload gửi lên server:", payload);
                   
                       await axios.put(
-                        `/api/printers/${editingPrinter._id}`,
+                        `${API_URL}/printers/${editingPrinter._id}`,
                         payload,
                         {
                           headers: {

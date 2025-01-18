@@ -3,13 +3,13 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import * as XLSX from "xlsx";
-import Dropdown from "./function/dropdown";
 import { IoLocationOutline } from "react-icons/io5";
 import LaptopProductCard from "./inventory/productcard/laptopProductCard";
 import MonitorProductCard from "./inventory/productcard/monitorProductCard";
 import PrinterProductCard from "./inventory/productcard/printerProductCard";
 import ProjectorProductCard from "./inventory/productcard/projectorProductCard";
 import ToolProductCard from "./inventory/productcard/toolProductCard";
+import { API_URL, UPLOAD_URL, BASE_URL } from "../config"; // import từ file config
 
 
 
@@ -71,7 +71,7 @@ const RoomTable = () => {
 
   const fetchRooms = async () => {
     try {
-      const response = await fetch("/api/rooms");
+      const response = await fetch(`${API_URL}/rooms`);
       const data = await response.json();
   
       const validRooms = (data.rooms || []).filter((room) => room && room.name); // Loại bỏ phần tử không hợp lệ
@@ -88,7 +88,7 @@ const RoomTable = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("/api/users", {
+      const response = await fetch(`${API_URL}/users`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`, // Đảm bảo token đúng
@@ -117,7 +117,7 @@ const RoomTable = () => {
 
   const fetchDevicesByRoom = async (roomId) => {
     try {
-      const response = await fetch(`/api/rooms/${roomId}/devices`);
+      const response = await fetch(`${API_URL}/rooms/${roomId}/devices`);
       if (!response.ok) throw new Error("Không thể tải danh sách thiết bị.");
     
       const data = await response.json();
@@ -137,7 +137,7 @@ const RoomTable = () => {
 
   const fetchLaptopDetails = async (laptopId) => {
     try {
-      const response = await fetch(`/api/laptops/${laptopId}`, {
+      const response = await fetch(`${API_URL}/laptops/${laptopId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
@@ -154,7 +154,7 @@ const RoomTable = () => {
   };
   const fetchMonitorDetails = async (monitorId) => {
     try {
-      const response = await fetch(`/api/monitors/${monitorId}`, {
+      const response = await fetch(`${API_URL}/monitors/${monitorId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
@@ -171,7 +171,7 @@ const RoomTable = () => {
   };
   const fetchPrinterDetails = async (printerId) => {
     try {
-      const response = await fetch(`/api/printers/${printerId}`, {
+      const response = await fetch(`${API_URL}/printers/${printerId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
@@ -188,7 +188,7 @@ const RoomTable = () => {
   };
   const fetchProjectorDetails = async (projectorId) => {
     try {
-      const response = await fetch(`/api/projectors/${projectorId}`, {
+      const response = await fetch(`${API_URL}/projectors/${projectorId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
@@ -205,7 +205,7 @@ const RoomTable = () => {
   };
   const fetchToolDetails = async (toolId) => {
     try {
-      const response = await fetch(`/api/tools/${toolId}`, {
+      const response = await fetch(`${API_URL}/tools/${toolId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
@@ -233,7 +233,7 @@ const RoomTable = () => {
         status: newRoom.status || "Không xác định",
       };
   
-      const response = await fetch("/api/rooms", {
+      const response = await fetch(`${API_URL}/rooms`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedRoom),
@@ -270,7 +270,7 @@ const RoomTable = () => {
   
       console.log("Dữ liệu gửi cập nhật:", formattedRoom);
   
-      const response = await fetch(`/api/rooms/${selectedRoom._id}`, {
+      const response = await fetch(`${API_URL}/rooms/${selectedRoom._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedRoom),
@@ -343,7 +343,7 @@ const RoomTable = () => {
           };
         });
   
-        const response = await fetch("/api/rooms/bulk", {
+        const response = await fetch(`${API_URL}/rooms/bulk`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ rooms: formattedRooms }),
@@ -883,7 +883,7 @@ const RoomTable = () => {
                 <button
                   className="px-4 py-2 bg-[#FF5733] text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
                   onClick={async () => {
-                    await fetch(`/api/rooms/${selectedRoom?._id}`, {
+                    await fetch(`${API_URL}/rooms/${selectedRoom?._id}`, {
                       method: "DELETE",
                     });
                     toast.success("Xóa phòng thành công!");

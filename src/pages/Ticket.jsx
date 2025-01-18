@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "tailwindcss/tailwind.css"; // Đảm bảo import Tailwind
 import { FiMonitor, FiSettings, FiCalendar } from "react-icons/fi";
+import { API_URL, UPLOAD_URL } from "../config"; 
 
 
 const Ticket = () => {
@@ -54,7 +55,7 @@ const Ticket = () => {
     if (!currentUser?._id) return;
     try {
       const res = await axios.get(
-        `/api/tickets?creator=${currentUser._id}`,
+        `${API_URL}/tickets?creator=${currentUser._id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -93,7 +94,7 @@ const Ticket = () => {
       });
 
       // Gửi dữ liệu
-      const res = await axios.post("/api/tickets", formData, {
+      const res = await axios.post("${API_URL}/tickets", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data", // Định dạng multipart

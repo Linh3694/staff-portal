@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API_URL, UPLOAD_URL, BASE_URL } from "../../config"; // import từ file config
+
 
 const TicketAdminTable = ({ currentUser }) => {
   console.log("Current user:", currentUser);
@@ -50,7 +52,7 @@ const TicketAdminTable = ({ currentUser }) => {
   const fetchTickets = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await axios.get("/api/tickets", {
+      const response = await axios.get(`${API_URL}/tickets`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("Danh sách tickets:", response.data.tickets);
@@ -69,7 +71,7 @@ const TicketAdminTable = ({ currentUser }) => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await axios.get("/api/users", {
+      const response = await axios.get(`${API_URL}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       let allUsers = [];
@@ -252,7 +254,7 @@ const TicketAdminTable = ({ currentUser }) => {
       console.log("[Accept] Gửi lên server:", updatedTicket);
       
       const response = await axios.put(
-        `/api/tickets/${assignedTicket._id}`,
+        `${API_URL}/tickets/${assignedTicket._id}`,
         updatedTicket,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -282,7 +284,7 @@ const TicketAdminTable = ({ currentUser }) => {
       console.log("[Cancel] Gửi lên server:", updatedTicket);
 
       const response = await axios.put(
-        `/api/tickets/${assignedTicket._id}`,
+        `${API_URL}/tickets/${assignedTicket._id}`,
         updatedTicket,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -318,7 +320,7 @@ const TicketAdminTable = ({ currentUser }) => {
       console.log("[Transfer] Gửi lên server:", updatedTicket);
 
       const response = await axios.put(
-        `/api/tickets/${assignedTicket._id}`,
+        `${API_URL}/tickets/${assignedTicket._id}`,
         updatedTicket,
         { headers: { Authorization: `Bearer ${token}` } }
       );

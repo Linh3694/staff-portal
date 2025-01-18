@@ -8,6 +8,7 @@ import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import Dropdown from "../function/dropdown";
+import { API_URL, UPLOAD_URL, BASE_URL } from "../../config"; // import từ file config
 
 const LaptopTable = () => {
         
@@ -84,7 +85,7 @@ const LaptopTable = () => {
           console.log("Cập nhật specs cho laptop:", laptopId, updatedSpecs);
           const token = localStorage.getItem("authToken");
           return axios
-            .put(`/api/laptops/${laptopId}/specs`, updatedSpecs, {
+            .put(`${API_URL}/laptops/${laptopId}/specs`, updatedSpecs, {
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
@@ -116,7 +117,7 @@ const LaptopTable = () => {
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/users", {
+              const response = await axios.get(`${API_URL}/users`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -145,7 +146,7 @@ const LaptopTable = () => {
           const fetchLaptops = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/laptops", {
+              const response = await axios.get(`${API_URL}/laptops`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
               
@@ -243,7 +244,7 @@ const LaptopTable = () => {
           const fetchRooms = async () => {
             try {
               const token = localStorage.getItem("authToken");
-              const response = await axios.get("/api/rooms", {
+              const response = await axios.get(`${API_URL}/rooms`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
           
@@ -272,7 +273,7 @@ const LaptopTable = () => {
               try {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Lấy thông tin người dùng hiện tại
-                const response = await fetch(`/api/laptops/${laptopId}/revoke`, {
+                const response = await fetch(`${API_URL}/laptops/${laptopId}/revoke`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -308,7 +309,7 @@ const LaptopTable = () => {
                 const token = localStorage.getItem("authToken");
                 const currentUser = JSON.parse(localStorage.getItem("currentUser"));
             
-                const response = await fetch(`/api/laptops/${laptopId}/assign`, {
+                const response = await fetch(`${API_URL}/laptops/${laptopId}/assign`, {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -366,7 +367,7 @@ const LaptopTable = () => {
             const fetchLaptopDetails = async (laptopId) => {
               try {
                 const token = localStorage.getItem("authToken");
-                const response = await axios.get(`/api/laptops/${laptopId}`, {
+                const response = await axios.get(`${API_URL}/laptops/${laptopId}`, {
                   headers: { Authorization: `Bearer ${token}` },
                 });
             
@@ -432,7 +433,7 @@ const LaptopTable = () => {
           
               // Gửi yêu cầu POST để tạo laptop mới
               const response = await axios.post(
-                "/api/laptops",
+                `${API_URL}/laptops`,
                 clonedLaptop,
                 {
                   headers: {
@@ -466,7 +467,7 @@ const LaptopTable = () => {
             if (!laptopToDelete) return;
 
               try {
-                await axios.delete(`/api/laptops/${laptopToDelete._id}`, {
+                await axios.delete(`${API_URL}/laptops/${laptopToDelete._id}`, {
                   headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Thêm token ở đây
                   },
@@ -556,7 +557,7 @@ const LaptopTable = () => {
         
           
               // Gửi dữ liệu lên API
-              const response = await axios.post("/api/laptops", payload, {
+              const response = await axios.post(`${API_URL}/laptops`, payload, {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Đảm bảo token được gửi kèm
                 },
@@ -780,7 +781,7 @@ const LaptopTable = () => {
               console.log("Dữ liệu gửi lên:", parsedData);
       
               const response = await axios.post(
-                  "/api/laptops/bulk-upload",
+                  `${API_URL}/laptops/bulk-upload`,
                   { laptops: parsedData },
                   {
                       headers: {
@@ -1561,7 +1562,7 @@ const LaptopTable = () => {
                       console.log("Payload gửi lên server:", payload);
                   
                       await axios.put(
-                        `/api/laptops/${editingLaptop._id}`,
+                        `${API_URL}/laptops/${editingLaptop._id}`,
                         payload,
                         {
                           headers: {

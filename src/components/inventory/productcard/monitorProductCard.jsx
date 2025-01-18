@@ -13,6 +13,7 @@ import { saveAs } from "file-saver";
 import axios from "axios";
 import Dropdown from "../../function/dropdown"
 import { IoLocationOutline } from "react-icons/io5";
+import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
 
 console.log ("MonitorProductCard.js");
 
@@ -97,7 +98,7 @@ const MonitorProductCard = ({
   const fetchActivities = async (monitorId) => {
     try {
       const response = await axios.get(
-        `/api/activities/monitor/${monitorId}`
+        `${API_URL}/activities/monitor/${monitorId}`
       );
       return response.data;
     } catch (error) {
@@ -108,7 +109,7 @@ const MonitorProductCard = ({
   
   const addActivity = async (activity) => {
     try {
-      const response = await axios.post("/api/activities", activity);
+      const response = await axios.post(`${API_URL}/activities`, activity);
       return response.data;
     } catch (error) {
       console.error("Lỗi khi thêm hoạt động:", error);
@@ -117,12 +118,12 @@ const MonitorProductCard = ({
   };
   
   const updateActivity = async (id, updates) => {
-    const response = await axios.put(`/api/activities/${id}`, updates);
+    const response = await axios.put(`${API_URL}/activities/${id}`, updates);
     return response.data;
   };
   
   const deleteActivity = async (id) => {
-    const response = await axios.delete(`/api/activities/${id}`);
+    const response = await axios.delete(`${API_URL}/activities/${id}`);
     return response.data;
   };
 
@@ -169,7 +170,7 @@ const MonitorProductCard = ({
   useEffect(() => {
     const fetchAllUsers = async () => {
       try {
-        const res = await fetch("/api/users");
+        const res = await fetch(`${API_URL}/users`);
         if (!res.ok) throw new Error("Failed to fetch users");
         const data = await res.json();
         console.log("Fetched users:", data); // Debug dữ liệu
@@ -244,7 +245,7 @@ const MonitorProductCard = ({
   const fetchRooms = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await axios.get("/api/rooms", {
+      const response = await axios.get(`${API_URL}/rooms`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("Rooms fetched:", response.data.rooms);
@@ -313,7 +314,7 @@ const handleConfirmAssign = async () => {
   const handleConfirmRecycle = async () => {
     try {
       const response = await axios.put(
-        `/api/monitors/${localMonitor._id}/status`,
+        `${API_URL}/monitors/${localMonitor._id}/status`,
         { status: "Standby" }, // Cập nhật trạng thái về Chờ cấp phát
         {
           headers: {
@@ -444,7 +445,7 @@ const handleConfirmBroken = async () => {
 
   try {
     const response = await axios.put(
-      `/api/monitors/${localMonitor._id}/status`,
+      `${API_URL}/monitors/${localMonitor._id}/status`,
       { status: "Broken", brokenReason: brokenReason },
       {
         headers: {
@@ -519,7 +520,7 @@ const handleConfirmBroken = async () => {
       return;
     }
   
-    const fileUrl = `/api/monitors/BBBG/${filename}`;
+    const fileUrl = `${API_URL}/monitors/BBBG/${filename}`;
     const token = localStorage.getItem("authToken");
   
     try {
@@ -629,7 +630,7 @@ const handleConfirmBroken = async () => {
         formData.append("userId", currentHolder?.user?._id); // ID người dùng hiện tại
     
         axios
-        .post("/api/monitors/upload", formData, {
+        .post(`${API_URL}/monitors/upload`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -668,7 +669,7 @@ const handleConfirmBroken = async () => {
     try {
       // Cập nhật phòng cho monitor qua API
       const response = await axios.put(
-        `/api/monitors/${localMonitor._id}`,
+        `${API_URL}/monitors/${localMonitor._id}`,
         { room: localRoom._id },
         { headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` } }
       );
@@ -678,7 +679,7 @@ const handleConfirmBroken = async () => {
   
       // Lấy thông tin chi tiết phòng
       const roomResponse = await axios.get(
-        `/api/rooms/${updatedMonitor.room}`,
+        `${API_URL}/rooms/${updatedMonitor.room}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` } }
       );
       const detailedRoom = roomResponse.data;
@@ -1244,8 +1245,8 @@ const handleConfirmBroken = async () => {
                   <div className="bg-[#002147] rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 p-4 ">
                     <div className=" text-white shadow mb-2 flex justify-between items-center">
                       <div className="flex items-center space-x-3">
-                        <img
-                          src={currentHolder?.user?.avatarUrl || "https://via.placeholder.com/150"}
+                      <img
+                          src={currentHolder?.user?.avatarUrl ? `${BASE_URL}${currentHolder?.user?.avatarUrl}` : "/default-avatar.png"}
                           alt="Avatar"
                           className="w-16 h-16 rounded-full object-cover"
                         />

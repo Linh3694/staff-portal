@@ -13,6 +13,7 @@ import { saveAs } from "file-saver";
 import axios from "axios";
 import Dropdown from "../../function/dropdown"
 import { IoLocationOutline } from "react-icons/io5";
+import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
 
 console.log ("PrinterProductCard.js");
 
@@ -95,12 +96,12 @@ const PrinterProductCard = ({
 
 
   const fetchActivities = async (entityType, entityId) => {
-    const response = await axios.get(`/api/activities/${entityType}/${entityId}`);
+    const response = await axios.get(`${API_URL}/activities/${entityType}/${entityId}`);
     return response.data;
   };
   
   const addActivity = async (activity) => {
-  const response = await axios.post('/api/activities', {
+  const response = await axios.post(`${API_URL}/activities`, {
     ...activity,
     entityType: "printer",
     entityId: printerData._id,
@@ -109,12 +110,12 @@ const PrinterProductCard = ({
 };
   
   const updateActivity = async (id, updates) => {
-    const response = await axios.put(`/api/activities/${id}`, updates);
+    const response = await axios.put(`${API_URL}/activities/${id}`, updates);
     return response.data;
   };
   
   const deleteActivity = async (id) => {
-    const response = await axios.delete(`/api/activities/${id}`);
+    const response = await axios.delete(`${API_URL}/activities/${id}`);
     return response.data;
   };
 
@@ -161,7 +162,7 @@ const PrinterProductCard = ({
   useEffect(() => {
     const fetchAllUsers = async () => {
       try {
-        const res = await fetch("/api/users");
+        const res = await fetch(`${API_URL}/users`);
         if (!res.ok) throw new Error("Failed to fetch users");
         const data = await res.json();
         console.log("Fetched users:", data); // Debug dữ liệu
@@ -240,7 +241,7 @@ const PrinterProductCard = ({
   const fetchRooms = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await axios.get("/api/rooms", {
+      const response = await axios.get(`${API_URL}/rooms`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("Rooms fetched:", response.data.rooms);
@@ -309,7 +310,7 @@ const handleConfirmAssign = async () => {
   const handleConfirmRecycle = async () => {
     try {
       const response = await axios.put(
-        `/api/printers/${localPrinter._id}/status`,
+        `${API_URL}/printers/${localPrinter._id}/status`,
         { status: "Standby" }, // Cập nhật trạng thái về Chờ cấp phát
         {
           headers: {
@@ -440,7 +441,7 @@ const handleConfirmBroken = async () => {
 
   try {
     const response = await axios.put(
-      `/api/printers/${localPrinter._id}/status`,
+      `${API_URL}/printers/${localPrinter._id}/status`,
       { status: "Broken", brokenReason: brokenReason },
       {
         headers: {
@@ -516,7 +517,7 @@ const handleConfirmBroken = async () => {
       return;
     }
   
-    const fileUrl = `/api/printers/BBBG/${filename}`;
+    const fileUrl = `${API_URL}/printers/BBBG/${filename}`;
     const token = localStorage.getItem("authToken");
   
     try {
@@ -626,7 +627,7 @@ const handleConfirmBroken = async () => {
         formData.append("userId", currentHolder?.user?._id); // ID người dùng hiện tại
     
         axios
-        .post("/api/printers/upload", formData, {
+        .post(`${API_URL}/printers/upload`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -665,7 +666,7 @@ const handleConfirmBroken = async () => {
     try {
       // Cập nhật phòng cho printer qua API
       const response = await axios.put(
-        `/api/printers/${localPrinter._id}`,
+        `${API_URL}/printers/${localPrinter._id}`,
         { room: localRoom._id },
         { headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` } }
       );
@@ -675,7 +676,7 @@ const handleConfirmBroken = async () => {
   
       // Lấy thông tin chi tiết phòng
       const roomResponse = await axios.get(
-        `/api/rooms/${updatedPrinter.room}`,
+        `${API_URL}/rooms/${updatedPrinter.room}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` } }
       );
       const detailedRoom = roomResponse.data;
@@ -1222,8 +1223,8 @@ const handleConfirmBroken = async () => {
                   <div className="bg-[#002147] rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 p-4 ">
                     <div className=" text-white shadow mb-2 flex justify-between items-center">
                       <div className="flex items-center space-x-3">
-                        <img
-                          src={currentHolder?.user?.avatarUrl || "https://via.placeholder.com/150"}
+                      <img
+                          src={currentHolder?.user?.avatarUrl ? `${BASE_URL}${currentHolder?.user?.avatarUrl}` : "/default-avatar.png"}
                           alt="Avatar"
                           className="w-16 h-16 rounded-full object-cover"
                         />

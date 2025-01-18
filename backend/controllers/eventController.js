@@ -30,7 +30,7 @@ exports.createEvent = async (req, res) => {
     console.log("Body:", req.body);
     console.log("File:", req.file);
 
-    const { name, description, startDate, endDate } = req.body;
+    const { name, description, startDate, endDate, number } = req.body;
     const image = req.file ? `/uploads/Events/${req.file.filename}` : undefined; // Lưu đường dẫn tương đối
 
     if (!name || !description) {
@@ -44,6 +44,7 @@ exports.createEvent = async (req, res) => {
       image,
       startDate,
       endDate,
+      number,
     });
     await newEvent.save();
 
@@ -57,11 +58,11 @@ exports.createEvent = async (req, res) => {
 // Cập nhật thông tin sự kiện
 exports.updateEvent = async (req, res) => {
   const { id } = req.params;
-  const { name, description, startDate, endDate } = req.body;
+  const { name, description, startDate, endDate, number } = req.body;
   const image = req.file ? `/uploads/Events/${req.file.filename}` : undefined;
 
   try {
-    const updateData = { name, description, startDate, endDate };
+    const updateData = { name, description, startDate, endDate, number };
     if (image) {
       updateData.image = image; // Cập nhật đường dẫn ảnh mới
     }
@@ -91,5 +92,18 @@ exports.deleteEvent = async (req, res) => {
   } catch (error) {
     console.error("Error deleting event:", error);
     res.status(500).json({ message: "Lỗi khi xóa sự kiện!" });
+  }
+};
+
+// Fetch sự kiện bằng slug
+exports.getEventBySlug = async (req, res) => {
+  const { slug } = req.query;
+  try {
+    const event = await Event.findOne({ slug });
+    if (!event) return res.status(404).json({ message: "Không tìm thấy sự kiện" });
+    res.json(event);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi khi tìm kiếm sự kiện" });
   }
 };
