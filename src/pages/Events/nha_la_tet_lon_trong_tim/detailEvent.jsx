@@ -24,8 +24,11 @@ const DetailEvent = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15; // Hiển thị 15 ảnh mỗi trang
   const navigate = useNavigate();
+  const [filteredPhotos, setFilteredPhotos] = useState([]);
+  const [sortOrder, setSortOrder] = useState("votes"); // Bộ lọc: votes, latest, oldest
+  const [searchQuery, setSearchQuery] = useState(""); // Thanh tìm kiếm
 
-  const paginatedPhotos = photos.slice(
+  const paginatedPhotos = filteredPhotos.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -117,6 +120,34 @@ const DetailEvent = () => {
     }
   }, [event?.endDate]);
 
+  useEffect(() => {
+    if (photos.length > 0) {
+      let sortedPhotos = photos.filter((photo) => photo.eventId === event?._id);
+  
+      // Sắp xếp ảnh dựa trên lựa chọn bộ lọc
+      if (sortOrder === "votes") {
+        sortedPhotos.sort((a, b) => b.votes - a.votes);
+      } else if (sortOrder === "latest") {
+        sortedPhotos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      } else if (sortOrder === "oldest") {
+        sortedPhotos.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      }
+  
+      // Lọc theo từ khóa tìm kiếm
+      if (searchQuery.trim() !== "") {
+        sortedPhotos = sortedPhotos.filter(
+          (photo) =>
+            photo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            photo.uploaderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            photo._id.includes(searchQuery)
+        );
+      }
+  
+      setFilteredPhotos(sortedPhotos);
+    }
+  }, [photos, sortOrder, searchQuery, event]);
+
+
   const openPhotoReview = (photo) => {
     setSelectedPhoto(photo);
     setPhotoReviewOpen(true);
@@ -163,57 +194,57 @@ const DetailEvent = () => {
     <div className="min-h-screen">
       {/* Header */}
       <header className="bg-[#fcf5e3] flex items-center justify-between w-full h-[80px] px-6">
-        {/* Logo Section */}
-        <div className="w-[1390px] mx-auto flex flex-row items-center justify-between">
-            <div className="flex  items-center space-x-2">
-              <img
-                src="/tet2025/image/wellsping-logo.png" // Đường dẫn logo 1
-                alt="Logo 1"
-                className="h-28 w-auto"
-              />
-              <img
-                src="/tet2025/image/happyjourney.png" // Đường dẫn logo 2
-                alt="Logo 2"
-                className="h-28 w-auto"
-              />
-            </div>
-  
-              {/* Language Switcher */}
-              <div className ="items-center">
-                <div className ="flex items-center gap-2">
-                <span>Chào mừng Wiser <span className="font-bold">{user?.fullName  || "Ẩn danh"}</span></span>
-                <span className="w-10 h-10 border-2 border-gray-300 bg-[#E55526] rounded-full flex items-center justify-center" 
-                onClick={() => {
-                  localStorage.removeItem("user"); // Xóa thông tin người dùng
-                  navigate("/auth"); // Điều hướng về trang đăng nhập
-                }}>
-                  <FiLogOut size={20} className="text-white" />
-                </span>
-                <button
-                  onClick={() => {
-                    const newLang = language === "vi" ? "en" : "vi";
-                    i18n.changeLanguage(newLang);
-                    setLanguage(newLang);
-                  }}
-                  className="w-10 h-10 rounded-full border-2 border-gray-300 transition-transform transform hover:scale-110"
-                >
-                  <img
-                    src={`/tet2025/icons/flag-${language}.png`} // ✅ Tự động đổi cờ dựa trên ngôn ngữ
-                    alt={language === "vi" ? "Tiếng Việt" : "English"}
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                </button>
-                </div>
+              {/* Logo Section */}
+              <div className="w-[1390px] mx-auto flex flex-row items-center justify-between">
+                  <div className="flex items-center lg:space-x-2 xs:space-x-0">
+                    <img
+                      src="/tet2025/image/wellsping-logo.png" // Đường dẫn logo 1
+                      alt="Logo 1"
+                      className="lg:h-28 w-auto xs:h-12"
+                    />
+                    <img
+                      src="/tet2025/image/happyjourney.png" // Đường dẫn logo 2
+                      alt="Logo 2"
+                      className="lg:h-28 w-auto xs:h-12"
+                    />
+                  </div>
+        
+                    {/* Language Switcher */}
+                    <div className ="items-center">
+                      <div className ="flex items-center gap-2 ">
+                      <span className="xs:text-sm lg:text-base lg:text-left xs:text-right">Chào mừng Wiser <span className="font-bold lg:text-base xs:text-sm">{user?.fullName  || "Ẩn danh"}</span></span>
+                      <span className="lg:w-10 xs:w-12 lg:h-10 xs:h-9 border-2 border-gray-300 bg-[#E55526] rounded-full flex items-center justify-center" 
+                      onClick={() => {
+                        localStorage.removeItem("user"); // Xóa thông tin người dùng
+                        navigate("/auth"); // Điều hướng về trang đăng nhập
+                      }}>
+                        <FiLogOut size={20} className="text-white" />
+                      </span>
+                      <button
+                        onClick={() => {
+                          const newLang = language === "vi" ? "en" : "vi";
+                          i18n.changeLanguage(newLang);
+                          setLanguage(newLang);
+                        }}
+                        className="lg:w-10 xs:w-12 lg:h-10 xs:h-9 rounded-full border-2 border-gray-300 transition-transform transform hover:scale-110"
+                      >
+                        <img
+                          src={`/tet2025/icons/flag-${language}.png`} // ✅ Tự động đổi cờ dựa trên ngôn ngữ
+                          alt={language === "vi" ? "Tiếng Việt" : "English"}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      </button>
+                      </div>
+                    </div>
               </div>
-        </div>
-      </header>
+            </header>
   
       {/* Nội dung chính */}
       <div
         className="flex flex-col justify-center items-center py-10"
         style={{
           backgroundImage: `url('/tet2025/image/background-primary.png')`, // Không cần process.env.PUBLIC_URL
-          backgroundSize: "contain", // ✅ Ảnh không bị zoom to
+          backgroundSize: "cover", // ✅ Ảnh không bị zoom to
           backgroundPosition: "top center", // ✅ Căn giữa
           backgroundRepeat: "no-repeat",
           width: "100%", // ✅ Giữ full width
@@ -221,14 +252,14 @@ const DetailEvent = () => {
           margin: "0 auto", // ✅ Căn giữa khi có max-width
         }}
       >
-        <div className="w-[1390px] ">
-          <h1 className="text-3xl text-[#fcf5e3] font-bold mb-8 text-left">{event.name}</h1>
+        <div className="lg:w-[1390px] xs:w-full">
+          <h1 className="lg:text-3xl xs:text-2xl xs:ml-4 lg:ml-0 text-[#fcf5e3] font-bold mb-8 text-left">{event.name}</h1>
           {/* Hình ảnh */}
           {/* Phần Hình ảnh */}
           <div className ="text-lg font-bold mb-4">
           </div>
           {/* Hiển thị top 4 ảnh dự thi */}
-            <div className="mb-8 flex justify-between items-center">
+            <div className="xs:hidden lg:flex mb-8 flex justify-between items-center">
               {(() => {
                 // Lấy danh sách ảnh từ leaderboard
                 const displayedPhotos = leaderboard?.sort((a, b) => b.votes - a.votes).slice(0, 4) || [];
@@ -242,8 +273,8 @@ const DetailEvent = () => {
                   photo ? (
                     <div
                       key={photo._id}
-                      className={`relative border-2 border-[#fcf5e3] overflow-hidden rounded-2xl shadow-xl transition-all duration-300 ${
-                        hoveredIndex === index ? "w-[550px] h-[405px]" : "w-[340px] h-[405px]"
+                      className={`relative lex border-2 border-[#fcf5e3] overflow-hidden overflow-x-auto whitespace-nowrap rounded-2xl shadow-xl transition-all duration-300 ${
+                        hoveredIndex === index ? "w-[550px] h-[405px]" : "w-[340px] h-[405px] "
                       }`}
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
@@ -275,12 +306,36 @@ const DetailEvent = () => {
                 );
               })()}
             </div>
+          {/* Phiên bản Mobile (Hiển thị dạng trượt ngang) */}
+          <div className="lg:hidden xs:overflow-x-scroll xs:flex xs:space-x-4 xs:w-full px-4">
+            {leaderboard?.sort((a, b) => b.votes - a.votes).slice(0, 4).map((photo, index) => (
+              <div
+                key={photo._id}
+                className="relative border-2 border-[#fcf5e3] overflow-hidden rounded-2xl shadow-xl transition-all duration-300
+                xs:flex-shrink-0 xs:w-[60vw] xs:h-[200px]"
+                onClick={() => openPhotoReview(photo)}
+              >
+                {/* Số lượng tim */}
+                <div className="absolute top-2 right-2 bg-gray-100 bg-opacity-50 text-white text-sm font-bold px-2 py-1 rounded-full">
+                  ❤️ {photo.votes}
+                </div>
+                <img
+                  src={`${BASE_URL}${photo.url}`}
+                  alt={photo.title || "Không tiêu đề"}
+                  className="w-full h-full object-cover"
+                />
+                <p className="absolute bottom-0 left-0 bg-black bg-opacity-50 text-white text-sm px-2 py-1 rounded-tl-lg">
+                  {photo.title || "Không tiêu đề"}
+                </p>
+              </div>
+            ))}
           </div>
-            <div className="w-[1100px] mx-auto grid grid-cols-2 gap-6 mt-8 mb-8">
+          </div>
+            <div className="lg:w-[1100px] xs:w-full mx-auto lg:grid lg:grid-cols-2 lg:gap-6 xs:flex xs:flex-col lg:mt-8 mb-8">
               {/* Cột trái - Nội dung thử thách */}
-              <div className="w-[650px] p-4">
-                <h2 className="text-2xl text-[#fcf5e3] font-bold mb-4">Thử thách {event.number}</h2>
-                <p className="text-xl text-[#fcf5e3] mb-2">{event.description || "Không có mô tả"}</p>
+              <div className="lg:w-[650px] xs:w-full p-4 ">
+                <h2 className="lg:text-2xl xs:text-xl text-[#fcf5e3] font-bold mb-4">Thử thách {event.number}</h2>
+                <p className="lg:text-xl xs:text-lg text-[#fcf5e3] mb-2">{event.description || "Không có mô tả"}</p>
 
                 {/* Người tham gia */}
                 <div className="mt-4">
@@ -296,7 +351,7 @@ const DetailEvent = () => {
               </div>
 
               {/* Cột phải - Thông tin chính */}
-              <div className="w-[400px] ml-28  bg-[#fcf5e3] border p-6 rounded-lg shadow-md flex flex-col justify-between">
+              <div className="lg:w-[400px] xs:w-[375px] lg:ml-28 xs:ml-2  bg-[#fcf5e3] border p-6 rounded-lg shadow-md flex flex-col justify-between">
                 <h2 className="text-xl font-bold mb-4">Thông tin chính</h2>
 
                 {/* Hạn nộp bài */}
@@ -360,7 +415,7 @@ const DetailEvent = () => {
                 maxWidth: "1920px", // ✅ Giới hạn ngang
                 margin: "0 auto", // ✅ Căn giữa khi có max-width
               }}>
-              <div className="w-[1360px] mx-auto mt-6 items-center justify-center mb-6">
+              <div className="lg:w-[1360px] xs:w-full mx-auto mt-6 items-center justify-center mb-6">
                 <h2 className="text-2xl text-[#b42b23] font-bold text-center mb-6">Bài dự thi của tôi</h2>
 
                 {photos.filter(photo => photo.uploaderId === user?._id).length === 0 ? (
@@ -370,11 +425,11 @@ const DetailEvent = () => {
                   </div>
                 ) : (
                   // Nếu đã có bài dự thi (Hiển thị theo hàng, không scroll)
-                  <div className="grid grid-cols-5 gap-1">
+                  <div className="lg:grid lg:grid-cols-5 lg:gap-1 xs:grid xs:grid-cols-3 xs:gap-1 lg:ml-0 xs:ml-0.5">
                     {photos
                       .filter(photo => photo.uploaderId === user?._id)
                       .map((photo) => (
-                        <div key={photo._id} className="relative bg-white rounded-lg overflow-hidden shadow-md w-[268px] h-[340px]">
+                        <div key={photo._id} className="relative bg-white rounded-lg overflow-hidden shadow-md lg:w-[268px] lg:h-[340px] xs:w-[125px] h-[170px]">
                           {/* Ảnh bài dự thi */}
                           <img src={`${BASE_URL}${photo.url}`} alt={photo.message} className="w-full h-full object-cover" onClick={() => openPhotoReview(photo)}/>
                           {/* Tên ảnh ở góc dưới bên trái */}
@@ -393,61 +448,104 @@ const DetailEvent = () => {
             </div> 
 
 
-              {/* Section: Danh sách bài dự thi */}
-            <section className="w-full"
+              {/* ------------------------Bài dự thi của sự kiện------------------------------ */}
+          <section className="section"
             style={{
-              backgroundImage: `url('/tet2025/image/background-primary.png')`, // Không cần process.env.PUBLIC_URL
-              backgroundSize: "cover", // ✅ Ảnh không bị zoom to
-              backgroundPosition: "top center", // ✅ Căn giữa
+              backgroundImage: `url('/tet2025/image/background-primary.png')`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
-              width: "100%", // ✅ Giữ full width
-              maxWidth: "1920px", // ✅ Giới hạn ngang
-              margin: "0 auto", // ✅ Căn giữa khi có max-width
-            }}>
-              <div className="w-[1360px] mx-auto mt-8 mb-8 ">
-              <h2 className="text-2xl font-bold text-center text-[#fcf5e3] mb-6">Bài dự thi</h2>
+              width: "100%",
+              maxWidth: "1920px",
+              margin: "0 auto",
+            }}
+          >
+            <div className=" mx-auto mt-6 items-center justify-center mb-6">
+              <h2 className="text-2xl text-[#fcf5e3] font-bold text-center mb-6">Bài dự thi của sự kiện</h2>
+
+              {/* Bộ lọc sắp xếp & tìm kiếm */}
+              <div className="flex mx-auto items-center justify-between mb-4 lg:w-[1390px] xs:w-full">
+                {/* Bộ lọc sắp xếp */}
+                <div className="flex items-center space-x-4">
+                  <span className="font-semibold text-white lg:ml-0 xs:ml-4">Sắp xếp theo:</span>
+                  <select
+                    className="border rounded-lg bg-white text-gray-800"
+                    value={sortOrder}
+                    onChange={(e) => {
+                      console.log("📌 Đã chọn bộ lọc:", e.target.value);
+                      setSortOrder(e.target.value);
+                    }}
+                  >
+                    <option value="votes">Lượt bình chọn</option>
+                    <option value="latest">Mới nhất</option>
+                    <option value="oldest">Cũ nhất</option>
+                  </select>
+                </div>
+              </div>
 
               {/* Lưới hiển thị ảnh */}
-              <div className="grid grid-cols-5 gap-4">
-                {paginatedPhotos.map((photo) => (
-                  <div key={photo._id} className="relative w-[270px] h-[338px] rounded-lg overflow-hidden shadow-md cursor-pointer bg-white">
-                    
-                    {/* Ảnh dự thi */}
-                    <img 
-                    src={`${BASE_URL}${photo.url}`} alt={photo.title || "Không tiêu đề"} 
-                    className="w-full h-full object-cover"
-                    onClick={() => openPhotoReview(photo)}
-                     />
+              <div className="lg:w-[1390px] lg:mx-auto lg:grid lg:grid-cols-5 lg:gap-5 xs:w-full xs:mx-auto xs:grid xs:grid-cols-3 xs:gap-2 xs:ml-2">
+                {paginatedPhotos.length > 0 ? (
+                  paginatedPhotos.map((photo) => (
+                    <div key={photo._id} className="relative rounded-lg overflow-hidden shadow-md cursor-pointer bg-white
+                      lg:w-[270px] lg:h-[338px] xs:w-[125px] xs:h-[170px]"
+                      onClick={() => openPhotoReview(photo)}
+                    >
+                      {/* Ảnh dự thi */}
+                      <img 
+                        src={`${BASE_URL}${photo.url}`} 
+                        alt={photo.title || "Không tiêu đề"} 
+                        className="w-full h-full object-cover"
+                      />
+                      
+                      {/* Hiển thị số tim góc trên bên phải */}
+                      <div className="absolute top-2 right-2 bg-gray-100 bg-opacity-50 text-white text-sm font-bold px-2 py-1 rounded-full">
+                        ❤️ {photo.votes}
+                      </div>
 
-                    {/* Hiển thị số tim góc trên bên phải */}
-                    <div className="absolute top-2 right-2 bg-gray-100 bg-opacity-50 text-white text-sm font-bold px-2 py-1 rounded-full">
-                      ❤️ {photo.votes}
+                      {/* Tên ảnh góc dưới bên trái */}
+                      <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg">
+                        {photo.title || "Không tiêu đề"}
+                      </div>
                     </div>
-
-                    {/* Tên ảnh góc dưới bên trái */}
-                    <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg">
-                    {photo.title || "Không tiêu đề"}
-                    </div>
-
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-center text-white text-lg">Chưa có bài dự thi nào cho sự kiện này.</p>
+                )}
               </div>
 
               {/* Phân trang */}
-              <div className="flex justify-center mt-6 space-x-2">
-                {Array.from({ length: Math.ceil(photos.length / itemsPerPage) }).map((_, index) => (
-                  <button
-                    key={index}
-                    className={`px-3 py-2 rounded ${
-                      currentPage === index + 1 ? "bg-red-500 text-white" : "bg-gray-200"
-                    }`}
-                    onClick={() => setCurrentPage(index + 1)}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
-              </div>
-              </div>
+              {filteredPhotos.length > itemsPerPage && (
+                <div className="flex justify-center mt-6 space-x-2">
+                  {Array.from({ length: Math.ceil(filteredPhotos.length / itemsPerPage) }).map((_, index) => (
+                    <button
+                      key={index}
+                      className={`px-3 py-2 rounded ${currentPage === index + 1 ? "bg-red-500 text-white" : "bg-gray-200"}`}
+                      onClick={() => setCurrentPage(index + 1)}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>       
+          </section>
+            {/* ------------------------Footer------------------------------ */}
+            <section className="section"
+            style={{
+              backgroundImage: `url('/Footer.png')`, // Không cần process.env.PUBLIC_URL
+              backgroundSize: "cover", // ✅ Ảnh không bị zoom to
+              backgroundPosition: "center", // ✅ Căn giữa
+              backgroundRepeat: "no-repeat",
+              width: "100%", // ✅ Giữ full width
+              margin: "0 auto", // ✅ Căn giữa khi có max-width
+            }}>
+            <div className="mx-auto p-6 
+            lg:w-[1920px] lg:h-[484px]
+            xs:w-full xs:h-[240px]
+            ">
+
+            </div>       
             </section>
         
       </div>

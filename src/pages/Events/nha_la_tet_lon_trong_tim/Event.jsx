@@ -399,9 +399,8 @@ const handleJoinChallenge = () => {
                       lg:flex-row lg:justify-center lg:items-center
                       xs:flex-col-reverse xs:items-start">
                       {/* Ảnh sự kiện */}
-                          <div className="
-                          lg:w-[550px] lg:h-[405px] lg:grid lg:grid-cols-2 lg:gap-2 mb-4
-                          xs:w-full xs:grid xs:grid-cols-2 xs:gap-2">
+                          <div className="xs:hidden
+                          lg:w-[550px] lg:h-[405px] lg:grid lg:grid-cols-2 lg:gap-2 mb-4">
                               <div className="w-full h-[405px]">
                                   <img
                                      src={`/tet2025/image/events/${eventSlug || "default"}/1.png`} // Hiển thị event.image
@@ -428,7 +427,7 @@ const handleJoinChallenge = () => {
                           </div>
                       {/* Thông tin sự kiện */}
                           <div className="
-                          lg:w-[550px] lg:h-[405px] items-center justify-center mb-4 ml-4
+                          lg:w-[550px] lg:h-[405px] items-center justify-center mb-4 lg:ml-4 xs:ml-0
                           xs:w-full ">
                               <div className="flex items-center space-x-4">
                                   <span className="bg-[#F0E9D8] text-md text-[#401011] font-semibold py-2 px-3 rounded">
@@ -452,6 +451,31 @@ const handleJoinChallenge = () => {
                                   xs:text-2xl xs:mb-2 ">
                                     {currentEvent.name || "Không có tiêu đề"}
                                   </h3>
+                                  <div className="lg:hidden mb-4 xs:w-full xs:grid xs:grid-cols-2 xs:gap-2">
+                              <div className="w-full h-[305px]">
+                                  <img
+                                     src={`/tet2025/image/events/${eventSlug || "default"}/1.png`} // Hiển thị event.image
+                                     alt={currentEvent?.title || "No event image"}
+                                     className="w-[270px] h-[305px] object-cover rounded-lg"
+                                  />
+                              </div>
+                              <div className="w-full h-[305px] flex flex-col  gap-2">
+                                  <div>
+                                    <img
+                                      src={`/tet2025/image/events/${eventSlug || "default"}/2.png`} // Hiển thị event.image
+                                      alt={currentEvent?.title || "No event image"}
+                                      className="w-full h-[180px] object-cover rounded-lg"
+                                    />
+                                  </div>
+                                  <div>
+                                    <img
+                                      src={`/tet2025/image/events/${eventSlug || "default"}/3.png`} // Hiển thị event.image
+                                      alt={currentEvent?.title || "No event image"}
+                                      className="w-full h-[115px] object-cover rounded-lg"
+                                    />
+                                  </div>
+                              </div>
+                          </div>
                                   <div className="mb-4 overflow-hidden
                                   lg:w-[500px] lg:h-[144px]
                                   xs:w-full xs:h-full xs:text-justify">
@@ -483,7 +507,7 @@ const handleJoinChallenge = () => {
                           return (
                             <div
                               key={event._id}
-                              className={`w-[200px] h-[150px] bg-cover bg-center rounded-lg shadow-lg flex flex-col items-center justify-center p-4 relative ${
+                              className={`w-[200px] h-[150px] bg-cover bg-center border border-gray-400 rounded-lg shadow-lg flex flex-col items-center justify-center p-4 relative ${
                                 isEventActive(event.startDate, event.endDate) ? "cursor-pointer" : "opacity-50"
                               }`}
                               style={{
@@ -824,10 +848,10 @@ const handleJoinChallenge = () => {
                 margin: "0 auto",
               }}
             >
-            <div className="h-[546px] lg:font-bold flex flex-col items-center text-center justify-center lg:text-2xl space-y-2 w-full px-10">
+            <div className="lg:h-[546px] xs:h-[200px] lg:font-bold flex flex-col items-center text-center justify-center lg:text-2xl space-y-2 w-full px-10">
             <div className="
             lg:w-[922px] lg:h-[200px] lg:top-1/4 lg:text-2xl
-            xs:w-full xs:font-semibold xs:text-base
+            xs:w-full xs:font-semibold xs:text-xs
             ">
             
             Chúng ta sẽ gặp lại nhau sau kỳ nghỉ Tết, cùng nhau tiếp tục chinh phục những thử thách mới trên con đường học vấn. Mong các em Học sinh, các Giáo viên, Nhân viên trở lại trường với tinh thần hứng khởi, sẵn sàng cho những ngày học tập và làm việc hiệu quả. Chúc các WISer một mùa Tết an lành, vui vẻ, đầy ý nghĩa bên gia đình và bạn bè!            </div>
