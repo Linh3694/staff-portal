@@ -241,7 +241,7 @@ const DetailEvent = () => {
   
       {/* Nội dung chính */}
       <div
-        className="flex flex-col justify-center items-center py-10"
+        className="flex flex-col justify-center items-center"
         style={{
           backgroundImage: `url('/tet2025/image/background-primary.png')`, // Không cần process.env.PUBLIC_URL
           backgroundSize: "cover", // ✅ Ảnh không bị zoom to
@@ -253,7 +253,7 @@ const DetailEvent = () => {
         }}
       >
         <div className="lg:w-[1390px] xs:w-full">
-          <h1 className="lg:text-3xl xs:text-2xl xs:ml-4 lg:ml-0 text-[#fcf5e3] font-bold mb-8 text-left">{event.name}</h1>
+          <h1 className="lg:text-3xl xs:text-2xl xs:ml-4 lg:ml-0 text-[#fcf5e3] font-bold mb-8 mt-8 text-left">{event.name}</h1>
           {/* Hình ảnh */}
           {/* Phần Hình ảnh */}
           <div className ="text-lg font-bold mb-4">
@@ -420,7 +420,7 @@ const DetailEvent = () => {
 
                 {photos.filter(photo => photo.uploaderId === user?._id).length === 0 ? (
                   // Nếu chưa có bài dự thi
-                  <div className="flex justify-center items-center bg-gray-300 w-[720px] h-[340px] mx-auto rounded-lg shadow-md">
+                  <div className="flex justify-center items-center bg-gray-300 lg:w-[720px] lg:h-[340px] xs:w-[340px] h-[170px] mx-auto rounded-lg shadow-md">
                     <p className="text-gray-600 text-lg">Bạn chưa có bài dự thi nào</p>
                   </div>
                 ) : (
@@ -510,7 +510,7 @@ const DetailEvent = () => {
                     </div>
                   ))
                 ) : (
-                  <p className="text-center text-white text-lg">Chưa có bài dự thi nào cho sự kiện này.</p>
+                  <p className="text-center text-white text-lg"></p>
                 )}
               </div>
 

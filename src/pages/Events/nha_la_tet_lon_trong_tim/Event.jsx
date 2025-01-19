@@ -385,7 +385,6 @@ const handleJoinChallenge = () => {
             backgroundPosition: "center", // ✅ Căn giữa
             backgroundRepeat: "no-repeat",
             width: "100%", // ✅ Giữ full widths
-            height: "100%",
             maxWidth: "1920px", // ✅ Giới hạn ngang
             margin: "0 auto", // ✅ Căn giữa khi có max-width
           }}>
