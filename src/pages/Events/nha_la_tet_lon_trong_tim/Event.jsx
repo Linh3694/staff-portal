@@ -826,7 +826,7 @@ const handleJoinChallenge = () => {
             >
             <div className="h-[546px] lg:font-bold flex flex-col items-center text-center justify-center lg:text-2xl space-y-2 w-full px-10">
             <div className="
-            lg:w-[922px] lg:h-[200px] lg:top-1/4
+            lg:w-[922px] lg:h-[200px] lg:top-1/4 lg:text-2xl
             xs:w-full xs:font-semibold xs:text-base
             ">
             
