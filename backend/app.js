@@ -392,7 +392,7 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-app.post("/api/reports", uploadReport.single("file"), async (req, res) => {
+app.post("/reports", uploadReport.single("file"), async (req, res) => {
   console.log("Report file:", req.file); // Kiểm tra file được upload
   console.log("Inspect ID:", req.body.inspectId); // Kiểm tra ID truyền vào
 

@@ -1,15 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { API_URL, BASE_URL } from "../../../config";
 import { toast } from "react-toastify";
-import i18n from "../../../i18n"; // Đảm bảo bạn đã cấu hình i18n như hướng dẫn trước đó.
+import { useTranslation } from "react-i18next";
 import UploadModal from "./uploadModal";
 import PhotoReview from "./PhotoReview";
-import { FiLogOut } from "react-icons/fi";
+import { FiLogOut, FiArrowLeft } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
 
 const DetailEvent = () => {
+  const { t, i18n } = useTranslation();
   const { state } = useLocation(); // Lấy dữ liệu từ navigate
   const { slug } = useParams(); // Lấy slug từ URL
   const [event, setEvent] = useState(state?.event || null); // Ưu tiên lấy từ state nếu có
@@ -27,17 +28,35 @@ const DetailEvent = () => {
   const [filteredPhotos, setFilteredPhotos] = useState([]);
   const [sortOrder, setSortOrder] = useState("votes"); // Bộ lọc: votes, latest, oldest
   const [searchQuery, setSearchQuery] = useState(""); // Thanh tìm kiếm
+  
+  const getLocalizedEventName = (event) => {
+    if (!event || typeof event !== "object") return t("default_event_title"); 
+    return i18n.language === "vi" ? event.name || t("default_event_title") : event.nameEng || event.name || t("default_event_title");
+  };
+  const getLocalizedEventDescription = (event) => {
+    if (!event || typeof event !== "object") return "No event description"; 
+    return i18n.language === "vi" ? event.description || "No event description" : event.descriptionEng || event.description || "No event description";
+  };
+  const eventTitle = getLocalizedEventName(event);
+  const eventDescription = getLocalizedEventDescription(event);
 
+  useEffect(() => {
+    setLanguage(i18n.language);
+  }, [i18n.language]);
   const paginatedPhotos = filteredPhotos.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  const toggleLanguage = (lang) => {
-    i18n.changeLanguage(lang);
-    setLanguage(lang);
-  };
   // Fetch sự kiện nếu không có dữ liệu từ state
+
+  useEffect(() => {
+    if (photos.length > 0) {
+      photos.forEach((photo) => {
+        const img = new Image();
+        img.src = `${BASE_URL}${photo.url}`;
+      });
+    }
+  }, [photos]);
 
   useEffect(() => {
     if (!event) {
@@ -142,8 +161,10 @@ const DetailEvent = () => {
             photo._id.includes(searchQuery)
         );
       }
-  
-      setFilteredPhotos(sortedPhotos);
+      if (JSON.stringify(sortedPhotos) !== JSON.stringify(filteredPhotos)) {
+        setFilteredPhotos(sortedPhotos);
+      }
+      
     }
   }, [photos, sortOrder, searchQuery, event]);
 
@@ -188,6 +209,7 @@ const DetailEvent = () => {
     }
   };
 
+
   if (!event) return <p>Đang tải thông tin sự kiện...</p>;
 
   return (
@@ -200,19 +222,19 @@ const DetailEvent = () => {
                     <img
                       src="/tet2025/image/wellsping-logo.png" // Đường dẫn logo 1
                       alt="Logo 1"
-                      className="lg:h-28 w-auto xs:h-12"
+                      className="lg:h-20 w-36 xs:h-16"
                     />
                     <img
                       src="/tet2025/image/happyjourney.png" // Đường dẫn logo 2
                       alt="Logo 2"
-                      className="lg:h-28 w-auto xs:h-12"
+                      className="lg:h-28 w-auto xs:h-12 xs:hidden lg:block"
                     />
                   </div>
         
                     {/* Language Switcher */}
                     <div className ="items-center">
                       <div className ="flex items-center gap-2 ">
-                      <span className="xs:text-sm lg:text-base lg:text-left xs:text-right">Chào mừng Wiser <span className="font-bold lg:text-base xs:text-sm">{user?.fullName  || "Ẩn danh"}</span></span>
+                      <span className="xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")} <span className="font-bold lg:text-base xs:text-sm">{user?.fullName  || "Ẩn danh"}</span></span>
                       <span className="lg:w-10 xs:w-12 lg:h-10 xs:h-9 border-2 border-gray-300 bg-[#E55526] rounded-full flex items-center justify-center" 
                       onClick={() => {
                         localStorage.removeItem("user"); // Xóa thông tin người dùng
@@ -253,7 +275,17 @@ const DetailEvent = () => {
         }}
       >
         <div className="lg:w-[1390px] xs:w-full">
-          <h1 className="lg:text-3xl xs:text-2xl xs:ml-4 lg:ml-0 text-[#fcf5e3] font-bold mb-8 mt-8 text-left">{event.name}</h1>
+          {/* Nút Quay về */}
+          <div className="mt-8 mb-3 lg:ml-0 xs:ml-4 ">
+            <button
+              onClick={() => navigate("/event")}
+              className="text-[#fcf5e3] text-lg font-semibold flex items-center gap-2 cursor-pointer hover:text-[#ffcc00] transition"
+            >
+              <span><FiArrowLeft /></span> <span className="lg:text-lg xs:text-sm">{t("back_to_menu")}</span>
+            </button>
+          </div>
+
+          <h1 className="lg:text-3xl xs:text-2xl xs:ml-4 lg:ml-0 text-[#fcf5e3] font-bold mb-8 text-left">{eventTitle}</h1>
           {/* Hình ảnh */}
           {/* Phần Hình ảnh */}
           <div className ="text-lg font-bold mb-4">
@@ -274,7 +306,7 @@ const DetailEvent = () => {
                     <div
                       key={photo._id}
                       className={`relative lex border-2 border-[#fcf5e3] overflow-hidden overflow-x-auto whitespace-nowrap rounded-2xl shadow-xl transition-all duration-300 ${
-                        hoveredIndex === index ? "w-[550px] h-[405px]" : "w-[340px] h-[405px] "
+                        hoveredIndex === index ? "w-[340px] h-[405px]" : "w-[340px] h-[405px] "
                       }`}
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
@@ -284,10 +316,12 @@ const DetailEvent = () => {
                       <div className="absolute top-2 right-2 bg-gray-100 bg-opacity-50 text-white text-sm font-bold px-2 py-1 rounded-full">
                             ❤️ {photo.votes}
                       </div>
-                      <img
-                        src={`${BASE_URL}${photo.url}`}
-                        alt={photo.title || "Không tiêu đề"}
+                      <img 
+                        src={`${BASE_URL}${photo.url}`} 
+                        alt={photo.title || "Không tiêu đề"} 
                         className="w-full h-full object-cover"
+                        width="550"
+                        height="338"
                       />
                       <p className="absolute bottom-0 left-0 bg-black bg-opacity-50 text-white text-sm px-2 py-1 rounded-tl-lg">
                         {photo.title || "Không tiêu đề"}
@@ -334,17 +368,17 @@ const DetailEvent = () => {
             <div className="lg:w-[1100px] xs:w-full mx-auto lg:grid lg:grid-cols-2 lg:gap-6 xs:flex xs:flex-col lg:mt-8 mb-8">
               {/* Cột trái - Nội dung thử thách */}
               <div className="lg:w-[650px] xs:w-full p-4 ">
-                <h2 className="lg:text-2xl xs:text-xl text-[#fcf5e3] font-bold mb-4">Thử thách {event.number}</h2>
-                <p className="lg:text-xl xs:text-lg text-[#fcf5e3] mb-2">{event.description || "Không có mô tả"}</p>
+                <h2 className="lg:text-2xl xs:text-xl text-[#fcf5e3] font-bold mb-4">{t("today_challanges_challange")} {event.number}</h2>
+                <p className="lg:text-xl xs:text-lg text-[#fcf5e3] mb-2">{eventDescription || "Không có mô tả"}</p>
 
                 {/* Người tham gia */}
                 <div className="mt-4">
-                  <h3 className="text-lg text-[#fcf5e3] font-bold mb-1">Người tham gia</h3>
+                  <h3 className="text-lg text-[#fcf5e3] font-bold mb-1">{t("Participants")}</h3>
                   <p className="text-lg text-[#fcf5e3] rounded">
                     {photos.length > 0
-                      ? `${photos[0]?.uploaderName || "Ẩn danh"} và ${
+                      ? `${photos[0]?.uploaderName || "Ẩn danh"} ${t("Participants_and")} ${
                           photos.length - 1
-                        } người khác đã tham gia thử thách.`
+                        } ${t("Participants_count")}.`
                       : "Chưa có bài dự thi nào."}
                   </p>
                 </div>
@@ -352,7 +386,7 @@ const DetailEvent = () => {
 
               {/* Cột phải - Thông tin chính */}
               <div className="lg:w-[400px] xs:w-[375px] lg:ml-28 xs:ml-2  bg-[#fcf5e3] border p-6 rounded-lg shadow-md flex flex-col justify-between">
-                <h2 className="text-xl font-bold mb-4">Thông tin chính</h2>
+                <h2 className="text-xl font-bold mb-4">{t("Info")}</h2>
 
                 {/* Hạn nộp bài */}
                 <div className="flex items-center space-x-4">
@@ -367,9 +401,9 @@ const DetailEvent = () => {
                   </div>
 
                   <div>
-                    <p className="text-lg text-[#5e191a]">Hạn nộp bài thi</p>
+                    <p className="text-lg text-[#5e191a]">{t("Info_deadline")}</p>
                     <p className="text-xl font-bold text-[#5e191a]">
-                      {event?.daysRemaining ? `Còn ${event.daysRemaining} ngày` : "Không xác định"}
+                      {event?.daysRemaining ? `${t("Info_deadline_còn")} ${event.daysRemaining} ${t("Info_deadline_ngày")}` : "Không xác định"}
                     </p>
                   </div>
                 </div>
@@ -382,8 +416,8 @@ const DetailEvent = () => {
                 </div>
                 {/* Nội dung văn bản */}
                 <div>
-                  <p className="text-lg text-[#5e191a]">Số lượng bài dự thi</p>
-                  <p className="text-xl font-bold text-[#5e191a]">Không giới hạn</p>
+                  <p className="text-lg text-[#5e191a]">{t("Info_number_submission")}</p>
+                  <p className="text-xl font-bold text-[#5e191a]">{t("Info_number_submission_unlimited")}</p>
                 </div>
               </div>
                 <div className="flex justify-center justify-items-center">          
@@ -392,18 +426,18 @@ const DetailEvent = () => {
                   className="w-full bg-[#5e191a] font-bold text-base text-[#fcf5e3] py-2 rounded-full hover:bg-red-700 transition mt-4"
                   onClick={() => setModalOpen(true)}
                 >
-                  Tham gia thử thách
+                  {t("today_challanges_today_challanges")}
                 </button>
                 </div>
 
-                <p className="text-sm  text-gray-500 mt-2 text-center">Điều khoản và điều kiện</p>
+                <p className="text-sm  text-gray-500 mt-2 text-center">{t("Info_number_submission_term")}</p>
 
                 {/* Modal */}
                 <UploadModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} eventId={event._id} user={user} />
               </div>
             </div>
 
-                {/* Bài dự thi của tôi */}
+                {/* ------------------------Bài dự thi của tôi------------------------------ */}
               <div className="w-full"
               style={{
                 backgroundImage: `url('/tet2025/image/background-secondary.png')`, // Không cần process.env.PUBLIC_URL
@@ -416,16 +450,16 @@ const DetailEvent = () => {
                 margin: "0 auto", // ✅ Căn giữa khi có max-width
               }}>
               <div className="lg:w-[1360px] xs:w-full mx-auto mt-6 items-center justify-center mb-6">
-                <h2 className="text-2xl text-[#b42b23] font-bold text-center mb-6">Bài dự thi của tôi</h2>
+                <h2 className="text-2xl text-[#b42b23] font-bold text-center mb-6">{t("my_submission")}</h2>
 
                 {photos.filter(photo => photo.uploaderId === user?._id).length === 0 ? (
                   // Nếu chưa có bài dự thi
                   <div className="flex justify-center items-center bg-gray-300 lg:w-[720px] lg:h-[340px] xs:w-[340px] h-[170px] mx-auto rounded-lg shadow-md">
-                    <p className="text-gray-600 text-lg">Bạn chưa có bài dự thi nào</p>
+                    <p className="text-gray-600 text-lg">{t("my_submission_empty")}</p>
                   </div>
                 ) : (
                   // Nếu đã có bài dự thi (Hiển thị theo hàng, không scroll)
-                  <div className="lg:grid lg:grid-cols-5 lg:gap-1 xs:grid xs:grid-cols-3 xs:gap-1 lg:ml-0 xs:ml-0.5">
+                  <div className="justify-center items-center mx-auto lg:grid lg:grid-cols-5 lg:gap-1 xs:grid xs:grid-cols-3 xs:gap-1 lg:ml-0 xs:ml-0.5">
                     {photos
                       .filter(photo => photo.uploaderId === user?._id)
                       .map((photo) => (
@@ -461,13 +495,13 @@ const DetailEvent = () => {
             }}
           >
             <div className=" mx-auto mt-6 items-center justify-center mb-6">
-              <h2 className="text-2xl text-[#fcf5e3] font-bold text-center mb-6">Bài dự thi của sự kiện</h2>
+              <h2 className="text-2xl text-[#fcf5e3] font-bold text-center mb-6">{t("submissions")}</h2>
 
               {/* Bộ lọc sắp xếp & tìm kiếm */}
               <div className="flex mx-auto items-center justify-between mb-4 lg:w-[1390px] xs:w-full">
                 {/* Bộ lọc sắp xếp */}
                 <div className="flex items-center space-x-4">
-                  <span className="font-semibold text-white lg:ml-0 xs:ml-4">Sắp xếp theo:</span>
+                  <span className="font-semibold text-white lg:ml-0 xs:ml-4">{t("submissions_filtered")}</span>
                   <select
                     className="border rounded-lg bg-white text-gray-800"
                     value={sortOrder}
@@ -476,15 +510,15 @@ const DetailEvent = () => {
                       setSortOrder(e.target.value);
                     }}
                   >
-                    <option value="votes">Lượt bình chọn</option>
-                    <option value="latest">Mới nhất</option>
-                    <option value="oldest">Cũ nhất</option>
+                    <option value="votes">{t("submissions_filtered_votes")}</option>
+                    <option value="latest">{t("submissions_filtered_Newest")}</option>
+                    <option value="oldest">{t("submissions_filtered_Oldest")}</option>
                   </select>
                 </div>
               </div>
 
               {/* Lưới hiển thị ảnh */}
-              <div className="lg:w-[1390px] lg:mx-auto lg:grid lg:grid-cols-5 lg:gap-5 xs:w-full xs:mx-auto xs:grid xs:grid-cols-3 xs:gap-2 xs:ml-2">
+              <div className="lg:w-[1390px] lg:mx-auto lg:grid lg:grid-cols-5 lg:gap-5 xs:w-full xs:mx-auto xs:grid xs:grid-cols-3 xs:gap-2 xs:ml-2 justify-center items-center">
                 {paginatedPhotos.length > 0 ? (
                   paginatedPhotos.map((photo) => (
                     <div key={photo._id} className="relative rounded-lg overflow-hidden shadow-md cursor-pointer bg-white

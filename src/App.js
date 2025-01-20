@@ -10,6 +10,7 @@ import Ticket from './pages/Ticket';
 import AuthForm from "./pages/Events/nha_la_tet_lon_trong_tim/AuthForm";
 import Event from "./pages/Events/nha_la_tet_lon_trong_tim/Event";
 import DetailEvent from "./pages/Events/nha_la_tet_lon_trong_tim/detailEvent";
+import "./i18n";
 
 
 

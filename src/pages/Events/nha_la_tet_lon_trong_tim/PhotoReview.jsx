@@ -4,6 +4,8 @@ import { API_URL, BASE_URL } from "../../../config";
 import { FiSend } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { FiHeart, FiMessageSquare  } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
+
 
 
 
@@ -13,6 +15,8 @@ const PhotoReview = ({ photoId, isOpen, onClose, user }) => {
   const [comments, setComments] = useState([]);
   const [likes, setLikes] = useState(0);
   const [commentText, setCommentText] = useState("");
+  const { t, i18n } = useTranslation();
+
   const [isExpanded, setIsExpanded] = useState(false); // 👈 Thêm state quản lý hiển thị toàn bộ văn bản
 
 
@@ -148,8 +152,7 @@ const PhotoReview = ({ photoId, isOpen, onClose, user }) => {
                 <p className="font-bold lg:text-md xs:text-sm italic mb-3">Tác giả: {photo.uploaderName || "Anonymous"}</p>
                 <p className="text-gray-700 mb-1 overflow-hidden text-ellipsis whitespace-normal line-clamp-7 lg:text-base xs:text-sm">{photo.message}</p>
               </div>
-              <div className="lg:hidden xs:flex ml-4 mr-4 mb-4
-                 flex items-center justify-center rounded-2xl"
+              <div className="lg:hidden xs:flex ml-4 mr-4 mb-4 flex items-center justify-center rounded-2xl"
                 style={{
                   backgroundImage: `url('/tet2025/image/background-primary.png')`, // Không cần process.env.PUBLIC_URL
                   backgroundSize: "cover", // ✅ Ảnh không bị zoom to
@@ -190,7 +193,7 @@ const PhotoReview = ({ photoId, isOpen, onClose, user }) => {
               </div>
 
               {/* Danh sách bình luận */}
-              <div className="flex-1 flex-col border-t-2 lg:overflow-y-auto xs:overflow-visible pt-4 lg:max-h-[40vh] xs:max-h-none">
+              <div className="flex-1 flex-col border-t-2 lg:overflow-y-auto xs:overflow-visible pt-4 lg:max-h-[70vh] xs:max-h-none">
                 {comments.map((comment, index) => (
                   <div key={index} className="mb-3 p-2 bg-[#F6F6F6] rounded-xl lg:ml-0 xs:ml-4 lg:mr-0 xs:mr-4">
                     <div className="ml-3">
@@ -204,11 +207,11 @@ const PhotoReview = ({ photoId, isOpen, onClose, user }) => {
               {/* Form nhập bình luận */}
               <form onSubmit={handleAddComment} 
                   className="mt-4 lg:h-12 xs:h-16 w-full flex items-center bg-[#FCF5E3] xs:rounded-b-2xl lg:rounded-b-none lg:rounded-br-2xl
-                  xs:sticky xs:bottom-0"
+                  sticky bottom-0"
                 >                
                 <input
                   type="text"
-                  placeholder="Thêm bình luận...."
+                  placeholder="Thêm bình luận/Add a comment..."
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   className="lg:p-3 xs:p-4 w-full lg:h-7 xs:h-12 text-sm rounded-full border-0 ml-2 mr-4 xs:mt-2 xs:mb-2"

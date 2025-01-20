@@ -62,22 +62,6 @@ const formatAttendanceByMonth = (attendanceLog, selectedMonth) => {
 };
 
 
-
-// Hàm xuất dữ liệu ra file (CSV hoặc Excel)
-// const exportToFile = (attendanceData, fileName = "attendance-log.csv") => {
-//   const header = "Date,Check In,Check Out,Status\n";
-//   const rows = attendanceData
-//     .map((log) => `${log.date},${log.checkIn},${log.checkOut},${log.status}`)
-//     .join("\n");
-
-//   const csvContent = header + rows;
-//   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-//   const link = document.createElement("a");
-//   link.href = URL.createObjectURL(blob);
-//   link.download = fileName;
-//   link.click();
-// };
-
 const Attendance = ({ currentUser }) => {
   const { attendance } = currentUser;
   const [selectedMonth, setSelectedMonth] = useState(new Date());

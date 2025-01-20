@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
+import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-import i18n from "../../../i18n"; // Đảm bảo bạn đã cấu hình i18n như hướng dẫn trước đó.
 import { API_URL, BASE_URL } from "../../../config"; // import từ file config
 import { useNavigate } from "react-router-dom";
 import { FiLogOut, FiHeart, FiMessageSquare  } from "react-icons/fi";
-import { FaHeart, FaComment, FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import PhotoReview from "./PhotoReview";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -16,8 +16,8 @@ gsap.registerPlugin(ScrollTrigger);
 
 
 const Event = ({ isEventAuthenticated }) => {
-  const { t } = useTranslation();
-  const [language, setLanguage] = useState("vi");
+  const { t, i18n } = useTranslation();
+  const [language, setLanguage] = useState("i18n.language");
   const [events, setEvents] = useState([]);
   const navigate = useNavigate();
   const [user, setUser] = useState(null); // Trạng thái đăng nhập
@@ -29,11 +29,23 @@ const Event = ({ isEventAuthenticated }) => {
   const [sortOrder, setSortOrder] = useState("latest"); // Bộ lọc: latest, oldest, myPhotos
   const [searchQuery, setSearchQuery] = useState(""); // Thanh tìm kiếm
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 15;
   const [isPhotoReviewOpen, setPhotoReviewOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [featuredPhotos, setFeaturedPhotos] = useState([]); // Cho section Bài thi nổi bật
   
+  // Hàm lấy tên sự kiện theo ngôn ngữ hiện tại
+  const getLocalizedEventName = (event) => {
+    if (!event || typeof event !== "object") return t("default_event_title"); 
+    return i18n.language === "vi" ? event.name || t("default_event_title") : event.nameEng || event.name || t("default_event_title");
+  };
+  const eventTitle = getLocalizedEventName(currentEvent);
+  const eventDescription = currentEvent ? (language === "vi" ? currentEvent.description : currentEvent.descriptionEng) : "No event description available";
+
+  useEffect(() => {
+    setLanguage(i18n.language);
+  }, [i18n.language]);
+
   useEffect(() => {
     gsap.utils.toArray(".section").forEach((section) => {
       gsap.fromTo(
@@ -268,31 +280,27 @@ const Event = ({ isEventAuthenticated }) => {
   };
 
   const normalizeSlug = (slug) => {
-    if (!slug || typeof slug !== "string") {
-      return "default";
-    }
-    
+    if (!slug || typeof slug !== "string") return "default";
     return slug
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Xóa dấu tiếng Việt
       .replace(/[^a-zA-Z0-9-]/g, "-") // Chỉ giữ chữ cái, số, dấu -
       .toLowerCase();
   };
-
-const eventSlug = normalizeSlug(currentEvent?.slug || currentEvent?.name);
+  
+  const eventSlug = normalizeSlug(currentEvent?.slug || currentEvent?.name || "default");
 
 console.log(eventSlug)
 
 const handleJoinChallenge = () => {
-    if (currentEvent) {
-      const slug = currentEvent.name.toLowerCase().replace(/ /g, "-"); // Tạo slug từ tên thử thách
-      navigate(`/event/${slug}`, { state: { event: currentEvent } }); // Điều hướng kèm thông tin sự kiện
-    }
+  if (!currentEvent) {
+    toast.error(t("error_no_event"));
+    return;
+  }
+  const slug = normalizeSlug(eventTitle);
+  navigate(`/event/${slug}`, { state: { event: currentEvent } });
 };
 
-  const toggleLanguage = (lang) => {
-    i18n.changeLanguage(lang);
-    setLanguage(lang);
-  };
+
 
 
 
@@ -306,19 +314,19 @@ const handleJoinChallenge = () => {
                     <img
                       src="/tet2025/image/wellsping-logo.png" // Đường dẫn logo 1
                       alt="Logo 1"
-                      className="lg:h-28 w-auto xs:h-12"
+                      className="lg:h-20 lg:w-36 xs:w-36 xs:h-16"
                     />
                     <img
                       src="/tet2025/image/happyjourney.png" // Đường dẫn logo 2
                       alt="Logo 2"
-                      className="lg:h-28 w-auto xs:h-12"
+                      className="lg:h-28 w-auto xs:h-12 xs:hidden lg:block"
                     />
                   </div>
         
                     {/* Language Switcher */}
                     <div className ="items-center">
                       <div className ="flex items-center gap-2 ">
-                      <span className="xs:text-sm lg:text-base lg:text-left xs:text-right">Chào mừng Wiser <span className="font-bold lg:text-base xs:text-sm">{user?.fullName  || "Ẩn danh"}</span></span>
+                      <span className="xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")} <span className="font-bold lg:text-base xs:text-sm text-[#401011]">{user?.fullName  || "Ẩn danh"}</span></span>
                       <span className="lg:w-10 xs:w-12 lg:h-10 xs:h-9 border-2 border-gray-300 bg-[#E55526] rounded-full flex items-center justify-center" 
                       onClick={() => {
                         localStorage.removeItem("user"); // Xóa thông tin người dùng
@@ -344,6 +352,7 @@ const handleJoinChallenge = () => {
                     </div>
               </div>
             </header>
+
         <div className="flex flex-col justify-center items-center">        
            {/* ------------------------wellcome------------------------------ */}
             <section className="section"
@@ -362,17 +371,17 @@ const handleJoinChallenge = () => {
               <div className="
               lg:w-[476px]
               xs:w-[320px]">
-              <p>Không khí tết rộn ràng, ngập tràn sắc xuân đã lan tỏa khắp Wellspring Hanoi! Đây là lúc để mỗi WISer dừng lại một chút, nhìn lại chặng đường một năm đã qua, làm mới chính mình, lan tỏa yêu thương và tạo nên những kỷ niệm Tết thật ý nghĩa.</p>
+              <p>{t("welcome_banner_01")}</p>
               </div>
               <div className="
               lg:w-[476px]
               xs:w-[320px]">
-              <p>Các WiSers đã sẵn sàng với 6 Thử thách Ngày Tết chưa? Nơi lưu giữ từng khoảnh khắc rực rỡ, đậm chất tinh thần Lễ hội Mùa Xuân 2025 - Nhà là tết lớn trong Tim!</p>
+              <p>{t("welcome_banner_02")}</p>
               </div>
               <div className="
               lg:w-[476px]
               xs:w-[320px]">
-              <p>Hãy chuẩn bị những khung hình đẹp nhất và cùng nhau chào đón một mùa Tết thật đáng nhớ!</p>
+              <p>{t("welcome_banner_03")}</p>
               </div>
               </div>
             </div>       
@@ -393,7 +402,7 @@ const handleJoinChallenge = () => {
                     <section className="
                     lg:max-w-6xl lg:mx-auto lg:px-4
                     xs:full xs:mx-auto xs:px-4 ">
-                      <h2 className="text-3xl font-bold mb-6 ml-4">Thử thách hôm nay</h2>
+                      <h2 className="text-3xl font-bold mb-6 ml-4">{t("today_challenges")}</h2>
                       <div className="flex gap-6
                       lg:flex-row lg:justify-center lg:items-center
                       xs:flex-col-reverse xs:items-start">
@@ -430,63 +439,63 @@ const handleJoinChallenge = () => {
                           xs:w-full ">
                               <div className="flex items-center space-x-4">
                                   <span className="bg-[#F0E9D8] text-md text-[#401011] font-semibold py-2 px-3 rounded">
-                                    Còn{" "}
+                                    {t("today_challanges_còn")}{" "}
                                     {Math.max( 0,
                                     Math.ceil(
                                     (new Date(currentEvent.endDate) - new Date()) / (1000 * 60 * 60 * 24)))}{" "}
-                                    ngày
+                                    {t("today_challanges_ngày")}
                                   </span>
                                   <span className="bg-[#F0E9D8] text-md text-[#401011] font-semibold py-2 px-3 rounded">
-                                    {currentEvent.submissions || 0} bài dự thi
+                                    {currentEvent.submissions || 0} {t("today_challanges_bài_dự_thi")}
                                   </span>
                                 </div>
                                   <h2 className="text-2xl font-bold mt-6 italic
                                   xs:hidden
                                   lg:block">
-                                    Thử thách {currentEvent.number || "Không có tiêu đề"}
+                                    {t("today_challanges_challange")} {currentEvent.number || "Không có tiêu đề"}
                                   </h2>
                                   <h3 className="  text-[#B42B23] font-bold mt-6 
                                   lg:text-3xl lg:mb-6
                                   xs:text-2xl xs:mb-2 ">
-                                    {currentEvent.name || "Không có tiêu đề"}
+                                    {eventTitle || "No Title"}
                                   </h3>
-                                  <div className="lg:hidden mb-4 xs:w-full xs:grid xs:grid-cols-2 xs:gap-2">
-                              <div className="w-full h-[305px]">
-                                  <img
-                                     src={`/tet2025/image/events/${eventSlug || "default"}/1.png`} // Hiển thị event.image
-                                     alt={currentEvent?.title || "No event image"}
-                                     className="w-[270px] h-[305px] object-cover rounded-lg"
-                                  />
-                              </div>
-                              <div className="w-full h-[305px] flex flex-col  gap-2">
-                                  <div>
-                                    <img
-                                      src={`/tet2025/image/events/${eventSlug || "default"}/2.png`} // Hiển thị event.image
-                                      alt={currentEvent?.title || "No event image"}
-                                      className="w-full h-[180px] object-cover rounded-lg"
-                                    />
-                                  </div>
-                                  <div>
-                                    <img
-                                      src={`/tet2025/image/events/${eventSlug || "default"}/3.png`} // Hiển thị event.image
-                                      alt={currentEvent?.title || "No event image"}
-                                      className="w-full h-[115px] object-cover rounded-lg"
-                                    />
-                                  </div>
-                              </div>
-                          </div>
+                                    <div className="lg:hidden mb-4 xs:w-full xs:grid xs:grid-cols-2 xs:gap-2">
+                                        <div className="w-full h-[305px]">
+                                            <img
+                                              src={`/tet2025/image/events/${eventSlug || "default"}/1.png`} // Hiển thị event.image
+                                              alt={currentEvent?.title || "No event image"}
+                                              className="w-[270px] h-[305px] object-cover rounded-lg"
+                                            />
+                                        </div>
+                                        <div className="w-full h-[305px] flex flex-col  gap-2">
+                                            <div>
+                                              <img
+                                                src={`/tet2025/image/events/${eventSlug || "default"}/2.png`} // Hiển thị event.image
+                                                alt={currentEvent?.title || "No event image"}
+                                                className="w-full h-[180px] object-cover rounded-lg"
+                                              />
+                                            </div>
+                                            <div>
+                                              <img
+                                                src={`/tet2025/image/events/${eventSlug || "default"}/3.png`} // Hiển thị event.image
+                                                alt={currentEvent?.title || "No event image"}
+                                                className="w-full h-[115px] object-cover rounded-lg"
+                                              />
+                                            </div>
+                                        </div>
+                                    </div>
                                   <div className="mb-4 overflow-hidden
                                   lg:w-[500px] lg:h-[144px]
                                   xs:w-full xs:h-full xs:text-justify">
-                                  <p className="text-lg font-semibold">
-                                      {currentEvent.description || "Không có mô tả"}
+                                  <p className="text-lg font-semibold text-[#401011]">
+                                      {eventDescription || "Không có mô tả"}
                                   </p>
                                   </div>
-                                <div className="w-[285px] h-[50px] mt-4">
+                                <div className="lg:w-[285px] xs:w-full h-[50px] mt-4">
                                   <button 
                                     className="h-full w-full bg-[#E55526] text-white text-xl font-bold rounded-full hover:bg-[#E55526] transition"
                                     onClick={handleJoinChallenge}>
-                                    Tham gia thử thách
+                                    {t("today_challanges_today_challanges")}
                                   </button>
                                 </div>
                           </div>
@@ -502,7 +511,7 @@ const handleJoinChallenge = () => {
                       {events
                         .filter((_, index) => index !== currentEventIndex) // Loại bỏ thử thách hiện tại
                         .map((event) => {
-                          const eventSlug = normalizeSlug(event.slug || event.name); // ✅ Lấy slug của từng thử thách
+                          const eventSlug = normalizeSlug(event.slug || event.name || "default");
                           return (
                             <div
                               key={event._id}
@@ -527,13 +536,13 @@ const handleJoinChallenge = () => {
                               {/* Nội dung */}                                        
                               {!isEventActive(event.startDate, event.endDate) ? (
                                 <div className="relative text-[#002147] text-center">
-                                  <h4 className="text-sm font-bold"> Thử thách {event.number || "N/A"}</h4>
+                                  <h4 className="text-sm font-bold"> {t("today_challanges_challange")} {event.number || "N/A"}</h4>
                                   <p className="text-gray-200 text-sm mt-2">🔒</p>
                                 </div>
                               ) : (
                                 <div className="relative text-white text-center">
-                                  <h4 className="text-sm font-bold"> Thử thách {event.number || "N/A"}</h4>
-                                  <p className="text-sm text-white mt-2">{event.name || "Không có tên"}</p>
+                                  <h4 className="text-sm font-bold"> {t("today_challanges_challange")} {event.number || "N/A"}</h4>
+                                  <p className="text-sm text-white mt-2">{getLocalizedEventName(event) || "Không có tên"}</p>
                                 </div>
                               )}
                             </div>
@@ -560,33 +569,32 @@ const handleJoinChallenge = () => {
               lg:w-[1100px]
               xs:w-full">
                 {/* Tiêu đề */}
-                <h3 className="text-3xl font-bold mb-4">Cơ cấu giải thưởng</h3>
-                <p className="text-lg font-semibold mb-8">
-                  4 giải dành cho HS các cấp và CBGV (Dành cho bức ảnh được thả tim nhiều nhất của từng trường)
+                <h3 className="text-3xl font-bold mb-4">{t("prizes_banner")}</h3>
+                <p className="lg:text-lg xs:text-md xs:ml-2 lg:ml-0 font-semibold mb-8">
+                {t("prizes_des")}
                 </p>
 
                 {/* Danh sách giải thưởng */}
-                <div className="grid grid-cols-4 gap-6 justify-center">
+                <div className="grid lg:grid-cols-4 xs:grid-cols-2 lg:gap-2 xs:gap-2 justify-center">
                   {[
-                    { title: "Hương vị Tết", prize: "01 Voucher Got it 500k" },
-                    { title: "Vẻ đẹp Tết Việt", prize: "01 Voucher Got it 500k" },
-                    { title: "Khoảnh khắc Xuân", prize: "01 Voucher Got it 500k" },
-                    { title: "Giai điệu Tết", prize: "01 Voucher Got it 500k" },
+                    { title: "Hương vị Tết", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/huong-vi-tet.png" },
+                    { title: "Vẻ đẹp Tết Việt", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/ve-dep-tet-viet.png" },
+                    { title: "Khoảnh khắc Xuân", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/khoanh-khac-tet.png" },
+                    { title: "Giai điệu Tết", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/giai-dieu-tet.png" },
                   ].map((award, index) => (
                     <div key={index} className="flex flex-col items-center">
-                      {/* Icon vòng tròn */}
-                      <div className="w-[100px] h-[100px] bg-white bg-opacity-30 rounded-full flex items-center justify-center text-white text-sm mb-4">
-                        icon
+                      {/* Hình ảnh giải thưởng */}
+                      <div className="w-[260px] h-[180px] rounded-full overflow-hidden">
+                        <img src={award.img} alt={award.title} className="w-full h-full object-contain mt-2" />
                       </div>
-                      <h4 className="text-lg font-bold">{award.title}</h4>
-                      <p className="text-sm">{award.prize}</p>
+                      <p className="text-lg font-semibold text-white">{award.prize}</p>
                     </div>
                   ))}
                 </div>
 
                 {/* Điều khoản giải thưởng */}
                 <div className="mt-10 font-bold flex flex-col items-center space-y-2 w-full px-10">
-                20 WISer may mắn tham gia hoàn thành đúng và đủ 6 thử thách sẽ nhận quà từ BTC
+                {t("prizes_des_02")}
                 </div>
               </div>
             </section>    
@@ -604,17 +612,17 @@ const handleJoinChallenge = () => {
               }}
             >
               <div className="lg:w-[1100px] xs:w-full mx-auto p-6 text-center">
-                <h3 className="text-3xl font-bold mb-6 text-[#002147]">Bài thi nổi bật</h3>
+                <h3 className="text-3xl font-bold mb-6 text-[#002147]"> {t("featured_submissions")}</h3>
                 {/* Tabs chọn thử thách */}
                 {/* Hiển thị button trên 2XL, LG, XL */}
                 <div className="hidden lg:flex lg:justify-center space-x-2 mb-8">
                   <button
                     className={`rounded-md font-bold
                       lg:px-4 lg:py-2 lg:text-base
-                      ${selectedChallenge === "all" ? "bg-[#b42b23] text-white" : "bg-gray-200 text-gray-800"}`}
+                      ${selectedChallenge === "all" ? "bg-[#b42b23] text-white" : " text-gray-800"}`}
                     onClick={() => filterPhotosByEventId("all")}
                   >
-                    Tất cả
+                    {t("featured_submissions_all")}
                   </button>
 
                   {events.map((event) => (
@@ -622,10 +630,10 @@ const handleJoinChallenge = () => {
                       key={event._id}
                       className={`rounded-md font-bold
                         lg:px-4 lg:py-2 lg:text-base
-                        ${selectedChallenge === event._id ? "bg-[#b42b23] text-white" : "bg-gray-200 text-gray-800"}`}
+                        ${selectedChallenge === event._id ? "bg-[#b42b23] text-white" : " text-gray-800"}`}
                       onClick={() => filterPhotosByEventId(event._id)}
                     >
-                      Thử thách {event.number}
+                      {t("featured_submissions_challange")} {event.number}
                     </button>
                   ))}
                 </div>
@@ -637,10 +645,10 @@ const handleJoinChallenge = () => {
                     value={selectedChallenge}
                     onChange={(e) => filterPhotosByEventId(e.target.value)}
                   >
-                    <option value="all">Tất cả thử thách</option>
+                    <option value="all">{t("featured_submissions_challange_all")}</option>
                     {events.map((event) => (
                       <option key={event._id} value={event._id}>
-                        Thử thách {event.number}
+                        {t("featured_submissions_challange")} {event.number}
                       </option>
                     ))}
                   </select>
@@ -684,7 +692,7 @@ const handleJoinChallenge = () => {
                           />
                           <div className="xs:block lg:hidden">
                           <span className="absolute bottom-0 left-0 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded-tr-lg">
-                            <span className="font-semibold text-sm text-left">Tác phẩm: {featuredPhotos[currentPhotoIndex]?.title}</span> <br/>
+                            <span className="font-semibold text-sm text-left">{t("featured_submissions_art_work")} {featuredPhotos[currentPhotoIndex]?.title}</span> <br/>
                             </span>
                           </div>
                         </div>
@@ -748,9 +756,9 @@ const handleJoinChallenge = () => {
             </section>
 
             {/* ------------------------Bài dự thi------------------------------ */}
-            <section className="section"
+            <section 
               style={{
-                backgroundImage: `url('/tet2025/image/background-primary.png')`, // Không cần process.env.PUBLIC_URL
+                backgroundImage: `url('/tet2025/image/submission.png')`, // Không cần process.env.PUBLIC_URL
                 backgroundSize: "cover", // ✅ Ảnh không bị zoom to
                 backgroundPosition: "center", // ✅ Căn giữa
                 backgroundRepeat: "no-repeat",
@@ -760,7 +768,7 @@ const handleJoinChallenge = () => {
               }}
             >
               <div className=" mx-auto mt-6 items-center justify-center mb-6">
-                <h2 className="text-3xl text-[#fcf5e3] font-bold text-center mb-6">Bài dự thi</h2>
+                <h2 className="text-3xl text-[#002855] font-bold text-center mb-6">{t("submissions")}</h2>
 
                 {/* Bộ lọc sắp xếp & tìm kiếm */}
                 <div className="flex  mx-auto items-center justify-between mb-4
@@ -769,7 +777,7 @@ const handleJoinChallenge = () => {
                 ">
                   {/* Bộ lọc sắp xếp */}
                     <div className="flex items-center space-x-4">
-                      <span className="font-semibold text-white">Sắp xếp theo:</span>
+                      <span className="font-semibold text-[#002855]">{t("submissions_filtered")}:</span>
                       <select
                         className="border px-3 py-2 rounded-md bg-white text-gray-800"
                         value={sortOrder}
@@ -778,10 +786,10 @@ const handleJoinChallenge = () => {
                           setSortOrder(e.target.value);
                         }}
                       >
-                        <option value="votes">Lượt bình chọn</option>
-                        <option value="latest">Mới nhất</option>
-                        <option value="oldest">Cũ nhất</option>
-                        <option value="myPhotos">Ảnh của tôi</option>
+                        <option value="votes">{t("submissions_filtered_votes")}</option>
+                        <option value="latest">{t("submissions_filtered_Newest")}</option>
+                        <option value="oldest">{t("submissions_filtered_Oldest")}</option>
+                        <option value="myPhotos">{t("submissions_filtered_My_Submission")}</option>
                       </select>
                     </div>
                 </div>
@@ -847,18 +855,18 @@ const handleJoinChallenge = () => {
                 margin: "0 auto",
               }}
             >
-            <div className="lg:h-[546px] xs:h-[200px] lg:font-bold flex flex-col items-center text-center justify-center lg:text-2xl space-y-2 w-full px-10">
-            <div className="
+            <div className="lg:h-[546px] xs:h-[160px] lg:font-bold flex flex-col items-center text-center justify-center lg:text-2xl space-y-2 w-full px-10">
+            <div className="text-[#401011]
             lg:w-[922px] lg:h-[200px] lg:top-1/4 lg:text-2xl
             xs:w-full xs:font-semibold xs:text-xs
             ">
-            
-            Chúng ta sẽ gặp lại nhau sau kỳ nghỉ Tết, cùng nhau tiếp tục chinh phục những thử thách mới trên con đường học vấn. Mong các em Học sinh, các Giáo viên, Nhân viên trở lại trường với tinh thần hứng khởi, sẵn sàng cho những ngày học tập và làm việc hiệu quả. Chúc các WISer một mùa Tết an lành, vui vẻ, đầy ý nghĩa bên gia đình và bạn bè!            </div>
+            {t("ending")}
+            </div>
             
             </div>
             </section>
             {/* ------------------------Footer------------------------------ */}
-            <section className="section"
+            <section 
             style={{
               backgroundImage: `url('/Footer.png')`, // Không cần process.env.PUBLIC_URL
               backgroundSize: "cover", // ✅ Ảnh không bị zoom to
@@ -868,8 +876,8 @@ const handleJoinChallenge = () => {
               margin: "0 auto", // ✅ Căn giữa khi có max-width
             }}>
             <div className="mx-auto p-6 
-            lg:w-[1920px] lg:h-[484px]
-            xs:w-full xs:h-[120px]
+            lg:w-[1920px] lg:h-[350px]
+            xs:w-full xs:h-[130px]
             ">
 
             </div>       

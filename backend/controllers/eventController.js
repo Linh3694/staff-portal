@@ -30,7 +30,7 @@ exports.createEvent = async (req, res) => {
     console.log("Body:", req.body);
     console.log("File:", req.file);
 
-    const { name, description, startDate, endDate, number } = req.body;
+    const { name, nameEng, description, descriptionEng, startDate, endDate, number } = req.body;
     const image = req.file ? `/uploads/Events/${req.file.filename}` : undefined; // Lưu đường dẫn tương đối
 
     if (!name || !description) {
@@ -40,7 +40,9 @@ exports.createEvent = async (req, res) => {
     // Lưu sự kiện vào MongoDB
     const newEvent = new Event({
       name,
+      nameEng,
       description,
+      descriptionEng,
       image,
       startDate,
       endDate,
@@ -58,11 +60,11 @@ exports.createEvent = async (req, res) => {
 // Cập nhật thông tin sự kiện
 exports.updateEvent = async (req, res) => {
   const { id } = req.params;
-  const { name, description, startDate, endDate, number } = req.body;
+  const { name, nameEng, description, descriptionEng, startDate, endDate, number } = req.body;
   const image = req.file ? `/uploads/Events/${req.file.filename}` : undefined;
 
   try {
-    const updateData = { name, description, startDate, endDate, number };
+    const updateData = { name,nameEng, description,descriptionEng, startDate, endDate, number };
     if (image) {
       updateData.image = image; // Cập nhật đường dẫn ảnh mới
     }

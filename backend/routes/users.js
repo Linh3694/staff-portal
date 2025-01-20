@@ -33,6 +33,37 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.put("/bulk-update", async (req, res) => {
+  try {
+    const { users } = req.body;
+
+    console.log("Dữ liệu nhận được từ frontend:", req.body);
+
+    // Validate dữ liệu
+    if (!Array.isArray(users)) {
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ: users phải là mảng" });
+    }
+
+    // Lặp qua danh sách người dùng và kiểm tra email
+    const updatePromises = users.map(async (user) => {
+      if (!user.email) throw new Error("Email là bắt buộc");
+
+      return User.findOneAndUpdate(
+        { email: user.email },
+        { $set: user },
+        { new: true, upsert: false }
+      );
+    });
+
+    await Promise.all(updatePromises);
+
+    res.json({ message: "Cập nhật thành công!" });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật:", error.message);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+});
+
 router.get("/search", async (req, res) => {
   try {
     const { query } = req.query;
@@ -226,36 +257,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/bulk-update", async (req, res) => {
-  try {
-    const { users } = req.body;
 
-    console.log("Dữ liệu nhận được từ frontend:", req.body);
-
-    // Validate dữ liệu
-    if (!Array.isArray(users)) {
-      return res.status(400).json({ message: "Dữ liệu không hợp lệ: users phải là mảng" });
-    }
-
-    // Lặp qua danh sách người dùng và kiểm tra email
-    const updatePromises = users.map(async (user) => {
-      if (!user.email) throw new Error("Email là bắt buộc");
-
-      return User.findOneAndUpdate(
-        { email: user.email },
-        { $set: user },
-        { new: true, upsert: false }
-      );
-    });
-
-    await Promise.all(updatePromises);
-
-    res.json({ message: "Cập nhật thành công!" });
-  } catch (error) {
-    console.error("Lỗi khi cập nhật:", error.message);
-    res.status(500).json({ message: "Lỗi server", error: error.message });
-  }
-});
 
 // Xóa người dùng
 router.delete("/:id", async (req, res) => {

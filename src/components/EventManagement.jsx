@@ -297,8 +297,9 @@ const EventManagement = () => {
                         console.log("Dữ liệu newEvent:", newEvent);
                         const formData = new FormData();
                         formData.append("name", newEvent.name);
+                        formData.append("nameEng", newEvent.nameEng);
                         formData.append("number", newEvent.number);
-                        formData.append("description", newEvent.description);
+                        formData.append("descriptionEng", newEvent.descriptionEng);
                         formData.append("image", newEvent.image);
                         formData.append("startDate", newEvent.startDate);
                         formData.append("endDate", newEvent.endDate);
@@ -335,6 +336,16 @@ const EventManagement = () => {
                         required
                     />
                     </div>
+                    <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Tên sự kiện-Eng</label>
+                    <input
+                        type="text"
+                        value={newEvent.nameEng}
+                        onChange={(e) => setNewEvent({ ...newEvent, nameEng: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    />
+                    </div>
                     {/* Số thứ tự */}
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700">Số thứ tự</label>
@@ -355,6 +366,15 @@ const EventManagement = () => {
                     <textarea
                         value={newEvent.description}
                         onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    />
+                    </div>
+                    <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Mô tả-Eng</label>
+                    <textarea
+                        value={newEvent.descriptionEng}
+                        onChange={(e) => setNewEvent({ ...newEvent, descriptionEng: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                     />
@@ -439,136 +459,159 @@ const EventManagement = () => {
                 </div>
                 )}
                 {showEditModal && selectedEvent && (
-  <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg shadow-lg p-6 w-[40%]">
-      <h3 className="text-xl font-bold mb-4 text-gray-700">Chỉnh sửa sự kiện</h3>
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          try {
-            const formData = new FormData();
-            formData.append("name", selectedEvent.name);
-            formData.append("number", selectedEvent.number);
-            formData.append("description", selectedEvent.description);
-            if (selectedEvent.image instanceof File) {
-              formData.append("image", selectedEvent.image);
-            }
-            formData.append("startDate", selectedEvent.startDate);
-            formData.append("endDate", selectedEvent.endDate);
+                <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg shadow-lg p-6 w-[40%]">
+                    <h3 className="text-xl font-bold mb-4 text-gray-700">Chỉnh sửa sự kiện</h3>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        try {
+                          const formData = new FormData();
+                          formData.append("name", selectedEvent.name);
+                          formData.append("nameEng", selectedEvent.nameEng);
+                          formData.append("number", selectedEvent.number);
+                          formData.append("description", selectedEvent.description);
+                          formData.append("descriptionEng", selectedEvent.descriptionEng);
+                          if (selectedEvent.image instanceof File) {
+                            formData.append("image", selectedEvent.image);
+                          }
+                          formData.append("startDate", selectedEvent.startDate);
+                          formData.append("endDate", selectedEvent.endDate);
 
-            const response = await axios.put(
-              `${API_URL}/events/${selectedEvent._id}`,
-              formData,
-              {
-                headers: {
-                  "Content-Type": "multipart/form-data",
-                },
-              }
-            );
+                          const response = await axios.put(
+                            `${API_URL}/events/${selectedEvent._id}`,
+                            formData,
+                            {
+                              headers: {
+                                "Content-Type": "multipart/form-data",
+                              },
+                            }
+                          );
 
-            if (response.status === 200) {
-              toast.success("Cập nhật sự kiện thành công!");
-              setShowEditModal(false);
-              fetchEvents(); // Tải lại danh sách sự kiện
-            }
-          } catch (error) {
-            console.error("Error updating event:", error);
-            toast.error("Không thể cập nhật sự kiện!");
-          }
-        }}
-      >
-        {/* Tên sự kiện */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Tên sự kiện</label>
-          <input
-            type="text"
-            value={selectedEvent.name}
-            onChange={(e) => setSelectedEvent({ ...selectedEvent, name: e.target.value })}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
+                          if (response.status === 200) {
+                            toast.success("Cập nhật sự kiện thành công!");
+                            setShowEditModal(false);
+                            fetchEvents(); // Tải lại danh sách sự kiện
+                          }
+                        } catch (error) {
+                          console.error("Error updating event:", error);
+                          toast.error("Không thể cập nhật sự kiện!");
+                        }
+                      }}
+                    >
+                      {/* Tên sự kiện */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Tên sự kiện</label>
+                        <input
+                          type="text"
+                          value={selectedEvent.name}
+                          onChange={(e) => setSelectedEvent({ ...selectedEvent, name: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Tên sự kiện</label>
+                        <input
+                          type="text"
+                          value={selectedEvent.nameEng}
+                          onChange={(e) => setSelectedEvent({ ...selectedEvent, nameEng: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
 
-        {/* Số thứ tự */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Số thứ tự</label>
-          <input
-            type="number"
-            value={selectedEvent.number}
-            onChange={(e) => setSelectedEvent({ ...selectedEvent, number: e.target.value })}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
+                      {/* Số thứ tự */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Số thứ tự</label>
+                        <input
+                          type="number"
+                          value={selectedEvent.number}
+                          onChange={(e) => setSelectedEvent({ ...selectedEvent, number: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
 
-        {/* Mô tả sự kiện */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Mô tả</label>
-          <textarea
-            value={selectedEvent.description}
-            onChange={(e) =>
-              setSelectedEvent({ ...selectedEvent, description: e.target.value })
-            }
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
+                      {/* Mô tả sự kiện */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Mô tả</label>
+                        <textarea
+                          value={selectedEvent.description}
+                          onChange={(e) =>
+                            setSelectedEvent({ ...selectedEvent, description: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Mô tả</label>
+                        <textarea
+                          value={selectedEvent.descriptionEng}
+                          onChange={(e) =>
+                            setSelectedEvent({ ...selectedEvent, descriptionEng: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
 
-        {/* Ảnh đại diện */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Ảnh đại diện</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setSelectedEvent({ ...selectedEvent, image: e.target.files[0] })}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+                      {/* Ảnh đại diện */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Ảnh đại diện</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setSelectedEvent({ ...selectedEvent, image: e.target.files[0] })}
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
 
-        {/* Ngày bắt đầu */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Ngày bắt đầu</label>
-          <input
-            type="date"
-            value={selectedEvent.startDate.split("T")[0]} // Format ngày
-            onChange={(e) =>
-              setSelectedEvent({ ...selectedEvent, startDate: e.target.value })
-            }
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
+                      {/* Ngày bắt đầu */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Ngày bắt đầu</label>
+                        <input
+                          type="date"
+                          value={selectedEvent.startDate.split("T")[0]} // Format ngày
+                          onChange={(e) =>
+                            setSelectedEvent({ ...selectedEvent, startDate: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
 
-        {/* Ngày kết thúc */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Ngày kết thúc</label>
-          <input
-            type="date"
-            value={selectedEvent.endDate.split("T")[0]} // Format ngày
-            onChange={(e) =>
-              setSelectedEvent({ ...selectedEvent, endDate: e.target.value })
-            }
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
+                      {/* Ngày kết thúc */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700">Ngày kết thúc</label>
+                        <input
+                          type="date"
+                          value={selectedEvent.endDate.split("T")[0]} // Format ngày
+                          onChange={(e) =>
+                            setSelectedEvent({ ...selectedEvent, endDate: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
 
-        <div className="flex justify-end mt-4">
-          <button
-            type="button"
-            onClick={() => setShowEditModal(false)}
-            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg mr-2"
-          >
-            Hủy
-          </button>
-          <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">
-            Lưu
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-)}
+                      <div className="flex justify-end mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setShowEditModal(false)}
+                          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg mr-2"
+                        >
+                          Hủy
+                        </button>
+                        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">
+                          Lưu
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+          )}
     </div>
   );
 };

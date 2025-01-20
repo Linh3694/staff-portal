@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
+import i18n from "i18next";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
-import i18n from "../../../i18n"; // Đảm bảo bạn đã cấu hình i18n như hướng dẫn trước đó.
+import { API_URL } from "../../../config"; // import từ file config
 
 
 console.log("setIsEventAuthenticated called with value: true");
 
 const AuthForm = ({ setIsEventAuthenticated }) => {
   console.log("AuthForm props:", { setIsEventAuthenticated });
-
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [id, setId] = useState("");
   const [nameOptions, setNameOptions] = useState([]);
@@ -43,7 +44,7 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
       setStep(2);
     } catch (error) {
       console.error("Error verifying ID:", error.message);
-      toast.error("ID không hợp lệ hoặc có lỗi xảy ra!");
+      toast.error(t("toast_invalid_id"));
     }
   };
 
@@ -52,7 +53,7 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
   
     if (!storedUser || !storedUser.userId) {
       console.error("Lỗi xác thực: Không tìm thấy userId trong localStorage!", storedUser);
-      toast.error("Không tìm thấy thông tin xác thực. Vui lòng thử lại!");
+      toast.error(t("toast_auth_error"));
       setStep(1);
       return;
     }
@@ -85,7 +86,7 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
       navigate("/event");
     } catch (error) {
       console.error("Lỗi xác thực tên:", error.message);
-      toast.error(error.message || "Lỗi xác thực tên!");
+      toast.error(t("toast_name_verification_error"));
     }
   };
 
@@ -117,44 +118,51 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
   }, []);
 
   return (
+    <div className="min-h-screen">
+            {/* Header */}
+            <header className="bg-[#fcf5e3] flex items-center justify-between w-full h-[80px] px-6">
+              {/* Logo Section */}
+              <div className="w-[1390px] mx-auto flex flex-row items-center justify-between">
+                  <div className="flex items-center lg:space-x-2 xs:space-x-0">
+                    <img
+                      src="/tet2025/image/wellsping-logo.png" // Đường dẫn logo 1
+                      alt="Logo 1"
+                      className="lg:h-20 lg:w-36 xs:w-28 xs:h-16"
+                      
+                    />
+                    <img
+                      src="/tet2025/image/happyjourney.png" // Đường dẫn logo 2
+                      alt="Logo 2"
+                      className="lg:h-28 w-auto xs:h-20 xs:mt-1"
+                    />
+                  </div>
+        
+                    {/* Language Switcher */}
+                    <div className ="items-center">
+                      <div className ="flex items-center">                      
+                      <button
+                        onClick={() => {
+                          const newLang = language === "vi" ? "en" : "vi";
+                          i18n.changeLanguage(newLang);
+                          setLanguage(newLang);
+                        }}
+                        className="lg:w-10 xs:w-12 lg:h-10 xs:h-12 rounded-full border-2 border-gray-300 transition-transform transform hover:scale-110"
+                      >
+                        <img
+                          src={`/tet2025/icons/flag-${language}.png`} // ✅ Tự động đổi cờ dựa trên ngôn ngữ
+                          alt={language === "vi" ? "Tiếng Việt" : "English"}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      </button>
+                      </div>
+                    </div>
+              </div>
+            </header>
     <div className="h-screen w-full flex flex-col items-center justify-center bg-cover bg-center transition-all"
           style={{
             backgroundImage: `url('${backgroundImage}')`,
           }}
           >
-      {/* Nút chuyển đổi ngôn ngữ */}
-      <div className="absolute top-4 right-6 flex items-center text-white space-x-4 mr-20 mt-12
-      xs:right-0 xs:mr-4">
-        <span className=" text-xl">Ngôn ngữ:</span>
-
-        {/* Hiển thị chỉ cờ ngôn ngữ hiện tại */}
-        {language === "en" && (
-          <button
-            onClick={() => toggleLanguage("vi")}
-            className="w-10 h-10 rounded-full  flex items-center justify-center border-white transition"
-          >
-            <img
-              src="/tet2025/icons/flag-en.png"
-              alt="English"
-              className="w-10 h-10 rounded-full object-cover"
-            />
-          </button>
-        )}
-
-        {language === "vi" && (
-          <button
-            onClick={() => toggleLanguage("en")}
-            className="w-10 h-10 rounded-full flex items-center justify-center border-white transition"
-          >
-            <img
-              src="/tet2025/icons/flag-vi.png"
-              alt="Tiếng Việt"
-              className="w-10 h-10 rounded-full object-cover"
-            />
-          </button>
-        )}
-      </div>
-
       {/* Bảng xác thực */}
       <div className="w-3/4 backdrop-blur-sm p-8 shadow-lg rounded-2xl transform scale-100 transition-transform duration-300 bg-white/40 bg-opacity-80
             2xl:absolute 2xl:right-72 2xl:w-1/5 2xl:rounded-2xl
@@ -164,25 +172,25 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
             ">
         {step === 1 && (
           <>
-            <h2 className="text-xl text-[#f8f8f8] font-bold mb-4 text-center">Nhập ID để xác thực</h2>
+            <h2 className="text-xl text-[#f8f8f8] font-bold mb-4 text-center">{t("loginbox_title")}</h2>
             <input
               type="text"
-              placeholder="Nhập ID của bạn"
+              placeholder="WF00ABC"
               value={id}
-              onChange={(e) => setId(e.target.value)}
+              onChange={(e) => setId(e.target.value.toUpperCase())}
               className="w-full bg-[#f5f5f5] mx-auto p-3 border text-center items-center rounded-full mb-4"
             />
             <button
               onClick={handleVerifyId}
-              className="w-full bg-[#E55526] mx-auto rounded-full text-white py-3 hover:bg-[#e16e47] transition"
+              className="w-full bg-[#E55526] mx-auto rounded-full text-white py-3 hover:bg-[#e16e47] transition font-bold"
             >
-              Tiếp tục
+              {t("loginbox_next")}
             </button>
           </>
         )}
         {step === 2 && (
           <>
-            <h2 className="text-xl text-[#f8f8f8] mx-auto font-bold mb-4 text-center justify-center">Chọn tên của bạn</h2>
+            <h2 className="text-xl text-[#f8f8f8] mx-auto font-bold mb-4 text-center justify-center">{t("loginbox_verifyname")}</h2>
             {nameOptions.map((name, index) => (
               <button
                 key={index}
@@ -198,14 +206,15 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
                 setStep(1); // Quay lại Step 1
                 setId("");  // Xóa ID nhập sai
               }}
-              className="w-full bg-[#E55526] mx-auto text-white py-2 rounded-full mt-4 transition"
+              className="w-full bg-[#E55526] mx-auto text-white py-2 rounded-full mt-4 transition font-bold"
             >
-              Quay lại
+              {t("loginbox_back")}
             </button>
           </>
         )}
       </div>
     </div>
+  </div>
   );
 };
 
