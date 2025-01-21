@@ -317,13 +317,21 @@ const DetailEvent = () => {
               children={
                 <div className="flex flex-col w-40 rounded-[10px] bg-[#f8f8f8] shadow-xl shadow-shadow-500">
                   {/* Nếu là admin, hiển thị thêm nút "Phê duyệt" */}
-                  {user?.role === "admin" && (
+                  {user?.role === "superadmin" && (
+                    <>
+                    <button
+                      onClick={() => navigate("/event-management")} // ✅ Chuyển hướng đến trang quản lý sự kiện
+                      className="text-sm font-medium text-[#002147] hover:bg-gray-100 px-3 py-2 text-left"
+                    >
+                      Quản lý sự kiện
+                    </button>
                     <button
                       onClick={handleOpenApprove}
                       className="text-sm font-medium text-[#002147] hover:bg-gray-100 px-3 py-2 text-left"
                     >
                       Phê duyệt
                     </button>
+                    </>
                   )}
 
                   <button
