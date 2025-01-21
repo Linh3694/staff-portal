@@ -228,7 +228,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    const role = localStorage.getItem("role");
+    const role = localStorage.getItem("role")?.trim().toLowerCase();
   
     if (!token) {
       console.log("Token không tồn tại hoặc hết hạn. Chuyển hướng đến login...");
@@ -236,7 +236,7 @@ const Dashboard = () => {
       return;
     }
   
-    if (role !== "admin" && role !== "user") {
+    if (!["admin", "superadmin", "technical"].includes(role)) {
       console.log("Vai trò không hợp lệ. Chuyển hướng đến Unauthorized...");
       navigate("/unauthorized");
     }
