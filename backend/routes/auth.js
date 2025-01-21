@@ -73,13 +73,13 @@ router.post("/verify-id", async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "ID không hợp lệ!" });
     }
-
     // Lấy tên đầy đủ, avatar, jobTitle, và Klass (nếu có)
     const userId = user._id
     const fullName = user.fullname || user.name || "N/A";
     const avatarUrl = user.avatar || "https://via.placeholder.com/150";
     const jobTitle = user.jobTitle || "N/A";
     const klass = user.klass || "N/A"; // Klass là lớp học (nếu có)
+    const role = user.role || "Không xác đinh";
 
     // Tạo danh sách tùy chọn tên (đã có logic trước đó)
     const randomUsers = await User.aggregate([{ $sample: { size: 2 } }]);

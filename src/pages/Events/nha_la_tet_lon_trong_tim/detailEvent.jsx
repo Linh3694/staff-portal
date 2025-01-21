@@ -5,8 +5,11 @@ import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import UploadModal from "./uploadModal";
 import PhotoReview from "./PhotoReview";
-import { FiLogOut, FiArrowLeft } from "react-icons/fi";
+import { FiLogOut, FiArrowLeft, FiUser } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import Dropdown from "../../../components/function/dropdown"; // HOẶC đường dẫn tương ứng
+import PhotoApprovalModal from "./PhotoApprovalModal"
+
 
 
 const DetailEvent = () => {
@@ -28,7 +31,28 @@ const DetailEvent = () => {
   const [filteredPhotos, setFilteredPhotos] = useState([]);
   const [sortOrder, setSortOrder] = useState("votes"); // Bộ lọc: votes, latest, oldest
   const [searchQuery, setSearchQuery] = useState(""); // Thanh tìm kiếm
-  
+  const [showApprovalModal, setShowApprovalModal] = useState(false); // NEW: state bật/tắt Modal phê duyệt
+
+  const handleLogout = () => {
+    localStorage.removeItem("user"); // Hoặc removeItem("authToken"), tuỳ cách bạn lưu
+    navigate("/auth");
+  };
+
+  // Mở modal phê duyệt
+  const handleOpenApprove = () => {
+    // Chỉ cho admin
+    if (user?.role === "admin") {
+      setShowApprovalModal(true);
+    } else {
+      toast.error("Bạn không có quyền phê duyệt ảnh!");
+    }
+  };
+
+  // Đóng modal
+  const handleCloseApprove = () => {
+    setShowApprovalModal(false);
+  };
+
   const getLocalizedEventName = (event) => {
     if (!event || typeof event !== "object") return t("default_event_title"); 
     return i18n.language === "vi" ? event.name || t("default_event_title") : event.nameEng || event.name || t("default_event_title");
@@ -107,10 +131,15 @@ const DetailEvent = () => {
           toast.error("Không thể tải bảng xếp hạng.");
         }
       };
-  
+      if (leaderboard?.length > 0) {
+        leaderboard.forEach((photo) => {
+          const img = new Image();
+          img.src = `${BASE_URL}${photo.url}`;
+        });
+      }  
       fetchLeaderboard();
     }
-  }, [event]);
+  }, [event] [leaderboard]);
 
   useEffect(() => {
     // Lấy dữ liệu từ localStorage
@@ -215,57 +244,89 @@ const DetailEvent = () => {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-[#fcf5e3] flex items-center justify-between w-full h-[80px] px-6">
-              {/* Logo Section */}
-              <div className="w-[1390px] mx-auto flex flex-row items-center justify-between">
-                  <div className="flex items-center lg:space-x-2 xs:space-x-0">
-                    <img
-                      src="/tet2025/image/wellsping-logo.png" // Đường dẫn logo 1
-                      alt="Logo 1"
-                      className="lg:h-20 w-36 xs:h-16"
-                    />
-                    <img
-                      src="/tet2025/image/happyjourney.png" // Đường dẫn logo 2
-                      alt="Logo 2"
-                      className="lg:h-28 w-auto xs:h-12 xs:hidden lg:block"
-                    />
-                  </div>
-        
-                    {/* Language Switcher */}
-                    <div className ="items-center">
-                      <div className ="flex items-center gap-2 ">
-                      <span className="xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")} <span className="font-bold lg:text-base xs:text-sm">{user?.fullName  || "Ẩn danh"}</span></span>
-                      <span className="lg:w-10 xs:w-12 lg:h-10 xs:h-9 border-2 border-gray-300 bg-[#E55526] rounded-full flex items-center justify-center" 
-                      onClick={() => {
-                        localStorage.removeItem("user"); // Xóa thông tin người dùng
-                        navigate("/auth"); // Điều hướng về trang đăng nhập
-                      }}>
-                        <FiLogOut size={20} className="text-white" />
-                      </span>
-                      <button
-                        onClick={() => {
-                          const newLang = language === "vi" ? "en" : "vi";
-                          i18n.changeLanguage(newLang);
-                          setLanguage(newLang);
-                        }}
-                        className="lg:w-10 xs:w-12 lg:h-10 xs:h-9 rounded-full border-2 border-gray-300 transition-transform transform hover:scale-110"
-                      >
-                        <img
-                          src={`/tet2025/icons/flag-${language}.png`} // ✅ Tự động đổi cờ dựa trên ngôn ngữ
-                          alt={language === "vi" ? "Tiếng Việt" : "English"}
-                          className="w-full h-full rounded-full object-cover"
-                        />
-                      </button>
-                      </div>
-                    </div>
-              </div>
-            </header>
+      <header className="bg-[#fcf5e3] flex items-center justify-between w-full h-[80px] lg:px-6 xs:px-2">
+        <div className="w-[1390px] mx-auto flex flex-row items-center justify-between">
+          
+          {/* Logo Section */}
+          <div className="flex items-center lg:space-x-2 xs:space-x-0">
+            <img
+              src="/tet2025/image/wellsping-logo.png"
+              alt="Logo 1"
+              className="lg:h-20 lg:w-36 xs:w-32 xs:h-16"
+            />
+            <img
+              src="/tet2025/image/happyjourney.png"
+              alt="Logo 2"
+              className="lg:h-28 w-auto xs:h-12 xs:hidden lg:block"
+            />
+          </div>
+
+          {/* Khu vực User + Switch language */}
+          <div className="items-center flex gap-4">
+          <span className="xs:hidden lg:flex xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")}, <span className="xs:text-sm lg:text-base text-[#401011] font-bold">
+              {user?.fullName || "Ẩn danh"}
+            </span>
+          </span>
+          <span className="lg:hidden xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")},<br/> <span className="xs:text-sm lg:text-base text-[#401011] font-bold">
+              {user?.fullName || "Ẩn danh"}
+            </span>
+          </span>
+            {/* --- Dropdown User --- // NEW */}
+            <Dropdown
+              button={
+                // Bạn có thể thay icon FiUser bằng ảnh đại diện nếu muốn
+                <div className="cursor-pointer w-10 h-10 flex items-center justify-center rounded-full bg-[#E55526] text-white">
+                  <FiUser size={20} />
+                </div>
+              }
+              animation="origin-top-right md:origin-top-right transition-all duration-300 ease-in-out"
+              classNames={"py-2 top-7 -left-[150px] w-max"}
+              children={
+                <div className="flex flex-col w-40 rounded-[10px] bg-[#f8f8f8] shadow-xl shadow-shadow-500">
+                  {/* Nếu là admin, hiển thị thêm nút "Phê duyệt" */}
+                  {user?.role === "admin" && (
+                    <button
+                      onClick={handleOpenApprove}
+                      className="text-sm font-medium text-[#002147] hover:bg-gray-100 px-3 py-2 text-left"
+                    >
+                      Phê duyệt
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleLogout}
+                    className="text-sm font-medium text-red-500 hover:bg-gray-100 px-3 py-2 text-left"
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              }
+            />
+            
+            {/* Nút đổi ngôn ngữ */}
+            <button
+              onClick={() => {
+                const newLang = language === "vi" ? "en" : "vi";
+                i18n.changeLanguage(newLang);
+                setLanguage(newLang);
+              }}
+              className="lg:w-10 xs:w-10 lg:h-10 xs:h-10 border border-white rounded-full transition-transform transform hover:scale-105"
+            >
+              <img
+                src={`/tet2025/icons/flag-${language}.png`}
+                alt={language === "vi" ? "Tiếng Việt" : "English"}
+                className="w-full h-full rounded-full object-cover"
+              />
+            </button>
+          </div>
+        </div>
+      </header>
   
       {/* Nội dung chính */}
       <div
         className="flex flex-col justify-center items-center"
         style={{
-          backgroundImage: `url('/tet2025/image/background-primary.png')`, // Không cần process.env.PUBLIC_URL
+          backgroundImage: `url('/tet2025/image/detail01.png')`, // Không cần process.env.PUBLIC_URL
           backgroundSize: "cover", // ✅ Ảnh không bị zoom to
           backgroundPosition: "top center", // ✅ Căn giữa
           backgroundRepeat: "no-repeat",
@@ -291,7 +352,7 @@ const DetailEvent = () => {
           <div className ="text-lg font-bold mb-4">
           </div>
           {/* Hiển thị top 4 ảnh dự thi */}
-            <div className="xs:hidden lg:flex mb-8 flex justify-between items-center">
+            <div className="xs:hidden lg:flex mb-8 flex justify-between items-center gap-[10px]">
               {(() => {
                 // Lấy danh sách ảnh từ leaderboard
                 const displayedPhotos = leaderboard?.sort((a, b) => b.votes - a.votes).slice(0, 4) || [];
@@ -305,8 +366,8 @@ const DetailEvent = () => {
                   photo ? (
                     <div
                       key={photo._id}
-                      className={`relative lex border-2 border-[#fcf5e3] overflow-hidden overflow-x-auto whitespace-nowrap rounded-2xl shadow-xl transition-all duration-300 ${
-                        hoveredIndex === index ? "w-[340px] h-[405px]" : "w-[340px] h-[405px] "
+                      className={`relative flex border-2 border-[#fcf5e3] overflow-hidden overflow-x-auto whitespace-nowrap rounded-2xl shadow-xl transition-all duration-300 will-change-transform ${
+                        hoveredIndex === index ? "w-[340px] h-[405px]" : "w-[340px] h-[405px]"
                       }`}
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
@@ -323,7 +384,8 @@ const DetailEvent = () => {
                         width="550"
                         height="338"
                       />
-                      <p className="absolute bottom-0 left-0 bg-black bg-opacity-50 text-white text-sm px-2 py-1 rounded-tl-lg">
+                      <p className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg 
+                        w-[90%] overflow-hidden whitespace-nowrap text-ellipsis">
                         {photo.title || "Không tiêu đề"}
                       </p>
                     </div>
@@ -340,6 +402,7 @@ const DetailEvent = () => {
                 );
               })()}
             </div>
+
           {/* Phiên bản Mobile (Hiển thị dạng trượt ngang) */}
           <div className="lg:hidden xs:overflow-x-scroll xs:flex xs:space-x-4 xs:w-full px-4">
             {leaderboard?.sort((a, b) => b.votes - a.votes).slice(0, 4).map((photo, index) => (
@@ -358,9 +421,10 @@ const DetailEvent = () => {
                   alt={photo.title || "Không tiêu đề"}
                   className="w-full h-full object-cover"
                 />
-                <p className="absolute bottom-0 left-0 bg-black bg-opacity-50 text-white text-sm px-2 py-1 rounded-tl-lg">
-                  {photo.title || "Không tiêu đề"}
-                </p>
+                <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg 
+                          w-[90%] overflow-hidden whitespace-nowrap text-ellipsis">
+                          {photo.title || "Không tiêu đề"}
+                        </div>
               </div>
             ))}
           </div>
@@ -385,7 +449,7 @@ const DetailEvent = () => {
               </div>
 
               {/* Cột phải - Thông tin chính */}
-              <div className="lg:w-[400px] xs:w-[375px] lg:ml-28 xs:ml-2  bg-[#fcf5e3] border p-6 rounded-lg shadow-md flex flex-col justify-between">
+              <div className="lg:w-[400px] xs:max-w-[500px] xs:w-[375px] lg:ml-28 xs:mx-auto lg:mx-0   bg-[#fcf5e3] border p-6 rounded-lg shadow-md flex flex-col justify-between">
                 <h2 className="text-xl font-bold mb-4">{t("Info")}</h2>
 
                 {/* Hạn nộp bài */}
@@ -436,22 +500,22 @@ const DetailEvent = () => {
                 <UploadModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} eventId={event._id} user={user} />
               </div>
             </div>
+            </div>
+
 
                 {/* ------------------------Bài dự thi của tôi------------------------------ */}
-              <div className="w-full"
+            <section className="w-full"
               style={{
                 backgroundImage: `url('/tet2025/image/background-secondary.png')`, // Không cần process.env.PUBLIC_URL
                 backgroundSize: "cover", // ✅ Ảnh không bị zoom to
                 backgroundPosition: "top center", // ✅ Căn giữa
                 backgroundRepeat: "no-repeat",
                 width: "100%", // ✅ Giữ full width
-                height: "100%",
                 maxWidth: "1920px", // ✅ Giới hạn ngang
                 margin: "0 auto", // ✅ Căn giữa khi có max-width
               }}>
-              <div className="lg:w-[1360px] xs:w-full mx-auto mt-6 items-center justify-center mb-6">
+              <div className="lg:w-[1360px] xs:w-full mx-auto items-center justify-center p-4">
                 <h2 className="text-2xl text-[#b42b23] font-bold text-center mb-6">{t("my_submission")}</h2>
-
                 {photos.filter(photo => photo.uploaderId === user?._id).length === 0 ? (
                   // Nếu chưa có bài dự thi
                   <div className="flex justify-center items-center bg-gray-300 lg:w-[720px] lg:h-[340px] xs:w-[340px] h-[170px] mx-auto rounded-lg shadow-md">
@@ -459,17 +523,18 @@ const DetailEvent = () => {
                   </div>
                 ) : (
                   // Nếu đã có bài dự thi (Hiển thị theo hàng, không scroll)
-                  <div className="justify-center items-center mx-auto lg:grid lg:grid-cols-5 lg:gap-1 xs:grid xs:grid-cols-3 xs:gap-1 lg:ml-0 xs:ml-0.5">
+                  <div className="justify-center items-center mx-auto lg:grid lg:grid-cols-5 lg:gap-4 xs:flex xs:flex-wrap xs:gap-4">
                     {photos
                       .filter(photo => photo.uploaderId === user?._id)
                       .map((photo) => (
-                        <div key={photo._id} className="relative bg-white rounded-lg overflow-hidden shadow-md lg:w-[268px] lg:h-[340px] xs:w-[125px] h-[170px]">
+                        <div key={photo._id} className="relative bg-white rounded-lg overflow-hidden shadow-md lg:max-w-[260px] lg:w-[260px] lg:h-[340px] xs:basis-1/3 xs:max-w-[110px] xs:h-[170px] xs:mx-auto">
                           {/* Ảnh bài dự thi */}
                           <img src={`${BASE_URL}${photo.url}`} alt={photo.message} className="w-full h-full object-cover" onClick={() => openPhotoReview(photo)}/>
                           {/* Tên ảnh ở góc dưới bên trái */}
-                          <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg">
-                            {photo.title || "Không tiêu đề"}
-                          </div>
+                          <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg 
+                          w-[90%] overflow-hidden whitespace-nowrap text-ellipsis">
+                          {photo.title || "Không tiêu đề"}
+                        </div>
                           {/* Số lượng tim ở góc trên bên phải */}
                           <div className="absolute top-2 right-2 bg-gray-100 bg-opacity-50 text-white text-sm font-bold px-2 py-1 rounded-full">
                             ❤️ {photo.votes}
@@ -479,11 +544,11 @@ const DetailEvent = () => {
                   </div>
                 )}
               </div>         
-            </div> 
+            </section> 
 
 
               {/* ------------------------Bài dự thi của sự kiện------------------------------ */}
-          <section className="section"
+          <section
             style={{
               backgroundImage: `url('/tet2025/image/background-primary.png')`,
               backgroundSize: "cover",
@@ -494,7 +559,7 @@ const DetailEvent = () => {
               margin: "0 auto",
             }}
           >
-            <div className=" mx-auto mt-6 items-center justify-center mb-6">
+            <div className="w-full mx-auto items-center justify-center p-6">
               <h2 className="text-2xl text-[#fcf5e3] font-bold text-center mb-6">{t("submissions")}</h2>
 
               {/* Bộ lọc sắp xếp & tìm kiếm */}
@@ -518,11 +583,11 @@ const DetailEvent = () => {
               </div>
 
               {/* Lưới hiển thị ảnh */}
-              <div className="lg:w-[1390px] lg:mx-auto lg:grid lg:grid-cols-5 lg:gap-5 xs:w-full xs:mx-auto xs:grid xs:grid-cols-3 xs:gap-2 xs:ml-2 justify-center items-center">
+              <div className="lg:w-[1390px] lg:mx-auto lg:grid lg:grid-cols-5 lg:gap-5 xs:w-full xs:mx-auto xs:flex xs:flex-wrap xs:gap-2 xs:ml-2 justify-center items-center">
                 {paginatedPhotos.length > 0 ? (
                   paginatedPhotos.map((photo) => (
                     <div key={photo._id} className="relative rounded-lg overflow-hidden shadow-md cursor-pointer bg-white
-                      lg:w-[270px] lg:h-[338px] xs:w-[125px] xs:h-[170px]"
+                      lg:max-w-[260px] lg:w-[260px] lg:h-[340px] xs:basis-1/3 xs:max-w-[110px] xs:h-[170px] xs:mx-auto"
                       onClick={() => openPhotoReview(photo)}
                     >
                       {/* Ảnh dự thi */}
@@ -538,9 +603,10 @@ const DetailEvent = () => {
                       </div>
 
                       {/* Tên ảnh góc dưới bên trái */}
-                      <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg">
-                        {photo.title || "Không tiêu đề"}
-                      </div>
+                        <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg 
+                          w-[90%] overflow-hidden whitespace-nowrap text-ellipsis">
+                          {photo.title || "Không tiêu đề"}
+                        </div>
                     </div>
                   ))
                 ) : (
@@ -575,14 +641,14 @@ const DetailEvent = () => {
               margin: "0 auto", // ✅ Căn giữa khi có max-width
             }}>
             <div className="mx-auto p-6 
-            lg:w-[1920px] lg:h-[484px]
+            lg:w-[1920px] lg:h-[350px]
             xs:w-full xs:h-[240px]
             ">
 
             </div>       
             </section>
         
-      </div>
+      
       {/* Modal PhotoReview */}
           {isPhotoReviewOpen && selectedPhoto && (
             <PhotoReview
@@ -592,6 +658,8 @@ const DetailEvent = () => {
               user={user}
             />
           )}
+                  {showApprovalModal && <PhotoApprovalModal onClose={handleCloseApprove} />}
+
     </div>
   );
 };

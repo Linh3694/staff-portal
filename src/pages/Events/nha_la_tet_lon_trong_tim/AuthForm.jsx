@@ -36,7 +36,8 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
       localStorage.setItem("user", JSON.stringify({
         userId: data.userId,
         fullName: data.fullName,
-        options: data.options
+        options: data.options,
+        role:data.role,
       }));
   
       setCorrectName(data.fullName);
@@ -168,7 +169,7 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
             2xl:absolute 2xl:right-72 2xl:w-1/5 2xl:rounded-2xl
             xl:absolute xl:right-52 xl:w-1/5 xl:rounded-2xl
             lg:absolute lg:right-28 lg:w-1/4 lg:rounded-2xl
-            md:w-1/3
+            xs:w-3/4
             ">
         {step === 1 && (
           <>

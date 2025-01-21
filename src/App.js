@@ -10,6 +10,7 @@ import Ticket from './pages/Ticket';
 import AuthForm from "./pages/Events/nha_la_tet_lon_trong_tim/AuthForm";
 import Event from "./pages/Events/nha_la_tet_lon_trong_tim/Event";
 import DetailEvent from "./pages/Events/nha_la_tet_lon_trong_tim/detailEvent";
+import EventManagement from "./pages/Events/nha_la_tet_lon_trong_tim/EventManagement";
 import "./i18n";
 
 
@@ -76,6 +77,9 @@ function App() {
 
           {/* Trang chi tiết Event */}
           <Route path="/event/:slug" element={<DetailEvent />} />
+
+          <Route path="/event-management" element={isEventAuthenticated ? <EventManagement /> : <Navigate to="/auth" />} /> {/* ✅ Route mới */}
+
 
           {/* Điều hướng mặc định */}
           <Route path="*" element={<Navigate to="/login" />} />

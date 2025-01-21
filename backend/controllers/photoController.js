@@ -53,24 +53,63 @@ exports.getPendingPhotos = async (req, res) => {
   }
 };
 
+exports.getApprovedPhotos = async (req, res) => {
+  try {
+    const approvedPhotos = await Photo.find({ approved: true, denied: false });
+    res.status(200).json(approvedPhotos);
+  } catch (error) {
+    console.error("Error fetching approved photos:", error);
+    res.status(500).json({ message: "Lỗi khi lấy danh sách ảnh đã duyệt!" });
+  }
+};
+
+exports.getDeniedPhotos = async (req, res) => {
+  try {
+    const deniedPhotos = await Photo.find({ denied: true });
+    res.status(200).json(deniedPhotos);
+  } catch (error) {
+    console.error("Error fetching denied photos:", error);
+    res.status(500).json({ message: "Lỗi khi lấy danh sách ảnh đã bị từ chối!" });
+  }
+};
+
 exports.approvePhoto = async (req, res) => {
   const { id } = req.params;
-
   try {
+    // Lưu ý: cần “phủ” denied = false
     const photo = await Photo.findByIdAndUpdate(
       id,
-      { approved: true }, // Cập nhật trạng thái phê duyệt
+      { approved: true, denied: false },
       { new: true }
     );
 
     if (!photo) {
       return res.status(404).json({ message: "Không tìm thấy ảnh!" });
     }
-
     res.status(200).json({ message: "Ảnh đã được phê duyệt!", photo });
   } catch (error) {
     console.error("Error approving photo:", error);
     res.status(500).json({ message: "Lỗi khi phê duyệt ảnh!" });
+  }
+};
+
+exports.rejectPhoto = async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Lưu ý: cần “phủ” approved = false
+    const photo = await Photo.findByIdAndUpdate(
+      id,
+      { denied: true, approved: false },
+      { new: true }
+    );
+
+    if (!photo) {
+      return res.status(404).json({ message: "Không tìm thấy ảnh!" });
+    }
+    res.status(200).json({ message: "Ảnh đã bị từ chối!", photo });
+  } catch (error) {
+    console.error("Error rejecting photo:", error);
+    res.status(500).json({ message: "Lỗi khi từ chối ảnh!" });
   }
 };
 

@@ -146,7 +146,7 @@ const PhotoReview = ({ photoId, isOpen, onClose, user }) => {
             </div>
 
             {/* Phần thông tin và bình luận */}
-            <div className="xs:w-full lg:w-1/3 xs:h-full lg:h-full lg:pl-4 xs:pl-0 flex flex-col rounded-lg xs:overflow-y-auto">
+            <div className="xs:w-full lg:w-1/3 xs:h-full lg:h-full lg:pl-4 xs:pl-0 flex flex-col rounded-lg overflow-y-auto">
               <div className="flex flex-col items-left lg:mt-6 xs:mt-4 lg:ml-0 xs:ml-4 lg:mr-0 xs:mr-4">
                 <span className="lg:text-2xl xs:text-lg text-[#B42B23] font-bold mb-2">{photo.title}</span>
                 <p className="font-bold lg:text-md xs:text-sm italic mb-3">Tác giả: {photo.uploaderName || "Anonymous"}</p>
@@ -193,7 +193,7 @@ const PhotoReview = ({ photoId, isOpen, onClose, user }) => {
               </div>
 
               {/* Danh sách bình luận */}
-              <div className="flex-1 flex-col border-t-2 lg:overflow-y-auto xs:overflow-visible pt-4 lg:max-h-[70vh] xs:max-h-none">
+              <div className="flex-1 flex-col border-t-2 pt-4 ">
                 {comments.map((comment, index) => (
                   <div key={index} className="mb-3 p-2 bg-[#F6F6F6] rounded-xl lg:ml-0 xs:ml-4 lg:mr-0 xs:mr-4">
                     <div className="ml-3">

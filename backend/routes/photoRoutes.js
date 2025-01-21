@@ -9,9 +9,12 @@ router.get("/", photoController.getPhotosByEvent);
 
 // Lấy danh sách ảnh chưa được phê duyệt (admin only)
 router.get("/pending", photoController.getPendingPhotos);
+router.get("/approved", photoController.getApprovedPhotos);
+router.get("/denied", photoController.getDeniedPhotos);
 
 // Phê duyệt ảnh (admin only)
 router.put("/:id/approve", photoController.approvePhoto);
+router.put("/:id/reject", photoController.rejectPhoto); // ✅ API từ chối ảnh
 
 // Tải lên ảnh mới
 router.post("/", uploadEvent.single("file"), photoController.uploadPhoto);

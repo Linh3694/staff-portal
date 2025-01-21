@@ -10,6 +10,7 @@ const PhotoSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   uploaderName: { type: String }, // Thêm tên người upload
   approved: { type: Boolean, default: false }, // Thêm trường phê duyệt
+  denied: { type: Boolean, default: false },
   comments: [
     {
       text: { type: String, required: true },
