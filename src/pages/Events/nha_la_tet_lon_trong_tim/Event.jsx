@@ -802,9 +802,9 @@ const handleJoinChallenge = () => {
                           xs:w-full xs:items-center xs:text-center">
                             {/* Thông tin ảnh */}
                             <div className="lg:w-[400px] xs:w-3/4">
-                              <h3 className="xs:hidden lg:block text-[#b42b23] lg:text-3xl xs:text-2xl font-bold lg:text-left xs:text-left lg:mb-4 line-clamp-2 overflow-hidden">
-                                {featuredPhotos[currentPhotoIndex]?.title}
-                              </h3>
+                            <h3 className="truncate-title xs:hidden lg:block text-[#b42b23] lg:text-3xl xs:text-2xl font-bold lg:text-left xs:text-left lg:mb-4">
+                              {featuredPhotos[currentPhotoIndex]?.title}
+                            </h3>
                               <p className="xs:hidden lg:block italic text-[#401011] lg:text-xl xs:text-md font-semibold mt-2 lg:text-left xs:text-left xs:mb-4 lg:mb-8">
                                 {featuredPhotos[currentPhotoIndex]?.uploaderName}
                               </p>
@@ -813,7 +813,8 @@ const handleJoinChallenge = () => {
                               </p>
 
                               {/* Mô tả */}
-                              <div className="w-full xs:font-semibold lg:text-xl bg-[#E3E3E3] p-2 rounded-xl leading-relaxed text-gray-600 lg:text-left xs:text-left xs:text-justify lg:mb-8 line-clamp-7 overflow-hidden">
+                              <div className="w-full xs:font-semibold lg:text-xl bg-[#E3E3E3] p-2 rounded-xl leading-relaxed text-gray-600 lg:text-left xs:text-left xs:text-justify lg:mb-8 
+                                truncate-text">
                                 <p>{featuredPhotos[currentPhotoIndex]?.message}</p>
                               </div>
 

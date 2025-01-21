@@ -16,3 +16,34 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.truncate-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Giới hạn tối đa 2 dòng */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 2em; /* Điều chỉnh chiều cao dòng */
+  max-height: calc(1.2em * 2); /* Giữ tổng chiều cao đúng 2 dòng */
+  white-space: normal;
+  word-break: break-word; /* Đảm bảo chữ không bị tràn */
+}
+
+.truncate-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 6; /* Giới hạn tối đa 5 dòng */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.6rem; /* Đảm bảo chiều cao dòng nhất quán */
+  max-height: calc(1.6rem * 6); /* Giữ tổng chiều cao đúng 5 dòng */
+  white-space: normal;
+}
+
+.truncate-text::after {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(227, 227, 227, 1)); /* Hiệu ứng mờ */
+  padding-left: 5px;
+}
