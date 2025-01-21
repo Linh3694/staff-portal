@@ -11,6 +11,29 @@ exports.getAllEvents = async (req, res) => {
   }
 };
 
+exports.getEvents = async (req, res) => {
+  try {
+    const { slug } = req.query;
+
+    if (slug) {
+      const foundEvent = await Event.findOne({ slug });
+
+      if (!foundEvent) {
+        return res.status(404).json({ message: "Không tìm thấy sự kiện!" });
+      }
+
+      return res.status(200).json(foundEvent); // ✅ Trả về 1 object nếu có slug
+    }
+
+    // Nếu không có slug => Trả về tất cả sự kiện
+    const events = await Event.find();
+    res.status(200).json(events);
+  } catch (error) {
+    console.error("Lỗi khi lấy sự kiện:", error);
+    res.status(500).json({ message: "Lỗi máy chủ khi lấy danh sách sự kiện!" });
+  }
+};
+
 // Lấy chi tiết một sự kiện theo ID
 exports.getEventById = async (req, res) => {
   try {

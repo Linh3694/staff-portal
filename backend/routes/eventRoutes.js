@@ -4,6 +4,7 @@ const uploadEvent = require("../middleware/uploadEvent"); // Middleware dành ch
 const eventController = require("../controllers/eventController");
 
 router.get("/", eventController.getAllEvents);
+router.get("/", eventController.getEvents);
 router.get("/:id", eventController.getEventById);
 router.post("/", uploadEvent.single("image"), eventController.createEvent); // Sử dụng middleware uploadEvent
 router.put("/:id", uploadEvent.single("image"), eventController.updateEvent); // Sử dụng middleware uploadEvent

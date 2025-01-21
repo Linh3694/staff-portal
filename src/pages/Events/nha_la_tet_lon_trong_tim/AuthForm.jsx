@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import i18n from "i18next";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { API_URL } from "../../../config"; // import từ file config
 
@@ -17,6 +17,7 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
   const [correctName, setCorrectName] = useState("");
   const [language, setLanguage] = useState("vi");
   const navigate = useNavigate();
+  const location = useLocation(); // Lấy thông tin state { from: ... }
   const [backgroundImage, setBackgroundImage] = useState("/theme.png");
 
   
@@ -85,6 +86,10 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
       localStorage.setItem("eventAuth", "true");
       setIsEventAuthenticated(true);
       navigate("/event");
+      const from = location.state?.from?.pathname + location.state?.from?.search || "/event";
+
+      navigate(from, { replace: true });
+
     } catch (error) {
       console.error("Lỗi xác thực tên:", error.message);
       toast.error(t("toast_name_verification_error"));

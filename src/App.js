@@ -1,5 +1,5 @@
 import {React, useEffect, useState} from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import { toast, ToastContainer } from "react-toastify";
@@ -14,11 +14,26 @@ import EventManagement from "./pages/Events/nha_la_tet_lon_trong_tim/EventManage
 import "./i18n";
 
 
-
+function RequireEventAuth() {
+  const location = useLocation();   // Lấy URL đang truy cập
+  return (
+    <Navigate
+      to="/auth"
+      replace
+      state={{ from: location }}   // Gửi location này sang AuthForm
+    />
+  );
+}
 
 function App() {
   const isAuthenticated = !!localStorage.getItem("authToken"); // Kiểm tra trạng thái đăng nhập
   const [isEventAuthenticated, setIsEventAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+
+useEffect(() => {
+  const role = localStorage.getItem("role"); // Lấy role từ localStorage
+  setUserRole(role);
+}, []);
 
   useEffect(() => {
     const eventAuth = localStorage.getItem("eventAuth") === "true";
@@ -48,7 +63,13 @@ function App() {
           {/* Trang Dashboard (yêu cầu đăng nhập) */}
           <Route
             path="/dashboard"
-            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+            element={
+              isAuthenticated && ["admin", "superadmin", "technical"].includes(userRole) ? (
+                <Dashboard />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
           />
 
           {/* Trang Ticket (yêu cầu đăng nhập) */}
@@ -76,7 +97,15 @@ function App() {
           />
 
           {/* Trang chi tiết Event */}
-          <Route path="/event/:slug" element={<DetailEvent />} />
+          <Route
+            path="/event/:slug"
+            element={
+              isEventAuthenticated
+                ? <DetailEvent />
+                : // chuyển hướng kèm state là { from: currentLocation }
+                  <RequireEventAuth />
+            }
+          />
 
           <Route path="/event-management" element={isEventAuthenticated ? <EventManagement /> : <Navigate to="/auth" />} /> {/* ✅ Route mới */}
 

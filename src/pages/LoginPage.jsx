@@ -83,19 +83,28 @@ import { API_URL, UPLOAD_URL } from "../config"; // import từ file config
       });
   
       const { token, user } = response.data;
-  
+      
+      console.log("Role ông này là",user.role)
       if (!token) {
         console.error("Không tìm thấy token trong response.");
         return;
       }
-  
+
+      if (!["admin", "superadmin", "technical"].includes(user.role)) {
+        console.error("Sai role không vào được");
+        toast.error("Bạn không phải IT không được vào");
+        return;
+      }
+
       console.log("Đăng nhập thành công:", user);
       localStorage.setItem("authToken", token);
       localStorage.setItem("role", user.role);
       localStorage.setItem("rememberedEmail", rememberMe ? formData.email : "");
       localStorage.setItem("currentUser", JSON.stringify(user)); // Lưu toàn bộ thông tin user
-  
+      console.log("Đăng nhập thành công, điều hướng đến dashboard...");
+
       navigate("/dashboard");
+
     } catch (error) {
       console.error("Lỗi đăng nhập:", error.response?.data?.message || error.message);
   

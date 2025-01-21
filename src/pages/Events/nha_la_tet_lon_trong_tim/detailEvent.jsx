@@ -9,13 +9,15 @@ import { FiLogOut, FiArrowLeft, FiUser } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import Dropdown from "../../../components/function/dropdown"; // HOẶC đường dẫn tương ứng
 import PhotoApprovalModal from "./PhotoApprovalModal"
-
+import { useSearchParams } from "react-router-dom";
 
 
 const DetailEvent = () => {
   const { t, i18n } = useTranslation();
   const { state } = useLocation(); // Lấy dữ liệu từ navigate
   const { slug } = useParams(); // Lấy slug từ URL
+  const [searchParams, setSearchParams] = useSearchParams();
+  const photoIdFromURL = searchParams.get("photoId"); // Lấy từ query param
   const [event, setEvent] = useState(state?.event || null); // Ưu tiên lấy từ state nếu có
   const [photos, setPhotos] = useState([]); // Ảnh dự thi
   const [language, setLanguage] = useState("vi");
@@ -86,16 +88,21 @@ const DetailEvent = () => {
     if (!event) {
       const fetchEvent = async () => {
         try {
-          const response = await fetch(`${API_URL}/events?slug=${slug}`);
-          if (!response.ok) throw new Error("Không thể tải thông tin sự kiện.");
-          const data = await response.json();
-          setEvent(data);
+          const res = await fetch(`${API_URL}/events?slug=${slug}`);
+          if (!res.ok) throw new Error("Không thể tải thông tin sự kiện.");
+          const data = await res.json();
+          
+          // Nếu API trả về mảng => lấy phần tử đầu
+          if (Array.isArray(data) && data.length > 0) {
+            setEvent(data[0]); 
+          } else {
+            setEvent(null); // không tìm thấy => hiển thị "Không có sự kiện"
+          }
         } catch (error) {
           console.error(error);
           toast.error("Không thể tải thông tin thử thách.");
         }
       };
-
       fetchEvent();
     }
   }, [slug, event]);
@@ -197,16 +204,42 @@ const DetailEvent = () => {
     }
   }, [photos, sortOrder, searchQuery, event]);
 
+  useEffect(() => {
+    if (photoIdFromURL) {
+      // Tìm (hoặc fetch) photo tương ứng
+      const foundPhoto = photos.find((p) => p._id === photoIdFromURL);
+      if (foundPhoto) {
+        setSelectedPhoto(foundPhoto);
+        setPhotoReviewOpen(true);
+      } else {
+        // Trường hợp photo chưa sẵn trong state => fetch 1 ảnh
+        fetch(`${API_URL}/photos/${photoIdFromURL}`)
+          .then((res) => res.json())
+          .then((photo) => {
+            setSelectedPhoto(photo);
+            setPhotoReviewOpen(true);
+          })
+          .catch((err) => {
+            console.error("Không thể load ảnh:", err);
+            toast.error("Không thể tải ảnh!");
+          });
+      }
+    } else {
+      // Không có photoId => đóng modal
+      setSelectedPhoto(null);
+      setPhotoReviewOpen(false);
+    }
+  }, [photoIdFromURL, photos]);
+
 
   const openPhotoReview = (photo) => {
-    setSelectedPhoto(photo);
-    setPhotoReviewOpen(true);
-    console.log(photo); // Xác minh `photo._id`
+    setSearchParams({ photoId: photo._id });
+
   };
 
   const closePhotoReview = () => {
-    setSelectedPhoto(null);
-    setPhotoReviewOpen(false);
+    searchParams.delete("photoId");
+    setSearchParams(searchParams);
   };
 
   const handleVote = async (photoId) => {
@@ -591,10 +624,11 @@ const DetailEvent = () => {
                       onClick={() => openPhotoReview(photo)}
                     >
                       {/* Ảnh dự thi */}
-                      <img 
-                        src={`${BASE_URL}${photo.url}`} 
-                        alt={photo.title || "Không tiêu đề"} 
-                        className="w-full h-full object-cover"
+                      <img
+                        key={photo._id}
+                        src={BASE_URL + photo.url}
+                        alt={photo.title}
+                        onClick={() => openPhotoReview(photo)}
                       />
                       
                       {/* Hiển thị số tim góc trên bên phải */}
@@ -653,6 +687,7 @@ const DetailEvent = () => {
           {isPhotoReviewOpen && selectedPhoto && (
             <PhotoReview
               photoId={selectedPhoto._id}
+              photoData={selectedPhoto}
               onClose={closePhotoReview}
               isOpen={openPhotoReview}
               user={user}
