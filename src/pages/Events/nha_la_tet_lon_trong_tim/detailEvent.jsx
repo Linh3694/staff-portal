@@ -349,7 +349,7 @@ const DetailEvent = () => {
           {/* Nút Quay về */}
           <div className="mt-8 mb-3 lg:ml-0 xs:ml-4 ">
             <button
-              onClick={() => navigate("event_tet2025")}
+              onClick={() => navigate("/event_tet2025")}
               className="text-[#fcf5e3] text-lg font-semibold flex items-center gap-2 cursor-pointer hover:text-[#ffcc00] transition"
             >
               <span><FiArrowLeft /></span> <span className="lg:text-lg xs:text-sm">{t("back_to_menu")}</span>

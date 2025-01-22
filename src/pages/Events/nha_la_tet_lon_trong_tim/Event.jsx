@@ -773,7 +773,7 @@ const handleJoinChallenge = () => {
 
                       {/* Nội dung bên phải ảnh */}
                       <div className="flex flex-col w-full 
-                          lg:w-[400px] lg:h-[540px] 
+                          lg:w-[500px] lg:h-[540px] 
                           xs:w-full xs:items-center xs:text-center">
                             {/* Thông tin ảnh */}
                             <div className="lg:w-[400px] xs:w-3/4">
@@ -788,7 +788,7 @@ const handleJoinChallenge = () => {
                               </p>
 
                               {/* Mô tả */}
-                              <div className="w-full xs:font-semibold lg:text-xl bg-[#ffffff] bg-opacity-50 p-2 rounded-xl leading-relaxed text-gray-600 lg:text-left xs:text-left xs:text-justify lg:mb-8 
+                              <div className="w-full xs:font-semibold lg:text-xl bg-[#ffffff] bg-opacity-50 p-2 rounded-xl leading-relaxed text-gray-600 lg:text-justify  xs:text-justify lg:mb-8 
                                 truncate-text">
                                 <p>{featuredPhotos[currentPhotoIndex]?.message}</p>
                               </div>
