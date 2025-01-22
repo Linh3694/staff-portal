@@ -86,7 +86,7 @@ useEffect(() => {
 
           {/* Trang Event (yêu cầu xác thực riêng) */}
           <Route
-            path="/event"
+            path="/event_tet2025"
             element={
               isEventAuthenticated ? (
                 <Event isEventAuthenticated={isEventAuthenticated} />

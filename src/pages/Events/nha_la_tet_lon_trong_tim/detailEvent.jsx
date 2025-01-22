@@ -270,9 +270,11 @@ const DetailEvent = () => {
           </div>
 
           {/* Khu vực User + Switch language */}
-          <div className="items-center flex gap-4">
-          <span className="xs:hidden lg:flex xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")}<span></span> <span className="xs:text-sm lg:text-base text-[#401011] font-bold">{user?.fullName || "Ẩn danh"}</span>
-          </span>
+          <div className="items-center flex gap-2">
+          <span className="xs:hidden lg:flex xs:text-sm lg:text-base lg:text-left xs:text-right" >{t("wellcome_header")} 
+          </span><span className="xs:hidden lg:flex xs:text-sm lg:text-base text-[#401011] font-bold">
+              {user?.fullName || "Ẩn danh"}
+            </span>
           <span className="lg:hidden xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")}<br/> <span className="xs:text-sm lg:text-base text-[#401011] font-bold">
               {user?.fullName || "Ẩn danh"}
             </span>
