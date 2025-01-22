@@ -5,7 +5,7 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
-      wellcome_header: "Welcome Wiser",
+      wellcome_header: "Welcome WISer, ",
       back_to_menu:"Back to Homepage",
       title:"Title",
       content:"Content",
@@ -44,7 +44,7 @@ const resources = {
       today_challanges_challange:"Challange",
       today_challanges_today_challanges: "Join the Challenge",
       prizes_banner: "Prize Structure",
-      prizes_des:"4 prizes for students of all grade levels and staff (Awarded to the most liked photo from each school).",
+      prizes_des:"06 prizes for the photos with the most hearts in each challenge.",
       prizes_des_02:"",
       featured_submissions: "Featured Submissions",
       featured_submissions_all: "All",
@@ -64,7 +64,7 @@ const resources = {
   },
   vi: {
     translation: {
-      wellcome_header: "Chào mừng WISer",
+      wellcome_header: "Chào mừng WISer, ",
       back_to_menu:"Quay lại trang chủ",
       language: "Ngôn ngữ",
       title:"Tiêu đề",
@@ -103,8 +103,8 @@ const resources = {
       today_challanges_challange:"Thử thách",
       today_challanges_today_challanges: "Tham gia thử thách",
       prizes_banner: "Cơ cấu giải thưởng",
-      prizes_des:"4 giải dành cho HS các cấp và CBGV (Dành cho bức ảnh được thả tim nhiều nhất của từng trường).",
-      prizes_des_02:"Chưa xác định",
+      prizes_des:"06 giải dành cho bức ảnh được thả tim nhiều nhất trong từng thử thách.",
+      prizes_des_02:"",
       featured_submissions: "Bài thi nổi bật",
       featured_submissions_all: "Tất cả",
       featured_submissions_challange:"Thử thách",

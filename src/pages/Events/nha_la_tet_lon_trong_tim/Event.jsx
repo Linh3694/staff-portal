@@ -342,12 +342,12 @@ const handleJoinChallenge = () => {
           </div>
 
           {/* Khu vực User + Switch language */}
-          <div className="items-center flex gap-4">
-          <span className="xs:hidden lg:flex xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")}, <span className="xs:text-sm lg:text-base text-[#401011] font-bold">
+          <div className="items-center flex gap-2">
+          <span className="xs:hidden lg:flex xs:text-sm lg:text-base lg:text-left xs:text-right" >{t("wellcome_header")} 
+          </span><span className="xs:hidden lg:flex xs:text-sm lg:text-base text-[#401011] font-bold">
               {user?.fullName || "Ẩn danh"}
             </span>
-          </span>
-          <span className="lg:hidden xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")},<br/> <span className="xs:text-sm lg:text-base text-[#401011] font-bold">
+          <span className="lg:hidden xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")}<br/> <span className="xs:text-sm lg:text-base text-[#401011] font-bold">
               {user?.fullName || "Ẩn danh"}
             </span>
           </span>
@@ -371,12 +371,6 @@ const handleJoinChallenge = () => {
                       className="text-sm font-medium text-[#002147] hover:bg-gray-100 px-3 py-2 text-left"
                     >
                       Quản lý sự kiện
-                    </button>
-                    <button
-                      onClick={handleOpenApprove}
-                      className="text-sm font-medium text-[#002147] hover:bg-gray-100 px-3 py-2 text-left"
-                    >
-                      Phê duyệt
                     </button>
                     </>
                     
@@ -417,40 +411,42 @@ const handleJoinChallenge = () => {
            {/* Desktop */}
             <section className="lg:flex xs:hidden"
             style={{
-              backgroundImage: `url('/tet2025/image/welcome-web.png')`, // Không cần process.env.PUBLIC_URL
+              backgroundImage: `url('/tet2025/image/welcome-blank.png')`, // Không cần process.env.PUBLIC_URL
               backgroundSize: "cover", // ✅ Ảnh không bị zoom to
               backgroundPosition: "center", // ✅ Căn giữa
               backgroundRepeat: "no-repeat",
               width: "100%", // ✅ Giữ full width
               margin: "0 auto", // ✅ Căn giữa khi có max-width
             }}>
-            <div className="w-full h-[534px] border-50">
-              <div className="absolute flex-col space-y-4 text-white font-semibold 
-              lg:left-[22%] lg:top-1/4 lg:text-base
-              xs:left-10 xs:top-32 xs:text-sm xs:mx-auto xs:text-justify xs:h-full">
-              <div className="
-              lg:w-[476px]
-              xs:w-[320px]">
-              <p>{t("welcome_banner_01")}</p>
-              </div>
-              <div className="
-              lg:w-[476px]
-              xs:w-[320px]">
-              <p>{t("welcome_banner_02")}</p>
-              </div>
-              <div className="
-              lg:w-[476px]
-              xs:w-[320px]">
-              <p>{t("welcome_banner_03")}</p>
-              </div>
-              </div>
-            </div>       
+                <div className="flex flex-row mx-auto w-[1390px] h-full items-center justify-center ">
+                  <div className="flex flex-col space-y-4 font-semibold text-white text-justify text-md ml-32">
+                  <div className="lg:w-[476px]">
+                  <p>{t("welcome_banner_01")}</p>
+                  </div>
+                  <div className="lg:w-[476px]">
+                  <p>{t("welcome_banner_02")}</p>
+                  </div>
+                  <div className="lg:w-[476px]">
+                  <p>{t("welcome_banner_03")}</p>
+                  </div>
+                  </div>
+                  <div className="flex h-[400px max-h-[534px] lg:h-[534px]"
+                  style={{
+                  backgroundImage: `url('/tet2025/image/dragon.png')`, // Không cần process.env.PUBLIC_URL
+                  backgroundSize: "cover", // ✅ Ảnh không bị zoom to
+                  backgroundPosition: "center", // ✅ Căn giữa
+                  backgroundRepeat: "no-repeat",
+                  width: "100%", // ✅ Giữ full width
+                  margin: "0 auto", // ✅ Căn giữa khi có max-width
+                  }}>
+                  </div> 
+                </div>  
             </section>
 
             {/* Mobile */}
             <section className="lg:hidden"
             style={{
-              backgroundImage: `url('/tet2025/image/welcome-mobile.png')`, // Không cần process.env.PUBLIC_URL
+              backgroundImage: `url('/tet2025/image/welcome-blank.png')`, // Không cần process.env.PUBLIC_URL
               backgroundSize: "cover", // ✅ Ảnh không bị zoom to
               backgroundPosition: "center", // ✅ Căn giữa
               backgroundRepeat: "no-repeat",
@@ -492,36 +488,17 @@ const handleJoinChallenge = () => {
                     <section className="
                     lg:max-w-6xl lg:mx-auto lg:px-4
                     xs:full xs:mx-auto xs:px-4 ">
-                      <h2 className="text-3xl font-bold mb-6 ml-4">{t("today_challenges")}</h2>
+                      <h2 className="text-3xl font-bold mb-6">{t("today_challenges")}</h2>
                       <div className="flex gap-6
                       lg:flex-row lg:justify-center lg:items-center
                       xs:flex-col-reverse xs:items-start">
                       {/* Ảnh sự kiện */}
-                          <div className="xs:hidden
-                          lg:w-[550px] lg:h-[405px] lg:grid lg:grid-cols-2 lg:gap-2 mb-4">
-                              <div className="w-full h-[405px]">
-                                  <img
-                                     src={`/tet2025/image/events/${eventSlug || "default"}/1.png`} // Hiển thị event.image
-                                     alt={currentEvent?.title || "No event image"}
-                                     className="w-[270px] h-[405px] object-cover rounded-lg"
-                                  />
-                              </div>
-                              <div className="w-full h-[405px] flex flex-col  gap-2">
-                                  <div>
-                                    <img
-                                      src={`/tet2025/image/events/${eventSlug || "default"}/2.png`} // Hiển thị event.image
-                                      alt={currentEvent?.title || "No event image"}
-                                      className="w-full h-[270px] object-cover rounded-lg"
-                                    />
-                                  </div>
-                                  <div>
-                                    <img
-                                      src={`/tet2025/image/events/${eventSlug || "default"}/3.png`} // Hiển thị event.image
-                                      alt={currentEvent?.title || "No event image"}
-                                      className="w-full h-[125px] object-cover rounded-lg"
-                                    />
-                                  </div>
-                              </div>
+                          <div className="xs:hidden lg:block w-[550px] h-[405px] flex mb-4">
+                              <img
+                                  src={`/tet2025/image/events/${eventSlug || "default"}/1.png`} // Hiển thị event.image
+                                  alt={currentEvent?.title || "No event image"}
+                                  className="w-full h-full object-cover rounded-lg"
+                              /> 
                           </div>
                       {/* Thông tin sự kiện */}
                           <div className="
@@ -583,7 +560,7 @@ const handleJoinChallenge = () => {
                                   </div>
                                 <div className="lg:w-[285px] xs:w-full h-[50px] mt-4">
                                   <button 
-                                    className="h-full w-full bg-[#E55526] text-white text-xl font-bold rounded-full hover:bg-[#E55526] transition"
+                                    className="h-full w-full bg-[#B42B23] text-white text-xl font-bold rounded-full hover:bg-[#E55526] transition"
                                     onClick={handleJoinChallenge}>
                                     {t("today_challanges_today_challanges")}
                                   </button>
@@ -683,9 +660,7 @@ const handleJoinChallenge = () => {
                 </div>
 
                 {/* Điều khoản giải thưởng */}
-                <div className="mt-10 font-bold flex flex-col items-center space-y-2 w-full px-10">
-                {t("prizes_des_02")}
-                </div>
+                
               </div>
             </section>    
 
@@ -752,7 +727,7 @@ const handleJoinChallenge = () => {
                       {/* Nút chuyển ảnh trái */}
                       <button 
                         onClick={prevPhoto} 
-                        className={`xs:hidden lg:block p-3 rounded-full ${currentPhotoIndex === 0 ? "bg-gray-300 cursor-not-allowed opacity-50" : "bg-gray-300 hover:bg-gray-400"}`}
+                        className={`xs:hidden lg:block p-3 rounded-full text-[#757575] ${currentPhotoIndex === 0 ? "bg-gray-300 cursor-not-allowed opacity-50" : "bg-gray-300 hover:bg-gray-400"}`}
                         disabled={currentPhotoIndex === 0}
                       >
                         <FaArrowLeft size={20} />
@@ -763,7 +738,7 @@ const handleJoinChallenge = () => {
                         {/* Nút Prev */}
                         <button 
                           onClick={prevPhoto} 
-                          className="lg:hidden xs:block p-3 rounded-full bg-gray-300 hover:bg-gray-400"
+                          className="lg:hidden xs:block p-3 rounded-full text-[#757575] bg-[#d2d2d2] bg-opacity-40 hover:bg-gray-400"
                         >
                           <FaArrowLeft size={20} />
                         </button>
@@ -790,7 +765,7 @@ const handleJoinChallenge = () => {
                         {/* Nút Next */}
                         <button 
                           onClick={nextPhoto} 
-                          className="lg:hidden xs:block p-3 rounded-full bg-gray-300 hover:bg-gray-400"
+                          className="lg:hidden xs:block p-3 text-[#757575] rounded-full bg-gray-300 hover:bg-gray-400"
                         >
                           <FaArrowRight size={20} />
                         </button>
@@ -813,7 +788,7 @@ const handleJoinChallenge = () => {
                               </p>
 
                               {/* Mô tả */}
-                              <div className="w-full xs:font-semibold lg:text-xl bg-[#E3E3E3] p-2 rounded-xl leading-relaxed text-gray-600 lg:text-left xs:text-left xs:text-justify lg:mb-8 
+                              <div className="w-full xs:font-semibold lg:text-xl bg-[#ffffff] bg-opacity-50 p-2 rounded-xl leading-relaxed text-gray-600 lg:text-left xs:text-left xs:text-justify lg:mb-8 
                                 truncate-text">
                                 <p>{featuredPhotos[currentPhotoIndex]?.message}</p>
                               </div>
@@ -834,7 +809,7 @@ const handleJoinChallenge = () => {
                       {/* Nút chuyển ảnh phải */}
                         <button 
                           onClick={nextPhoto} 
-                          className={`xs:hidden lg:block p-3 rounded-full ${currentPhotoIndex === featuredPhotos.length - 1 ? "bg-gray-300 cursor-not-allowed opacity-50" : "bg-gray-300 hover:bg-gray-400"}`}
+                          className={`xs:hidden lg:block p-3 rounded-full text-[#757575] ${currentPhotoIndex === featuredPhotos.length - 1 ? "bg-gray-300 cursor-not-allowed opacity-50" : "bg-[#d2d2d2] bg-opacity-40"}`}
                           disabled={currentPhotoIndex === featuredPhotos.length - 1}
                         >
                           <FaArrowRight size={20} />
@@ -904,8 +879,8 @@ const handleJoinChallenge = () => {
                         />
                         
                         {/* Hiển thị số tim góc trên bên phải */}
-                        <div className="absolute top-2 right-2 bg-gray-100 bg-opacity-50 text-white text-sm font-bold px-2 py-1 rounded-full">
-                          ❤️ {photo.votes}
+                        <div className="absolute flex-row top-2 right-2 bg-white bg-opacity-60 text-[#B42B23] text-md font-semibold px-3 py-1 rounded-full">
+                          <div className="flex flex-row gap-1 items-center justify-center font-bold"><FiHeart size={20} /> <span>{photo.votes}</span></div>
                         </div>
 
                         {/* Tên ảnh góc dưới bên trái */}

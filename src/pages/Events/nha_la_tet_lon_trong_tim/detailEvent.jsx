@@ -40,6 +40,10 @@ const DetailEvent = () => {
     navigate("/auth");
   };
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]); // Mỗi khi slug thay đổi, cuộn lên đầu trang
+
   // Mở modal phê duyệt
   const handleOpenApprove = () => {
     // Chỉ cho admin
@@ -242,35 +246,6 @@ const DetailEvent = () => {
     setSearchParams(searchParams);
   };
 
-  const handleVote = async (photoId) => {
-    try {
-      const response = await fetch(`${API_URL}/photos/${photoId}/vote`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: user?._id }),
-      });
-  
-      if (response.ok) {
-        toast.success("Đã thả tim!");
-        // Cập nhật danh sách ảnh
-        setPhotos((prevPhotos) =>
-          prevPhotos.map((photo) =>
-            photo._id === photoId
-              ? { ...photo, isVoted: true, votes: photo.votes + 1 }
-              : photo
-          )
-        );
-      } else {
-        toast.error("Bạn đã thả tim ảnh này trước đó!");
-      }
-    } catch (error) {
-      console.error("Error voting photo:", error);
-      toast.error("Lỗi khi thả tim!");
-    }
-  };
-
 
   if (!event) return <p>Đang tải thông tin sự kiện...</p>;
 
@@ -296,11 +271,9 @@ const DetailEvent = () => {
 
           {/* Khu vực User + Switch language */}
           <div className="items-center flex gap-4">
-          <span className="xs:hidden lg:flex xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")}, <span className="xs:text-sm lg:text-base text-[#401011] font-bold">
-              {user?.fullName || "Ẩn danh"}
-            </span>
+          <span className="xs:hidden lg:flex xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")}<span></span> <span className="xs:text-sm lg:text-base text-[#401011] font-bold">{user?.fullName || "Ẩn danh"}</span>
           </span>
-          <span className="lg:hidden xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")},<br/> <span className="xs:text-sm lg:text-base text-[#401011] font-bold">
+          <span className="lg:hidden xs:text-sm lg:text-base lg:text-left xs:text-right">{t("wellcome_header")}<br/> <span className="xs:text-sm lg:text-base text-[#401011] font-bold">
               {user?.fullName || "Ẩn danh"}
             </span>
           </span>
@@ -324,12 +297,6 @@ const DetailEvent = () => {
                       className="text-sm font-medium text-[#002147] hover:bg-gray-100 px-3 py-2 text-left"
                     >
                       Quản lý sự kiện
-                    </button>
-                    <button
-                      onClick={handleOpenApprove}
-                      className="text-sm font-medium text-[#002147] hover:bg-gray-100 px-3 py-2 text-left"
-                    >
-                      Phê duyệt
                     </button>
                     </>
                   )}
@@ -408,7 +375,7 @@ const DetailEvent = () => {
                     <div
                       key={photo._id}
                       className={`relative flex border-2 border-[#fcf5e3] overflow-hidden overflow-x-auto whitespace-nowrap rounded-2xl shadow-xl transition-all duration-300 will-change-transform ${
-                        hoveredIndex === index ? "w-[340px] h-[405px]" : "w-[340px] h-[405px]"
+                        hoveredIndex === index ? "w-[550px] h-[405px]" : "w-[340px] h-[405px]"
                       }`}
                       onMouseEnter={() => setHoveredIndex(index)}
                       onMouseLeave={() => setHoveredIndex(null)}
@@ -473,12 +440,12 @@ const DetailEvent = () => {
             <div className="lg:w-[1100px] xs:w-full mx-auto lg:grid lg:grid-cols-2 lg:gap-6 xs:flex xs:flex-col lg:mt-8 mb-8">
               {/* Cột trái - Nội dung thử thách */}
               <div className="lg:w-[650px] xs:w-full p-4 ">
-                <h2 className="lg:text-2xl xs:text-xl text-[#fcf5e3] font-bold mb-4">{t("today_challanges_challange")} {event.number}</h2>
+                <h2 className="lg:text-2xl xs:text-xl text-[#FBC04C] font-bold mb-4">{t("today_challanges_challange")} {event.number}</h2>
                 <p className="lg:text-xl xs:text-lg text-[#fcf5e3] mb-2">{eventDescription || "Không có mô tả"}</p>
 
                 {/* Người tham gia */}
                 <div className="mt-4">
-                  <h3 className="text-lg text-[#fcf5e3] font-bold mb-1">{t("Participants")}</h3>
+                  <h3 className="text-lg text-[#FBC04C] font-bold mb-1">{t("Participants")}</h3>
                   <p className="text-lg text-[#fcf5e3] rounded">
                     {photos.length > 0
                       ? `${photos[0]?.uploaderName || "Ẩn danh"} ${t("Participants_and")} ${
@@ -490,12 +457,11 @@ const DetailEvent = () => {
               </div>
 
               {/* Cột phải - Thông tin chính */}
-              <div className="lg:w-[400px] xs:max-w-[500px] xs:w-[375px] lg:ml-28 xs:mx-auto lg:mx-0   bg-[#fcf5e3] border p-6 rounded-lg shadow-md flex flex-col justify-between">
+              <div className="lg:w-[400px] xs:max-w-[500px] xs:w-[375px] lg:ml-28 xs:mx-auto lg:mx-0  bg-white border p-6 rounded-lg shadow-md flex flex-col justify-between">
                 <h2 className="text-xl font-bold mb-4">{t("Info")}</h2>
 
                 {/* Hạn nộp bài */}
                 <div className="flex items-center space-x-4">
-
                   <div className="w-16 h-16 flex flex-col items-center justify-center bg-white border border-gray-300 rounded-lg text-[#5e191a] font-bold">
                     <span className="text-xs uppercase text-[#b42b23]">
                       {event.endDate ? new Date(event.endDate).toLocaleString('en-US', { month: 'short' }).toUpperCase() : "?"}
@@ -528,14 +494,14 @@ const DetailEvent = () => {
                 <div className="flex justify-center justify-items-center">          
                 {/* Nút tham gia */}
                 <button
-                  className="w-full bg-[#5e191a] font-bold text-base text-[#fcf5e3] py-2 rounded-full hover:bg-red-700 transition mt-4"
+                  className="w-full bg-[#E55526] font-bold text-base text-[#fcf5e3] py-2 rounded-full hover:bg-red-700 transition mt-4"
                   onClick={() => setModalOpen(true)}
                 >
                   {t("today_challanges_today_challanges")}
                 </button>
                 </div>
 
-                <p className="text-sm  text-gray-500 mt-2 text-center">{t("Info_number_submission_term")}</p>
+                <p className="text-sm  text-gray-500 mt-2 text-center underline">{t("Info_number_submission_term")}</p>
 
                 {/* Modal */}
                 <UploadModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} eventId={event._id} user={user} />
@@ -673,7 +639,7 @@ const DetailEvent = () => {
             </div>       
           </section>
             {/* ------------------------Footer------------------------------ */}
-            <section className="section"
+            <section 
             style={{
               backgroundImage: `url('/Footer.png')`, // Không cần process.env.PUBLIC_URL
               backgroundSize: "cover", // ✅ Ảnh không bị zoom to
