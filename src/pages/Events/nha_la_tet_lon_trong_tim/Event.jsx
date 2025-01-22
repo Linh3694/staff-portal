@@ -641,20 +641,31 @@ const handleJoinChallenge = () => {
                 {t("prizes_des")}
                 </p>
 
-                {/* Danh sách giải thưởng */}
-                <div className="grid lg:grid-cols-4 xs:grid-cols-2 lg:gap-2 xs:gap-2 justify-center">
+                {/* Danh sách giải thưởng */} 
+                <div className="grid lg:grid-cols-3 xs:grid-cols-2 lg:gap-10 xs:gap-2 justify-center">
                   {[
-                    { title: "Hương vị Tết", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/huong-vi-tet.png" },
-                    { title: "Vẻ đẹp Tết Việt", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/ve-dep-tet-viet.png" },
-                    { title: "Khoảnh khắc Xuân", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/khoanh-khac-tet.png" },
-                    { title: "Giai điệu Tết", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/giai-dieu-tet.png" },
+                    { title: "Nhà Sạch - Xuân Xanh", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/1.png" },
+                    { title: "Giao Thừa - Đoàn Viên", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/2.png" },
+                    { title: "Chúc Lành - Xuân Sang", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/3.png" },
+                    { title: "Hương Xuân - Vị Tết", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/4.png" },
+                    { title: "Khởi bút - Đón xuân", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/5.png" },
+                    { title: "Hương Tết - Dấu Xuân", prize: "01 Voucher Got it 500k", img: "/tet2025/image/prizes/6.png" },
                   ].map((award, index) => (
                     <div key={index} className="flex flex-col items-center">
                       {/* Hình ảnh giải thưởng */}
-                      <div className="w-[260px] h-[180px] rounded-full overflow-hidden">
-                        <img src={award.img} alt={award.title} className="w-full h-full object-contain mt-2" />
-                      </div>
-                      <p className="text-lg font-semibold text-white">{award.prize}</p>
+                      <div className="relative w-[180px] h-[180px] mb-4">
+                          {/* Vòng tròn ở phía sau */}
+                          <div className="absolute left-4 w-[140px] h-[140px] inset-0 rounded-full bg-white bg-opacity-70 z-0" />
+                          
+                          {/* Ảnh ở phía trên (z-10) */}
+                          <img
+                            src={award.img}
+                            alt={award.title}
+                            className="relative z-10 w-full h-full object-contain"
+                          />
+                        </div>
+                      <p className="text-xl font-bold text-white">{award.title}</p>
+                      <p className="text-lg  text-white">{award.prize}</p>
                     </div>
                   ))}
                 </div>
