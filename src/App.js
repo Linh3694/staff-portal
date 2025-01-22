@@ -98,7 +98,7 @@ useEffect(() => {
 
           {/* Trang chi tiết Event */}
           <Route
-            path="/event/:slug"
+            path="/event_tet2025/:slug"
             element={
               isEventAuthenticated
                 ? <DetailEvent />

@@ -85,8 +85,8 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
       console.log("Xác thực thành công!");
       localStorage.setItem("eventAuth", "true");
       setIsEventAuthenticated(true);
-      navigate("/event");
-      const from = location.state?.from?.pathname + location.state?.from?.search || "/event";
+      navigate("/event_tet2025");
+      const from = location.state?.from?.pathname + location.state?.from?.search || "/event_tet2025";
 
       navigate(from, { replace: true });
 

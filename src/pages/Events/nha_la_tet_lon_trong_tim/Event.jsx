@@ -314,7 +314,7 @@ const handleJoinChallenge = () => {
     return;
   }
   const slug = normalizeSlug(eventTitle);
-  navigate(`/event/${slug}`, { state: { event: currentEvent } });
+  navigate(`/event_tet2025/${slug}`, { state: { event: currentEvent } });
 };
 
 
