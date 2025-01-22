@@ -5,6 +5,8 @@ const Student = require("../models/Students");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { check, validationResult } = require("express-validator");
+const mongoose = require("mongoose");
+
 
 // Route đăng nhập
 router.post("/login",
@@ -74,7 +76,7 @@ router.post("/verify-id", async (req, res) => {
       return res.status(404).json({ message: "ID không hợp lệ!" });
     }
     // Lấy tên đầy đủ, avatar, jobTitle, và Klass (nếu có)
-    const userId = user._id
+    const userId = user._id ? user._id.toString() : user.studentCode || user.employeeCode;
     const fullName = user.fullname || user.name || "N/A";
     const avatarUrl = user.avatar || "https://via.placeholder.com/150";
     const jobTitle = user.jobTitle || "N/A";
@@ -122,34 +124,36 @@ router.post("/verify-name", async (req, res) => {
   }
 
   try {
-    console.log("Đang xác thực tên với dữ liệu:", { userId, fullName, selectedName });
-
-    // Tìm theo MongoDB `_id`
-    let user = await User.findById(userId);
-
-    // Nếu không tìm thấy, kiểm tra employeeCode/studentCode
+    console.log("🔍 Đang xác thực tên với dữ liệu:", { userId, fullName, selectedName });
+    console.log("📌 Kiểu dữ liệu userId:", typeof userId, " | Giá trị:", userId);
+    let user = null;
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      user = await User.findById(new mongoose.Types.ObjectId(userId));
+    }
+    
+    // Nếu không tìm thấy trong Users, tìm trong Students
     if (!user) {
-      user = await User.findOne({ employeeCode: userId });
+      user = await Student.findOne({ _id: userId }) || await Student.findOne({ studentCode: userId });
     }
     if (!user) {
-      user = await Student.findOne({ studentCode: userId });
-    }
-
-    if (!user) {
-      console.error("Không tìm thấy user với ID:", userId);
+      console.error("❌ Không tìm thấy user với ID:", userId);
       return res.status(400).json({ success: false, message: "ID không hợp lệ!" });
     }
+    console.log("✅ User tìm thấy:", user);
 
-    console.log("Tìm thấy user:", user);
+    console.log("✅ Tìm thấy user:", user.fullname);
 
-    // Kiểm tra tên có trùng khớp không
-    if (user.fullname !== fullName || fullName !== selectedName) {
+    const normalizedFullName = (user.fullname || user.name || "").trim().toLowerCase();
+    const normalizedFullNameInput = fullName.trim().toLowerCase();
+    const normalizedSelectedName = selectedName.trim().toLowerCase();
+
+    if (normalizedFullName !== normalizedFullNameInput || normalizedFullNameInput !== normalizedSelectedName) {
       return res.status(400).json({ success: false, message: "Tên không chính xác!" });
     }
 
     return res.status(200).json({ success: true, message: "Xác thực thành công!" });
   } catch (error) {
-    console.error("Lỗi xác thực tên:", error);
+    console.error("⚠️ Lỗi xác thực tên:", error);
     return res.status(500).json({ success: false, message: "Lỗi server!" });
   }
 });

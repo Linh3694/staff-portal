@@ -2,41 +2,18 @@ const mongoose = require("mongoose");
 
 const studentSchema = new mongoose.Schema(
   {
-    studentCode: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    name: {
-      type: String,
-      required: true,
-    },
-    email: {
-      type: String,
-    },
+    studentCode: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
+    email: { type: String },
+    gender: { type: String, enum: ["Nam", "Nữ", "Khác"] },  // Thêm giới tính
     klass: [
       {
-        year: {
-          type: Number,
-          required: true,
-        },
-        className: {
-          type: String,
-          required: true,
-        },
+        year: { type: Number, required: true },
+        className: { type: String, required: true },
       },
     ],
-    // family: {
-    //   type: mongoose.Schema.Types.ObjectId,
-    //   ref: "Family",
-    //   // Hoặc "String" tuỳ backend,
-    //   // Mục đích là liên kết tới 1 Gia đình (check 1 gia đình có nhiều con)
-    // },
-    birthYear: {
-      type: Number,
-      // Hoặc direct "age: Number", 
-      // hay "birthDate: Date" => tuỳ bạn
-    },
+    birthDate: { type: Date },  // Thay birthYear bằng birthDate đầy đủ
+    schoolYear: { type: String },  // Thêm School Year
   },
   { timestamps: true }
 );

@@ -117,37 +117,59 @@ exports.uploadExcel = async (req, res) => {
     const workbook = XLSX.readFile(filePath);
     const sheetName = workbook.SheetNames[0];
     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
+    
     for (const row of sheetData) {
-      const { studentCode, name, email, klass, birthYear } = row;
+      const studentCode = row["ID"];
+      const name = row["Student Name"];
+      const email = row["Email"];
+      const className = row[" Class"]?.trim(); // Loại bỏ dấu cách thừa
+      const schoolYear = row["School Year"];
+      const normalizeGender = (gender) => {
+        if (!gender) return "Khác"; // Nếu trống, mặc định là "Khác"
+        const genderMap = {
+          "Nam": "Nam",
+          "Nữ": "Nữ",
+          "Nữ": "Nữ", // Chuyển "Nữ" thành "Nữ"
+          "Khác": "Khác",
+          "Other": "Khác",
+          "Male": "Nam",
+          "Female": "Nữ"
+        };
+        return genderMap[gender.trim()] || "Khác"; // Nếu không khớp, mặc định là "Khác"
+      };
+      
+      // Trong vòng lặp đọc Excel, thay đổi đoạn này:
+      const gender = normalizeGender(row["Gender"]); // Chuẩn hóa giá trị gender
+      // Xử lý birthDate từ các cột _x001D_Day, Month, _x001D_Year
+      let birthDate = null;
+      if (row["_x001D_Day"] && row["Month"] && row["_x001D_Year"]) {
+        birthDate = new Date(`${row["_x001D_Year"]}-${row["Month"]}-${row["_x001D_Day"]}`);
+      }
 
-      // Parse `klass` nếu nó là chuỗi JSON
       let parsedKlass = [];
-      try {
-        parsedKlass = JSON.parse(klass);
-      } catch (error) {
-        return res.status(400).json({
-          message: `Định dạng 'klass' không hợp lệ tại dòng dữ liệu với mã học sinh ${studentCode}.`,
-        });
+      if (className) {
+        parsedKlass = [{ year: new Date().getFullYear(), className }];
       }
 
       const existingStudent = await Student.findOne({ studentCode });
 
       if (existingStudent) {
-        // Nếu tồn tại, cập nhật
         existingStudent.name = name || existingStudent.name;
         existingStudent.email = email || existingStudent.email;
-        existingStudent.birthYear = birthYear || existingStudent.birthYear;
+        existingStudent.gender = gender || existingStudent.gender;
+        existingStudent.birthDate = birthDate || existingStudent.birthDate;
+        existingStudent.schoolYear = schoolYear || existingStudent.schoolYear;
         existingStudent.klass = [...existingStudent.klass, ...parsedKlass];
         await existingStudent.save();
       } else {
-        // Nếu không tồn tại, tạo mới
         const newStudent = new Student({
           studentCode,
           name,
           email,
+          gender,
+          birthDate,
+          schoolYear,
           klass: parsedKlass,
-          birthYear,
         });
         await newStudent.save();
       }
