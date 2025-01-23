@@ -28,7 +28,7 @@ const DetailEvent = () => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [user, setUser] = useState(null); // Dữ liệu người dùng từ localStorage
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15; // Hiển thị 15 ảnh mỗi trang
+  const itemsPerPage = 10; // Hiển thị 15 ảnh mỗi trang
   const navigate = useNavigate();
   const [filteredPhotos, setFilteredPhotos] = useState([]);
   const [sortOrder, setSortOrder] = useState("votes"); // Bộ lọc: votes, latest, oldest

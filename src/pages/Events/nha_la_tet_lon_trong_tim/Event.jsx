@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
@@ -30,7 +30,7 @@ const Event = ({ isEventAuthenticated }) => {
   const [sortOrder, setSortOrder] = useState("latest"); // Bộ lọc: latest, oldest, myPhotos
   const [searchQuery, setSearchQuery] = useState(""); // Thanh tìm kiếm
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
+  const itemsPerPage = 10;
   const [isPhotoReviewOpen, setPhotoReviewOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [featuredPhotos, setFeaturedPhotos] = useState([]); // Cho section Bài thi nổi bật
@@ -40,16 +40,6 @@ const Event = ({ isEventAuthenticated }) => {
   const handleLogout = () => {
     localStorage.removeItem("user"); // Hoặc removeItem("authToken"), tuỳ cách bạn lưu
     navigate("/auth");
-  };
-
-  // Mở modal phê duyệt
-  const handleOpenApprove = () => {
-    // Chỉ cho admin
-    if (user?.role === "superadmin") {
-      setShowApprovalModal(true);
-    } else {
-      toast.error("Bạn không có quyền phê duyệt ảnh!");
-    }
   };
 
   // Đóng modal
@@ -86,133 +76,136 @@ const Event = ({ isEventAuthenticated }) => {
         }
       );
     });
-  }, []);
+  }, []); // ✅ Chạy một lần khi component mount
 
-  useEffect(() => {
-    if (!isEventAuthenticated) {
-      toast.error("Bạn cần xác thực trước khi truy cập trang này!");
-      navigate("/auth");
-      return;
-    }
+  const hasCheckedAuth = useRef(false);
+
+useEffect(() => {
+  if (hasCheckedAuth.current) return; // ✅ Tránh kiểm tra nhiều lần
+  hasCheckedAuth.current = true;
+
+  if (!isEventAuthenticated) {
+    toast.error("Bạn cần xác thực trước khi truy cập trang này!");
+    navigate("/auth");
+    return;
+  }
+
+  const userData = localStorage.getItem("user");
+  if (userData) {
+    setUser(JSON.parse(userData));
+  }
+}, [isEventAuthenticated]); // ✅ Chỉ chạy khi `isEventAuthenticated` thay đổi
   
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-  
-      // Debug để kiểm tra dữ liệu người dùng
-    }
-  }, [isEventAuthenticated, navigate]);
-  
-  useEffect(() => {
-    const fetchAllPhotos = async () => {
-      try {
-        const response = await fetch(`${API_URL}/photos/leaderboard-all`);
-        const data = await response.json();
-  
-        if (!data.length) {
-          console.warn("⚠ Không có ảnh nào được trả về từ API.");
-        }
-  
-        // Gộp ảnh từ tất cả thử thách
-        const allPhotos = data.flatMap((event) => event.photos);
-        setFilteredPhotos(allPhotos);
-      } catch (error) {
-        console.error("❌ Lỗi khi lấy ảnh từ API:", error);
-        toast.error("Không thể tải ảnh dự thi.");
+const hasFetchedPhotos = useRef(false);
+
+useEffect(() => {
+  if (hasFetchedPhotos.current) return; // ✅ Ngăn fetch trùng lặp
+  hasFetchedPhotos.current = true;
+
+  const fetchAllPhotos = async () => {
+    try {
+      const response = await fetch(`${API_URL}/photos/leaderboard-all`);
+      const data = await response.json();
+      if (!data.length) {
+        console.warn("⚠ Không có ảnh nào được trả về từ API.");
       }
-    };
-  
-    fetchAllPhotos();
-  }, []);
-
-  
-
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await fetch(`${API_URL}/events`);
-        const text = await response.text(); // Lấy phản hồi dưới dạng văn bản
-        const data = JSON.parse(text); // Chuyển đổi thành JSON
-        setEvents(data);
-      } catch (error) {
-      }
-    };
-  
-    fetchEvents();
-  }, []);
-
-  useEffect(() => {
-    // Xác định sự kiện hiện tại dựa trên ngày
-    const today = new Date();
-    const currentIndex = events.findIndex(
-      (event) => today >= new Date(event.startDate) && today <= new Date(event.endDate)
-    );
-  
-    if (currentIndex !== -1) {
-      setCurrentEvent(events[currentIndex]);
-      setCurrentEventIndex(currentIndex);
+      setFilteredPhotos(data.flatMap((event) => event.photos)); // ✅ Giữ dữ liệu tối ưu
+    } catch (error) {
+      console.error("❌ Lỗi khi lấy ảnh từ API:", error);
+      toast.error("Không thể tải ảnh dự thi.");
     }
-  }, [events]);
+  };
 
-  useEffect(() => {
-    const fetchEventsWithPhotoCounts = async () => {
-      try {
-        const response = await fetch(`${API_URL}/events`);
-        const eventsData = await response.json();
+  fetchAllPhotos();
+}, []); // ✅ Chạy một lần khi component mount
+
   
-        const eventsWithPhotoCounts = await Promise.all(
-          eventsData.map(async (event) => {
-            const photoResponse = await fetch(`${API_URL}/photos?eventId=${event._id}`);
-            const photos = await photoResponse.json();
-            return { ...event, submissions: photos.length }; // Thêm submissions = số ảnh
-          })
+
+const hasFetchedEvents = useRef(false);
+
+useEffect(() => {
+  if (hasFetchedEvents.current) return; // ✅ Ngăn fetch trùng lặp
+  hasFetchedEvents.current = true;
+
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch(`${API_URL}/events`);
+      const data = await response.json();
+      setEvents(data);
+    } catch (error) {
+      console.error("Lỗi khi fetch sự kiện:", error);
+    }
+  };
+
+  fetchEvents();
+}, []); // ✅ Chạy một lần
+
+const currentEventData = useMemo(() => {
+  const today = new Date();
+  return events.find(event => 
+    today >= new Date(event.startDate) && today <= new Date(event.endDate)
+  );
+}, [events]); // ✅ Chỉ tính toán lại khi `events` thay đổi
+
+useEffect(() => {
+  if (currentEventData) {
+    setCurrentEvent(currentEventData);
+  }
+}, [currentEventData]); // ✅ Chỉ chạy nếu `currentEventData` thay đổi
+
+const fetchEventsWithPhotoCounts = async () => {
+  try {
+    const response = await fetch(`${API_URL}/events`);
+    const eventsData = await response.json();
+
+    const eventIds = eventsData.map(event => event._id);
+    const photoResponse = await fetch(`${API_URL}/photos/count?eventIds=${eventIds.join(",")}`);
+    const photoCounts = await photoResponse.json();
+
+    const eventsWithPhotoCounts = eventsData.map(event => ({
+      ...event,
+      submissions: photoCounts[event._id] || 0,
+    }));
+
+    setEvents(eventsWithPhotoCounts);
+  } catch (error) {
+    console.error("Lỗi khi fetch sự kiện:", error);
+  }
+};
+
+useEffect(() => {
+  fetchEventsWithPhotoCounts();
+}, []);
+
+const prevLeaderboardRef = useRef(null);
+
+useEffect(() => {
+  const fetchLeaderboard = async () => {
+    try {
+      let response;
+      if (selectedChallenge === "all") {
+        response = await fetch(`${API_URL}/photos/leaderboard-all`);
+      } else {
+        response = await fetch(`${API_URL}/photos/leaderboard?eventId=${selectedChallenge}`);
+      }
+      if (!response.ok) throw new Error("Không thể tải danh sách leaderboard.");
+      
+      const data = await response.json();
+      if (JSON.stringify(prevLeaderboardRef.current) !== JSON.stringify(data)) {
+        prevLeaderboardRef.current = data; // 🔹 Lưu trạng thái trước đó
+        setFeaturedPhotos(
+          (selectedChallenge === "all" ? data.flatMap((event) => event.photos) : data)
+            .sort((a, b) => b.votes - a.votes)
+            .slice(0, 5)
         );
-  
-        setEvents(eventsWithPhotoCounts);
-      } catch (error) {
-        console.error("Lỗi khi fetch sự kiện:", error);
       }
-    };
-  
-    fetchEventsWithPhotoCounts();
-  }, []);
-
-  useEffect(() => {
-    if (selectedChallenge === "all") { 
-      const fetchAllLeaderboard = async () => {
-        try {
-          const response = await fetch(`${API_URL}/photos/leaderboard-all`);
-          if (!response.ok) throw new Error("Không thể tải danh sách leaderboard.");
-          const data = await response.json();
-  
-          // Gộp tất cả ảnh từ tất cả thử thách và lấy top 5 ảnh có vote cao nhất
-          const allPhotos = data.flatMap((event) => event.photos);
-          setFeaturedPhotos(allPhotos.sort((a, b) => b.votes - a.votes).slice(0, 5)); 
-        } catch (error) {
-          console.error("❌ Lỗi khi lấy leaderboard tất cả thử thách:", error);
-        }
-      };
-  
-      fetchAllLeaderboard();
-    } else {
-      const fetchLeaderboard = async () => {
-        try {
-          const response = await fetch(`${API_URL}/photos/leaderboard?eventId=${selectedChallenge}`);
-          if (!response.ok) throw new Error("Không thể tải danh sách leaderboard.");
-          const data = await response.json();
-          console.log("📊 Leaderboard của thử thách:", data);
-  
-          // Lấy top 5 ảnh có vote cao nhất của thử thách
-          setFeaturedPhotos(data.slice(0, 5));
-        } catch (error) {
-          console.error("❌ Lỗi khi lấy leaderboard thử thách:", error);
-        }
-      };
-  
-      fetchLeaderboard();
+    } catch (error) {
+      console.error("❌ Lỗi khi lấy leaderboard:", error);
     }
-  }, [selectedChallenge]);
+  };
+
+  fetchLeaderboard();
+}, [selectedChallenge]); // ✅ Chỉ chạy khi `selectedChallenge` thay đổi.
 
   useEffect(() => {
     setFilteredPhotos(getSortedPhotos());
