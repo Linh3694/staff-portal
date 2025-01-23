@@ -526,37 +526,22 @@ const handleJoinChallenge = () => {
                                   xs:text-2xl xs:mb-2 ">
                                     {eventTitle || "No Title"}
                                   </h3>
-                                    <div className="lg:hidden mb-4 xs:w-full xs:grid xs:grid-cols-2 xs:gap-2">
+                                    <div className="lg:hidden w-full mb-4 xs:w-full ">
                                         <div className="w-full h-[305px]">
                                             <img
                                               src={`/tet2025/image/events/${eventSlug || "default"}/1.png`} // Hiển thị event.image
                                               alt={currentEvent?.title || "No event image"}
-                                              className="w-[270px] h-[305px] object-cover rounded-lg"
+                                              className="w-full h-[305px] object-cover rounded-lg"
                                             />
                                         </div>
-                                        <div className="w-full h-[305px] flex flex-col  gap-2">
-                                            <div>
-                                              <img
-                                                src={`/tet2025/image/events/${eventSlug || "default"}/2.png`} // Hiển thị event.image
-                                                alt={currentEvent?.title || "No event image"}
-                                                className="w-full h-[180px] object-cover rounded-lg"
-                                              />
-                                            </div>
-                                            <div>
-                                              <img
-                                                src={`/tet2025/image/events/${eventSlug || "default"}/3.png`} // Hiển thị event.image
-                                                alt={currentEvent?.title || "No event image"}
-                                                className="w-full h-[115px] object-cover rounded-lg"
-                                              />
-                                            </div>
-                                        </div>
+                                       
                                     </div>
-                                  <div className="mb-4 overflow-hidden
-                                  lg:w-[500px] lg:h-[144px]
-                                  xs:w-full xs:h-full xs:text-justify">
-                                  <p className="text-lg font-semibold text-[#401011]">
-                                      {eventDescription || "Không có mô tả"}
-                                  </p>
+                                    <div className="mb-4 overflow-hidden
+                                    lg:w-[500px] lg:h-[144px]
+                                    xs:w-full xs:h-full xs:text-justify">
+                                    <p className="text-lg font-semibold text-[#401011]">
+                                        {eventDescription || "Không có mô tả"}
+                                    </p>
                                   </div>
                                 <div className="lg:w-[285px] xs:w-full h-[50px] mt-4">
                                   <button 
@@ -653,9 +638,9 @@ const handleJoinChallenge = () => {
                   ].map((award, index) => (
                     <div key={index} className="flex flex-col items-center">
                       {/* Hình ảnh giải thưởng */}
-                      <div className="relative w-[180px] h-[180px] mb-4">
+                      <div className="relative lg:w-[180px] lg:h-[180px] xs:w-[140px] xs:h-[120px] lg:mb-4 xs:mb-0">
                           {/* Vòng tròn ở phía sau */}
-                          <div className="absolute left-4 w-[140px] h-[140px] inset-0 rounded-full bg-white bg-opacity-70 z-0" />
+                          <div className="absolute left-4 lg:w-[140px] lg:h-[140px] xs:w-[100px] xs:h-[100px] inset-0 rounded-full bg-white bg-opacity-70 z-0" />
                           
                           {/* Ảnh ở phía trên (z-10) */}
                           <img
@@ -664,8 +649,8 @@ const handleJoinChallenge = () => {
                             className="relative z-10 w-full h-full object-contain"
                           />
                         </div>
-                      <p className="text-xl font-bold text-white">{award.title}</p>
-                      <p className="text-lg  text-white">{award.prize}</p>
+                      <p className="lg:text-xl xs:text-md font-bold text-white">{award.title}</p>
+                      <p className="lg:text-xl xs:text-md  text-white xs:mb-2 lg:mb-0">{award.prize}</p>
                     </div>
                   ))}
                 </div>
@@ -921,29 +906,47 @@ const handleJoinChallenge = () => {
               </div>       
             </section>
             {/* ------------------------Lời kết------------------------------ */}      
-            <section 
-              style={{
-                backgroundImage: `url('/tet2025/image/end-web.png')`,
-                backgroundSize: "Cover",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                width: "100%",
-                maxWidth: "1920px",
-                margin: "0 auto",
-              }}
-            >
-            <div className="lg:h-[546px] xs:h-[160px] lg:font-bold flex flex-col items-center text-center justify-center lg:text-2xl space-y-2 w-full px-10">
-            <div className="text-[#401011]
-            lg:w-[922px] lg:h-[200px] lg:top-1/4 lg:text-2xl
-            xs:w-full xs:font-semibold xs:text-xs
-            ">
-            {t("ending")}
-            </div>
-            
-            </div>
-            </section>
+            {/* Mobile */}
+              <div 
+                className="xs:block lg:hidden"
+                style={{
+                  backgroundImage: `url('/tet2025/image/end-mobile.png')`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  width: "100%",
+                  maxWidth: "1920px",
+                  margin: "0 auto",
+                }}
+              >
+                <div className="flex items-center justify-center h-[400px] w-[305px] mx-auto px-10 text-center font-semibold text-xs text-[#401011]">
+                  {t("ending")}
+                </div>
+              </div>
+
+              {/* Desktop */}
+              <div 
+                className="lg:flex xs:hidden"
+                style={{
+                  backgroundImage: `url('/tet2025/image/end-web.png')`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  width: "100%",
+                  maxWidth: "1920px",
+                  margin: "0 auto",
+                }}
+              >
+                <div className="flex flex-col items-center justify-center h-[546px] w-[913px] mx-auto px-6 text-center font-bold text-2xl text-[#401011]">
+                  {t("ending")}
+                </div>
+              </div>
+
+
+
             {/* ------------------------Footer------------------------------ */}
-            <section 
+            <div 
+            className="lg:flex xs:hidden"
             style={{
               backgroundImage: `url('/Footer.png')`, // Không cần process.env.PUBLIC_URL
               backgroundSize: "cover", // ✅ Ảnh không bị zoom to
@@ -958,7 +961,22 @@ const handleJoinChallenge = () => {
             ">
 
             </div>       
-            </section>
+            </div>
+            {/* Mobile */}
+            <div 
+            className="xs:block lg:hidden"
+            style={{
+              backgroundImage: `url('/Footer_mobile.png')`, // Không cần process.env.PUBLIC_URL
+              backgroundSize: "cover", // ✅ Ảnh không bị zoom to
+              backgroundPosition: "center", // ✅ Căn giữa
+              backgroundRepeat: "no-repeat",
+              width: "100%", // ✅ Giữ full width
+              margin: "0 auto", // ✅ Căn giữa khi có max-width
+            }}>
+            <div className="w-full h-[270px]">
+
+            </div>       
+            </div>
         </div>
         {/* Modal PhotoReview */}
         {isPhotoReviewOpen && selectedPhoto && (
