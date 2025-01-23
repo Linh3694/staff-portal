@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import UploadModal from "./uploadModal";
 import PhotoReview from "./PhotoReview";
-import { FiLogOut, FiArrowLeft, FiUser } from "react-icons/fi";
+import { FiLogOut, FiArrowLeft, FiUser,FiHeart } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import Dropdown from "../../../components/function/dropdown"; // HOẶC đường dẫn tương ứng
 import PhotoApprovalModal from "./PhotoApprovalModal"
@@ -384,8 +384,8 @@ const DetailEvent = () => {
                       onClick={() => openPhotoReview(photo)}
                     >
                       {/* Số lượng tim ở góc trên bên phải */}
-                      <div className="absolute top-2 right-2 bg-gray-100 bg-opacity-50 text-white text-sm font-bold px-2 py-1 rounded-full">
-                            ❤️ {photo.votes}
+                      <div className="absolute flex-row top-2 right-2 bg-white bg-opacity-60 text-[#B42B23] text-md font-semibold px-3 py-1 rounded-full">
+                          <div className="flex flex-row gap-1 items-center justify-center font-bold"><FiHeart size={20} /> <span>{photo.votes}</span></div>
                       </div>
                       <img 
                         src={`${BASE_URL}${photo.url}`} 
@@ -423,8 +423,8 @@ const DetailEvent = () => {
                 onClick={() => openPhotoReview(photo)}
               >
                 {/* Số lượng tim */}
-                <div className="absolute top-2 right-2 bg-gray-100 bg-opacity-50 text-white text-sm font-bold px-2 py-1 rounded-full">
-                  ❤️ {photo.votes}
+                <div className="absolute flex-row top-2 right-2 bg-white bg-opacity-60 text-[#B42B23] text-md font-semibold px-3 py-1 rounded-full">
+                          <div className="flex flex-row gap-1 items-center justify-center font-bold"><FiHeart size={20} /> <span>{photo.votes}</span></div>
                 </div>
                 <img
                   src={`${BASE_URL}${photo.url}`}
@@ -545,8 +545,8 @@ const DetailEvent = () => {
                           {photo.title || "Không tiêu đề"}
                         </div>
                           {/* Số lượng tim ở góc trên bên phải */}
-                          <div className="absolute top-2 right-2 bg-gray-100 bg-opacity-50 text-white text-sm font-bold px-2 py-1 rounded-full">
-                            ❤️ {photo.votes}
+                          <div className="absolute flex-row top-2 right-2 bg-white bg-opacity-60 text-[#B42B23] text-md font-semibold px-3 py-1 rounded-full">
+                          <div className="flex flex-row gap-1 items-center justify-center font-bold"><FiHeart size={20} /> <span>{photo.votes}</span></div>
                           </div>
                         </div>
                       ))}
@@ -605,11 +605,12 @@ const DetailEvent = () => {
                         src={BASE_URL + photo.url}
                         alt={photo.title}
                         onClick={() => openPhotoReview(photo)}
+                        className="w-full h-full object-cover"
                       />
                       
                       {/* Hiển thị số tim góc trên bên phải */}
-                      <div className="absolute top-2 right-2 bg-gray-100 bg-opacity-50 text-white text-sm font-bold px-2 py-1 rounded-full">
-                        ❤️ {photo.votes}
+                      <div className="absolute flex-row top-2 right-2 bg-white bg-opacity-60 text-[#B42B23] text-md font-semibold px-3 py-1 rounded-full">
+                          <div className="flex flex-row gap-1 items-center justify-center font-bold"><FiHeart size={20} /> <span>{photo.votes}</span></div>
                       </div>
 
                       {/* Tên ảnh góc dưới bên trái */}

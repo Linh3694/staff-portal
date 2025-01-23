@@ -748,7 +748,7 @@ const handleJoinChallenge = () => {
                           <img
                             src={`${BASE_URL}${featuredPhotos[currentPhotoIndex]?.url}`}
                             alt={featuredPhotos[currentPhotoIndex]?.title}
-                            className="w-full h-full object-cover rounded-lg  shadow-md"
+                            className="w-full h-full object-cover rounded-lg shadow-md"
                             onError={(e) => console.error("Lỗi load ảnh:", e.target.src)}
                           />
                           <div className="xs:block lg:hidden">
