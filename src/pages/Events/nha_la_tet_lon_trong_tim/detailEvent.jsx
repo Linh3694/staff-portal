@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { API_URL, BASE_URL } from "../../../config";
 import { toast } from "react-toastify";
@@ -88,69 +88,79 @@ const DetailEvent = () => {
     }
   }, [photos]);
 
-  useEffect(() => {
-    if (!event) {
-      const fetchEvent = async () => {
-        try {
-          const res = await fetch(`${API_URL}/events?slug=${slug}`);
-          if (!res.ok) throw new Error("Không thể tải thông tin sự kiện.");
-          const data = await res.json();
-          
-          // Nếu API trả về mảng => lấy phần tử đầu
-          if (Array.isArray(data) && data.length > 0) {
-            setEvent(data[0]); 
-          } else {
-            setEvent(null); // không tìm thấy => hiển thị "Không có sự kiện"
-          }
-        } catch (error) {
-          console.error(error);
-          toast.error("Không thể tải thông tin thử thách.");
-        }
-      };
-      fetchEvent();
+  const hasFetchedEvent = useRef(false); // 🔹 Tránh fetch nhiều lần
+
+useEffect(() => {
+  if (event || hasFetchedEvent.current) return; // 🔹 Chỉ fetch nếu chưa có dữ liệu
+
+  const fetchEvent = async () => {
+    try {
+      const res = await fetch(`${API_URL}/events?slug=${slug}`);
+      if (!res.ok) throw new Error("Không thể tải thông tin sự kiện.");
+      const data = await res.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        setEvent(data[0]);
+      } else {
+        setEvent(null);
+      }
+
+      hasFetchedEvent.current = true; // 🔹 Đánh dấu đã fetch
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể tải thông tin thử thách.");
     }
-  }, [slug, event]);
+  };
+
+  fetchEvent();
+}, [slug]);
 
   // Fetch danh sách ảnh dự thi
   useEffect(() => {
-    if (event?._id) {
-      const fetchPhotos = async () => {
-        try {
-          const response = await fetch(`${API_URL}/photos?eventId=${event._id}`);
-          const data = await response.json();
-          setPhotos(data);
-        } catch (error) {
-          console.error(error);
-          toast.error("Không thể tải ảnh dự thi.");
-        }
-      };
+    if (!event?._id) return; // 🔹 Tránh fetch nếu `event._id` chưa tồn tại.
+  
+    const fetchPhotos = async () => {
+      try {
+        const response = await fetch(`${API_URL}/photos?eventId=${event._id}`);
+        if (!response.ok) throw new Error("Không thể tải ảnh dự thi.");
+        const data = await response.json();
+        setPhotos(data);
+      } catch (error) {
+        console.error(error);
+        toast.error("Không thể tải ảnh dự thi.");
+      }
+    };
+  
+    fetchPhotos();
+  }, [event?._id]); // ✅ Chỉ chạy khi `event._id` thay đổi.
 
-      fetchPhotos();
-    }
-  }, [event]);
+  const prevLeaderboardRef = useRef(null); // 🔹 Lưu dữ liệu cũ để so sánh
 
-  useEffect(() => {
-    if (event?._id) {
-      const fetchLeaderboard = async () => {
-        try {
-          const response = await fetch(`${API_URL}/photos/leaderboard?eventId=${event._id}`);
-          if (!response.ok) throw new Error("Failed to fetch leaderboard");
-          const data = await response.json();
-          setLeaderboard(data); // Không cần trạng thái `isVoted` ở đây
-        } catch (error) {
-          console.error("Error fetching leaderboard:", error);
-          toast.error("Không thể tải bảng xếp hạng.");
-        }
-      };
-      if (leaderboard?.length > 0) {
-        leaderboard.forEach((photo) => {
-          const img = new Image();
-          img.src = `${BASE_URL}${photo.url}`;
-        });
-      }  
-      fetchLeaderboard();
+useEffect(() => {
+  if (!event?._id) return;
+
+  const fetchLeaderboard = async () => {
+    try {
+      const response = await fetch(`${API_URL}/photos/leaderboard?eventId=${event._id}`);
+      if (!response.ok) throw new Error("Failed to fetch leaderboard");
+      const data = await response.json();
+
+      // 🔹 Chỉ cập nhật nếu dữ liệu thực sự thay đổi
+      if (JSON.stringify(prevLeaderboardRef.current) !== JSON.stringify(data)) {
+        prevLeaderboardRef.current = data;
+        setLeaderboard(data);
+      }
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      toast.error("Không thể tải bảng xếp hạng.");
     }
-  }, [event] [leaderboard]);
+  };
+
+  fetchLeaderboard();
+  const interval = setInterval(fetchLeaderboard, 30000); // ✅ Chỉ cập nhật mỗi 30s nếu có thay đổi
+
+  return () => clearInterval(interval);
+}, [event?._id]); // ✅ Chỉ chạy khi `event._id` thay đổi.
 
   useEffect(() => {
     // Lấy dữ liệu từ localStorage
@@ -179,34 +189,25 @@ const DetailEvent = () => {
     }
   }, [event?.endDate]);
 
-  useEffect(() => {
-    if (photos.length > 0) {
-      let sortedPhotos = photos.filter((photo) => photo.eventId === event?._id);
+  const sortedFilteredPhotos = useMemo(() => {
+    let sorted = photos.filter((photo) => photo.eventId === event?._id);
   
-      // Sắp xếp ảnh dựa trên lựa chọn bộ lọc
-      if (sortOrder === "votes") {
-        sortedPhotos.sort((a, b) => b.votes - a.votes);
-      } else if (sortOrder === "latest") {
-        sortedPhotos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      } else if (sortOrder === "oldest") {
-        sortedPhotos.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      }
-  
-      // Lọc theo từ khóa tìm kiếm
-      if (searchQuery.trim() !== "") {
-        sortedPhotos = sortedPhotos.filter(
-          (photo) =>
-            photo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            photo.uploaderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            photo._id.includes(searchQuery)
-        );
-      }
-      if (JSON.stringify(sortedPhotos) !== JSON.stringify(filteredPhotos)) {
-        setFilteredPhotos(sortedPhotos);
-      }
-      
+    if (sortOrder === "votes") {
+      sorted.sort((a, b) => b.votes - a.votes);
+    } else if (sortOrder === "latest") {
+      sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (sortOrder === "oldest") {
+      sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     }
+  
+    return sorted.filter(photo =>
+      photo.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   }, [photos, sortOrder, searchQuery, event]);
+  
+  useEffect(() => {
+    setFilteredPhotos(sortedFilteredPhotos);
+  }, [sortedFilteredPhotos]);
 
   useEffect(() => {
     if (photoIdFromURL) {
