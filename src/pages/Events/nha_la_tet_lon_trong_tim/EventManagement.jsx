@@ -256,7 +256,7 @@ const EventManagement = () => {
           </div>
           {/* Điều hướng trở lại /event */}
           <button
-            onClick={() => navigate("/event")}
+            onClick={() => navigate("/event_tet2025")}
             className="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition"
           >
             Quay lại
