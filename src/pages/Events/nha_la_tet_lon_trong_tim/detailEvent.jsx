@@ -443,7 +443,7 @@ useEffect(() => {
             <div className="lg:w-[1100px] xs:w-full mx-auto lg:grid lg:grid-cols-2 lg:gap-6 xs:flex xs:flex-col lg:mt-8 mb-8">
               {/* Cột trái - Nội dung thử thách */}
               <div className="lg:w-[650px] xs:w-full p-4 ">
-                <h2 className="lg:text-2xl xs:text-xl text-[#FBC04C] font-bold mb-4">{t("today_challanges_challange")} {event.number}</h2>
+                <h2 className="lg:text-2xl xs:text-xl text-[#FBC04C] font-bold mb-4">{t("today_Challenges_Challenge")} {event.number}</h2>
                 <p className="lg:text-xl xs:text-lg text-[#fcf5e3] mb-2">{eventDescription || "Không có mô tả"}</p>
 
                 {/* Người tham gia */}
@@ -500,7 +500,7 @@ useEffect(() => {
                   className="w-full bg-[#E55526] font-bold text-base text-[#fcf5e3] py-2 rounded-full hover:bg-red-700 transition mt-4"
                   onClick={() => setModalOpen(true)}
                 >
-                  {t("today_challanges_today_challanges")}
+                  {t("today_Challenges_today_Challenges")}
                 </button>
                 </div>
 

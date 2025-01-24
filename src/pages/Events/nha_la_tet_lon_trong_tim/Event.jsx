@@ -499,20 +499,20 @@ const handleJoinChallenge = () => {
                           xs:w-full ">
                               <div className="flex items-center space-x-4">
                                   <span className="bg-[#F0E9D8] text-md text-[#401011] font-semibold py-2 px-3 rounded">
-                                    {t("today_challanges_còn")}{" "}
+                                    {t("today_Challenges_còn")}{" "}
                                     {Math.max( 0,
                                     Math.ceil(
                                     (new Date(currentEvent.endDate) - new Date()) / (1000 * 60 * 60 * 24)))}{" "}
-                                    {t("today_challanges_ngày")}
+                                    {t("today_Challenges_ngày")}
                                   </span>
                                   <span className="bg-[#F0E9D8] text-md text-[#401011] font-semibold py-2 px-3 rounded">
-                                    {currentEvent.submissions || 0} {t("today_challanges_bài_dự_thi")}
+                                    {currentEvent.submissions || 0} {t("today_Challenges_bài_dự_thi")}
                                   </span>
                                 </div>
                                   <h2 className="text-2xl font-bold mt-6 italic
                                   xs:hidden
                                   lg:block">
-                                    {t("today_challanges_challange")} {currentEvent.number || "Không có tiêu đề"}
+                                    {t("today_Challenges_Challenge")} {currentEvent.number || "Không có tiêu đề"}
                                   </h2>
                                   <h3 className="  text-[#B42B23] font-bold mt-6 
                                   lg:text-3xl lg:mb-6
@@ -540,7 +540,7 @@ const handleJoinChallenge = () => {
                                   <button 
                                     className="h-full w-full bg-[#B42B23] text-white text-xl font-bold rounded-full hover:bg-[#E55526] transition"
                                     onClick={handleJoinChallenge}>
-                                    {t("today_challanges_today_challanges")}
+                                    {t("today_Challenges_today_Challenges")}
                                   </button>
                                 </div>
                           </div>
@@ -581,12 +581,12 @@ const handleJoinChallenge = () => {
                               {/* Nội dung */}                                        
                               {!isEventActive(event.startDate, event.endDate) ? (
                                 <div className="relative text-[#002147] text-center">
-                                  <h4 className="text-sm font-bold"> {t("today_challanges_challange")} {event.number || "N/A"}</h4>
+                                  <h4 className="text-sm font-bold"> {t("today_Challenges_Challenge")} {event.number || "N/A"}</h4>
                                   <p className="text-gray-200 text-sm mt-2">🔒</p>
                                 </div>
                               ) : (
                                 <div className="relative text-white text-center">
-                                  <h4 className="text-sm font-bold"> {t("today_challanges_challange")} {event.number || "N/A"}</h4>
+                                  <h4 className="text-sm font-bold"> {t("today_Challenges_Challenge")} {event.number || "N/A"}</h4>
                                   <p className="text-sm text-white mt-2">{getLocalizedEventName(event) || "Không có tên"}</p>
                                 </div>
                               )}
@@ -687,7 +687,7 @@ const handleJoinChallenge = () => {
                         ${selectedChallenge === event._id ? "bg-[#b42b23] text-white" : " text-gray-800"}`}
                       onClick={() => filterPhotosByEventId(event._id)}
                     >
-                      {t("featured_submissions_challange")} {event.number}
+                      {t("featured_submissions_Challenge")} {event.number}
                     </button>
                   ))}
                 </div>
@@ -699,10 +699,10 @@ const handleJoinChallenge = () => {
                     value={selectedChallenge}
                     onChange={(e) => filterPhotosByEventId(e.target.value)}
                   >
-                    <option value="all">{t("featured_submissions_challange_all")}</option>
+                    <option value="all">{t("featured_submissions_Challenge_all")}</option>
                     {events.map((event) => (
                       <option key={event._id} value={event._id}>
-                        {t("featured_submissions_challange")} {event.number}
+                        {t("featured_submissions_Challenge")} {event.number}
                       </option>
                     ))}
                   </select>
