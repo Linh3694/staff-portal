@@ -153,6 +153,16 @@ useEffect(() => {
   }
 }, [currentEventData]); // ✅ Chỉ chạy nếu `currentEventData` thay đổi
 
+const today = new Date();
+const firstEvent = useMemo(() => {
+  return events.reduce((earliest, event) => {
+    return new Date(event.startDate) < new Date(earliest.startDate) ? event : earliest;
+  }, events[0]); // Giả sử events không rỗng
+}, [events]);
+
+const firstEventStartDate = firstEvent ? new Date(firstEvent.startDate).toLocaleDateString("vi-VN") : null;
+const isBeforeFirstEvent = firstEvent && today < new Date(firstEvent.startDate);
+
 const fetchEventsWithPhotoCounts = async () => {
   try {
     const response = await fetch(`${API_URL}/events`);
@@ -309,9 +319,6 @@ const handleJoinChallenge = () => {
   const slug = normalizeSlug(eventTitle);
   navigate(`/event_tet2025/${slug}`, { state: { event: currentEvent } });
 };
-
-
-
 
 
   return (
@@ -477,7 +484,7 @@ const handleJoinChallenge = () => {
             margin: "0 auto", // ✅ Căn giữa khi có max-width
           }}>
               <div className="mx-auto text-[#002147] p-6">
-                  {currentEvent && (
+                  {currentEvent ?  (
                     <section className="
                     lg:max-w-6xl lg:mx-auto lg:px-4
                     xs:full xs:mx-auto xs:px-4 ">
@@ -546,6 +553,42 @@ const handleJoinChallenge = () => {
                           </div>
                        </div>
                     </section>
+                    ) : (
+                      // Nếu chưa có sự kiện, hiển thị thử thách đầu tiên
+                      <section className="
+                    lg:max-w-6xl lg:mx-auto lg:px-4
+                    xs:full xs:mx-auto xs:px-4 ">
+                        <h2 className="text-3xl font-bold mb-6">{t("today_challenges")}</h2>
+                        <div className="flex gap-6 lg:flex-row lg:justify-center lg:items-center xs:flex-col-reverse xs:items-start">
+                          {/* Ảnh thử thách đầu tiên (mờ + khóa) */}
+                          <div className="relative w-[550px] h-[405px] flex mb-4">
+                            <img
+                              src={`/tet2025/image/events/${normalizeSlug(firstEvent?.slug || firstEvent?.name || "default")}/1.png`}
+                              alt={firstEvent?.title || "Upcoming Event"}
+                              className="w-full h-full object-cover rounded-lg opacity-50"
+                            />
+                            <div className="absolute inset-0 flex justify-center items-center bg-black bg-opacity-40 rounded-lg">
+                              <span className="text-white text-4xl font-bold">🔒</span>
+                            </div>
+                          </div>
+                    
+                          {/* Nội dung thông báo */}
+                          <div className="lg:w-[550px] lg:h-[405px] items-center justify-center mb-4 lg:ml-4 xs:ml-0 xs:w-full ">
+                          <p className="text-xl mt-20 font-semibold text-[#401011]">
+                              Hãy đón chờ thử thách đầu tiên vào ngày{" "}
+                              <span className="font-bold">{firstEventStartDate}</span>!
+                            </p>
+
+                            <h3 className="text-[#B42B23] font-bold mt-6 lg:text-3xl xs:text-2xl">
+                              {firstEvent ? firstEvent.name : "Thử thách sắp tới"} 
+                            </h3>
+
+                            <p className="text-lg mt-5 font-semibold text-justify text-[#401011]">
+                              {firstEvent ? firstEvent.description : "Thử thách sắp tới" || "Không có mô tả"}
+                            </p>
+                          </div>
+                        </div>
+                      </section>
                   )}
                     {/* Thử thách khác */}
 
