@@ -6,6 +6,7 @@ const uploadEvent = require("../middleware/uploadEvent"); // middleware cho uplo
 
 // Lấy danh sách ảnh đã được phê duyệt
 router.get("/", photoController.getPhotosByEvent);
+router.get("/count", photoController.getPhotoCounts);
 
 // Lấy danh sách ảnh chưa được phê duyệt (admin only)
 router.get("/pending", photoController.getPendingPhotos);

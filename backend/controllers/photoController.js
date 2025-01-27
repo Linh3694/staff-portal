@@ -1,5 +1,6 @@
 const Photo = require("../models/Photos");
 const Event = require("../models/Events");
+const mongoose = require("mongoose");
 
 // Lấy danh sách ảnh theo ID sự kiện
 exports.getPhotosByEvent = async (req, res) => {
@@ -45,7 +46,7 @@ exports.uploadPhoto = async (req, res) => {
 
 exports.getPendingPhotos = async (req, res) => {
   try {
-    const pendingPhotos = await Photo.find({ approved: false }); // Lấy ảnh chưa phê duyệt
+    const pendingPhotos = await Photo.find({ approved: false, denied: false }); // Không lấy ảnh đã bị từ chối
     res.status(200).json(pendingPhotos);
   } catch (error) {
     console.error("Error fetching pending photos:", error);
@@ -96,7 +97,7 @@ exports.approvePhoto = async (req, res) => {
 exports.rejectPhoto = async (req, res) => {
   const { id } = req.params;
   try {
-    // Lưu ý: cần “phủ” approved = false
+    // Cập nhật ảnh để đảm bảo nó bị từ chối và không còn pending
     const photo = await Photo.findByIdAndUpdate(
       id,
       { denied: true, approved: false },
@@ -106,6 +107,7 @@ exports.rejectPhoto = async (req, res) => {
     if (!photo) {
       return res.status(404).json({ message: "Không tìm thấy ảnh!" });
     }
+
     res.status(200).json({ message: "Ảnh đã bị từ chối!", photo });
   } catch (error) {
     console.error("Error rejecting photo:", error);
@@ -291,3 +293,27 @@ exports.getPhotoById = async (req, res) => {
   }
 };
 
+exports.getPhotoCounts = async (req, res) => {
+  try {
+    const eventIds = req.query.eventIds ? req.query.eventIds.split(",") : [];
+    
+    if (eventIds.length === 0) {
+      return res.status(400).json({ error: "Missing eventIds parameter" });
+    }
+
+    const counts = await Photo.aggregate([
+      { $match: { eventId: { $in: eventIds.map(id => new mongoose.Types.ObjectId(id)) }, approved: true } }, // Chỉ lấy ảnh đã được duyệt
+      { $group: { _id: "$eventId", count: { $sum: 1 } } }
+    ]);
+
+    const countMap = counts.reduce((acc, { _id, count }) => {
+      acc[_id.toString()] = count;
+      return acc;
+    }, {});
+
+    res.status(200).json(countMap);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy số lượng ảnh:", error);
+    res.status(500).json({ message: "Lỗi khi lấy số lượng ảnh!" });
+  }
+};

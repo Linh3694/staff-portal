@@ -151,6 +151,7 @@ useEffect(() => {
   if (currentEventData) {
     setCurrentEvent(currentEventData);
   }
+  console.log("✅ setCurrentEvent() cập nhật:", currentEventData);
 }, [currentEventData]); // ✅ Chỉ chạy nếu `currentEventData` thay đổi
 
 const today = new Date();
@@ -169,20 +170,26 @@ const fetchEventsWithPhotoCounts = async () => {
     const eventsData = await response.json();
 
     const eventIds = eventsData.map(event => event._id);
-    const photoResponse = await fetch(`${API_URL}/photos/count?eventIds=${eventIds.join(",")}`);
-    const photoCounts = await photoResponse.json();
+    
+    if (eventIds.length > 0) {
+      const photoResponse = await fetch(`${API_URL}/photos/count?eventIds=${eventIds.join(",")}`);
+      const photoCounts = await photoResponse.json();
+      console.log("📸 Photo Counts:", photoCounts); // Log dữ liệu nhận được
 
-    const eventsWithPhotoCounts = eventsData.map(event => ({
-      ...event,
-      submissions: photoCounts[event._id] || 0,
-    }));
+      const eventsWithPhotoCounts = eventsData.map(event => ({
+        ...event,
+        submissions: photoCounts[event._id] || 0, // Gán số lượng ảnh vào từng sự kiện
+      }));
 
-    setEvents(eventsWithPhotoCounts);
+      console.log("📌 eventsWithPhotoCounts:", eventsWithPhotoCounts);
+      setEvents(eventsWithPhotoCounts);
+    } else {
+      console.warn("⚠ Không có sự kiện nào để fetch số lượng ảnh.");
+    }
   } catch (error) {
     console.error("Lỗi khi fetch sự kiện:", error);
   }
 };
-
 useEffect(() => {
   fetchEventsWithPhotoCounts();
 }, []);

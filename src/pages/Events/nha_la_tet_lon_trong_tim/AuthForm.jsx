@@ -107,9 +107,9 @@ const AuthForm = ({ setIsEventAuthenticated }) => {
       const width = window.innerWidth;
       
       if (width < 768) {
-        setBackgroundImage("/theme_mobile.png");  // Mobile
+        setBackgroundImage("/theme_mobile.webp");  // Mobile
       } else if (width < 1024) {
-        setBackgroundImage("/theme_mobile.png"); // Tablet
+        setBackgroundImage("/theme_mobile.webp"); // Tablet
       } else if (width < 1366) {
         setBackgroundImage("/theme.png"); // Laptop 13"
       } else {

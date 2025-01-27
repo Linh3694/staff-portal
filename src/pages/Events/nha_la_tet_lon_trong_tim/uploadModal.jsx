@@ -77,7 +77,7 @@ const UploadModal = ({ isOpen, onClose, eventId, user }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-lg lg:p-6 xs:p-3 lg:w-[763px] xs:w-[375px] shadow-lg overflow-y-auto lg:max-h-screen xs:max-h-[600px]">
         <div className="border-b justify-center items-center flex gap-2">
-          <h2 className="lg:text-2xl xs:text-xl text-center font-bold text-[#b42b23] mb-4 mt-2">{t("today_challanges_today_challanges")}</h2>
+          <h2 className="lg:text-2xl xs:text-xl text-center font-bold text-[#b42b23] mb-4 mt-2">{t("today_Challenges_today_Challenges")}</h2>
           <button
             onClick={() => {
             const newLang = language === "vi" ? "en" : "vi";

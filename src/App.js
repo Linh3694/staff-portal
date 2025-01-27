@@ -111,7 +111,7 @@ useEffect(() => {
 
 
           {/* Điều hướng mặc định */}
-          <Route path="*" element={<Navigate to="/login" />} />
+          <Route path="*" element={<Navigate to="/event_tet2025" />} />
         </Routes>
       </Router>
     </div>

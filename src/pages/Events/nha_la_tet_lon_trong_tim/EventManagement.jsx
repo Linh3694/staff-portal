@@ -211,14 +211,14 @@ const EventManagement = () => {
       if (response.status === 200) {
         toast.success("Ảnh đã bị từ chối!");
         const deniedPhoto = response.data.photo;
-
-        // Xoá khỏi pending
+  
+        // Xóa ảnh khỏi pending
         setPendingPhotos((prev) => prev.filter((p) => p._id !== photoId));
-        // Xoá khỏi approved
+        // Xóa ảnh khỏi approved (nếu có)
         setApprovedPhotos((prev) => prev.filter((p) => p._id !== photoId));
-        // Thêm vào denied
+        // Thêm vào danh sách ảnh đã bị từ chối
         setDeniedPhotos((prev) => [...prev, deniedPhoto]);
-
+  
         // Nếu đang xem chi tiết, đóng modal
         if (selectedPhoto && selectedPhoto._id === photoId) {
           setSelectedPhoto(null);
