@@ -8,8 +8,9 @@ const { check, validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 
 
-// Route đăng nhập
-router.post("/login",
+// 1) LOGIN THỦ CÔNG
+router.post(
+  "/login",
   [
     check("email").isEmail().withMessage("Invalid email format"),
     check("password").notEmpty().withMessage("Password is required"),
@@ -29,18 +30,20 @@ router.post("/login",
         return res.status(404).json({ message: "User not found" });
       }
 
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await bcrypt.compare(password, user.password || "");
       console.log("Mật khẩu nhập:", password);
       console.log("Mật khẩu trong DB:", user.password);
-      console.log("Mật khẩu hợp lệ:", isPasswordValid); 
+      console.log("Mật khẩu hợp lệ:", isPasswordValid);
+
       if (!isPasswordValid) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      // Tạo token
       const token = jwt.sign(
         { id: user._id, role: user.role },
         process.env.JWT_SECRET,
-        { expiresIn: "1d" }
+        { expiresIn: "1d" } // token có hạn 1 ngày
       );
 
       res.status(200).json({
@@ -51,6 +54,7 @@ router.post("/login",
           email: user.email || "N/A",
           role: user.role || "user",
           avatar: user.avatar || "https://via.placeholder.com/150",
+          needProfileUpdate: user.needProfileUpdate || false,
         },
       });
     } catch (error) {

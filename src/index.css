@@ -47,3 +47,33 @@ code {
   background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(227, 227, 227, 1)); /* Hiệu ứng mờ */
   padding-left: 5px;
 }
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 1s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 1s ease-out;
+}

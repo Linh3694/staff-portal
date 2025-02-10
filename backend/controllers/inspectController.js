@@ -1,4 +1,5 @@
 const Inspect = require('../models/Inspect');
+const path = require("path");
 
 
 // Lấy danh sách tất cả các bản ghi kiểm tra
@@ -39,38 +40,40 @@ exports.getInspectionById = async (req, res) => {
 // Thêm bản ghi kiểm tra mới
 exports.createInspection = async (req, res) => {
   console.log("Full Payload:", req.body);
-  console.log("CPU Data from Payload:", req.body.cpu);
-    try {
-      const {
-        laptopId,
-        inspectorId,
-        results, // Lấy toàn bộ `results` từ payload
-        passed,
-        recommendations,
-      } = req.body;
-      
-      const cpu = results?.cpu; // Truy cập đúng vào `results.cpu`
-      console.log("CPU Data:", cpu);
-      
-      // Kiểm tra CPU
-      if (!cpu?.performance || !cpu?.temperature) {
-        return res.status(400).json({ message: "Thông tin CPU không hợp lệ." });
-      }
-
-      // Kiểm tra các trường bắt buộc
-      if (!laptopId || !inspectorId) {
-        return res.status(400).json({ message: "Thiếu thông tin bắt buộc." });
-      }
-      
+  console.log("CPU Data from Payload:", req.body.results?.cpu);
+  try {
+    const {
+      laptopId,
+      inspectorId,
+      results,
+      passed,
+      recommendations,
+      technicalConclusion,
+      followUpRecommendation
+    } = req.body;
     
+    const cpu = results?.cpu;
+    console.log("CPU Data:", cpu);
+    
+    // Kiểm tra CPU
+    if (!cpu?.performance || !cpu?.temperature) {
+      return res.status(400).json({ message: "Thông tin CPU không hợp lệ." });
+    }
 
+    // Kiểm tra các trường bắt buộc
+    if (!laptopId || !inspectorId) {
+      return res.status(400).json({ message: "Thiếu thông tin bắt buộc." });
+    }
+    
     const newInspection = new Inspect({
       laptopId,
       inspectorId,
       inspectionDate: new Date(),
       results,
-      passed: passed || false, // Mặc định là false
-      recommendations: JSON.stringify(recommendations), // Chuyển thành chuỗi JSON
+      passed: passed || false, // Mặc định là false nếu không có
+      recommendations: JSON.stringify(recommendations),
+      technicalConclusion: technicalConclusion || "",
+      followUpRecommendation: followUpRecommendation || ""
     });
 
     await newInspection.save();
@@ -98,12 +101,13 @@ exports.deleteInspection = async (req, res) => {
   }
 };
 
+// Cập nhật bản ghi kiểm tra
 exports.updateInspection = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
 
-    // Kiểm tra nếu `recommendations` không phải là string
+    // Nếu recommendations là object, chuyển sang chuỗi JSON
     if (typeof updatedData.recommendations === "object") {
       updatedData.recommendations = JSON.stringify(updatedData.recommendations);
     }
@@ -123,14 +127,14 @@ exports.updateInspection = async (req, res) => {
   }
 };
 
-
 // Lấy lần kiểm tra mới nhất theo laptopId
 exports.getLatestInspectionByLaptopId = async (req, res) => {
   try {
     const { laptopId } = req.params;
     const inspection = await Inspect.findOne({ laptopId })
-    .sort({ inspectionDate: -1 }) // Lấy lần kiểm tra mới nhất
-    .populate('inspectorId', 'fullname jobTitle email'); // Chỉ lấy các trường cần thiết
+      .sort({ inspectionDate: -1 }) // Lấy lần kiểm tra mới nhất
+      .populate('inspectorId', 'fullname jobTitle email'); // Chỉ lấy các trường cần thiết
+
     if (!inspection) {
       return res.status(404).json({ message: 'Không tìm thấy dữ liệu kiểm tra' });
     }
@@ -138,15 +142,82 @@ exports.getLatestInspectionByLaptopId = async (req, res) => {
     res.status(200).json({ 
       message: 'Dữ liệu kiểm tra', 
       data: {
+        _id: inspection._id,  // Kiểm tra xem có _id không
         inspectionDate: inspection.inspectionDate,
         inspectorName: inspection.inspectorId?.fullname || 'Không xác định',
         results: inspection.results,
         overallCondition: inspection.results?.["Tổng thể"]?.overallCondition || 'Không xác định',
-        documentUrl: inspection.report?.filePath || "#"      
+        documentUrl: inspection.report?.filePath || "#",
+        technicalConclusion: inspection.technicalConclusion || "",
+        followUpRecommendation: inspection.followUpRecommendation || ""
       }
     });
   } catch (error) {
     console.error('Lỗi khi lấy dữ liệu kiểm tra:', error);
     res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+exports.uploadReport = async (req, res) => {
+  console.log("📥 Nhận request tải lên:", req.body);
+  console.log("📂 File nhận được:", req.file);
+
+  try {
+    const { inspectId } = req.body;
+
+    if (!inspectId || inspectId === "undefined") {
+      console.error("❌ Lỗi: inspectId không hợp lệ:", inspectId);
+      return res.status(400).json({ message: "Inspect ID không hợp lệ." });
+    }
+
+    const inspectionRecord = await Inspect.findById(inspectId);
+    if (!inspectionRecord) {
+      console.error("❌ Không tìm thấy dữ liệu kiểm tra với ID:", inspectId);
+      return res.status(404).json({ message: "Không tìm thấy dữ liệu kiểm tra" });
+    }
+
+    if (!req.file) {
+      console.error("❌ Không có file trong request!");
+      return res.status(400).json({ message: "Không có file được tải lên" });
+    }
+
+    // Lưu đường dẫn file vào MongoDB
+    inspectionRecord.report = {
+      fileName: req.file.filename,
+      filePath: `/uploads/reports/${req.file.filename}`,
+    };
+    await inspectionRecord.save();
+
+    console.log("✅ Biên bản đã được lưu:", inspectionRecord.report);
+    res.status(201).json({
+      message: "Biên bản đã được lưu thành công",
+      data: inspectionRecord,
+    });
+  } catch (error) {
+    console.error("🚨 Lỗi khi tải lên biên bản:", error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+};
+
+exports.downloadReport = async (req, res) => {
+  try {
+    const { inspectId } = req.params;
+    const inspection = await Inspect.findById(inspectId);
+
+    if (!inspection || !inspection.report || !inspection.report.filePath) {
+      return res.status(404).json({ message: "Không tìm thấy biên bản kiểm tra." });
+    }
+
+    const filePath = path.join(__dirname, "..", inspection.report.filePath);
+
+    res.download(filePath, inspection.report.fileName, (err) => {
+      if (err) {
+        console.error("Lỗi khi tải xuống biên bản:", err);
+        res.status(500).json({ message: "Lỗi khi tải xuống biên bản." });
+      }
+    });
+  } catch (error) {
+    console.error("Lỗi khi tải xuống biên bản:", error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };

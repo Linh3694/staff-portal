@@ -4,8 +4,10 @@ const path = require('path');
 const fs = require('fs');
 const mongoose = require("mongoose");
 const cors = require("cors");
+const passport = require("passport");
 const User = require("./models/Users");
 const authRoutes = require("./routes/auth");
+const authMicrosoftRoutes = require("./routes/authMicrosoft"); // Đăng nhập Microsoft
 const laptopRoutes = require("./routes/laptops");
 const monitorRoutes = require("./routes/monitors");
 const printerRoutes = require("./routes/printers");
@@ -35,6 +37,9 @@ const photoRoutes = require("./routes/photoRoutes");
 const inspectRoutes = require("./routes/inspect")
 const studentRoutes = require("./routes/students");
 const uploadReport = require("./middleware/uploadReport");
+const session = require("express-session");
+const documentRoutes = require("./routes/documents");
+const newsfeedRoutes = require("./routes/newsfeed");
 
 
 require("dotenv").config();
@@ -74,13 +79,33 @@ const upload = multer({ storage });
 
 module.exports = upload;
 
+// Sử dụng session middleware
+app.use(
+  session({
+    secret: process.env.JWT_SECRET, // hoặc một secret khác an toàn
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      // Bạn có thể cấu hình thời gian sống của cookie ở đây
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 1 ngày
+    },
+  })
+);
+
 // Tạo app Express
 
-app.use(express.json());
+// Middlewares
 app.use(cors());
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(express.json());
+
+
+
 app.use("/api/laptops", laptopRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Phục vụ thư mục uploads
 app.use("/api/auth", authRoutes);
+app.use("/api/auth", authMicrosoftRoutes);
 app.use("/api/monitors", monitorRoutes); // Route laptops
 app.use("/api/users", userRoutes); // Route users
 app.use("/api/clients-sync", clientsSync.router); // Use the clientsSync router
@@ -96,6 +121,9 @@ app.use("/api/events", eventRoutes);
 app.use("/api/photos", photoRoutes);
 app.use("/api/inspects", inspectRoutes);
 app.use("/api/students", studentRoutes);
+app.use("/api/documents", documentRoutes);
+app.use("/api/newsfeed", newsfeedRoutes);  // Thêm dòng này
+
 
 const syncClientsFromAzure = require("./routes/clientsSync").syncClientsFromAzure;
 app.get("/api/sync-clients", async (req, res) => {
@@ -392,7 +420,7 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-app.post("/reports", uploadReport.single("file"), async (req, res) => {
+app.post("/api/reports", uploadReport.single("file"), async (req, res) => {
   console.log("Report file:", req.file); // Kiểm tra file được upload
   console.log("Inspect ID:", req.body.inspectId); // Kiểm tra ID truyền vào
 

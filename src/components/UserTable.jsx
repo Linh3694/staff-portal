@@ -200,7 +200,7 @@ const UserTable = ({ handleSyncClients }) => {
   };
 
   const handleSearchChange = (e) => {
-    const query = e.target.value.toLowerCase();
+    const query = e.target.value;
     setSearchTerm(query);
   
     // Nếu ô search trống, hiển thị toàn bộ + xóa gợi ý
@@ -680,7 +680,7 @@ const UserTable = ({ handleSyncClients }) => {
                 </select>
                 <span className="text-sm">Users/Page</span>
                 </div>
-    </div>
+        </div>
 
         </>
         ) : (

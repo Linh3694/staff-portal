@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom"; // Import useNavigate
 import { FaEye, FaEyeSlash, FaSpinner } from "react-icons/fa";
 import { useEffect } from "react"; // Import useEffect
 import axios from "axios";
-import "./login.css";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { API_URL, UPLOAD_URL } from "../config"; // import từ file config
+import { API_URL } from "../config"; // import từ file config
 
 
   const LoginPage = () => {
@@ -132,6 +131,11 @@ import { API_URL, UPLOAD_URL } from "../config"; // import từ file config
     setSuggestedEmails([]);
   };
 
+   // **Đăng nhập với Microsoft** - Chuyển hướng sang server
+   const handleMicrosoftLogin = () => {
+    window.location.href = `${API_URL}/auth/microsoft`;
+  };
+
   return (
     <div
     style={{
@@ -139,13 +143,40 @@ import { API_URL, UPLOAD_URL } from "../config"; // import từ file config
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundImage: `url(${process.env.PUBLIC_URL + '/theme.png'})`, // Truy cập file trong public
-      backgroundSize: 'cover',
+      backgroundImage: `url(${process.env.PUBLIC_URL + '/login_theme.svg'})`, // Truy cập file trong public
+      backgroundSize: 'contain',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
     }} >
-      <div className="login-box">
-        <h1 className="text-3xl font-bold text-[#002147] mb-8 text-center">Đăng Nhập</h1>
+      <div className="absolute text-center top-20 left-28 text-5xl font-bold animate-slide-down">
+        <span className="font-bold ">360° </span>
+        <span className="text-red-500 font-bold ">W</span>
+        <span className="text-orange-500 font-bold">I</span>
+        <span className="text-green-500 font-bold">S</span>
+        <span className="text-[#002147]">ers</span>
+        <div className="text-2xl font-semibold mt-2">
+          Warmheart <span className="mx-1">||</span> Innovation minds <span className="mx-1">||</span> Sharing
+        </div>
+      </div>
+
+
+      <div className="w-[400px] absolute left-36 top-1/4 animate-slide-up">
+        <h1 className="text-3xl font-bold text-[#002147] mb-8 text-center">Bắt đầu nào</h1>
+        {/* Nút đăng nhập với Microsoft */}
+        <button
+          onClick={handleMicrosoftLogin}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg mb-4 hover:bg-blue-700 transition-all"
+        >
+          Đăng nhập với Microsoft
+        </button>
+
+        <div className="flex items-center mb-4">
+          <hr className="flex-grow border-gray-300" />
+          <span className="mx-2 text-gray-500">hoặc</span>
+          <hr className="flex-grow border-gray-300" />
+        </div>
+
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="relative">
             <label
@@ -251,10 +282,7 @@ import { API_URL, UPLOAD_URL } from "../config"; // import từ file config
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-gray-600">
-          Hệ thống quản lý tài sản Công nghệ thông tin {" "}
-          
-        </p>
+       
       </div>
     </div>
   );

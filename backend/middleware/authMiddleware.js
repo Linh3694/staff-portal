@@ -1,28 +1,37 @@
+// backend/middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
 const User = require("../models/Users");
 
 const authMiddleware = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    const authHeader = req.headers.authorization || "";
+    // header: "Bearer <token>"
+    const token = authHeader.split(" ")[1];
     if (!token) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized - No token" });
     }
 
-    // Giải mã token để lấy thông tin user
+    // Giải mã token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded) {
+      return res.status(401).json({ message: "Unauthorized - Invalid token" });
+    }
 
-    // Truy vấn thông tin người dùng từ database
-    const user = await User.findById(decoded.id).select('fullname email role');
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Tìm user trong DB
+    const user = await User.findById(decoded.id).select("fullname email role needProfileUpdate");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    // Thêm thông tin người dùng vào req.user
+    // Gán thông tin user vào req
     req.user = {
       _id: user._id,
       fullname: user.fullname,
       email: user.email,
       role: user.role,
+      needProfileUpdate: user.needProfileUpdate,
     };
-    console.log('User in Middleware:', req.user);
+    console.log("User in Middleware:", req.user);
     next();
   } catch (error) {
     console.error("Authentication error:", error);

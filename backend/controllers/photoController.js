@@ -5,17 +5,28 @@ const mongoose = require("mongoose");
 // Lấy danh sách ảnh theo ID sự kiện
 exports.getPhotosByEvent = async (req, res) => {
   const { eventId, userId } = req.query;
+
+  if (!eventId || !mongoose.Types.ObjectId.isValid(eventId)) {
+    return res.status(400).json({ message: "ID sự kiện không hợp lệ!" });
+  }
+
   try {
-    const photos = await Photo.find({ eventId, approved: true }); // Chỉ lấy ảnh đã phê duyệt
-    // Gắn thêm trạng thái isVoted cho mỗi ảnh
-    const updatedPhotos = photos.map((photo) => ({
-      ...photo._doc,
-      isVoted: photo.voters.includes(userId),
-    }));
-    
-    res.status(200).json(updatedPhotos);
+    let filter = { eventId, approved: true };
+
+    // Nếu có userId, chỉ lấy bài dự thi của user đó
+    if (userId) {
+      filter.uploaderId = userId;
+    }
+
+    const photos = await Photo.find(filter).select("uploaderId uploaderName url title votes message voters createdAt");
+
+    if (!photos.length) {
+      return res.status(200).json([]); // Trả về mảng rỗng thay vì lỗi 404
+    }
+
+    res.status(200).json(photos);
   } catch (error) {
-    console.error("Error fetching photos:", error);
+    console.error("❌ Lỗi khi lấy ảnh:", error);
     res.status(500).json({ message: "Lỗi khi lấy danh sách ảnh!" });
   }
 };

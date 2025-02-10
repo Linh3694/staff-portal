@@ -12,7 +12,7 @@ import PizZip from 'pizzip';
 import { saveAs } from "file-saver";
 import axios from "axios";
 import Dropdown from "../../function/dropdown"
-import { IoLocationOutline, IoBuildOutline, IoBookOutline } from "react-icons/io5";
+import { IoLocationOutline, IoBuildOutline, IoBookOutline, IoCloudUploadOutline, IoCloudDownloadOutline } from "react-icons/io5";
 import Inspect from "../inspect/inspect";
 import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
 
@@ -20,14 +20,10 @@ import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ 
 const LaptopProductCard = ({
   laptopData,
   onCloseModal,
-  onUpdateSpecs,
   onRevoke,
   onAssign,
-  setSelectedLaptop,
   fetchLaptopDetails,
   onUpdateLaptop,
-  refetchLaptops,
-  onUpdateRoom
 }) => {
   console.log(laptopData)
   const [activeTab, setActiveTab] = useState("repairs");
@@ -102,7 +98,6 @@ const LaptopProductCard = ({
 
 
   useEffect(() => {
-    console.log(laptopData._id)
     const fetchInspectionData = async () => {
       setLoading(true);
       try {
@@ -131,7 +126,7 @@ const LaptopProductCard = ({
     };
   
     fetchInspectionData();
-  }, [laptopData._id]);
+  }, [laptopData._id, refreshKey]);
 
   const fetchActivities = async (entityType, entityId) => {
     const response = await axios.get(`${API_URL}/activities/${entityType}/${entityId}`);
@@ -139,7 +134,7 @@ const LaptopProductCard = ({
   };
   
   const addActivity = async (activity) => {
-  const response = await axios.post('${API_URL}/activities', {
+  const response = await axios.post(`${API_URL}/activities`, {
     ...activity,
     entityType: "laptop",
     entityId: laptopData._id,
@@ -528,19 +523,25 @@ const handleConfirmBroken = async () => {
     if (["releaseYear", "type", "manufacturer"].includes(field)) {
       payload[field] = value || null;
     } else {
-      payload.specs = {
-        [field]: value || null, // Chỉ gửi trường cần cập nhật
-      };
+      payload.specs = { [field]: value || null };
     }
   
-    console.log("Payload gửi đi:", payload);
-  
-    onUpdateSpecs(laptopData._id, payload)
-      .then((updatedLaptop) => {
+    axios
+      .put(`${API_URL}/laptops/${laptopData._id}/specs`, payload, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+      })
+      .then((response) => {
         toast.success("Cập nhật thông số thành công!");
+        
+        // Cập nhật state ngay lập tức
+        setLocalLaptop((prevLaptop) => ({
+          ...prevLaptop,
+          ...response.data, // Cập nhật dữ liệu mới từ server
+        }));
+  
+        // Reset trạng thái chỉnh sửa
         setEditField(null);
         setEditValue("");
-        setLocalLaptop(updatedLaptop); // Đồng bộ lại dữ liệu
       })
       .catch((error) => {
         console.error("Cập nhật thông số thất bại:", error);
@@ -561,7 +562,7 @@ const handleConfirmBroken = async () => {
       return;
     }
   
-    const fileUrl = `${API_URL}/laptops/BBBG/${filename}`;
+    const fileUrl = `${API_URL}/laptops/handover/${filename}`;
     const token = localStorage.getItem("authToken");
   
     try {
@@ -576,19 +577,15 @@ const handleConfirmBroken = async () => {
         throw new Error("Không thể tải file. Lỗi: " + response.statusText);
       }
   
-      // Chuyển đổi phản hồi thành Blob
+      // Tạo Blob URL để xem file
       const blob = await response.blob();
-  
-      // Tạo URL tạm thời từ Blob
       const blobUrl = window.URL.createObjectURL(blob);
   
-      // Mở file trong tab mới
       window.open(blobUrl, "_blank");
   
-      // Tùy chọn: Thu hồi URL tạm sau khi hoàn tất
       setTimeout(() => {
         window.URL.revokeObjectURL(blobUrl);
-      }, 10000); // Thu hồi sau 10 giây
+      }, 10000); // Thu hồi URL sau 10 giây
     } catch (error) {
       console.error("Lỗi khi xem file:", error);
       toast.error("Không thể xem file biên bản!");
@@ -652,52 +649,63 @@ const handleConfirmBroken = async () => {
     }
   };
   const handleFileUpload = (e) => {
-    const file = e.target?.files?.[0]; // Lấy file từ event
-    console.log("File tải lên:", file);
+    const file = e.target?.files?.[0];
   
     if (!file) {
       toast.error("Không có tệp nào được chọn!");
       return;
     }
   
-    // Kiểm tra định dạng file
-    if (!file.name.endsWith(".pdf")) {
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
       toast.error("Chỉ chấp nhận tệp PDF!");
       return;
     }
-        const formData = new FormData();
-        formData.append("file", file); // File tải lên
-        formData.append("laptopId", localLaptop._id); // ID laptop
-        formData.append("userId", currentHolder?.user?._id); // ID người dùng hiện tại
-    
-        axios
-        .post(`${API_URL}/laptops/upload`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        })
-        .then((response) => {
-          console.log("Upload response:", response.data);
-          toast.success("Tải lên thành công!");
-
-          // Cập nhật dữ liệu trong frontend
-          const updatedLaptop = response.data.laptop;
-          setLocalLaptop(updatedLaptop); // Đồng bộ lại state
-          setLocalStatus(updatedLaptop.status); // Cập nhật trạng thái hiển thị
-
-          // Cập nhật dữ liệu trong frontend
-          const updatedHolder = {
-            ...currentHolder,
-            document: response.data.document, // Cập nhật đường dẫn document
-          };
-          setCurrentHolder(updatedHolder); // Đồng bộ lại state
-        })
-        .catch((error) => {
-          console.error("Lỗi khi tải lên file:", error);
-          toast.error("Tải lên thất bại!");
-        });
-    };
+    console.log(currentHolder)
+    const userId = currentHolder?.user?._id;
+    const username = currentHolder?.user?.fullname || "Unknown"; // Lấy tên người dùng
+    console.log(username)
+    if (!userId) {
+      toast.error("Không tìm thấy ID người dùng, vui lòng thử lại!");
+      return;
+    }
+  
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("laptopId", localLaptop._id);
+    formData.append("userId", userId);
+    formData.append("username", username); // Gửi username lên backend
+  
+    console.log("📤 Dữ liệu gửi lên API:", {
+      laptopId: localLaptop._id,
+      userId,
+      username,
+    });
+  
+    axios
+      .post(`${API_URL}/laptops/upload`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      })
+      .then((response) => {
+        toast.success("Tải lên thành công!");
+  
+        setLocalLaptop((prevLaptop) => ({
+          ...prevLaptop,
+          assignmentHistory: response.data.laptop.assignmentHistory,
+        }));
+  
+        setCurrentHolder((prevHolder) => ({
+          ...prevHolder,
+          document: response.data.laptop.assignmentHistory.find(h => h.user === currentHolder.user._id)?.document,
+        }));
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi khi tải lên file:", error);
+        toast.error("Tải lên thất bại!");
+      });
+  };
   //--------------------------------------------------------------
     
   
@@ -898,14 +906,17 @@ const handleConfirmBroken = async () => {
     (a, b) => new Date(b.date) - new Date(a.date)
   );
 
-
-  const calculateMaintenanceStatus = (lastInspectionDate) => {
+//////////////////////////////////
+  // Cập nhật hàm tính trạng thái bảo trì
+  const calculateMaintenanceStatus = (lastInspectionDate, documentUrl) => {
     if (!lastInspectionDate) return { status: "Chưa kiểm tra", color: "bg-gray-400" };
-
     const monthsSinceLastInspection = dayjs().diff(dayjs(lastInspectionDate), "month");
-
     if (monthsSinceLastInspection <= 6) {
-      return { status: "Đã kiểm tra", color: "bg-green-500 text-white" };
+      if (documentUrl && documentUrl.toLowerCase().endsWith(".pdf")) {
+        return { status: "Đã kiểm tra", color: "bg-green-500 text-white" };
+      } else {
+        return { status: "Đã kiểm tra, thiếu biên bản", color: "bg-yellow-500 text-white" };
+      }
     } else if (monthsSinceLastInspection <= 12) {
       return { status: "Cần kiểm tra", color: "bg-yellow-500 text-white" };
     } else {
@@ -913,16 +924,70 @@ const handleConfirmBroken = async () => {
     }
   };
 
-  const handleViewInspectionReport = async () => {
-    console.log(lastInspection?.report?.fileName)
+  const handleViewReport = () => {
     if (!lastInspection?.documentUrl) {
-      toast.error("Không có file biên bản kiểm tra!");
+      toast.error("Không có file biên bản được tải lên!");
+      return;
+    }
+    // Giả sử BASE_URL chứa domain của API hoặc server file
+    const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
+    window.open(fileUrl, "_blank"); // Mở file trong tab mới
+  };
+  const handleDownloadReport = () => {
+    if (!lastInspection?.documentUrl) {
+      toast.error("Không có biên bản kiểm tra để tải về!");
       return;
     }
   
     const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
-    window.open(fileUrl, "_blank"); // Mở file trong tab mới
+    window.open(fileUrl, "_blank"); // Mở tab mới để tải xuống file
   };
+
+  // Hàm xử lý upload file PDF biên bản đã được scan (sau khi in và ký)
+  const handleFileUploadInspect = (e) => {
+    const file = e.target?.files?.[0];
+    if (!file) {
+      toast.error("Không có tệp nào được chọn!");
+      return;
+    }
+  
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Chỉ chấp nhận tệp PDF!");
+      return;
+    }
+  
+    console.log("📤 Inspect ID gửi lên:", lastInspection?._id);
+  
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("inspectId", lastInspection?._id); // Kiểm tra inspectId có giá trị hay không
+  
+    axios
+      .post(`${API_URL}/inspects/uploadReport`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      })
+      .then((response) => {
+        toast.success("Tải lên biên bản thành công!");
+        // Cập nhật ngay lập tức dữ liệu kiểm tra
+        setLastInspection(response.data.data);
+
+        // Cập nhật UI ngay lập tức
+        setRefreshKey((prev) => prev + 1);
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi khi tải lên file:", error);
+        toast.error("Tải lên thất bại!");
+      });
+  };
+
+  // Trong block hiển thị thông tin bảo trì bảo dưỡng, chúng ta sử dụng calculateMaintenanceStatus
+  const statusData = calculateMaintenanceStatus(
+    lastInspection?.inspectionDate,
+    lastInspection?.documentUrl
+  );
   
   // -----------------------------------------------------
   return (
@@ -1516,52 +1581,70 @@ const handleConfirmBroken = async () => {
                                     </div>
                             </div>
                       </div>
-                      <h3 className="text-sm font-semibold mt-4 mb-2">Thông tin bảo trì bảo dưỡng</h3>
-                      <div className="bg-[#E4E9EF] text-[#002147] rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 p-4">
-                       <div>
-                          {/* Hiển thị thông tin kiểm tra */}
-                          {loading ? (
-                            <p>Đang tải dữ liệu...</p>
-                          ) : lastInspection ? (
-                            <div className ="flex flex-row justify-between items-center">
-                              <div className="flex flex-row justify-start gap-2">
-                              <IoBuildOutline size={28} className="text-[#002147] mt-1" />
-                                 <div>
-                                <p className="text-sm mb-1 ml-2">
-                                  <span className="font-bold">Lần kiểm tra gần nhất:</span>{" "}
-                                  {dayjs(lastInspection.inspectionDate).format("DD/MM/YYYY")}
-                                </p>
-                                <p className="text-sm ml-2">
-                                  <span className="font-bold">Người kiểm tra:</span>{" "}
-                                  {lastInspection.inspectorName || "Không xác định"}
-                                </p>
-                                </div>
-                              </div>
-                              {lastInspection && lastInspection.documentUrl && (
-                                  <button onClick={handleViewInspectionReport}>
-                                      <IoBookOutline size={24} className="text-[#FF5733]" />
-                                  </button>
-                              )}
-                              
-                            </div>
-                          ) : (
-                            <p className="text-sm text-gray-500">Chưa có lịch sử kiểm tra.</p>
-                          )}
+                   {/* Block hiển thị thông tin bảo trì bảo dưỡng */}
+      <h3 className="text-sm font-semibold mt-4 mb-2">Thông tin bảo trì bảo dưỡng</h3>
+      <div className="bg-[#E4E9EF] p-4 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300">
+        {loading ? (
+          <p>Đang tải dữ liệu kiểm tra...</p>
+        ) : lastInspection ? (
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <IoBuildOutline size={28} className="text-[#002147]" />
+              <div>
+                <p className="text-sm font-bold ml-2">
+                  Lần kiểm tra gần nhất:{" "}
+                  {dayjs(lastInspection.inspectionDate).format("DD/MM/YYYY")}
+                </p>
+                <p className="text-sm ml-2">
+                  Người kiểm tra: {lastInspection.inspectorName || "Không xác định"}
+                </p>
+              </div>
+            </div>
+            {lastInspection.documentUrl && lastInspection.documentUrl.toLowerCase().endsWith(".pdf") && (
+              <button
+                onClick={handleViewReport}
+                className="px-2 py-1 text-[#002147] text-sm"
+              >
+                <IoBookOutline size={20} />
+              </button>
+            )}
+            {statusData.status === "Đã kiểm tra, thiếu biên bản" && (
+              <label className="px-2 py-1 text-[#002147] font-bold rounded text-xs cursor-pointer transform transition-transform duration-300 hover:scale-105">
+              <IoCloudUploadOutline size={22} /> 
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={handleFileUploadInspect}
+                className="hidden"
+              />
+            </label>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">Chưa có lịch sử kiểm tra.</p>
+        )}
 
-                          {/* Hiển thị trạng thái bảo trì */}
-                          <hr className="my-4 border-gray-300" />
-                          <div className="flex gap-2 items-center">
-                            <h4 className="text-sm font-semibold">Trạng thái bảo trì:</h4>
-                            <span
-                              className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
-                                calculateMaintenanceStatus(lastInspection?.inspectionDate).color
-                              }`}
-                            >
-                              {calculateMaintenanceStatus(lastInspection?.inspectionDate).status}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+        <hr className="my-4 border-gray-300" />
+
+        <div className="flex gap-2 items-center">
+          <h4 className="text-sm font-semibold">Trạng thái bảo trì:</h4>
+          <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${statusData.color}`}>
+            {statusData.status}
+          </span>
+          
+          {statusData.status === "Đã kiểm tra, thiếu biên bản" && (
+            <>
+            
+            <button 
+                onClick={handleDownloadReport}
+                className="px-2 py-1 text-white font-semibold text-sm rounded-lg shadow-2xl bg-[#002147] transform transition-transform duration-300 hover:scale-105"
+              >
+                In Biên bản
+              </button>
+            </>
+          )}
+        </div>
+      </div>
               </div>
               </>
         )}  

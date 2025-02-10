@@ -1,8 +1,12 @@
 const Laptop = require("../models/Laptop");
+const path = require("path");
+const fs = require("fs");
 const User = require("../models/Users");
 const Room = require("../models/Room")
 const mongoose = require("mongoose");
 const Notification = require('../models/notification'); 
+const upload = require("../middleware/uploadHandover"); // Middleware Multer
+
 
 // Lấy danh sách laptop
 exports.getLaptops = async (req, res) => {
@@ -438,5 +442,140 @@ exports.searchLaptops = async (req, res) => {
   } catch (error) {
     console.error("Error during search:", error.message);
     res.status(500).json({ message: "Lỗi khi tìm kiếm laptops", error: error.message });
+  }
+};
+
+exports.uploadHandoverReport = async (req, res) => {
+  console.log("📤 Dữ liệu nhận được từ frontend:", req.body);
+  try {
+    const { laptopId, userId, username } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "File không được tải lên." });
+    }
+
+    console.log("✅ Trong Controller - username nhận được:", username);
+
+    const filePath = req.file.path;
+    console.log("✅ Đường dẫn file đã lưu:", filePath);
+
+    const laptop = await Laptop.findById(laptopId);
+    if (!laptop) {
+      return res.status(404).json({ message: "Không tìm thấy thiết bị." });
+    }
+
+    console.log("✅ Tìm thấy laptop:", laptop);
+
+    let currentAssignment = laptop.assignmentHistory.find(
+      (history) => history.user.toString() === userId && !history.endDate
+    );
+
+    if (!currentAssignment) {
+      console.warn("⚠️ Không tìm thấy lịch sử bàn giao hợp lệ. Tạo bản ghi mới...");
+      laptop.assignmentHistory.push({
+        user: new mongoose.Types.ObjectId(userId),
+        startDate: new Date(),
+        document: filePath,
+      });
+
+      currentAssignment = laptop.assignmentHistory[laptop.assignmentHistory.length - 1];
+    } else {
+      console.log("🔄 Cập nhật lịch sử bàn giao hiện tại.");
+      currentAssignment.document = filePath;
+    }
+
+    laptop.status = "Active";
+    await laptop.save();
+
+    return res.status(200).json({
+      message: "Tải lên biên bản thành công!",
+      laptop,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi tải lên biên bản:", error);
+    res.status(500).json({ message: "Đã xảy ra lỗi server." });
+  }
+};
+
+// Endpoint để trả file PDF
+exports.getHandoverReport = async (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(__dirname, "../uploads/Handovers", filename);
+
+  // Kiểm tra file có tồn tại không
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "Không tìm thấy file." });
+  }
+
+  // Gửi file PDF
+  res.sendFile(filePath);
+};
+
+// Lấy thông tin chi tiết laptop
+exports.getLaptopById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const laptop = await Laptop.findById(id)
+      .populate("assigned", "fullname email jobTitle avatarUrl")
+      .populate("room", "name location status")
+      .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl")
+      .populate("assignmentHistory.assignedBy", "fullname email jobTitle avatarUrl")
+      .populate("assignmentHistory.revokedBy", "fullname email jobTitle avatarUrl");
+
+    if (!laptop) {
+      return res.status(404).json({ message: "Không tìm thấy laptop" });
+    }
+
+    res.status(200).json(laptop);
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin laptop:", error);
+    res.status(500).json({ message: "Lỗi máy chủ", error });
+  }
+};
+
+// Cập nhật thông tin specs của laptop
+exports.updateLaptopSpecs = async (req, res) => {
+  try {
+    console.log("Payload nhận được từ frontend:", req.body);
+
+    const { id } = req.params;
+    const { specs = {}, releaseYear, manufacturer, type } = req.body;
+
+    // Lấy laptop hiện tại từ DB
+    const currentLaptop = await Laptop.findById(id);
+    if (!currentLaptop) {
+      return res.status(404).json({ message: "Laptop không tồn tại." });
+    }
+
+    // Làm sạch dữ liệu specs
+    const cleanedSpecs = {
+      processor: specs.processor ?? currentLaptop.specs.processor,
+      ram: specs.ram ?? currentLaptop.specs.ram,
+      storage: specs.storage ?? currentLaptop.specs.storage,
+      display: specs.display ?? currentLaptop.specs.display,
+    };
+
+    // Cập nhật payload
+    const updates = {
+      specs: cleanedSpecs,
+      releaseYear: releaseYear ?? currentLaptop.releaseYear,
+      manufacturer: manufacturer ?? currentLaptop.manufacturer,
+      type: type ?? currentLaptop.type,
+    };
+
+    console.log("Payload để cập nhật (sau khi làm sạch):", updates);
+
+    const updatedLaptop = await Laptop.findByIdAndUpdate(id, updates, { new: true });
+
+    if (!updatedLaptop) {
+      return res.status(404).json({ message: "Không thể cập nhật laptop." });
+    }
+
+    console.log("Laptop sau khi cập nhật:", updatedLaptop);
+    res.status(200).json(updatedLaptop);
+  } catch (error) {
+    console.error("Lỗi khi cập nhật specs:", error);
+    res.status(500).json({ message: "Lỗi server" });
   }
 };

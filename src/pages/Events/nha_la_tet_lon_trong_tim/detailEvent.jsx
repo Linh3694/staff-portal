@@ -25,7 +25,8 @@ const DetailEvent = () => {
   const [isModalOpen, setModalOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [isPhotoReviewOpen, setPhotoReviewOpen] = useState(false);
-  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [selectedPhoto, setSelectedPhoto] = useState([]);
+  const [myPhotos, setMyPhotos] = useState([]);
   const [user, setUser] = useState(null); // Dữ liệu người dùng từ localStorage
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Hiển thị 15 ảnh mỗi trang
@@ -117,7 +118,7 @@ useEffect(() => {
 
   // Fetch danh sách ảnh dự thi
   useEffect(() => {
-    if (!event?._id) return; // 🔹 Tránh fetch nếu `event._id` chưa tồn tại.
+    if (!event?._id) return;
   
     const fetchPhotos = async () => {
       try {
@@ -132,7 +133,25 @@ useEffect(() => {
     };
   
     fetchPhotos();
-  }, [event?._id]); // ✅ Chỉ chạy khi `event._id` thay đổi.
+  }, [event?._id]);
+   
+  useEffect(() => {
+    if (!event?._id || !user?._id) return;
+  
+    const fetchUserPhotos = async () => {
+      try {
+        const response = await fetch(`${API_URL}/photos?eventId=${event._id}&userId=${user._id}`);
+        if (!response.ok) throw new Error("Không thể tải bài dự thi của tôi.");
+        const data = await response.json();
+        setMyPhotos(data);
+      } catch (error) {
+        console.error(error);
+        toast.error("Không thể tải bài dự thi của bạn.");
+      }
+    };
+  
+    fetchUserPhotos();
+  }, [event?._id, user?._id]);
 
   const prevLeaderboardRef = useRef(null); // 🔹 Lưu dữ liệu cũ để so sánh
 
@@ -526,33 +545,25 @@ useEffect(() => {
               }}>
               <div className="lg:w-[1360px] xs:w-full mx-auto items-center justify-center p-4">
                 <h2 className="text-2xl text-[#b42b23] font-bold text-center mb-6">{t("my_submission")}</h2>
-                {photos.filter(photo => photo.uploaderId === user?._id).length === 0 ? (
-                  // Nếu chưa có bài dự thi
-                  <div className="flex justify-center items-center bg-gray-300 lg:w-[720px] lg:h-[340px] xs:w-[340px] h-[170px] mx-auto rounded-lg shadow-md">
-                    <p className="text-gray-600 text-lg">{t("my_submission_empty")}</p>
-                  </div>
-                ) : (
-                  // Nếu đã có bài dự thi (Hiển thị theo hàng, không scroll)
-                  <div className="justify-center items-center mx-auto lg:grid lg:grid-cols-5 lg:gap-4 xs:flex xs:flex-wrap xs:gap-4">
-                    {photos
-                      .filter(photo => photo.uploaderId === user?._id)
-                      .map((photo) => (
-                        <div key={photo._id} className="relative bg-white rounded-lg overflow-hidden shadow-md lg:max-w-[260px] lg:w-[260px] lg:h-[340px] xs:basis-1/3 xs:max-w-[110px] xs:h-[170px] xs:mx-auto">
-                          {/* Ảnh bài dự thi */}
-                          <img src={`${BASE_URL}${photo.url}`} alt={photo.message} className="w-full h-full object-cover" onClick={() => openPhotoReview(photo)}/>
-                          {/* Tên ảnh ở góc dưới bên trái */}
-                          <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg 
-                          w-[90%] overflow-hidden whitespace-nowrap text-ellipsis">
-                          {photo.title || "Không tiêu đề"}
-                        </div>
-                          {/* Số lượng tim ở góc trên bên phải */}
-                          <div className="absolute flex-row top-2 right-2 bg-white bg-opacity-60 text-[#B42B23] text-md font-semibold px-3 py-1 rounded-full">
-                          <div className="flex flex-row gap-1 items-center justify-center font-bold"><FiHeart size={20} /> <span>{photo.votes}</span></div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
+               {/* Chỉ hiển thị bài dự thi của user đăng nhập */}
+               {photos?.length > 0 && <p>{photos.length} ảnh đã được tải lên.</p>}
+
+{myPhotos && myPhotos.length === 0 ? (
+  <div className="flex justify-center items-center bg-gray-300 lg:w-[720px] lg:h-[340px] xs:w-[340px] h-[170px] mx-auto rounded-lg shadow-md">
+    <p className="text-gray-600 text-lg">{t("my_submission_empty")}</p>
+  </div>
+) : (
+  <div className="justify-center items-center mx-auto lg:grid lg:grid-cols-5 lg:gap-4 xs:flex xs:flex-wrap xs:gap-4">
+    {myPhotos?.map((photo) => (
+      <div key={photo._id} className="relative bg-white rounded-lg overflow-hidden shadow-md lg:max-w-[260px] lg:w-[260px] lg:h-[340px] xs:basis-1/3 xs:max-w-[110px] xs:h-[170px] xs:mx-auto">
+        <img src={`${BASE_URL}${photo.url}`} alt={photo.message} className="w-full h-full object-cover" onClick={() => openPhotoReview(photo)} />
+        <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg w-[90%] overflow-hidden whitespace-nowrap text-ellipsis">
+          {photo.title || "Không tiêu đề"}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
               </div>         
             </section> 
 
@@ -593,6 +604,7 @@ useEffect(() => {
               </div>
 
               {/* Lưới hiển thị ảnh */}
+              {/* Lưới hiển thị tất cả bài dự thi của thử thách */}
               <div className="lg:w-[1390px] lg:mx-auto lg:grid lg:grid-cols-5 lg:gap-5 xs:w-full xs:mx-auto xs:flex xs:flex-wrap xs:gap-2 xs:ml-2 justify-center items-center">
                 {paginatedPhotos.length > 0 ? (
                   paginatedPhotos.map((photo) => (
@@ -600,29 +612,22 @@ useEffect(() => {
                       lg:max-w-[260px] lg:w-[260px] lg:h-[340px] xs:basis-1/3 xs:max-w-[110px] xs:h-[170px] xs:mx-auto"
                       onClick={() => openPhotoReview(photo)}
                     >
-                      {/* Ảnh dự thi */}
                       <img
-                        key={photo._id}
                         src={BASE_URL + photo.url}
                         alt={photo.title}
-                        onClick={() => openPhotoReview(photo)}
                         className="w-full h-full object-cover"
                       />
-                      
-                      {/* Hiển thị số tim góc trên bên phải */}
                       <div className="absolute flex-row top-2 right-2 bg-white bg-opacity-60 text-[#B42B23] text-md font-semibold px-3 py-1 rounded-full">
-                          <div className="flex flex-row gap-1 items-center justify-center font-bold"><FiHeart size={20} /> <span>{photo.votes}</span></div>
+                        <div className="flex flex-row gap-1 items-center justify-center font-bold"><FiHeart size={20} /> <span>{photo.votes}</span></div>
                       </div>
-
-                      {/* Tên ảnh góc dưới bên trái */}
-                        <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg 
-                          w-[90%] overflow-hidden whitespace-nowrap text-ellipsis">
-                          {photo.title || "Không tiêu đề"}
-                        </div>
+                      <div className="absolute bottom-2 left-2 text-white text-base px-2 py-1 rounded-tr-lg 
+                        w-[90%] overflow-hidden whitespace-nowrap text-ellipsis">
+                        {photo.title || "Không tiêu đề"}
+                      </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-center text-white text-lg"></p>
+                  <p className="text-center text-white text-lg">Chưa có bài dự thi nào.</p>
                 )}
               </div>
 
