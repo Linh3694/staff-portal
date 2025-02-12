@@ -2,12 +2,12 @@ const express = require("express");
 const router = express.Router();
 const ticketController = require("../controllers/ticketController");
 const authenticate = require("../middleware/authMiddleware");
-const upload = require("../middleware/upload");
+const upload = require("../middleware/uploadTicket");
 
 
 
 // a) Tạo ticket
-router.post("/", authenticate, upload.array("attachments", 5), ticketController.createTicket);
+router.post("/", authenticate, upload.array("attachments", 15), ticketController.createTicket);
 
 // b) Lấy danh sách tickets
 router.get("/", authenticate, ticketController.getTickets);

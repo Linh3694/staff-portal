@@ -14,8 +14,8 @@ function FlipViewPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   // Mặc định chiều rộng/cao
-  const [pageWidth, setPageWidth] = useState(500);
-  const [pageHeight, setPageHeight] = useState(650);
+  const [pageWidth, setPageWidth] = useState(350);
+  const [pageHeight, setPageHeight] = useState(500);
 
   // 1) Lấy danh sách ảnh từ API
   useEffect(() => {
@@ -46,7 +46,7 @@ function FlipViewPage() {
       img.src = images[0];
       img.onload = () => {
         const ratio = img.naturalWidth / img.naturalHeight;
-        const maxHeight = 650;
+        const maxHeight = 500;
         setPageHeight(maxHeight);
         setPageWidth(Math.round(ratio * maxHeight));
       };

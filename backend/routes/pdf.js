@@ -7,5 +7,7 @@ const pdfController = require("../controllers/pdfController");
 router.post("/upload-pdf", upload.single("pdfFile"), pdfController.uploadPdf);
 router.get("/get-images/:customName", pdfController.getImages);
 router.get("/get-all-pdfs", pdfController.getAllPdfs);
+router.put("/update-customname/:id", pdfController.updateCustomName )
+router.delete("/delete-pdf/:id", pdfController.deletePdf);
 
 module.exports = router;

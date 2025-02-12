@@ -1,12 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import { API_URL } from "../../config"; // import từ file config
 import { FaUpload, FaXmark } from "react-icons/fa6";
+import ReactDOM from "react-dom";
+import { FiEdit, FiTrash2} from "react-icons/fi";
+import { toast } from "react-toastify";
+
 
 function FlippageAdmin() {
   console.log("AdminPage Loaded");
   const [selectedFile, setSelectedFile] = useState(null);
   const [customName, setCustomName] = useState("");
   const [fileList, setFileList] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [newCustomName, setNewCustomName] = useState("");
+  const [editingFile, setEditingFile] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingFile, setDeletingFile] = useState(null);
   const fileInputRef = useRef(null); // Ref cho input file
 
   // Gọi API lấy danh sách tất cả file PDF từ MongoDB
@@ -14,6 +24,7 @@ function FlippageAdmin() {
     fetch(`${API_URL}/flippage/get-all-pdfs`)
       .then((res) => res.json())
       .then((data) => {
+        console.log("🔍 API Response:", data); // Kiểm tra dữ liệu có `_id` không
         if (Array.isArray(data)) {
           setFileList(data);
         }
@@ -31,6 +42,79 @@ function FlippageAdmin() {
       fileInputRef.current.value = ""; // Reset giá trị input file
     }
   };
+
+  const handleEdit = (file) => {
+    setEditingFile(file);
+    setNewCustomName(file.customName);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateCustomName = async () => {
+    if (!editingFile) return;
+    try {
+      const res = await fetch(
+        `${API_URL}/flippage/update-customname/${editingFile._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ newCustomName }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Cập nhật thất bại");
+      }
+
+      const data = await res.json();
+      console.log("✅ Cập nhật thành công:", data);
+
+      setFileList((prev) =>
+        prev.map((file) =>
+          file._id === editingFile._id
+            ? { ...file, customName: newCustomName }
+            : file
+        )
+      );
+      toast.success("Cập nhật thành công!");
+      setShowEditModal(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Có lỗi khi cập nhật customName");
+    }
+  };
+
+  // Khi nhấn nút xoá: mở modal xác nhận xoá
+  const handleDeleteClick = (file) => {
+    if (!file._id) {
+      toast.error("Lỗi: Không tìm thấy ID tài liệu.");
+      return;
+    }
+    setDeletingFile(file);
+    setShowDeleteModal(true);
+  };
+
+  // Hàm gọi API xoá sau khi người dùng xác nhận
+  const confirmDelete = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/flippage/delete-pdf/${id}`, {
+        method: "DELETE",
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        toast.error("Xóa thất bại: " + text);
+        throw new Error("Xóa thất bại: " + text);
+      }
+      setFileList((prev) => prev.filter((file) => file._id !== id));
+      toast.success("Xóa tài liệu thành công!");
+    } catch (err) {
+      console.error("❌ Lỗi khi xóa tài liệu:", err);
+      toast.error(err.message);
+    } finally {
+      setShowDeleteModal(false);
+      setDeletingFile(null);
+    }
+  };
+
 
   const handleSubmit = async () => {
     if (!selectedFile) {
@@ -160,6 +244,10 @@ function FlippageAdmin() {
                     <p className="text-sm font-bold text-gray-500">Ngày tạo
                     </p>
                 </th>
+                <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                    <p className="text-sm font-bold text-gray-500">Hành Động
+                    </p>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -168,10 +256,10 @@ function FlippageAdmin() {
                   <td className="text-[#002147] border-white/0 py-3 pr-4 ">
                     <p className="text-sm font-bold text-navy-700">{index + 1}</p>
                   </td>
-                  <td className="border-white/0 py-3 pr-4">
+                  <td className="max-w-[400px] border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">{file.fileName}</p>
                   </td>
-                  <td className="border-white/0 py-3 pr-4">
+                  <td className="max-w-[400px] border-white/0 py-3 pr-4">
                     <a href={`/${file.customName}`} target="_blank" rel="noopener noreferrer">
                       <p className="text-sm font-bold text-navy-700">{file.customName}</p>
                     </a>
@@ -179,16 +267,95 @@ function FlippageAdmin() {
                   <td className="border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">{file.uploadDate}</p>
                   </td>
+                  <td className="border-white/0 py-3 pr-4">
+                  <div className="flex space-x-2">
+                    <button onClick={() => handleEdit(file)} 
+                            className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105">
+                      <FiEdit size={14} />
+                    </button>
+                    <button
+                        onClick={() => handleDeleteClick(file)}
+                        className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                  </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
+              {showEditModal && editingFile && ReactDOM.createPortal(
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    onClick={() => setShowEditModal(false)}>
+                  <div className="bg-white p-6 rounded-lg shadow-lg w-1/3"
+                      onClick={(e) => e.stopPropagation()}>
+                    <h3 className="text-xl font-bold text-[#002147] mb-4">Cập nhật Custom Name</h3>
+                    
+                    <label className="block text-gray-600 font-medium mb-2">Đường dẫn mới</label>
+                    <input
+                      type="text"
+                      value={newCustomName}
+                      onChange={(e) => setNewCustomName(e.target.value)}
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                    />
+
+                    <div className="flex justify-end mt-4 space-x-2">
+                      <button onClick={() => setShowEditModal(false)}
+                              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg">
+                        Hủy
+                      </button>
+                      <button onClick={handleUpdateCustomName}
+                              className="px-4 py-2 bg-[#002147] text-white rounded-lg">
+                        Cập nhật
+                      </button>
+                    </div>
+                  </div>
+                </div>,
+                document.body
+              )}
+
+              {/* Modal xác nhận xoá */}
+              {showDeleteModal &&
+                deletingFile &&
+                ReactDOM.createPortal(
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
+                      <h3 className="text-xl font-bold text-[#002147] mb-4">
+                        Xác nhận xóa
+                      </h3>
+                      <p>
+                        Bạn có chắc chắn muốn xóa tài liệu{" "}
+                        <strong>{deletingFile.fileName}</strong> không?
+                      </p>
+                      <div className="flex justify-end mt-4 space-x-2">
+                        <button
+                          onClick={() => setShowDeleteModal(false)}
+                          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          onClick={() => confirmDelete(deletingFile._id)}
+                          className="px-4 py-2 bg-orange-red text-white rounded-lg"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </div>
+                  </div>,
+                  document.body
+                )}
           </table>
         ) : (
           <p>Chưa có file nào được upload.</p>
         )}
         </div>
     </div>
+
+    
   );
 }
+
+
 
 export default FlippageAdmin;
