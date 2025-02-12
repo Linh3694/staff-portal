@@ -102,7 +102,7 @@ router.get("/microsoft/callback", (req, res, next) => {
         process.env.JWT_SECRET,
         { expiresIn: "30d" }
       );
-      const frontendURL = process.env.FRONTEND_URL || "https://staff-portal.wellspring.edu.vn/";
+      const frontendURL = process.env.FRONTEND_URL || "https://staff-portal.wellspring.edu.vn";
       
       // Nếu user cần cập nhật thông tin (chưa hoàn tất hồ sơ)
       if (user.needProfileUpdate) {
