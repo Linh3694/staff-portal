@@ -8,17 +8,13 @@ import {
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
-import Ticket from "./pages/Ticket";
-import AuthForm from "./pages/Events/nha_la_tet_lon_trong_tim/AuthForm";
-import Event from "./pages/Events/nha_la_tet_lon_trong_tim/Event";
-import DetailEvent from "./pages/Events/nha_la_tet_lon_trong_tim/detailEvent";
-import EventManagement from "./pages/Events/nha_la_tet_lon_trong_tim/EventManagement";
 import MicrosoftAuthSuccess from "./pages/MicrosoftAuthSuccess";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./i18n";
+import FlipViewPage from "./pages/FlipViewPage";
 
 // PublicRoute: Nếu người dùng đã đăng nhập, chuyển hướng về Dashboard
 function PublicRoute({ children }) {
@@ -90,6 +86,12 @@ function App() {
       />
       <Router>
         <Routes>
+        <Route
+          path="/:customName"
+          element={
+              <FlipViewPage />
+          }
+        />
           {/* Trang Login */}
           <Route
             path="/login"
@@ -111,23 +113,23 @@ function App() {
           } />
 
           {/* Trang Ticket - Yêu cầu đăng nhập */}
-          <Route
+          {/* <Route
             path="/ticket"
             element={
               <RequireAuth>
                 <Ticket />
               </RequireAuth>
             }
-          />
+          /> */}
 
           {/* Trang Auth dành cho Event */}
-          <Route
+          {/* <Route
             path="/auth"
             element={<AuthForm setIsEventAuthenticated={setIsEventAuthenticated} />}
-          />
+          /> */}
 
           {/* Trang Event (yêu cầu xác thực riêng) */}
-          <Route
+          {/* <Route
             path="/event_tet2025"
             element={
               isEventAuthenticated ? (
@@ -136,19 +138,19 @@ function App() {
                 <Navigate to="/auth" />
               )
             }
-          />
+          /> */}
 
           {/* Trang chi tiết Event */}
-          <Route
+          {/* <Route
             path="/event_tet2025/:slug"
             element={isEventAuthenticated ? <DetailEvent /> : <RequireEventAuth />}
-          />
+          /> */}
 
           {/* Trang quản lý Event */}
-          <Route
+          {/* <Route
             path="/event-management"
             element={isEventAuthenticated ? <EventManagement /> : <Navigate to="/auth" />}
-          />
+          /> */}
 
           {/* Default route: Nếu truy cập URL không xác định, chuyển về trang Login */}
           <Route path="*" element={<Navigate to="/login" replace />} />

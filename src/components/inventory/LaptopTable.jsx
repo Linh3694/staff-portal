@@ -929,7 +929,7 @@ const LaptopTable = () => {
                                 Thêm mới
                             </button>
                             <button
-                                className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
+                                className="px-3 py-2 bg-[#FF5733] text-white text-sm font-bold  rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
                                 onClick={() => setShowUploadModal(true)}>
                                 Upload
                             </button>

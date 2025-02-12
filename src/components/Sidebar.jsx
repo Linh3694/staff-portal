@@ -10,6 +10,7 @@ import {
   FiUsers,
   FiHome,
   FiFolder,
+  FiBook,
 } from "react-icons/fi";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "../components/ui/accordion";
 import { cn } from "../lib/utils";
@@ -49,11 +50,13 @@ const Sidebar = ({
     },
     {
       title: "Workspace",
-      allowedRoles: ["superadmin", "admin", "technical"],
+      allowedRoles: ["superadmin", "admin", "technical", "marcom-user"],
       subItems: [
+        { label: "Tickets", icon: <FiMonitor size={16} />, link: "/dashboard/ticket", allowedRoles: ["superadmin", "admin", "marcom-user","user","technical"] },
         { label: "Quản lý thiết bị", icon: <FiMonitor size={16} />, link: "/dashboard/devices" },
         { label: "Quản lý Tickets", icon: <FiClipboard size={16} />, link: "/dashboard/tickets" },
         { label: "Quản lý tài liệu", icon: <FiFolder size={16} />, link: "/dashboard/documents" },
+        { label: "Phần mềm lật trang", icon: <FiBook size={16} />, link: "/dashboard/flippageadmin", allowedRoles: ["superadmin", "admin", "marcom-user"] },
       ],
     },
     {

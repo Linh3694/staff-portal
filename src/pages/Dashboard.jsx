@@ -10,18 +10,21 @@ import MonitorTable from "../components/inventory/MonitorTable";
 import PrinterTable from "../components/inventory/PrinterTable";
 import ProjectorTable from "../components/inventory/ProjectorTable";
 import ToolTable from "../components/inventory/ToolTable";
+import Ticket from "../components/ticket/Ticket";
 import TicketAdminTable from "../components/ticket/TicketAdminTable";
 import TeamManagement from "../components/ticket/TeamManagement";
 import TicketReports from "../components/ticket/TicketReports";
-import StudentTable from "../components/StudentTable";
-import UserTable from "../components/UserTable";
-import RoomTable from "../components/RoomTable";
-import Profile from "../components/Profile";
+import StudentTable from "../components/management/StudentTable";
+import UserTable from "../components/management/UserTable";
+import RoomTable from "../components/management/RoomTable";
+import Profile from "../components/profile/Profile";
 import Sidebar from "../components/Sidebar";
 import DocumentTable from "../components/document/DocumentTable";
 import DocumentDashboard from "../components/document/DocumentDashboard";
-import NewsfeedPage from "./NewsfeedPage"
+import NewsfeedPage from "./NewsfeedPage";
+import FlippageAdmin from "../components/flippage/flippage-admin";
 import { API_URL, BASE_URL } from "../config";
+import ChatPage from "../components/chat/ChatPage"
 
 const menuToUrl = {
   "Quản lý thiết bị": "devices",
@@ -34,6 +37,7 @@ const urlToMenu = {
      tickets: "Quản lý Tickets",
      documents: "Quản lý tài liệu",
      newsfeeds: "Newsfeeds",
+     flippageadmin: "Phần mềm lật trang",
      chat: "Chat",
      profile: "Hồ sơ cá nhân",
      users: "Quản lý người dùng",
@@ -100,11 +104,6 @@ const Dashboard = () => {
     }
   }, [location]);
 
-  // Cập nhật URL khi chọn submenu
-  const handleSelectSubMenu = (menu) => {
-    setSelectedSubMenu(menu);
-    navigate(`/dashboard/${menuToUrl[menu] || "dashboard"}`); // Chuyển đổi submenu thành URL ngắn
-  };
 
   // Khi thay đổi submenu được chọn, nếu mục đó có tab thì mặc định chọn tab đầu tiên
   useEffect(() => {
@@ -260,12 +259,17 @@ const Dashboard = () => {
         return (
           <NewsfeedPage currentUser={currentUser} />
         );
+      case "Phần mềm lật trang":
+        return(
+          <FlippageAdmin />
+        )
+      case "Tickets":
+        return(
+          <Ticket currentUser={currentUser}/>
+        )
       case "Chat":
         return (
-          <div>
-            <h2 className="text-2xl font-semibold mb-4 text-[#002147]">Chat</h2>
-            <p>Nội dung Chat ở đây.</p>
-          </div>
+         <ChatPage currentUser={currentUser} />
         );
       case "Hồ sơ cá nhân":
         return (
@@ -293,11 +297,11 @@ const Dashboard = () => {
     <div className="min-h-screen bg-[#f8f8f8]">
       {/* Header */}
       <nav
-          className={`sticky top-4 flex items-center justify-between rounded-full bg-white/10 p-2 backdrop-blur-xl transition-all duration-300 ${
+          className={`sticky top-4 flex items-center justify-between rounded-full bg-white/10 p-2 backdrop-blur-xl transition-all duration-300 z-50 ${
             isSidebarOpen || isSidebarHovered ? "ml-64" : "ml-24"
           }`}
         >       
-         <div className="flex-1 flex justify-center">
+         <div className="flex-1 flex justify-center ">
           {/* Nếu mục được chọn có định nghĩa tab (ví dụ: Quản lý thiết bị, Quản lý Tickets) thì hiển thị thanh tab */}
           {tabMapping[selectedSubMenu] && (
             <div className="flex items-center gap-1 h-[61px] bg-white p-4 rounded-full shadow-xl border">

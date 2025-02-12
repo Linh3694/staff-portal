@@ -16,30 +16,7 @@ const validateToken = require("../middleware/validateToken");
 const multer = require('multer');
 const path = require('path');
 
-// Cấu hình thư mục lưu trữ
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'uploads', 'BBBG');
-    cb(null, uploadDir); // Đường dẫn thư mục BBBG
-  },
-  filename: (req, file, cb) => {
-    // Đặt tên file theo định dạng: toolId-currentHolderId-timestamp.pdf
-    const { toolId, userId } = req.body;
-    const timestamp = Date.now();
-    cb(null, `${toolId}-${userId}-${timestamp}.pdf`);
-  },
-});
-
 const fs = require("fs");
-
-const uploadPath = "./BBBG"; // Thư mục lưu file
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath);
-}
-
-// Middleware multer
-const upload = multer({ storage });
-
 
 router.use(validateToken);
 
@@ -128,66 +105,6 @@ router.post("/:id/revoke", revokeTool);
 
 router.put("/:id/status", updateToolStatus);
 
-// Endpoint upload tệp
-router.post("/upload", upload.single("file"), async (req, res) => {
-  try {
-    const { toolId, userId } = req.body;
 
-    if (!req.file) {
-      return res.status(400).json({ message: "File không được tải lên." });
-    }
-
-    const filePath = `/BBBG/${req.file.filename}`; // Đường dẫn file
-
-    const tool = await Tool.findById(toolId);
-    if (!tool) {
-      return res.status(404).json({ message: "Không tìm thấy thiết bị." });
-    }
-
-    // Tìm lịch sử bàn giao hiện tại (chưa có endDate)
-    // Tìm lịch sử bàn giao hiện tại (chưa có endDate)
-    const currentAssignment = tool.assignmentHistory.find(
-      (history) => history.user && history.user.toString() === userId && !history.endDate
-    );
-
-    if (!currentAssignment) {
-      return res.status(404).json({
-        message: "Không tìm thấy lịch sử bàn giao hiện tại.",
-        assignmentHistory: tool.assignmentHistory, // In thêm dữ liệu để kiểm tra
-      });
-    }
-
-    // Cập nhật document cho lịch sử hiện tại
-    currentAssignment.document = filePath;
-
-    // Cập nhật trạng thái thiết bị (nếu cần)
-    tool.status = "Active";
-
-    // Lưu thay đổi
-    await tool.save();
-
-    return res.status(200).json({
-      message: "Tải lên biên bản thành công!",
-      tool,
-    });
-  } catch (error) {
-    console.error("Lỗi khi tải lên biên bản:", error);
-    res.status(500).json({ message: "Đã xảy ra lỗi server." });
-  }
-});
-
-// Endpoint để trả file PDF
-router.get('/BBBG/:filename', async (req, res) => {
-  const { filename } = req.params;
-  const filePath = path.join(__dirname, 'uploads', 'BBBG', filename);
-
-  // Kiểm tra file có tồn tại không
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ message: 'Không tìm thấy file.' });
-  }
-
-  // Gửi file PDF
-  res.sendFile(filePath);
-});
 
 module.exports = router;

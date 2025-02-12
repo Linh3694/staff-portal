@@ -51,11 +51,11 @@ code {
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translate(-50%, 50px); /* Bao gồm -50% theo X để giữ căn giữa */
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, 0);   /* Giữ -50% theo X */
   }
 }
 
@@ -76,4 +76,32 @@ code {
 
 .animate-slide-down {
   animation: slideDown 1s ease-out;
+}
+
+@keyframes slideFromLeft {
+  from {
+    opacity: 0;
+    transform: translate(calc(-50% - 30px), 0); /* -50% giữ căn giữa, thêm dịch chuyển từ trái 30px */
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+.animate-slide-from-left {
+  animation: slideFromLeft 1s ease-out;
+}
+
+@keyframes slideFromRight {
+  from {
+    opacity: 0;
+    transform: translate(calc(-50% + 30px), 0); /* -50% giữ căn giữa, +30px dịch chuyển từ phải */
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+.animate-slide-from-right {
+  animation: slideFromRight 1s ease-out;
 }

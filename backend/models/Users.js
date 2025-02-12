@@ -58,6 +58,8 @@ const userSchema = new mongoose.Schema({
   employeeCode: { 
     type: String, 
     unique: true }, // Thêm trường Mã nhân viên
+    
+  lastSeen: { type: Date, default: Date.now },
 
   attendanceLog: [
       {

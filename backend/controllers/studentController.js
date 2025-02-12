@@ -77,22 +77,66 @@ exports.getStudentById = async (req, res) => {
 exports.updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { studentCode, name, email, klass,  birthYear } = req.body;
+    const { studentCode, name, email, klass, birthYear } = req.body;
 
-    const updatedStudent = await Student.findByIdAndUpdate(
-      id,
-      { studentCode, name, email, klass, birthYear },
-      { new: true }
-    );
-
-    if (!updatedStudent) {
+    // Kiểm tra học sinh tồn tại
+    const existingStudent = await Student.findById(id);
+    if (!existingStudent) {
       return res.status(404).json({ message: "Không tìm thấy học sinh!" });
     }
+
+    // Xử lý `klass` để tránh nhân đôi và đảm bảo `className` không bị thiếu
+    let updatedKlass = existingStudent.klass || [];
+
+    if (klass) {
+      let parsedKlass = [];
+
+      if (typeof klass === "string") {
+        try {
+          parsedKlass = JSON.parse(klass);
+        } catch (error) {
+          return res.status(400).json({ message: "Lỗi phân tích JSON cho 'klass'!" });
+        }
+      } else if (Array.isArray(klass)) {
+        parsedKlass = klass;
+      }
+
+      // Lọc bỏ các mục `className` bị thiếu hoặc không hợp lệ
+      parsedKlass = parsedKlass
+        .filter(k => k.className && typeof k.className === "string" && k.className.trim() !== "")
+        .map(k => ({
+          year: k.year || new Date().getFullYear(), // Nếu thiếu `year`, dùng năm hiện tại
+          className: k.className.trim() // Loại bỏ khoảng trắng thừa
+        }));
+
+      // Duyệt danh sách lớp mới và chỉ thêm nếu chưa tồn tại
+      parsedKlass.forEach(newClass => {
+        const exists = updatedKlass.some(existingClass =>
+          existingClass.year === newClass.year && existingClass.className === newClass.className
+        );
+        if (!exists) {
+          updatedKlass.push(newClass);
+        }
+      });
+    }
+
+    // Cập nhật học sinh
+    const updatedStudent = await Student.findByIdAndUpdate(
+      id,
+      {
+        studentCode,
+        name,
+        email,
+        klass: updatedKlass, // Chỉ cập nhật danh sách lớp hợp lệ
+        birthYear,
+      },
+      { new: true, runValidators: true }
+    );
 
     res.json(updatedStudent);
   } catch (error) {
     console.error("Error updating student:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Lỗi server khi cập nhật học sinh!" });
   }
 };
 

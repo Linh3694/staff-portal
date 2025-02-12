@@ -137,154 +137,56 @@ import { API_URL } from "../config"; // import từ file config
   };
 
   return (
-    <div
-    style={{
-      height: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundImage: `url(${process.env.PUBLIC_URL + '/login_theme.svg'})`, // Truy cập file trong public
-      backgroundSize: 'contain',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-    }} >
-      <div className="absolute text-center top-20 left-28 text-5xl font-bold animate-slide-down">
-        <span className="font-bold ">360° </span>
-        <span className="text-red-500 font-bold ">W</span>
-        <span className="text-orange-500 font-bold">I</span>
-        <span className="text-green-500 font-bold">S</span>
-        <span className="text-[#002147]">ers</span>
-        <div className="text-2xl font-semibold mt-2">
-          Warmheart <span className="mx-1">||</span> Innovation minds <span className="mx-1">||</span> Sharing
+    <div className="min-h-screen bg-[#EDEDED]" >
+      
+      <div className="absolute top-4 left-20 flex flex-col items-start">
+        {/* Logo */}
+        <div className="flex items-center gap-5 animate-slide-down">
+          <img src="/login/wellsping-logo.png" alt="Logo 2" className="w-36 h-20" />
+          <img src="/login/happyjourney.png" alt="Logo 1" className="w-32 h-28" />
         </div>
+
+        {/* Tiêu đề 360° WISers */}
+        <h1 className="text-6xl font-bold mt-16 ">
+          <span className="font-normal" style={{ color: "#2B6478" }}>360°</span>{" "}
+          <span style={{ color: "#F05023" }}>W</span>
+          <span style={{ color: "#F5AA1E" }}>I</span>
+          <span style={{ color: "#009483" }}>S</span>
+          <span style={{ color: "#2B6478" }}>ers</span>
+        </h1>
+
+        {/* Slogan Warm heart... */}
+        <div className="text-2xl text-[#002855] font-medium mt-6">
+          <span className="mr-2">Warm heart</span> | 
+          <span className="mx-2">Innovation minds</span> | 
+          <span className="ml-2">Sharing</span>
+        </div>
+
+        {/* Câu slogan bên dưới */}
+        <p className="text-[#002855] text-2xl font-light mt-10">
+          Đồng hành cùng nhà giáo, thắp sáng niềm say mê công việc! ✨
+        </p>
       </div>
-
-
-      <div className="w-[400px] absolute left-36 top-1/4 animate-slide-up">
-        <h1 className="text-3xl font-bold text-[#002147] mb-8 text-center">Bắt đầu nào</h1>
+     
+      
+      <div className="absolute top-24 right-32 items-center ">
+      <img src="/login/building.svg" alt="Building" />
+      </div>
+      <div className="w-[400px] fixed bottom-16 left-1/2 transform -translate-x-1/2 animate-slide-up">
         {/* Nút đăng nhập với Microsoft */}
         <button
           onClick={handleMicrosoftLogin}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg mb-4 hover:bg-blue-700 transition-all"
+          className="w-full bg-[#002147] text-white py-3 font-bold rounded-full mb-4 hover:bg-[#1a3a5e] transition-all flex items-center justify-center gap-2"
         >
+          <img src="/login/microsoft.svg" alt="Microsoft" className="w-5 h-5 " />
           Đăng nhập với Microsoft
         </button>
-
-        <div className="flex items-center mb-4">
-          <hr className="flex-grow border-gray-300" />
-          <span className="mx-2 text-gray-500">hoặc</span>
-          <hr className="flex-grow border-gray-300" />
-        </div>
-
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="relative">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleEmailChange}
-              className={`w-full px-4 py-3 rounded-lg border ${errors.email ? "border-[#FF5733]" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-[#002147] transition-all duration-300`}
-              placeholder="example@wellspring.edu.vn"
-              autoComplete="email"
-              aria-invalid={errors.email ? "true" : "false"}
-              aria-describedby={errors.email ? "email-error" : undefined}
-            />
-            {errors.email && (
-              <p id="email-error" className="mt-1 text-sm text-[#FF5733]" role="alert">
-                {errors.email}
-              </p>
-            )}
-            {suggestedEmails.length > 0 && (
-              <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg">
-                {suggestedEmails.map((email, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                    onClick={() => selectSuggestedEmail(email)}
-                  >
-                    {email}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="relative">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Mật khẩu
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handlePasswordChange}
-                className={`w-full px-4 py-3 rounded-lg border ${errors.password ? "border-[#FF5733]" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-[#002147] transition-all duration-300`}
-                placeholder="Nhập mật khẩu"
-                autoComplete="current-password"
-                aria-invalid={errors.password ? "true" : "false"}
-                aria-describedby={errors.password ? "password-error" : undefined}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
-              </button>
-            </div>
-            {errors.password && (
-              <p id="password-error" className="mt-1 text-sm text-[#FF5733]" role="alert">
-                {errors.password}
-              </p>
-            )}
-          </div>
-          {/* // Ghi nhớ tài khoản */}
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="rememberMe"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 text-[#002147] border-gray-300 rounded focus:ring-[#002147]"
-            />
-            <label htmlFor="rememberMe" className="text-sm text-gray-700">
-              Ghi nhớ tài khoản
-            </label>
-          </div>    
-
-          <button
-            type="submit"
-            className="w-full bg-[#002147] text-white py-3 rounded-lg hover:bg-[#001a38] focus:outline-none focus:ring-2 focus:ring-[#002147] focus:ring-offset-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isLoading ? (
-              <>
-                <FaSpinner className="animate-spin mr-2" size={20} />
-                Vui lòng chờ...
-              </>
-            ) : (
-              "Đăng nhập"
-            )}
-          </button>
-        </form>
-
-       
       </div>
+      <footer className="absolute bottom-4 left-20 text-sm text-gray-600">
+            © Copyright 2025 Wellspring International Bilingual Schools. All Rights Reserved.
+      </footer>
     </div>
+   
   );
 };
 

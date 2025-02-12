@@ -16,29 +16,7 @@ const validateToken = require("../middleware/validateToken");
 const multer = require('multer');
 const path = require('path');
 
-// Cấu hình thư mục lưu trữ
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'uploads', 'BBBG');
-    cb(null, uploadDir); // Đường dẫn thư mục BBBG
-  },
-  filename: (req, file, cb) => {
-    // Đặt tên file theo định dạng: projectorId-currentHolderId-timestamp.pdf
-    const { projectorId, userId } = req.body;
-    const timestamp = Date.now();
-    cb(null, `${projectorId}-${userId}-${timestamp}.pdf`);
-  },
-});
 
-const fs = require("fs");
-
-const uploadPath = "./BBBG"; // Thư mục lưu file
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath);
-}
-
-// Middleware multer
-const upload = multer({ storage });
 
 
 router.use(validateToken);
@@ -128,62 +106,5 @@ router.post("/:id/revoke", revokeProjector);
 
 router.put("/:id/status", updateProjectorStatus);
 
-// Endpoint upload tệp
-router.post("/upload", upload.single("file"), async (req, res) => {
-  try {
-    const { projectorId, userId } = req.body;
-
-    if (!req.file) {
-      return res.status(400).json({ message: "File không được tải lên." });
-    }
-
-    const filePath = `/BBBG/${req.file.filename}`; // Đường dẫn file
-
-    const projector = await Projector.findById(projectorId);
-    if (!projector) {
-      return res.status(404).json({ message: "Không tìm thấy thiết bị." });
-    }
-
-    // Tìm lịch sử bàn giao hiện tại (chưa có endDate)
-    const currentAssignment = projector.assignmentHistory.find(
-      (history) => history.user.toString() === userId && !history.endDate
-    );
-
-    if (!currentAssignment) {
-      return res.status(404).json({ message: "Không tìm thấy lịch sử bàn giao hiện tại." });
-    }
-
-    // Cập nhật document cho lịch sử hiện tại
-    currentAssignment.document = filePath;
-
-    // Cập nhật trạng thái thiết bị (nếu cần)
-    projector.status = "Active";
-
-    // Lưu thay đổi
-    await projector.save();
-
-    return res.status(200).json({
-      message: "Tải lên biên bản thành công!",
-      projector,
-    });
-  } catch (error) {
-    console.error("Lỗi khi tải lên biên bản:", error);
-    res.status(500).json({ message: "Đã xảy ra lỗi server." });
-  }
-});
-
-// Endpoint để trả file PDF
-router.get('/BBBG/:filename', async (req, res) => {
-  const { filename } = req.params;
-  const filePath = path.join(__dirname, 'uploads', 'BBBG', filename);
-
-  // Kiểm tra file có tồn tại không
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ message: 'Không tìm thấy file.' });
-  }
-
-  // Gửi file PDF
-  res.sendFile(filePath);
-});
 
 module.exports = router;

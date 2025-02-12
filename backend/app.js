@@ -40,6 +40,10 @@ const uploadReport = require("./middleware/uploadReport");
 const session = require("express-session");
 const documentRoutes = require("./routes/documents");
 const newsfeedRoutes = require("./routes/newsfeed");
+const pdfRoutes = require("./routes/pdf");
+const chatRoutes = require("./routes/chatRoutes");
+const messageRoutes = require("./routes/messageRoutes");
+
 
 
 require("dotenv").config();
@@ -99,9 +103,11 @@ app.use(cors());
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 
-
-
+// Routes
+app.use("/api/chats", chatRoutes);
+app.use("/api/messages", messageRoutes);
 app.use("/api/laptops", laptopRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Phục vụ thư mục uploads
 app.use("/api/auth", authRoutes);
@@ -123,6 +129,8 @@ app.use("/api/inspects", inspectRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/newsfeed", newsfeedRoutes);  // Thêm dòng này
+app.use("/api/flippage", pdfRoutes);
+
 
 
 const syncClientsFromAzure = require("./routes/clientsSync").syncClientsFromAzure;

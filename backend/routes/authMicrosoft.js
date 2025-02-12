@@ -82,17 +82,17 @@ router.get("/microsoft/callback", (req, res, next) => {
   passport.authenticate("azuread-openidconnect", (err, user, info) => {
     if (err) {
         console.error("Lỗi từ Microsoft OAuth:", err);
-        return res.redirect(`https://staff-portal.wellspring.edu.vn/login?error=${encodeURIComponent("Lỗi từ Microsoft OAuth: " + err.message)}`);
+        return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent("Lỗi từ Microsoft OAuth: " + err.message)}`);
       }
       if (!user) {
         console.error("Lỗi xác thực: Không tìm thấy user trong database hoặc authentication bị từ chối từ Microsoft.");
         
         if (info && info.message) {
           console.error("Chi tiết lỗi từ Passport:", info.message);
-          return res.redirect(`https://staff-portal.wellspring.edu.vn/login?error=${encodeURIComponent("Authentication failed: " + info.message)}`);
+          return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent("Authentication failed: " + info.message)}`);
         } else {
           console.error("Không có thông tin cụ thể từ Passport.");
-          return res.redirect(`https://staff-portal.wellspring.edu.vn/login?error=Authentication+failed:+User+not+found+or+denied+by+Microsoft`);
+          return res.redirect(`http://localhost:3000/login?error=Authentication+failed:+User+not+found+or+denied+by+Microsoft`);
         }
       }
     try {
@@ -102,7 +102,7 @@ router.get("/microsoft/callback", (req, res, next) => {
         process.env.JWT_SECRET,
         { expiresIn: "30d" }
       );
-      const frontendURL = process.env.FRONTEND_URL || "https://staff-portal.wellspring.edu.vn";
+      const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
       
       // Nếu user cần cập nhật thông tin (chưa hoàn tất hồ sơ)
       if (user.needProfileUpdate) {
@@ -114,7 +114,7 @@ router.get("/microsoft/callback", (req, res, next) => {
       }
     } catch (tokenError) {
       console.error("Lỗi khi tạo JWT:", tokenError);
-      return res.redirect(`https://staff-portal.wellspring.edu.vn/login?error=${encodeURIComponent(tokenError.message)}`);
+      return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent(tokenError.message)}`);
     }
   })(req, res, next);
 });
