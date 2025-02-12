@@ -100,7 +100,7 @@ router.get("/microsoft/callback", (req, res, next) => {
       const token = jwt.sign(
         { id: user._id, role: user.role },
         process.env.JWT_SECRET,
-        { expiresIn: "30d" }
+        { expiresIn: "1d" }
       );
       const frontendURL = process.env.FRONTEND_URL || "https://staff-portal.wellspring.edu.vn";
       
