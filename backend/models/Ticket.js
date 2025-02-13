@@ -1,5 +1,22 @@
 const mongoose = require("mongoose");
 
+const subTaskSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String },
+  assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["In Progress", "Completed", "Cancelled"],
+    default: "Open",
+  },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
 
 const ticketSchema = new mongoose.Schema(
     {
@@ -20,7 +37,7 @@ const ticketSchema = new mongoose.Schema(
         enum: ["Open", "Assigned", "Processing" , "Waiting for Customer", "Done", "Closed" , "Cancelled"],
         default: "Open",
       },
-      creator: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
       assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Nhân viên hỗ trợ
       team: { type: mongoose.Schema.Types.ObjectId, ref: "SupportTeam" }, // Đội hỗ trợ (nếu có)
       sla: {
@@ -34,6 +51,14 @@ const ticketSchema = new mongoose.Schema(
         rating: { type: Number, min: 1, max: 5 }, // Đánh giá của user
         comment: String,
       },
+      //trao đổi thông tin
+      messages: [
+        {
+          sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          text: String,
+          timestamp: { type: Date, default: Date.now },
+        },
+      ],
       // Lưu nhật ký xử lý
       history: [
         {
@@ -49,6 +74,8 @@ const ticketSchema = new mongoose.Schema(
           url: { type: String },
         },
       ],
+      subTasks: [subTaskSchema], // ✅ Thêm sub-tasks vào ticket
+
     },
     { timestamps: true }
   );
