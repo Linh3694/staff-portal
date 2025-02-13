@@ -261,7 +261,7 @@ const Dashboard = () => {
         );
       case "Phần mềm lật trang":
         return(
-          <FlippageAdmin />
+          <FlippageAdmin currentUser={currentUser} />
         )
       case "Tickets":
         return(
@@ -321,109 +321,11 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-        <div className="flex items-center justify-end space-x-4 sm:w-auto gap-1 h-[61px] w-300 rounded-full bg-white px-4 py-2 shadow-xl border">
-          <span className="text-[#002147] text-sm mr-2">
-            Hi, {currentUser.fullname || "User"}
-          </span>
-          {/* <Dropdown
-            button={
-              <div className="relative cursor-pointer">
-                <IoMdNotificationsOutline className="h-6 w-6 text-gray-600" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
-                    {unreadCount}
-                  </span>
-                )}
-              </div>
-            }
-            animation="origin-[65%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
-            children={
-              <div className="flex w-[360px] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl sm:w-[460px]">
-                <div className="flex items-center justify-between">
-                  <p className="text-base font-bold text-navy-700">Thông báo</p>
-                  <p
-                    onClick={markAllAsRead}
-                    className="text-sm font-bold text-navy-700 cursor-pointer"
-                  >
-                    Đánh dấu là đã đọc
-                  </p>
-                </div>
-                <div className="mt-4">
-                  {loadingNotifications ? (
-                    <p>Đang tải thông báo...</p>
-                  ) : notifications.length === 0 ? (
-                    <p>Không có thông báo nào.</p>
-                  ) : (
-                    <ul className="flex flex-col gap-3">
-                      {notifications.map((notification) => (
-                        <li
-                          key={notification._id}
-                          className={`flex justify-between items-center rounded-md px-3 py-2 cursor-pointer ${
-                            notification.isRead
-                              ? "bg-gray-100"
-                              : "bg-blue-100"
-                          }`}
-                          onClick={() =>
-                            markNotificationAsRead(notification._id)
-                          }
-                        >
-                          <div>
-                            <p className="text-sm font-semibold text-navy-700">
-                              {notification.message}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(notification.timestamp).toLocaleString()}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            }
-            classNames={"py-2 top-4 -left-[230px] md:-left-[440px] w-max"}
-          /> */}
-          <Dropdown
-            button={
-              <img
-                className="h-10 w-10 rounded-full object-cover"
-                src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
-                alt="User Avatar"
-              />
-            }
-            animation="origin-top-right md:origin-top-right transition-all duration-300 ease-in-out"
-            children={
-              <div className="flex w-40 flex-col rounded-[20px] bg-[#f8f8f8] shadow-xl">
-                <div className="flex flex-col p-2">
-                  <button
-                    onClick={() => setSelectedSubMenu("Profile")}
-                    className="text-sm font-medium text-[#002147] transition duration-150 hover:ease-in"
-                  >
-                    Profile
-                  </button>
-                  <button
-                    onClick={() => navigate("/ticket")}
-                    className="text-sm font-medium text-[#002147] transition duration-150 hover:ease-in"
-                  >
-                    Ticket Portal
-                  </button>
-                  <hr className="my-2 border-t border-gray-800" />
-                  <button
-                    onClick={handleLogout}
-                    className="text-sm font-medium text-red-500 transition duration-150 hover:ease-in"
-                  >
-                    Log Out
-                  </button>
-                </div>
-              </div>
-            }
-            classNames={"py-2 top-10 -left-[140px] w-max"}
-          />
-        </div>
+        
       </nav>
 
       {/* Sidebar mới */}
+      <div className="z-50">
       <Sidebar
         currentUser={currentUser}
         selectedMainMenu={selectedMainMenu}
@@ -433,10 +335,10 @@ const Dashboard = () => {
         setIsSidebarOpen={setIsSidebarOpen} // Truyền state xuống Sidebar
         setIsSidebarHovered={setIsSidebarHovered} // NEW
       />
-
+      </div>
       {/* Nội dung chính */}
       <div
-        className={`h-full p-8 transition-all duration-300 ${
+        className={`h-full p-8 transition-all duration-300 z-20 ${
           isSidebarOpen || isSidebarHovered ? "ml-64" : "ml-24"
         }`}
       >

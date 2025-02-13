@@ -46,6 +46,7 @@
     "react-pageflip": "^2.0.3",
     "react-router-dom": "^7.0.1",
     "react-select": "^5.8.3",
+    "react-switch": "^7.1.0",
     "react-toastify": "^10.0.6",
     "scrolltrigger": "^1.0.1",
     "swiper": "^11.2.1",

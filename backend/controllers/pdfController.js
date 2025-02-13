@@ -13,6 +13,12 @@ exports.uploadPdf = async (req, res) => {
     const pdfFilePath = req.file.path;
     const folderName = path.basename(pdfFilePath, path.extname(pdfFilePath));
 
+    // 🔥 Lấy uploader từ `req.user._id`
+    const uploaderId = req.user?._id;
+    if (!uploaderId) {
+      return res.status(400).json({ error: "Không xác định được người tải lên." });
+    }
+
     // Chuẩn hóa `customName`
     let customName = req.body.customName
       ?.trim()
@@ -21,24 +27,24 @@ exports.uploadPdf = async (req, res) => {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/\s+/g, "-") || folderName;
 
-    // 📌 **KIỂM TRA TRÙNG `customName`**
+    // 📌 Kiểm tra trùng customName
     const existingPdf = await Pdf.findOne({ customName });
-
     if (existingPdf) {
-      return res.status(400).json({ 
-        error: `File với customName "${customName}" đã tồn tại! Hãy chọn tên khác.` 
-      });
+      return res.status(400).json({ error: `File với customName "${customName}" đã tồn tại! Hãy chọn tên khác.` });
     }
 
     // Convert PDF -> Ảnh
     await convertPdfToImages(pdfFilePath, folderName, 150);
 
-    // Lưu vào MongoDB
+    // ✅ Lưu vào MongoDB với uploader là `_id` của User
     const newPdf = new Pdf({
       fileName: req.file.originalname,
       customName,
       folderName,
+      uploader: uploaderId,
+      active: true,
     });
+
     await newPdf.save();
 
     res.json({ folderName, customName });
@@ -52,14 +58,22 @@ exports.getImages = async (req, res) => {
   try {
     const { customName } = req.params;
     console.log("🔍 API nhận customName:", customName);
+    
+    // Tìm PDF trong DB
     const pdfData = await Pdf.findOne({ customName });
-   
+
     if (!pdfData) {
       return res.status(404).json({
         error: `Không tìm thấy PDF với customName: "${customName}"`,
       });
     }
+
     console.log("📂 Folder name trong DB:", pdfData.folderName);
+
+    // 🔥 Kiểm tra trạng thái active
+    if (!pdfData.active) {
+      return res.status(403).json({ error: "Tài liệu này đã bị vô hiệu hóa." });
+    }
 
     // Thư mục gốc đang lưu ảnh
     const imageDir = path.join(__dirname, "..", "public", "uploads", "pdf-images");
@@ -78,9 +92,9 @@ exports.getImages = async (req, res) => {
     );
 
     if (imageFiles.length === 0) {
-      return res
-        .status(404)
-        .json({ error: `Không tìm thấy ảnh cho PDF "${customName}"` });
+      return res.status(404).json({
+        error: `Không tìm thấy ảnh cho PDF "${customName}"`,
+      });
     }
 
     // Tạo đường dẫn URL (host/uploads/pdf-images/<filename>)
@@ -97,14 +111,27 @@ exports.getImages = async (req, res) => {
 
 exports.getAllPdfs = async (req, res) => {
   try {
-    const pdfs = await Pdf.find().sort({ uploadDate: -1 });
-    console.log("📂 Dữ liệu từ MongoDB:", pdfs); // Kiểm tra dữ liệu trả về
+    const pdfs = await Pdf.find()
+      .populate("uploader", "fullname email avatarUrl") // 🔥 Lấy thông tin User
+      .sort({ uploadDate: -1 });
+
+    console.log("📂 Dữ liệu từ MongoDB:", pdfs);
+
     res.json(
       pdfs.map((pdf) => ({
         _id: pdf._id,
         fileName: pdf.fileName,
         customName: pdf.customName,
-        folderName: pdf.folderName, // ✅ THÊM `folderName` NẾU CẦN
+        folderName: pdf.folderName, 
+        uploader: pdf.uploader ? { 
+          _id: pdf.uploader._id,
+          fullname: pdf.uploader.fullname,
+          email: pdf.uploader.email,
+          avatar: pdf.uploader.avatarUrl 
+            ? `${req.protocol}://${req.get("host")}${pdf.uploader.avatarUrl}` 
+            : "", // 🔥 Ghép URL đầy đủ
+        } : null,
+        active: pdf.active,
         uploadDate: new Date(pdf.uploadDate).toLocaleString(),
       }))
     );
@@ -165,12 +192,38 @@ exports.deletePdf = async (req, res) => {
       return res.status(404).json({ error: "Không tìm thấy tài liệu." });
     }
 
-    // Xóa tài liệu khỏi DB
-    await Pdf.findByIdAndDelete(id);
+    // ❌ Nếu muốn xóa vĩnh viễn:
+    // await Pdf.findByIdAndDelete(id);
 
-    res.json({ message: "Xóa tài liệu thành công!" });
+    // ✅ Nếu muốn "xóa mềm" (disable file)
+    pdfData.active = false;
+    await pdfData.save();
+
+    res.json({ message: "Tài liệu đã bị vô hiệu hóa!" });
   } catch (err) {
     console.error("❌ Lỗi khi xóa tài liệu:", err);
     res.status(500).json({ error: "Lỗi server khi xóa tài liệu." });
+  }
+};
+
+exports.toggleActiveStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { active } = req.body;
+
+    // Kiểm tra nếu tài liệu có tồn tại không
+    const pdf = await Pdf.findById(id);
+    if (!pdf) {
+      return res.status(404).json({ error: "Không tìm thấy tài liệu." });
+    }
+
+    // Cập nhật trạng thái active
+    pdf.active = active;
+    await pdf.save();
+
+    res.json({ message: `Trạng thái cập nhật thành công!`, active: pdf.active });
+  } catch (err) {
+    console.error("❌ Lỗi khi cập nhật trạng thái:", err);
+    res.status(500).json({ error: "Lỗi server khi cập nhật trạng thái." });
   }
 };

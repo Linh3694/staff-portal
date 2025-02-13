@@ -15,6 +15,7 @@ import {
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "../components/ui/accordion";
 import { cn } from "../lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
+import { FaChevronRight, FaArrowRightFromBracket, FaCircleUser } from "react-icons/fa6";
 
 
 const Sidebar = ({
@@ -38,6 +39,7 @@ const Sidebar = ({
   const effectiveCollapsed = isPinned ? false : !isHovered;
 
   const role = currentUser.role?.toLowerCase();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   // Danh sách menu: các menu lớn không có icon, các submenu có icon đi kèm.
   const menuItems = [
@@ -75,11 +77,17 @@ const Sidebar = ({
       ],
     },
   ];
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("role");
+    localStorage.removeItem("rememberedEmail");
+    navigate("/login");
+  };
 
   return (
-    <aside
+    <div
       className={cn(
-        "fixed left-0 top-0 h-full backdrop-blur-lg bg-white/10 shadow-lg border-r border-gray-200 overflow-hidden transition-all duration-300 ease-in-out p-4 rounded-xl",
+        "fixed left-0 top-0 h-full backdrop-blur-lg bg-white/10 shadow-lg border-r border-gray-200  transition-all duration-300 ease-in-out p-4 rounded-xl z-50",
         effectiveCollapsed ? "w-24 min-w-[5rem]" : "w-64 min-w-[16rem]"
       )}
       
@@ -96,49 +104,35 @@ const Sidebar = ({
     >
 
       {/* HEADER */}
-      <div className="relative flex items-center justify-between px-2 py-3 z-10">
-        { !effectiveCollapsed ? (
-          <div className="flex items-center gap-3">
-            {/* Avatar với online indicator */}
-            <div className="relative">
-              <img
-                src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
-                alt="Avatar"
-                className="w-10 h-10 rounded-full border border-gray-300 object-cover"
-              />
-              <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-white" />
-            </div>
-            <span
-              className={cn(
-                "font-medium whitespace-nowrap transition-opacity duration-300 ease-in-out",
-                // Nếu sidebar được pin (mở cố định) thì hiện ngay, nếu không thì delay xuất hiện sau 300ms (đã đủ thời gian mở rộng container)
-                isPinned ? "opacity-100" : "opacity-100 delay-300"
-              )}
-            >
-              {currentUser.fullname || "User"}
-            </span>
-          </div>
-        ) : (
-          <div className="flex justify-center w-full relative">
-            {/* Avatar ở chế độ thu gọn */}
-            <img
-              src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
-              alt="Avatar"
-              className="w-10 h-10 rounded-full border border-gray-300 object-cover"
-            />
-            <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-white" />
-          </div>
-        )}
-
+      <div className="relative flex items-center justify-between px-2 py-3 z-10 border-b-2">
+      <div className="flex justify-center w-full relative">
+      { !effectiveCollapsed ? (
+        <img
+              src={"/icons/logo-small.png" || "http://via.placeholder.com/150"}
+              alt="logo"
+              className="w-[90%] border-gray-300 object-cover"
+        />
+      ) : ( 
+        <img
+              src={"/icons/logo-big.png" || "http://via.placeholder.com/150"}
+              alt="logo"
+              className="w-[30%] rounded-full  border-gray-300 object-cover"
+        />
+      )}
+      </div>
         {/* Nút toggle: chuyển đổi giữa trạng thái pinned và unpinned */}
         <button
           onClick={() => {
             setIsPinned(!isPinned);
-            setIsSidebarOpen(!isPinned); // Cập nhật trạng thái sidebar
+            setIsSidebarOpen(!isPinned);
           }}
-          className="absolute top-24 left-full -translate-x-12 -translate-y-1/2 p-2  transition-all duration-300 z-50 hover:scale-110"
+          className="absolute bg-white top-1/2 transform -translate-y-1/2 right-[-28px] rounded-full shadow-lg border p-2 transition-all duration-300 z-50 hover:scale-110"
           style={{
-            transform: effectiveCollapsed ? "translate(-50%, -50%) scale(0.7)" : "translate(-50%, -50%) scale(1)", // Khi thu gọn, nút nhỏ hơn
+            width: "32px", 
+            height: "32px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           {effectiveCollapsed ? <FiChevronRight size={16} /> : <FiChevronLeft size={16} />}
@@ -146,7 +140,7 @@ const Sidebar = ({
       </div>
 
       {/* MENU */}
-      <nav className="flex-1 px-2 py-4 space-y-2">
+      <nav className="flex-1 px-2 py-2 space-y-2">
         <Accordion type="single" collapsible>
           {menuItems.map((menu, index) => {
             if (menu.allowedRoles && !menu.allowedRoles.includes(role)) return null;
@@ -239,7 +233,89 @@ const Sidebar = ({
           })}
         </Accordion>
       </nav>
-    </aside>
+      <div className="absolute bottom-6 left-6">
+  { !effectiveCollapsed ? (
+    <div className="relative">
+      <button
+        onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+        className="flex items-center gap-3 w-full focus:outline-none"
+      >
+        <img
+          src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
+          alt="Avatar"
+          className="w-10 h-10 rounded-full border border-gray-300 object-cover"
+        />
+        <div className="flex flex-col text-left">
+          <span className="text-sm font-bold">{currentUser.fullname || "User"}</span>
+          <span className="text-[9px] font-medium text-gray-500">{currentUser.email}</span>
+        </div>
+        <FaChevronRight />
+
+      </button>
+
+      {/* Dropdown menu */}
+      {isProfileMenuOpen && (
+        <div className="absolute left-60 bottom-0 w-60 bg-white/10 shadow-lg rounded-2xl border p-3">
+          <div className="flex items-center gap-3 p-2 border-b">
+            <img
+              src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
+              alt="Avatar"
+              className="w-10 h-10 rounded-full border border-gray-300 object-cover"
+            />
+            <div className="flex flex-col text-left">
+              <span className="text-sm font-bold">{currentUser.fullname || "User"}</span>
+              <span className="text-[9px] font-medium text-gray-500">{currentUser.email}</span>
+            </div>
+          </div>
+          <button 
+            className="flex items-center w-full px-3 py-2 text-[#002855] hover:bg-gray-100 rounded-lg"
+            onClick={() => navigate("/dashboard/profile")}
+          >
+            <FaCircleUser size={20} className="mr-2" /> Profile
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex items-center w-full px-3 py-2 text-[#FF5733] hover:bg-gray-100 rounded-lg"
+          >
+            <FaArrowRightFromBracket size={20} className="mr-2" /> Logout
+          </button>
+        </div>
+      )}
+    </div>
+  ) : (
+    <div className="relative">
+      <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-12 h-12 rounded-full border">
+        <img src={currentUser.avatarUrl || "http://via.placeholder.com/150"} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+      </button>
+      
+      {/* Dropdown menu khi sidebar thu gọn */}
+      {isProfileMenuOpen && (
+        <div className="absolute left-20 bottom-0 w-60 bg-white/10 shadow-lg rounded-2xl border p-3">
+          <div className="flex items-center gap-3 p-2 border-b mb-2">
+            <img src={currentUser.avatarUrl || "http://via.placeholder.com/150"} alt="Avatar" className="w-10 h-10 rounded-full border object-cover" />
+            <div className="flex flex-col">
+              <span className="text-sm font-bold">{currentUser.fullname || "User"}</span>
+              <span className="text-[9px] font-medium text-gray-500">{currentUser.email}</span>
+            </div>
+          </div>
+          <button 
+            className="flex items-center w-full px-3 py-2 text-[#002855] hover:bg-gray-100 rounded-lg"
+            onClick={() => navigate("/dashboard/profile")}
+          >
+            <FaCircleUser size={20} className="mr-2" /> Profile
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex items-center w-full px-3 py-2 text-[#FF5733] hover:bg-gray-100 rounded-lg"
+          >
+            <FaArrowRightFromBracket size={20} className="mr-2" /> Logout
+          </button>
+        </div>
+      )}
+    </div>
+  )}
+</div>
+    </div>
   );
 };
 
