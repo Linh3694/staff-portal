@@ -4,7 +4,36 @@ const { convertPdfToImages } = require("../utils/convertPdfToImages");
 const fs = require("fs");
 const path = require("path");
 
+exports.checkCustomName = async (req, res) => {
+  try {
+    const { customName } = req.params;
+
+    if (!customName || customName.trim() === "") {
+      return res.status(400).json({ message: "Đường dẫn không được để trống.", valid: false });
+    }
+
+    const sanitizedCustomName = customName
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "-");
+
+    const existingPdf = await Pdf.findOne({ customName: sanitizedCustomName });
+
+    if (existingPdf) {
+      return res.status(400).json({ message: "Đường dẫn đã tồn tại.", valid: false });
+    }
+
+    res.json({ message: "Đường dẫn hợp lệ", valid: true });
+  } catch (err) {
+    console.error("❌ Lỗi khi kiểm tra customName:", err);
+    res.status(500).json({ message: "Lỗi server", valid: false });
+  }
+};
+
 exports.uploadPdf = async (req, res) => {
+  console.log(req.body.bookmarks)
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No PDF file uploaded." });
@@ -19,7 +48,8 @@ exports.uploadPdf = async (req, res) => {
       return res.status(400).json({ error: "Không xác định được người tải lên." });
     }
 
-    // Chuẩn hóa `customName`
+    const bookmarks = req.body.bookmarks ? JSON.parse(req.body.bookmarks) : [];
+    console.log(bookmarks)   
     let customName = req.body.customName
       ?.trim()
       .toLowerCase()
@@ -43,10 +73,11 @@ exports.uploadPdf = async (req, res) => {
       folderName,
       uploader: uploaderId,
       active: true,
+      bookmarks, // 📌 Lưu danh sách bookmarks vào DB
+
     });
 
     await newPdf.save();
-
     res.json({ folderName, customName });
   } catch (err) {
     console.error("❌ Error converting PDF:", err);
@@ -206,6 +237,31 @@ exports.deletePdf = async (req, res) => {
   }
 };
 
+exports.permanentlyDeletePdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Kiểm tra xem tài liệu có tồn tại không
+    const pdfData = await Pdf.findById(id);
+    if (!pdfData) {
+      return res.status(404).json({ error: "Không tìm thấy tài liệu." });
+    }
+
+    // Xoá các file ảnh liên quan
+    const imageDir = path.join(__dirname, "..", "public", "uploads", "pdf-images");
+    const imageFiles = fs.readdirSync(imageDir).filter((file) => file.startsWith(pdfData.folderName));
+    imageFiles.forEach((file) => fs.unlinkSync(path.join(imageDir, file)));
+
+    // Xoá PDF khỏi DB
+    await Pdf.findByIdAndDelete(id);
+
+    res.json({ message: "Tài liệu đã bị xóa vĩnh viễn!" });
+  } catch (err) {
+    console.error("❌ Lỗi khi xóa vĩnh viễn tài liệu:", err);
+    res.status(500).json({ error: "Lỗi server khi xóa tài liệu." });
+  }
+};
+
 exports.toggleActiveStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -227,3 +283,45 @@ exports.toggleActiveStatus = async (req, res) => {
     res.status(500).json({ error: "Lỗi server khi cập nhật trạng thái." });
   }
 };
+
+exports.getBookmarks = async (req, res) => {
+  try {
+    const { customName } = req.params;
+    const pdfData = await Pdf.findOne({ customName });
+
+    if (!pdfData) {
+      return res.status(404).json({ error: "Không tìm thấy tài liệu." });
+    }
+
+    res.json({ bookmarks: pdfData.bookmarks });
+  } catch (err) {
+    console.error("❌ Lỗi khi lấy bookmarks:", err);
+    res.status(500).json({ error: "Lỗi server khi lấy bookmarks." });
+  }
+};
+
+exports.updateBookmarks = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bookmarks } = req.body;
+
+    if (!Array.isArray(bookmarks)) {
+      return res.status(400).json({ error: "Bookmarks phải là một mảng." });
+    }
+
+    const pdfData = await Pdf.findByIdAndUpdate(
+      id,
+      { bookmarks },
+      { new: true }
+    );
+
+    if (!pdfData) {
+      return res.status(404).json({ error: "Không tìm thấy tài liệu để cập nhật." });
+    }
+
+    res.json({ message: "Cập nhật bookmarks thành công!", bookmarks: pdfData.bookmarks });
+  } catch (err) {
+    console.error("❌ Lỗi khi cập nhật bookmarks:", err);
+    res.status(500).json({ error: "Lỗi server khi cập nhật bookmarks." });
+  }
+};  

@@ -1,7 +1,19 @@
 import React from "react";
 import FlipBookViewer from "./FlipBookViewer";
 
-function MyImageFlipBook({ imageUrls, doublePage = false, zoom = 1, pageWidth, pageHeight }) {
+function MyImageFlipBook({ 
+  imageUrls,
+  flipBookRef,
+  setTotalPages,
+  doublePage = false,
+  pageWidth,
+  pageHeight,
+  currentPage,
+  setCurrentPage,
+  inputPage,
+  setInputPage,
+  totalPages, 
+}) {
   if (!imageUrls || imageUrls.length === 0) return null;
 
   // Mỗi URL -> 1 trang
@@ -21,9 +33,16 @@ function MyImageFlipBook({ imageUrls, doublePage = false, zoom = 1, pageWidth, p
 
   return (
     <FlipBookViewer
-      doublePage={doublePage}
-      pageWidth={pageWidth}
-      pageHeight={pageHeight}
+    doublePage={doublePage}
+    pageWidth={pageWidth}
+    pageHeight={pageHeight}
+    flipBookRef={flipBookRef} 
+    setTotalPages={setTotalPages}
+    totalPages={totalPages}
+    currentPage={currentPage}
+    setCurrentPage={setCurrentPage}
+    inputPage={inputPage}
+    setInputPage={setInputPage}
     >
       {pages}
     </FlipBookViewer>

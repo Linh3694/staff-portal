@@ -11,6 +11,13 @@ const pdfSchema = new mongoose.Schema({
     type: Boolean,
     default: true, // Tài khoản có thể bị vô hiệu hóa bởi admin
   },
+  bookmarks: [
+    {
+      title: { type: String },
+      page: { type: Number },
+    },
+  ],
+
 });
 
 module.exports = mongoose.model("Pdf", pdfSchema);

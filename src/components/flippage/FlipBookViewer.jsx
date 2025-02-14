@@ -3,22 +3,49 @@ import HTMLFlipBook from "react-pageflip";
 import { FaRegArrowAltCircleLeft, FaRegArrowAltCircleRight } from "react-icons/fa";
 
 function FlipBookViewer({ 
-  children, 
-  doublePage = false, 
+  children,
+  doublePage = false,
   pageWidth = 500,
-  pageHeight = 650, 
+  pageHeight = 650,
+  flipBookRef,
+  setTotalPages,
+  totalPages,
+  currentPage,
+  setCurrentPage,
+  inputPage,
+  setInputPage,
 }) {
-  const flipBookRef = useRef(null);
   const bookContainerRef = useRef(null);
 
   // Dùng để force re-render FlipBook khi đổi chế độ trang đôi
   const [key, setKey] = useState(0);
-  // Thu phóng
   const [zoom, setZoom] = useState(1);
   const [transformOrigin, setTransformOrigin] = useState("center center");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [inputPage, setInputPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    function handleResize() {
+      // Lấy kích thước khung flipview-container
+      const container = document.getElementById("flipview-container");
+      if (!container) return;
+      const { clientWidth, clientHeight } = container;
+  
+      // Tính toán tỉ lệ để flipbook vừa khung
+      // Giả sử bạn có pageWidth/pageHeight chuẩn, ví dụ 700x900
+      const desiredWidth = pageWidth * (doublePage ? 2 : 1); 
+      const desiredHeight = pageHeight;
+      
+      const scaleX = clientWidth / desiredWidth;
+      const scaleY = clientHeight / desiredHeight;
+      const newZoom = Math.min(scaleX, scaleY, 1); // Giữ zoom <= 1 để không vượt khung
+  
+      setZoom(newZoom);
+    }
+  
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Gọi 1 lần khi mount
+  
+    return () => window.removeEventListener("resize", handleResize);
+  }, [pageWidth, pageHeight, doublePage]);
 
   // Mỗi khi bật/tắt trang đôi => tăng key => HTMLFlipBook re-mount
   useEffect(() => {
@@ -64,31 +91,9 @@ function FlipBookViewer({
 
   // Xử lý flip => cập nhật currentPage
   const handleFlip = (e) => {
-    setCurrentPage(e.data + 1);
-    setInputPage(e.data + 1);
-  };
-
-  const goToPrevPage = () => {
-    if (flipBookRef.current?.pageFlip() && currentPage > 1) {
-      flipBookRef.current.pageFlip().flipPrev();
-    }
-  };
-
-  const goToNextPage = () => {
-    if (flipBookRef.current?.pageFlip() && currentPage < totalPages) {
-      flipBookRef.current.pageFlip().flipNext();
-    }
-  };
-
-  const goToPage = (e) => {
-    e.preventDefault();
-    const pageNumber = parseInt(inputPage, 10);
-    if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
-      flipBookRef.current?.pageFlip()?.flip(pageNumber - 1);
-      setCurrentPage(pageNumber);
-    } else {
-      alert(`Số trang không hợp lệ! Vui lòng nhập từ 1 đến ${totalPages}`);
-    }
+    const newPage = e.data + 1;    // pageFlip() trả về chỉ số 0-based
+    setCurrentPage(newPage);       // Cập nhật state trang hiện tại
+    setInputPage(newPage);         // Đồng bộ luôn vào ô nhập
   };
 
   // Tính chiều rộng container: nếu doublePage=true -> gấp đôi
@@ -100,7 +105,7 @@ function FlipBookViewer({
     <div 
       style={{
         width: "100%",
-        minHeight: "70vh",
+        minHeight: "100%",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -109,11 +114,13 @@ function FlipBookViewer({
     >
       <div 
         ref={bookContainerRef}
-        className="book-spine-container"
+        className="bg-red-300"
         style={{
           position: "relative",
           width: containerWidth,
           height: pageHeight,
+          maxWidth: "90%",     // Chiếm 90% bề ngang
+          maxHeight: "90%",    // Chiếm 90% bề dọc
           margin: "40px auto",
           transform: `scale(${zoom})`,
           transformOrigin,
@@ -121,7 +128,6 @@ function FlipBookViewer({
           border: "2px solid #ccc",
           borderRadius: "8px",
           boxShadow: "5px 5px 15px rgba(0, 0, 0, 0.3)",
-          overflow: "hidden",
         }}
         onWheel={handleWheelZoom}
       >
@@ -177,36 +183,6 @@ function FlipBookViewer({
             {children}
           </HTMLFlipBook>
         )}
-      </div>
-
-      {/* Thanh điều khiển */}
-      <div className="flex flex-row gap-16">
-        <button onClick={goToPrevPage}>
-          <FaRegArrowAltCircleLeft size={32} />
-        </button>
-
-        {/* Ô nhập số trang */}
-        <form onSubmit={goToPage} className="flex items-center gap-2">
-          <input
-            type="number"
-            className="w-16 text-center border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-[#002147] focus:outline-none"
-            value={inputPage}
-            min="1"
-            max={totalPages}
-            onChange={(e) => setInputPage(e.target.value)}
-          />
-          <span>/ {totalPages}</span>
-          <button
-            type="submit"
-            className="px-3 py-1 bg-[#002147] text-white font-bold rounded-lg hover:bg-[#001635] transition"
-          >
-            Đi
-          </button>
-        </form>
-
-        <button onClick={goToNextPage}>
-          <FaRegArrowAltCircleRight size={32} />
-        </button>
       </div>
     </div>
   );

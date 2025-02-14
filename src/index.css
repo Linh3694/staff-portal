@@ -105,3 +105,15 @@ code {
 .animate-slide-from-right {
   animation: slideFromRight 1s ease-out;
 }
+
+/* Ẩn nút tăng/giảm trên Chrome, Safari, Edge */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Ẩn nút tăng/giảm trên Firefox */
+.no-spinner {
+  -moz-appearance: textfield;
+}
