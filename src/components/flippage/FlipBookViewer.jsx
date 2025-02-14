@@ -5,7 +5,7 @@ import { FaRegArrowAltCircleLeft, FaRegArrowAltCircleRight } from "react-icons/f
 function FlipBookViewer({ 
   children,
   doublePage = false,
-  pageWidth = 500,
+  pageWidth = 550,
   pageHeight = 650,
   flipBookRef,
   setTotalPages,
@@ -114,37 +114,21 @@ function FlipBookViewer({
     >
       <div 
         ref={bookContainerRef}
-        className="bg-red-300"
         style={{
           position: "relative",
           width: containerWidth,
           height: pageHeight,
-          maxWidth: "90%",     // Chiếm 90% bề ngang
-          maxHeight: "90%",    // Chiếm 90% bề dọc
+          maxWidth: "100%",     // Chiếm 90% bề ngang
+          maxHeight: "100%",    // Chiếm 90% bề dọc
           margin: "40px auto",
           transform: `scale(${zoom})`,
           transformOrigin,
-          transition: "transform 0.5s ease-out",
-          border: "2px solid #ccc",
-          borderRadius: "8px",
+          transition: "transform 0.s5s ease-out",
           boxShadow: "5px 5px 15px rgba(0, 0, 0, 0.3)",
         }}
         onWheel={handleWheelZoom}
       >
-        {/* Gáy sách (chỉ khi trang đôi và không phải bìa) */}
-        {doublePage && currentPage > 1 && (
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              width: "2px",
-              height: "100%",
-              backgroundColor: "rgba(0, 0, 0, 0.2)",
-              boxShadow: "1px 0px 5px rgba(0, 0, 0, 0.1)",
-              zIndex: 5,
-            }}
-          />
-        )}
+        
 
         {doublePage ? (
           <HTMLFlipBook

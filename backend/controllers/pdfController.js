@@ -153,15 +153,18 @@ exports.getAllPdfs = async (req, res) => {
         _id: pdf._id,
         fileName: pdf.fileName,
         customName: pdf.customName,
-        folderName: pdf.folderName, 
-        uploader: pdf.uploader ? { 
-          _id: pdf.uploader._id,
-          fullname: pdf.uploader.fullname,
-          email: pdf.uploader.email,
-          avatar: pdf.uploader.avatarUrl 
-            ? `${req.protocol}://${req.get("host")}${pdf.uploader.avatarUrl}` 
-            : "", // 🔥 Ghép URL đầy đủ
-        } : null,
+        folderName: pdf.folderName,
+        bookmarks: pdf.bookmarks,        // <-- thêm dòng này
+        uploader: pdf.uploader
+          ? {
+              _id: pdf.uploader._id,
+              fullname: pdf.uploader.fullname,
+              email: pdf.uploader.email,
+              avatar: pdf.uploader.avatarUrl
+                ? `${req.protocol}://${req.get("host")}${pdf.uploader.avatarUrl}`
+                : "",
+            }
+          : null,
         active: pdf.active,
         uploadDate: new Date(pdf.uploadDate).toLocaleString(),
       }))
@@ -172,44 +175,68 @@ exports.getAllPdfs = async (req, res) => {
   }
 };
 
-exports.updateCustomName = async (req, res) => {
+exports.updatePdf = async (req, res) => {
   try {
     const { id } = req.params;
-    const { newCustomName } = req.body;
+    const {
+      newCustomName,   // Nếu muốn cập nhật customName
+      bookmarks,       // Nếu muốn cập nhật bookmarks
+      active,          // Nếu muốn cập nhật trạng thái active
+      ...otherFields   // Các trường khác, nếu có
+    } = req.body;
 
-    if (!newCustomName || newCustomName.trim() === "") {
-      return res.status(400).json({ error: "Tên mới không được để trống." });
+    // Tạo đối tượng chứa dữ liệu cần update
+    const updateData = { ...otherFields };
+
+    // 1) Nếu có truyền newCustomName -> chuẩn hóa & kiểm tra trùng
+    if (newCustomName && newCustomName.trim() !== "") {
+      const sanitizedCustomName = newCustomName
+        .trim()
+        .toLowerCase()
+        .normalize("NFD") // Loại bỏ dấu Tiếng Việt
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "-");
+
+      // Kiểm tra trùng lặp
+      const existingPdf = await Pdf.findOne({ customName: sanitizedCustomName });
+      if (existingPdf && existingPdf._id.toString() !== id) {
+        return res.status(400).json({
+          error: `CustomName "${sanitizedCustomName}" đã tồn tại!`,
+        });
+      }
+
+      // Thêm vào updateData
+      updateData.customName = sanitizedCustomName;
     }
 
-    // Chuẩn hóa `customName`
-    const sanitizedCustomName = newCustomName
-      .trim()
-      .toLowerCase()
-      .normalize("NFD") // Loại bỏ dấu Tiếng Việt
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, "-");
-
-    // Kiểm tra trùng lặp
-    const existingPdf = await Pdf.findOne({ customName: sanitizedCustomName });
-    if (existingPdf) {
-      return res.status(400).json({ error: `CustomName "${sanitizedCustomName}" đã tồn tại!` });
+    // 2) Nếu có bookmarks -> cập nhật
+    if (Array.isArray(bookmarks)) {
+      updateData.bookmarks = bookmarks;
     }
 
-    // Cập nhật vào database
-    const updatedPdf = await Pdf.findByIdAndUpdate(
-      id,
-      { customName: sanitizedCustomName },
-      { new: true }
-    );
+    // 3) Nếu có active -> cập nhật
+    // (Có thể kiểm tra kiểu dữ liệu boolean nếu cần)
+    if (typeof active !== "undefined") {
+      updateData.active = active;
+    }
+
+    // 4) Thực hiện cập nhật
+    const updatedPdf = await Pdf.findByIdAndUpdate(id, updateData, {
+      new: true, // Trả về document đã cập nhật
+    });
 
     if (!updatedPdf) {
       return res.status(404).json({ error: "Không tìm thấy tài liệu để cập nhật." });
     }
 
-    res.json({ message: "Cập nhật thành công!", updatedPdf });
+    // 5) Trả về kết quả
+    return res.json({
+      message: "Cập nhật thành công!",
+      updatedPdf,
+    });
   } catch (err) {
-    console.error("❌ Lỗi khi cập nhật customName:", err);
-    res.status(500).json({ error: "Lỗi server khi cập nhật customName." });
+    console.error("❌ Lỗi khi cập nhật PDF:", err);
+    return res.status(500).json({ error: "Lỗi server khi cập nhật PDF." });
   }
 };
 

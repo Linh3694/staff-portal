@@ -9,7 +9,7 @@ const authenticate = require("../middleware/authMiddleware");
 router.post("/upload-pdf", authenticate, upload.single("pdfFile"), pdfController.uploadPdf);
 router.get("/get-images/:customName", authenticate, pdfController.getImages);
 router.get("/get-all-pdfs", authenticate, pdfController.getAllPdfs);
-router.put("/update-customname/:id", authenticate, pdfController.updateCustomName )
+router.put("/update-pdf/:id", authenticate, pdfController.updatePdf )
 router.delete("/delete-pdf/:id", authenticate, pdfController.deletePdf);
 router.put("/toggle-active/:id", authenticate, pdfController.toggleActiveStatus);
 router.delete("/delete-permanently/:id", pdfController.permanentlyDeletePdf);

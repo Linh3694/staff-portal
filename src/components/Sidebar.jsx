@@ -268,7 +268,7 @@ const Sidebar = ({
 
       {/* Dropdown menu */}
       {isProfileMenuOpen && (
-        <div ref={profileMenuRef} className="absolute left-60 bottom-0 w-60 bg-white shadow-lg rounded-2xl border p-3">
+        <div ref={profileMenuRef} className="absolute left-60 bottom-0 w-60 bg-white   shadow-lg rounded-2xl border p-3">
           <div className="flex items-center gap-3 p-2 border-b">
             <img
               src={currentUser.avatarUrl || "http://via.placeholder.com/150"}

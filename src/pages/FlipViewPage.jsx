@@ -18,6 +18,7 @@ function FlipViewPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [isActive, setIsActive] = useState(true); // 🔥 Trạng thái của tài liệu
   const [loading, setLoading] = useState(true); // 🔥 Thêm trạng thái loading
+  const [showPageList, setShowPageList] = useState(false);
 
   const [bookmarks, setBookmarks] = useState([]);
   const [inputPage, setInputPage] = useState(1);
@@ -26,11 +27,12 @@ function FlipViewPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const [showBookmarkPanel, setShowBookmarkPanel] = useState(false);
+  
 
 
   // Mặc định chiều rộng/cao
-  const [pageWidth, setPageWidth] = useState(350);
-  const [pageHeight, setPageHeight] = useState(500);
+  const [pageWidth, setPageWidth] = useState(550);
+  const [pageHeight, setPageHeight] = useState(650);
 
   // 1) Lấy danh sách ảnh từ API
   useEffect(() => {
@@ -105,7 +107,7 @@ function FlipViewPage() {
       img.src = images[0];
       img.onload = () => {
         const ratio = img.naturalWidth / img.naturalHeight;
-        const maxHeight = 500;
+        const maxHeight = 650;
         setPageHeight(maxHeight);
         setPageWidth(Math.round(ratio * maxHeight));
       };
@@ -300,7 +302,10 @@ useEffect(() => {
         {/* Thanh điều khiển */}
         <div className="fixed bottom-0 left-0 w-full bg-gray-500 bg-opacity-50 py-2 flex justify-center items-center gap-10">
             {/* Icon danh sách trang */}
-            <button className="text-white hover:text-gray-300">
+            <button
+              onClick={() => setShowPageList(!showPageList)}
+              className="text-white hover:text-gray-300"
+            >
               <i className="fas fa-list-ul"></i>
             </button>
 
@@ -362,35 +367,81 @@ useEffect(() => {
             </button>
 
             {/* Tìm kiếm trang */}
-            <button className="text-white hover:text-gray-300">
+            {/* <button className="text-white hover:text-gray-300">
               <i className="fas fa-search"></i>
-            </button>
+            </button> */}
           </div>
 
-          {showBookmarkPanel && bookmarks.length > 0 && (
-          <aside className="fixed top-0 left-0 h-full w-64 bg-white p-4 shadow-md overflow-auto z-50">
-            <h3 className="text-lg font-bold mb-4">Bookmarks</h3>
-            {bookmarks.map((bm, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  // Lật đến trang tương ứng (chú ý flip nhận chỉ số 0-based)
-                  if (flipBookRef.current && flipBookRef.current.pageFlip()) {
-                    flipBookRef.current.pageFlip().flip(bm.page - 1);
-                  }
-                  // Ẩn panel sau khi chọn
-                  setShowBookmarkPanel(false);
-                }}
-                className="block w-full text-left py-2 px-3 text-blue-600 hover:bg-gray-100 rounded"
-              >
-                {bm.title}
-              </button>
-            ))}
-          </aside>
-        )}
+            {bookmarks.length > 0 && (
+              <aside
+                className={`fixed top-0 left-0 h-full w-64 bg-gray-500 p-4 shadow-md overflow-auto z-50
+                  transform transition-transform duration-500
+                  ${showBookmarkPanel ? "translate-x-0" : "-translate-x-full"}
+                `}
+              >              
+              <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">Bookmarks</h3>
+              {bookmarks.map((bm, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    // Lật đến trang tương ứng (chú ý flip nhận chỉ số 0-based)
+                    if (flipBookRef.current && flipBookRef.current.pageFlip()) {
+                      flipBookRef.current.pageFlip().flip(bm.page - 1);
+                    }
+                    // Ẩn panel sau khi chọn
+                    setShowBookmarkPanel(false);
+                  }}
+                  className="block w-full text-center  py-2 px-3 text-[#002147] bg-gray-100 rounded-full mb-3 "
+                >
+                  {bm.title}
+                </button>
+              ))}
+            </aside>
+          )}
+
+          {images.length > 0 && (
+            <aside
+              className={`fixed top-0 left-0 h-full w-64 bg-gray-500 p-4 shadow-md overflow-auto z-50
+                transform transition-transform duration-500
+                ${showPageList ? "translate-x-0" : "-translate-x-full"}
+              `}
+            >              
+            <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">Danh sách trang</h3>
+              {images.map((img, idx) => {
+                const pageNumber = idx + 1; // hiển thị trang 1,2,3,...
+                return (
+                  <div key={idx} className="mb-2">
+                    <button
+                      onClick={() => {
+                        // Lật đến trang tương ứng
+                        if (flipBookRef.current && flipBookRef.current.pageFlip()) {
+                          flipBookRef.current.pageFlip().flip(idx);
+                          // Cập nhật state để hiển thị đúng
+                          setCurrentPage(pageNumber);
+                          setInputPage(pageNumber);
+                        }
+                      }}
+                      className="block w-full text-center py-2 px-3 text-white hover:bg-gray-100 rounded"
+                    >
+                      <img
+                        src={img}
+                        alt={`page-${pageNumber}`}
+                        className="w-full h-[100px] border object-cover rounded"
+                      />
+                     {pageNumber}
+                    </button>
+                  </div>
+                );
+              })}
+            </aside>
+          )}
         </>
       ) : (
-        <p className="text-gray-600 text-2xl">Tài liệu đã bị khoá. Vui lòng liên hệ admin để biết thêm chi tiết.</p>
+      <div className="flex flex-col items-center justify-center h-screen">
+          <p className="text-gray-600 text-2xl text-center">
+            Tài liệu này đang bị khóa. Vui lòng liên hệ Admin để biết thêm chi tiết.
+          </p>
+        </div>      
       )}
     </div>
   );

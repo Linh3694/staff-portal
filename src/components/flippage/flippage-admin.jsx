@@ -24,6 +24,8 @@ function FlippageAdmin({currentUser}) {
   const [customName, setCustomName] = useState("");
   const [customNameMessage, setCustomNameMessage] = useState("");
   const [isCustomNameValid, setIsCustomNameValid] = useState(null);
+  const [editBookmarks, setEditBookmarks] = useState([]);
+
 
   // Định nghĩa hàm fetchFileList (bạn có thể chuyển đoạn này lên trên cùng, bên cạnh useEffect)
   const fetchFileList = () => {
@@ -108,6 +110,7 @@ function FlippageAdmin({currentUser}) {
   const handleEdit = (file) => {
     setEditingFile(file);
     setNewCustomName(file.customName);
+    setEditBookmarks(file.bookmarks ? [...file.bookmarks] : []);
     setShowEditModal(true);
   };
 
@@ -352,6 +355,68 @@ function FlippageAdmin({currentUser}) {
     setBookmarks(updatedBookmarks);
   };
 
+  // Cập nhật trường (title hoặc page) của bookmark trong editBookmarks
+  const handleEditBookmarkChange = (index, field, value) => {
+    const updated = [...editBookmarks];
+    updated[index][field] = value;
+    setEditBookmarks(updated);
+  };  
+
+  const handleUpdateFile = async () => {
+    if (!editingFile) return;
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      toast.error("Bạn chưa đăng nhập!");
+      return;
+    }
+  
+    try {
+      // Nếu bạn có endpoint chung để update cả customName và bookmarks:
+      const res = await fetch(`${API_URL}/flippage/update-pdf/${editingFile._id}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customName: newCustomName,
+          bookmarks: editBookmarks, 
+        }),
+      });
+  
+      if (!res.ok) {
+        throw new Error("Cập nhật thất bại");
+      }
+  
+      const data = await res.json();
+      console.log("✅ Cập nhật thành công:", data);
+      toast.success("Cập nhật thành công!");
+  
+      // Cập nhật lại fileList trong state để hiển thị thay đổi
+      setFileList((prev) =>
+        prev.map((file) =>
+          file._id === editingFile._id
+            ? { ...file, customName: newCustomName, bookmarks: editBookmarks }
+            : file
+        )
+      );
+  
+      setShowEditModal(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Có lỗi khi cập nhật PDF");
+    }
+  };
+  // Thêm mới bookmark vào editBookmarks
+  const handleAddEditBookmark = () => {
+    setEditBookmarks([...editBookmarks, { title: "", page: 1 }]);
+  };
+
+  // Xoá bookmark khỏi editBookmarks
+  const handleRemoveEditBookmark = (index) => {
+    setEditBookmarks(editBookmarks.filter((_, i) => i !== index));
+  };
+
   const resetUploadState = () => {
     setSelectedFile(null);
     setCustomName("");
@@ -360,6 +425,23 @@ function FlippageAdmin({currentUser}) {
     setBookmarks([{ title: "", page: 1 }]); // Reset bookmarks về danh sách trống
     if (fileInputRef.current) {
       fileInputRef.current.value = ""; // Reset giá trị input file
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  
+    // Lấy file đầu tiên mà người dùng thả vào
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFile = e.dataTransfer.files[0];
+      setSelectedFile(droppedFile);
+      e.dataTransfer.clearData(); // Xoá dữ liệu kéo thả để tránh lỗi
     }
   };
 
@@ -465,35 +547,102 @@ function FlippageAdmin({currentUser}) {
                 </tr>
               ))}
             </tbody>
-              {showEditModal && editingFile && ReactDOM.createPortal(
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-                    onClick={() => setShowEditModal(false)}>
-                  <div className="bg-white p-6 rounded-lg shadow-lg w-1/3"
-                      onClick={(e) => e.stopPropagation()}>
-                    <h3 className="text-xl font-bold text-[#002147] mb-4">Cập nhật Custom Name</h3>
-                    
-                    <label className="block text-gray-600 font-medium mb-2">Đường dẫn mới</label>
+            {showEditModal && editingFile && ReactDOM.createPortal(
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                onClick={() => setShowEditModal(false)}
+              >
+                <div
+                  className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="border-b-2 border-gray-100 pb-3 mb-4">
+                    <h3 className="text-xl font-bold text-[#002147]">Cập nhật PDF</h3>
+                  </div>
+
+                  {/* Trường sửa Custom Name */}
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-bold mb-2">Đường dẫn mới</label>
                     <input
                       type="text"
                       value={newCustomName}
                       onChange={(e) => setNewCustomName(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                      className="w-full px-4 py-2 bg-[#F8F8F8] border-none  rounded-full focus:outline-none focus:ring-[#002147]"
                     />
-
-                    <div className="flex justify-end mt-4 space-x-2">
-                      <button onClick={() => setShowEditModal(false)}
-                              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg">
-                        Hủy
-                      </button>
-                      <button onClick={handleUpdateCustomName}
-                              className="px-4 py-2 bg-[#002147] text-white rounded-lg">
-                        Cập nhật
-                      </button>
-                    </div>
                   </div>
-                </div>,
-                document.body
-              )}
+
+                  {/* Bảng sửa Bookmarks */}
+                  <h3 className="block text-gray-700 font-bold mb-2">Cập nhật Bookmarks</h3>
+                  <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full border-collapse">
+                      <thead className="bg-[#EEF1F5] border-b">
+                        <tr>
+                          <th className="py-2 px-4 text-left text-sm font-semibold text-[#002147]">Tiêu đề</th>
+                          <th className="py-2 px-4 text-left text-sm font-semibold text-[#002147]">Số trang</th>
+                          <th className="py-2 px-4 text-left text-sm font-semibold text-[#002147]"></th>
+                        </tr>
+                      </thead>  
+                      <tbody>
+                        {editBookmarks.map((bm, idx) => (
+                          <tr key={idx}>
+                            <td className="border-r border-b text-sm">
+                              <input
+                                type="text"
+                                value={bm.title}
+                                onChange={(e) => handleEditBookmarkChange(idx, "title", e.target.value)}
+                                className="w-full px-2 py-1 border-none text-sm rounded focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                                placeholder="Nhập tiêu đề..."
+                              />
+                            </td>
+                            <td className="border-r border-b text-sm max-w-sm">
+                              <input
+                                type="number"
+                                value={bm.page}
+                                onChange={(e) => handleEditBookmarkChange(idx, "page", Number(e.target.value))}
+                                className="w-20 px-2 py-1 border-none rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                                min="1"
+                              />
+                            </td>
+                            <td className="border-b text-center">
+                              <button
+                                onClick={() => handleRemoveEditBookmark(idx)}
+                                className="bg-[#FF5733] text-white text-center px-2 py-1 rounded hover:bg-[#ff6b4a] transition"
+                              >
+                                <FiTrash2 />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {/* Nút thêm Bookmark */}
+                    <button
+                      onClick={handleAddEditBookmark}
+                      className="flex flex-row text-sm items-center gap-2 w-full pl-4 py-2 bg-[#EEF1F5] text-[#002147] font-semibold hover:bg-gray-200 transition"
+                    >
+                      <FaPlus size={12} /> Thêm Bookmark
+                    </button>
+                  </div>
+
+                  {/* Nút Hủy + Lưu */}
+                  <div className="flex justify-end space-x-2 mt-4">
+                    <button
+                      onClick={() => setShowEditModal(false)}
+                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={handleUpdateFile}
+                      className="px-4 py-2 bg-[#002147] text-white rounded-lg"
+                    >
+                      Cập nhật
+                    </button>
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
 
               {/* Modal xác nhận xoá */}
               {showDeleteModal &&
@@ -634,33 +783,37 @@ function FlippageAdmin({currentUser}) {
                     <div className="mt-2 space-y-3">
                       <label className="block text-gray-700 font-bold">Chọn file</label>
                       <h2 className="text-[#002147] font-semibold">File PDF</h2>
-                      <div 
-                        className="relative flex flex-col items-center justify-center border-dashed border-2 border-gray-300 bg-[#F8F8F8] p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition"
-                        onClick={() => fileInputRef.current.click()}
-                      >
-                        <div className="w-full flex flex-row items-start gap-2">
-                          <img src={`/pdf/upload.png`}/>
-                          <div className="w-full flex flex-col items-start justify-between gap-2">
-                          <p className="text-gray-600 text-sm">Kéo thả hoặc chọn tệp từ máy tính</p>
-                          <div className="w-full flex flex-row items-center justify-between">
-                          <p className="text-gray-400 text-xs">Định dạng hỗ trợ: PDF</p>
-                          <p className="text-gray-400 text-xs">Dung lượng tối đa: 50mb</p>
+                      <div
+                          className="relative flex flex-col items-center justify-center border-dashed border-2 border-gray-300 bg-[#F8F8F8] p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition"
+                          onClick={() => fileInputRef.current.click()}
+                          onDragOver={handleDragOver}   // Cho phép thả vào khu vực này
+                          onDrop={handleDrop}           // Xử lý khi người dùng thả file
+                        >
+                          <div className="w-full flex flex-row items-start gap-2">
+                            <img src={`/pdf/upload.png`} alt="upload icon"/>
+                            <div className="w-full flex flex-col items-start justify-between gap-2">
+                              <p className="text-gray-600 text-sm">Kéo thả hoặc chọn tệp từ máy tính</p>
+                              <div className="w-full flex flex-row items-center justify-between">
+                                <p className="text-gray-400 text-xs">Định dạng hỗ trợ: PDF</p>
+                                <p className="text-gray-400 text-xs">Dung lượng tối đa: 50mb</p>
+                              </div>
+                            </div>
                           </div>
-                          </div>
+
+                          {/* Input file ẩn */}
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleFileChange}
+                          />
                         </div>
-                        <input
-                          type="file"
-                          accept="application/pdf"
-                          ref={fileInputRef}
-                          className="hidden"
-                          onChange={handleFileChange}
-                        />
-                      </div>
 
                       {/* Hiển thị file đã chọn */}
                       {selectedFile && (
                         <div className="flex items-center justify-between mt-3 p-3 bg-[#E4E9EF] rounded-lg">
-                          <div className="flex flex-col items-center">
+                          <div className="w-full flex flex-row justify-between items-center">
                             <a href="#" className="text-[#002147] font-medium truncate max-w-[200px]">
                               {selectedFile.name}
                             </a>
