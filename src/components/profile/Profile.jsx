@@ -407,6 +407,8 @@ const Profile = ({ userId, onBack }) => {
                           className="border border-gray-300 rounded-lg p-2 w-full"
                         >
                           <option value="user">User</option>
+                          <option value="marcom">Marcom</option>
+                          <option value="hr">HR</option>
                           <option value="technical">Technical</option>
                           <option value="admin">Admin</option>
                           <option value="superadmin">Super Admin</option>

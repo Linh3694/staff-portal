@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   FiRss,
   FiMessageCircle,
@@ -40,6 +40,26 @@ const Sidebar = ({
 
   const role = currentUser.role?.toLowerCase();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  // Effect lắng nghe click ngoài modal để đóng modal
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    if (isProfileMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isProfileMenuOpen]);
 
   // Danh sách menu: các menu lớn không có icon, các submenu có icon đi kèm.
   const menuItems = [
@@ -52,19 +72,12 @@ const Sidebar = ({
     },
     {
       title: "Workspace",
-      allowedRoles: ["superadmin", "admin", "technical", "marcom-user"],
       subItems: [
-        { label: "Tickets", icon: <FiMonitor size={16} />, link: "/dashboard/ticket", allowedRoles: ["superadmin", "admin", "marcom-user","user","technical"] },
-        { label: "Quản lý thiết bị", icon: <FiMonitor size={16} />, link: "/dashboard/devices" },
-        { label: "Quản lý Tickets", icon: <FiClipboard size={16} />, link: "/dashboard/tickets" },
-        { label: "Quản lý tài liệu", icon: <FiFolder size={16} />, link: "/dashboard/documents" },
-        { label: "Phần mềm lật trang", icon: <FiBook size={16} />, link: "/dashboard/flippageadmin", allowedRoles: ["superadmin", "admin", "marcom-user"] },
-      ],
-    },
-    {
-      title: "Profile",
-      subItems: [
-        { label: "Hồ sơ cá nhân", icon: <FiUser size={16} />, link: "/dashboard/profile" },
+        { label: "Tickets", icon: <FiMonitor size={16} />, link: "/dashboard/ticket" },
+        { label: "Quản lý thiết bị", icon: <FiMonitor size={16} />, link: "/dashboard/devices", allowedRoles: ["superadmin", "admin", "technical"] },
+        { label: "Quản lý Tickets", icon: <FiClipboard size={16} />, link: "/dashboard/tickets", allowedRoles: ["superadmin", "admin", "technical"]  },
+        { label: "Quản lý tài liệu", icon: <FiFolder size={16} />, link: "/dashboard/documents", allowedRoles: ["superadmin", "admin", "technical"]  },
+        { label: "Phần mềm lật trang", icon: <FiBook size={16} />, link: "/dashboard/flippageadmin", allowedRoles: ["superadmin", "admin", "marcom"] },
       ],
     },
     {
@@ -85,7 +98,7 @@ const Sidebar = ({
   };
 
   return (
-    <div
+    <aside
       className={cn(
         "fixed left-0 top-0 h-full backdrop-blur-lg bg-white/10 shadow-lg border-r border-gray-200  transition-all duration-300 ease-in-out p-4 rounded-xl z-50",
         effectiveCollapsed ? "w-24 min-w-[5rem]" : "w-64 min-w-[16rem]"
@@ -255,7 +268,7 @@ const Sidebar = ({
 
       {/* Dropdown menu */}
       {isProfileMenuOpen && (
-        <div className="absolute left-60 bottom-0 w-60 bg-white/10 shadow-lg rounded-2xl border p-3">
+        <div ref={profileMenuRef} className="absolute left-60 bottom-0 w-60 bg-white shadow-lg rounded-2xl border p-3">
           <div className="flex items-center gap-3 p-2 border-b">
             <img
               src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
@@ -290,7 +303,7 @@ const Sidebar = ({
       
       {/* Dropdown menu khi sidebar thu gọn */}
       {isProfileMenuOpen && (
-        <div className="absolute left-20 bottom-0 w-60 bg-white/10 shadow-lg rounded-2xl border p-3">
+        <div ref={profileMenuRef} className="absolute left-20 bottom-0 w-60 bg-white/10 shadow-lg rounded-2xl border p-3">
           <div className="flex items-center gap-3 p-2 border-b mb-2">
             <img src={currentUser.avatarUrl || "http://via.placeholder.com/150"} alt="Avatar" className="w-10 h-10 rounded-full border object-cover" />
             <div className="flex flex-col">
@@ -315,7 +328,7 @@ const Sidebar = ({
     </div>
   )}
 </div>
-    </div>
+    </aside>
   );
 };
 
