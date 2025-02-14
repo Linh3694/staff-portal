@@ -14,6 +14,10 @@ function FlipBookViewer({
   setCurrentPage,
   inputPage,
   setInputPage,
+  programmaticFlip,
+  setProgrammaticFlip,
+  targetPage,
+  setTargetPage
 }) {
   const bookContainerRef = useRef(null);
 
@@ -89,12 +93,12 @@ function FlipBookViewer({
     }
   }, [flipBookRef, doublePage]);
 
-  // Xử lý flip => cập nhật currentPage
-  const handleFlip = (e) => {
-    const newPage = e.data + 1;    // pageFlip() trả về chỉ số 0-based
-    setCurrentPage(newPage);       // Cập nhật state trang hiện tại
-    setInputPage(newPage);         // Đồng bộ luôn vào ô nhập
-  };
+  function handleFlip(e) {
+    const newPage = e.data + 1;
+    // Cứ mỗi lần lật, cập nhật luôn
+    setCurrentPage(newPage);
+    setInputPage(newPage);
+  }
 
   // Tính chiều rộng container: nếu doublePage=true -> gấp đôi
   const containerWidth = doublePage

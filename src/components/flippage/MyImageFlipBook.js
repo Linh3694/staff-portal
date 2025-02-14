@@ -8,11 +8,14 @@ function MyImageFlipBook({
   doublePage = false,
   pageWidth,
   pageHeight,
-  currentPage,
   setCurrentPage,
   inputPage,
   setInputPage,
   totalPages, 
+  programmaticFlip,
+  setProgrammaticFlip,
+  targetPage,
+  setTargetPage
 }) {
   if (!imageUrls || imageUrls.length === 0) return null;
 
@@ -59,10 +62,7 @@ function MyImageFlipBook({
     pageHeight={pageHeight}
     flipBookRef={flipBookRef} 
     setTotalPages={setTotalPages}
-    totalPages={totalPages}
-    currentPage={currentPage}
     setCurrentPage={setCurrentPage}
-    inputPage={inputPage}
     setInputPage={setInputPage}
     >
       {pages}

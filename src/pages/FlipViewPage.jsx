@@ -19,6 +19,9 @@ function FlipViewPage() {
   const [isActive, setIsActive] = useState(true); // 🔥 Trạng thái của tài liệu
   const [loading, setLoading] = useState(true); // 🔥 Thêm trạng thái loading
   const [showPageList, setShowPageList] = useState(false);
+  const [programmaticFlip, setProgrammaticFlip] = useState(false);
+  const [targetPage, setTargetPage] = useState(null);
+
 
   const [bookmarks, setBookmarks] = useState([]);
   const [inputPage, setInputPage] = useState(1);
@@ -159,20 +162,25 @@ const goToNextPage = () => {
 
 const goToPage = (e) => {
   e.preventDefault();
-  if (!flipBookRef.current || !flipBookRef.current.pageFlip()) return;
+  // Dùng luôn hàm helper với số trang từ input (đã 1-indexed)
+  handleGoToPage(inputPage);
+};
 
-  const pageNumber = parseInt(inputPage, 10);
-  if (isNaN(pageNumber) || pageNumber < 1 || pageNumber > totalPages) {
+
+const handleGoToPage = (pageNumber) => {
+  if (!flipBookRef.current) return;
+
+  if (pageNumber < 1 || pageNumber > totalPages) {
     alert(`Số trang không hợp lệ! (1 - ${totalPages})`);
     return;
   }
-  // Lật đến trang (pageNumber - 1) do flipbook tính từ 0
-  flipBookRef.current.pageFlip().flip(pageNumber - 1);
 
-  // Không cần setCurrentPage() ở đây nếu onFlip đã cập nhật. 
-  // Hoặc nếu muốn phản hồi ngay lập tức, ta có thể setCurrentPage(pageNumber) ở đây,
-  // rồi onFlip cũng sẽ chạy lại (nhưng không sao, giá trị vẫn như nhau).
+  setTargetPage(pageNumber);
+
+  // Đổi từ flip(...) sang turnToPage(...)
+  flipBookRef.current.pageFlip().turnToPage(pageNumber - 1);
 };
+
 
 const goToFirstPage = () => {
   if (flipBookRef.current && flipBookRef.current.pageFlip()) {
@@ -297,6 +305,10 @@ useEffect(() => {
           inputPage={inputPage}
           setInputPage={setInputPage}
           totalPages={totalPages}  // 📌 Nhận totalPages từ FlipBookViewer
+          programmaticFlip={programmaticFlip}          // <-- thêm vào
+          setProgrammaticFlip={setProgrammaticFlip}      // <-- thêm vào
+          targetPage={targetPage}
+          setTargetPage={setTargetPage}
         />
          </div>
         {/* Thanh điều khiển */}
@@ -384,11 +396,7 @@ useEffect(() => {
                 <button
                   key={index}
                   onClick={() => {
-                    // Lật đến trang tương ứng (chú ý flip nhận chỉ số 0-based)
-                    if (flipBookRef.current && flipBookRef.current.pageFlip()) {
-                      flipBookRef.current.pageFlip().flip(bm.page - 1);
-                    }
-                    // Ẩn panel sau khi chọn
+                    handleGoToPage(bm.page);
                     setShowBookmarkPanel(false);
                   }}
                   className="block w-full text-center  py-2 px-3 text-[#002147] bg-gray-100 rounded-full mb-3 "
@@ -407,32 +415,24 @@ useEffect(() => {
               `}
             >              
             <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">Danh sách trang</h3>
-              {images.map((img, idx) => {
-                const pageNumber = idx + 1; // hiển thị trang 1,2,3,...
-                return (
-                  <div key={idx} className="mb-2">
-                    <button
-                      onClick={() => {
-                        // Lật đến trang tương ứng
-                        if (flipBookRef.current && flipBookRef.current.pageFlip()) {
-                          flipBookRef.current.pageFlip().flip(idx);
-                          // Cập nhật state để hiển thị đúng
-                          setCurrentPage(pageNumber);
-                          setInputPage(pageNumber);
-                        }
-                      }}
-                      className="block w-full text-center py-2 px-3 text-white hover:bg-gray-100 rounded"
-                    >
-                      <img
-                        src={img}
-                        alt={`page-${pageNumber}`}
-                        className="w-full h-[100px] border object-cover rounded"
-                      />
-                     {pageNumber}
-                    </button>
-                  </div>
-                );
-              })}
+            {images.map((img, idx) => {
+                  const pageNumber = idx + 1; // hiển thị trang 1,2,3,...
+                  return (
+                    <div key={idx} className="mb-2">
+                      <button
+                        onClick={() => handleGoToPage(idx + 1)}
+                        className="block w-full text-center py-2 px-3 text-white hover:bg-gray-100 rounded"
+                      >
+                        <img
+                          src={img}
+                          alt={`page-${pageNumber}`}
+                          className="w-full h-[100px] border object-cover rounded"
+                        />
+                        {pageNumber}
+                      </button>
+                    </div>
+                  );
+                })}
             </aside>
           )}
         </>
