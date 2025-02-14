@@ -25,6 +25,41 @@ function FlippageAdmin({currentUser}) {
   const [customNameMessage, setCustomNameMessage] = useState("");
   const [isCustomNameValid, setIsCustomNameValid] = useState(null);
 
+  // Định nghĩa hàm fetchFileList (bạn có thể chuyển đoạn này lên trên cùng, bên cạnh useEffect)
+  const fetchFileList = () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      toast.error("Bạn chưa đăng nhập!");
+      return;
+    }
+    fetch(`${API_URL}/flippage/get-all-pdfs`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Unauthorized");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setFileList(data);
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Lỗi khi tải danh sách file:", err);
+        toast.error("Bạn không có quyền truy cập hoặc token hết hạn.");
+      });
+  };
+
+  // Sửa lại useEffect ban đầu để dùng fetchFileList:
+  useEffect(() => {
+    fetchFileList();
+  }, []);
 
   // Gọi API lấy danh sách tất cả file PDF từ MongoDB
   useEffect(() => {
@@ -261,6 +296,8 @@ function FlippageAdmin({currentUser}) {
       const data = await res.json();
       toast.success("Tải lên thành công!");
       setIsUploadModalOpen(false);
+      fetchFileList();
+      resetUploadState();
     } catch (err) {
       console.error(err);
       toast.error("Có lỗi khi upload PDF");
@@ -673,7 +710,7 @@ function FlippageAdmin({currentUser}) {
                   <button onClick={() => setShowPermanentDeleteModal(false)}
                           className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg">Hủy</button>
                   <button onClick={() => confirmPermanentDelete(deletingFile._id)}
-                          className="px-4 py-2 bg-red-700 text-white rounded-lg">Xóa vĩnh viễn</button>
+                          className="px-4 py-2 bg-[#FF5733] text-white rounded-lg">Xóa vĩnh viễn</button>
                 </div>
               </div>
             </div>,
