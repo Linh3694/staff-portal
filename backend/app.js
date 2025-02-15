@@ -5,7 +5,6 @@ const fs = require('fs');
 const mongoose = require("mongoose");
 const cors = require("cors");
 const passport = require("passport");
-const User = require("./models/Users");
 const authRoutes = require("./routes/auth");
 const authMicrosoftRoutes = require("./routes/authMicrosoft"); // Đăng nhập Microsoft
 const laptopRoutes = require("./routes/laptops");
@@ -15,9 +14,6 @@ const projectorRoutes = require("./routes/projectors");
 const toolRoutes = require("./routes/tool");
 const roomRoutes = require("./routes/room");
 const userRoutes = require("./routes/users");
-const notificationRoutes = require('./routes/notifications');
-const Notification = require('./models/notification'); // Adjust the path as necessary
-const validateToken = require("./middleware/validateToken");
 const clientsSync = require('./routes/clientsSync'); // Import the clientsSync router
 const app = express();
 const Laptop = require("./models/Laptop");
@@ -43,6 +39,7 @@ const newsfeedRoutes = require("./routes/newsfeed");
 const pdfRoutes = require("./routes/pdf");
 const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const networkDevicesRoutes = require("./routes/networkDevices");
 
 
 
@@ -115,7 +112,6 @@ app.use("/api/auth", authMicrosoftRoutes);
 app.use("/api/monitors", monitorRoutes); // Route laptops
 app.use("/api/users", userRoutes); // Route users
 app.use("/api/clients-sync", clientsSync.router); // Use the clientsSync router
-app.use("/api/notifications", notificationRoutes); // Route notifications
 app.use("/api/printers", printerRoutes); // Route printers
 app.use("/api/projectors", projectorRoutes); // Route projectors
 app.use("/api/rooms", roomRoutes);
@@ -130,28 +126,9 @@ app.use("/api/students", studentRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/newsfeed", newsfeedRoutes);  // Thêm dòng này
 app.use("/api/flippage", pdfRoutes);
+app.use("/api/network-devices", networkDevicesRoutes);
 
 
-
-const syncClientsFromAzure = require("./routes/clientsSync").syncClientsFromAzure;
-app.get("/api/sync-clients", async (req, res) => {
-  try {
-    await syncClientsFromAzure();
-    res.json({ message: "Clients synced successfully!" });
-  } catch (error) {
-    res.status(500).json({ error: "Error syncing clients" });
-  }
-});
-
-app.post("/api/sync-clients", validateToken, async (req, res) => {
-  try {
-    await syncClientsFromAzure();
-    res.json({ message: "Clients synced successfully!" });
-  } catch (error) {
-    console.error("Error syncing clients:", error.message);
-    res.status(500).json({ error: "Error syncing clients" });
-  }
-});
 
 app.post("/api/laptops/bulk-upload", async (req, res) => {
   try {
@@ -374,50 +351,6 @@ app.post('/api/sync-attendance', (req, res) => {
   });
 });
 
-
-// Endpoint to fetch unread notifications
-app.get('/api/notifications/unread', async (req, res) => {
-  try {
-    const notifications = await Notification.find({ isRead: false });
-    res.json({ notifications, count: notifications.length });
-  } catch (error) {
-    console.error('Error fetching unread notifications:', error);
-    res.status(500).json({ message: 'Server error', error });
-  }
-});
-
-// Endpoint to mark all notifications as read
-app.post('/api/notifications/mark-all-as-read', async (req, res) => {
-  try {
-    await Notification.updateMany({ isRead: false }, { isRead: true });
-    res.json({ message: 'All notifications marked as read' });
-  } catch (error) {
-    console.error('Error marking all notifications as read:', error);
-    res.status(500).json({ message: 'Server error', error });
-  }
-});
-
-// Endpoint to mark a single notification as read
-app.post('/api/notifications/:id/mark-as-read', async (req, res) => {
-  try {
-    await Notification.findByIdAndUpdate(req.params.id, { isRead: true });
-    res.json({ message: 'Notification marked as read' });
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    res.status(500).json({ message: 'Server error', error });
-  }
-});
-
-// Endpoint to fetch the latest 5 notifications
-app.get('/api/notifications/latest', async (req, res) => {
-  try {
-    const notifications = await Notification.find().sort({ timestamp: -1 }).limit(5);
-    res.json({ notifications });
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    res.status(500).json({ message: 'Server error', error });
-  }
-});
 
 // Serve static files from the uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

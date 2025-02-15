@@ -267,94 +267,84 @@ useEffect(() => {
       className="fixed top-0 left-0 w-screen h-screen overflow-hidden"
       style={{
         backgroundImage: isFullscreen
-          ? "url(/pdf/fullscreen-back.png)" // background khi fullscreen
-          : "url(/pdf/back.png)"            // background mặc định
+          ? "url(/pdf/fullscreen-back.png)"
+          : "url(/pdf/back.png)",
+        backgroundSize: "cover",
       }}
     >
-      <div>
-        {/* Icon góc trên bên trái */}
+      <div className="relative w-full h-full">
+        {/* Logo góc trên */}
         <img
           src="/pdf/wellsping-logo.png"
           alt="Wellspring Logo"
-          className="absolute top-5 left-5 w-[240px]" // 🔥 Cố định ở góc trên trái
+          className="absolute top-2 left-2 w-20 sm:w-32 md:w-[240px]"
         />
-
-        {/* Icon góc trên bên phải */}
         <img
           src="/pdf/happyjourney.png"
           alt="WSHN Logo"
-          className="absolute top-2 right-5 w-[200px]" // 🔥 Cố định ở góc trên phải
+          className="absolute top-2 right-2 w-20 sm:w-28 md:w-[200px]"
         />
-      </div>
-
-      {/* Bật tắt chế độ trang đôi */}
-      
-      {/* Render FlipBook */}
-      {images.length > 0 ? ( 
-        <>
-        <div className="flex min-h-screen min-w-screen items-center justify-center">
-        <MyImageFlipBook
-          imageUrls={images}
-          doublePage={doublePage}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          pageWidth={pageWidth}
-          pageHeight={pageHeight}
-          flipBookRef={flipBookRef}
-          setTotalPages={setTotalPages}
-          inputPage={inputPage}
-          setInputPage={setInputPage}
-          totalPages={totalPages}  // 📌 Nhận totalPages từ FlipBookViewer
-          programmaticFlip={programmaticFlip}          // <-- thêm vào
-          setProgrammaticFlip={setProgrammaticFlip}      // <-- thêm vào
-          targetPage={targetPage}
-          setTargetPage={setTargetPage}
-        />
-         </div>
-        {/* Thanh điều khiển */}
-        <div className="fixed bottom-0 left-0 w-full bg-gray-500 bg-opacity-50 py-2 flex justify-center items-center gap-10">
-            {/* Icon danh sách trang */}
-            <button
-              onClick={() => setShowPageList(!showPageList)}
-              className="text-white hover:text-gray-300"
-            >
-              <i className="fas fa-list-ul"></i>
-            </button>
-
-            {/* Icon đánh dấu trang */}
-            <button
-              onClick={() => setShowBookmarkPanel(!showBookmarkPanel)}
-              className="text-white hover:text-gray-300"
-            >
-              <i className="far fa-bookmark"></i>
-            </button>
-
-            {/* Nút bật/tắt chế độ trang đôi */}
-            <button 
-              onClick={() => {
-                setDoublePage(!doublePage);
-                setCurrentPage(1);
-              }}
-              className="text-white hover:text-gray-300"
-            >
-              <i className="fas fa-book-open"></i>
-            </button>
-
-            {/* Nút về trang đầu */}
+  
+        {images.length > 0 ? (
+          <>
+            <div className="flex items-center justify-center w-full h-full px-4">
+              <MyImageFlipBook
+                imageUrls={images}
+                doublePage={doublePage}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                pageWidth={pageWidth}
+                pageHeight={pageHeight}
+                flipBookRef={flipBookRef}
+                setTotalPages={setTotalPages}
+                inputPage={inputPage}
+                setInputPage={setInputPage}
+                totalPages={totalPages}
+                programmaticFlip={programmaticFlip}
+                setProgrammaticFlip={setProgrammaticFlip}
+                targetPage={targetPage}
+                setTargetPage={setTargetPage}
+              />
+            </div>
+  
+            {/* Thanh điều khiển */}
+            <div className="fixed bottom-0 left-0 w-full bg-gray-500 bg-opacity-70 py-2 flex flex-wrap justify-center items-center gap-4 sm:gap-10 px-2">
+              <button
+                onClick={() => setShowPageList(!showPageList)}
+                className="text-white hover:text-gray-300"
+              >
+                <i className="fas fa-list-ul"></i>
+              </button>
+  
+              <button
+                onClick={() => setShowBookmarkPanel(!showBookmarkPanel)}
+                className="text-white hover:text-gray-300"
+              >
+                <i className="far fa-bookmark"></i>
+              </button>
+  
+              <button 
+                onClick={() => {
+                  setDoublePage(!doublePage);
+                  setCurrentPage(1);
+                }}
+                className="text-white hover:text-gray-300"
+              >
+                <i className="fas fa-book-open"></i>
+              </button>
+  
               <button onClick={goToFirstPage} className="text-white hover:text-gray-300">
                 <i className="fas fa-angle-double-left"></i>
               </button>
-
-              {/* Nút trang trước */}
+  
               <button onClick={goToPrevPage} className="text-white hover:text-gray-300">
                 <i className="fas fa-angle-left"></i>
               </button>
-
-              {/* Ô nhập số trang */}
+  
               <form onSubmit={goToPage} className="flex items-center bg-white px-2 rounded-md shadow-md">
-              <input
+                <input
                   type="number"
-                  className="w-8 h-8 text-left text-sm font-semibold bg-transparent border-none outline-none no-spinner"
+                  className="w-10 h-8 text-left text-sm font-semibold bg-transparent border-none outline-none no-spinner"
                   value={inputPage}
                   min="1"
                   max={totalPages}
@@ -362,87 +352,80 @@ useEffect(() => {
                 />
                 <span className="text-gray-700 text-sm font-semibold">/ {totalPages}</span>
               </form>
-
-              {/* Nút trang sau */}
+  
               <button onClick={goToNextPage} className="text-white hover:text-gray-300">
                 <i className="fas fa-angle-right"></i>
               </button>
-
-              {/* Icon trang cuối */}
+  
               <button onClick={goToLastPage} className="text-white hover:text-gray-300">
                 <i className="fas fa-angle-double-right"></i>
               </button>
-
-            {/* Chế độ fullscreen */}
-            <button onClick={toggleFullScreen} className="text-white hover:text-gray-300">
-              <i className="fas fa-expand"></i>
-            </button>
-
-            {/* Tìm kiếm trang */}
-            {/* <button className="text-white hover:text-gray-300">
-              <i className="fas fa-search"></i>
-            </button> */}
-          </div>
-
+  
+              <button onClick={toggleFullScreen} className="text-white hover:text-gray-300">
+                <i className="fas fa-expand"></i>
+              </button>
+            </div>
+  
+            {/* Panel Bookmark */}
             {bookmarks.length > 0 && (
               <aside
-                className={`fixed top-0 left-0 h-full w-64 bg-gray-500 p-4 shadow-md overflow-auto z-50
-                  transform transition-transform duration-500
-                  ${showBookmarkPanel ? "translate-x-0" : "-translate-x-full"}
-                `}
-              >              
-              <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">Bookmarks</h3>
-              {bookmarks.map((bm, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    handleGoToPage(bm.page);
-                    setShowBookmarkPanel(false);
-                  }}
-                  className="block w-full text-center  py-2 px-3 text-[#002147] bg-gray-100 rounded-full mb-3 "
-                >
-                  {bm.title}
-                </button>
-              ))}
-            </aside>
-          )}
-
-          {images.length > 0 && (
-            <aside
-              className={`fixed top-0 left-0 h-full w-64 bg-gray-500 p-4 shadow-md overflow-auto z-50
-                transform transition-transform duration-500
-                ${showPageList ? "translate-x-0" : "-translate-x-full"}
-              `}
-            >              
-            <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">Danh sách trang</h3>
-            {images.map((img, idx) => {
-                  const pageNumber = idx + 1; // hiển thị trang 1,2,3,...
+                className={`fixed top-0 left-0 h-full w-64 sm:w-80 bg-gray-500 p-4 shadow-md overflow-auto z-50 transform transition-transform duration-500 ${
+                  showBookmarkPanel ? "translate-x-0" : "-translate-x-full"
+                }`}
+              >
+                <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">Bookmarks</h3>
+                {bookmarks.map((bm, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      handleGoToPage(bm.page);
+                      setShowBookmarkPanel(false);
+                    }}
+                    className="block w-full text-center py-2 px-3 text-[#002147] bg-gray-100 rounded-full mb-3"
+                  >
+                    {bm.title}
+                  </button>
+                ))}
+              </aside>
+            )}
+  
+            {/* Panel Danh sách trang - đặt ở bên phải để tránh chồng lấn */}
+            {images.length > 0 && (
+              <aside
+                className={`fixed top-0 right-0 h-full w-64 sm:w-80 bg-gray-500 p-4 shadow-md overflow-auto z-50 transform transition-transform duration-500 ${
+                  showPageList ? "translate-x-0" : "translate-x-full"
+                }`}
+              >
+                <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">Danh sách trang</h3>
+                {images.map((img, idx) => {
+                  const pageNumber = idx + 1;
                   return (
                     <div key={idx} className="mb-2">
                       <button
-                        onClick={() => handleGoToPage(idx + 1)}
+                        onClick={() => handleGoToPage(pageNumber)}
                         className="block w-full text-center py-2 px-3 text-white hover:bg-gray-100 rounded"
                       >
                         <img
                           src={img}
                           alt={`page-${pageNumber}`}
-                          className="w-full h-[100px] border object-cover rounded"
+                          className="w-full h-[80px] sm:h-[100px] border object-cover rounded"
                         />
                         {pageNumber}
                       </button>
                     </div>
                   );
                 })}
-            </aside>
-          )}
-        </>
-      ) : (
-      <div className="flex flex-col items-center justify-center h-screen">
-          <p className="text-gray-600 text-2xl text-center">
-            Tài liệu này đang bị khóa. Vui lòng liên hệ Admin để biết thêm chi tiết.
-          </p>
-        </div>      
-      )}
+              </aside>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full px-4">
+            <p className="text-gray-600 text-xl sm:text-2xl text-center">
+              Tài liệu này đang bị khóa. Vui lòng liên hệ Admin để biết thêm chi tiết.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
