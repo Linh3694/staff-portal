@@ -4,7 +4,6 @@ const router = express.Router();
 const mongoose = require('mongoose');
 
 const Post = require('../models/Post');
-const Notification = require('../models/notification');
 const validateToken = require('../middleware/validateToken'); 
 // Hoặc import middleware tuỳ vào dự án
 

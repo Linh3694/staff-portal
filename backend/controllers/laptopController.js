@@ -4,7 +4,6 @@ const fs = require("fs");
 const User = require("../models/Users");
 const Room = require("../models/Room")
 const mongoose = require("mongoose");
-const Notification = require('../models/notification'); 
 const upload = require("../middleware/uploadHandover"); // Middleware Multer
 
 
@@ -97,16 +96,6 @@ exports.createLaptop = async (req, res) => {
     const laptop = new Laptop({ name, manufacturer, serial, assigned, specs, status, type, room, reason: status === "Broken" ? reason : undefined, });
     
     await laptop.save();
-
-    // Tạo thông báo khi tạo mới laptop
-    const user = await User.findById(userId);
-    if (user) {
-      const notification = new Notification({
-        message: `Laptop mới "${name}" đã được thêm bởi ${user.fullname}.`,
-        type: "info",
-      });
-      await notification.save();
-    }
    
     res.status(201).json(laptop);
   } catch (error) {

@@ -16,4 +16,5 @@ router.delete("/delete-permanently/:id", pdfController.permanentlyDeletePdf);
 router.get("/get-bookmarks/:customName", authenticate, pdfController.getBookmarks);
 router.put("/update-bookmarks/:id", authenticate, pdfController.updateBookmarks);
 router.get("/check-customname/:customName", authenticate, pdfController.checkCustomName);
+router.get("/check-custom-name/:customName", authenticate, pdfController.checkCustomeNameUrl);
 module.exports = router;

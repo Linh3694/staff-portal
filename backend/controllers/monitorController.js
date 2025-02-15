@@ -2,7 +2,6 @@ const Monitor = require("../models/Monitor");
 const User = require("../models/Users");
 const Room = require("../models/Room")
 const mongoose = require("mongoose");
-const Notification = require('../models/notification'); 
 
 // Lấy danh sách monitor
 exports.getMonitors = async (req, res) => {
@@ -89,16 +88,6 @@ exports.createMonitor = async (req, res) => {
     const monitor = new Monitor({ name, manufacturer, serial, assigned, status, room, reason: status === "Broken" ? reason : undefined, });
     
     await monitor.save();
-
-    // Tạo thông báo khi tạo mới monitor
-    const user = await User.findById(userId);
-    if (user) {
-      const notification = new Notification({
-        message: `Monitor mới "${name}" đã được thêm bởi ${user.fullname}.`,
-        type: "info",
-      });
-      await notification.save();
-    }
    
     res.status(201).json(monitor);
   } catch (error) {

@@ -37,10 +37,49 @@ function FlipViewPage() {
   const [pageWidth, setPageWidth] = useState(550);
   const [pageHeight, setPageHeight] = useState(650);
 
+  useEffect(() => {
+    if (!customName) {
+      console.error("❌ Lỗi: Không tìm thấy customName trong URL");
+      navigate("/login");
+      return;
+    }
+  
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.error("❌ Lỗi: Không có token, vui lòng đăng nhập!");
+      navigate("/login");
+      return;
+    }
+  
+    // Kiểm tra customName có tồn tại trong hệ thống không
+    fetch(`${API_URL}/flippage/check-custom-name/${encodeURIComponent(customName)}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Lỗi kiểm tra customName: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (!data.exists) {
+          console.warn("⚠️ customName không tồn tại trong hệ thống.");
+          navigate("/login"); // Chuyển về trang login nếu không tồn tại
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Lỗi khi kiểm tra customName:", err);
+        navigate("/login"); // Chuyển về login nếu có lỗi
+      });
+  }, [customName, navigate]);
+
   // 1) Lấy danh sách ảnh từ API
   useEffect(() => {
     if (!customName) {
       console.error("❌ Lỗi: Không tìm thấy customName trong URL");
+      navigate("/login"); 
       return;
     }
   
@@ -264,7 +303,7 @@ useEffect(() => {
   return (
     <div
       id="flipview-container"
-      className="fixed top-0 left-0 w-screen h-screen overflow-hidden"
+      className="relative w-full min-h-screen overflow-auto flex flex-col items-center justify-center bg-cover bg-center"
       style={{
         backgroundImage: isFullscreen
           ? "url(/pdf/fullscreen-back.png)"
@@ -272,23 +311,25 @@ useEffect(() => {
         backgroundSize: "cover",
       }}
     >
-      <div className="relative w-full h-full">
-        {/* Logo góc trên */}
-        <img
+      <div>
+      <img
           src="/pdf/wellsping-logo.png"
           alt="Wellspring Logo"
-          className="absolute top-2 left-2 w-20 sm:w-32 md:w-[240px]"
+          className="absolute top-4 left-2 w-48 sm:w-32 md:w-[240px]"
         />
         <img
           src="/pdf/happyjourney.png"
           alt="WSHN Logo"
-          className="absolute top-2 right-2 w-20 sm:w-28 md:w-[200px]"
+          className="absolute top-2 right-2 w-40 sm:w-28 md:w-[200px]"
         />
+      </div>
+      <div className="relative w-full h-full">
+        {/* Logo góc trên */}
   
         {images.length > 0 ? (
           <>
-            <div className="flex items-center justify-center w-full h-full px-4">
-              <MyImageFlipBook
+          <div className="flex-grow flex items-center justify-center p-4">
+          <MyImageFlipBook
                 imageUrls={images}
                 doublePage={doublePage}
                 currentPage={currentPage}
@@ -308,8 +349,8 @@ useEffect(() => {
             </div>
   
             {/* Thanh điều khiển */}
-            <div className="fixed bottom-0 left-0 w-full bg-gray-500 bg-opacity-70 py-2 flex flex-wrap justify-center items-center gap-4 sm:gap-10 px-2">
-              <button
+            <div className="fixed bottom-0 left-0 w-full bg-gray-500 bg-opacity-70 py-2 flex flex-wrap justify-center items-center gap-4 sm:gap-10 px-2 z-50">
+            <button
                 onClick={() => setShowPageList(!showPageList)}
                 className="text-white hover:text-gray-300"
               >

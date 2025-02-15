@@ -2,7 +2,6 @@ const Printer = require("../models/Printer");
 const User = require("../models/Users");
 const Room = require("../models/Room")
 const mongoose = require("mongoose");
-const Notification = require('../models/notification'); 
 
 // Lấy danh sách printer
 exports.getPrinters = async (req, res) => {
@@ -93,17 +92,7 @@ exports.createPrinter = async (req, res) => {
     const printer = new Printer({ name, manufacturer, serial, assigned, specs, status, type, room, reason: status === "Broken" ? reason : undefined, });
     
     await printer.save();
-
-    // Tạo thông báo khi tạo mới printer
-    const user = await User.findById(userId);
-    if (user) {
-      const notification = new Notification({
-        message: `Printer mới "${name}" đã được thêm bởi ${user.fullname}.`,
-        type: "info",
-      });
-      await notification.save();
-    }
-   
+     
     res.status(201).json(printer);
   } catch (error) {
     console.error("Error creating printer:", error.message);

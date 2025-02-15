@@ -5,7 +5,6 @@ const User = require("../models/Users");
 const upload = require("../middleware/upload");
 const validateToken = require("../middleware/validateToken");
 const userController = require('../controllers/userController'); // Controller xử lý logic
-const Notification = require('../models/notification'); // Model cho thông báo (cần tạo)
 const uploadAvatar = require("../middleware/uploadAvatar");
 
 

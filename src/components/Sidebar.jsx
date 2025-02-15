@@ -72,11 +72,20 @@ const Sidebar = ({
     },
     {
       title: "Workspace",
+      allowedRoles: ["superadmin", "admin", "technical"],
       subItems: [
         { label: "Tickets", icon: <FiMonitor size={16} />, link: "/dashboard/ticket" },
         { label: "Quản lý thiết bị", icon: <FiMonitor size={16} />, link: "/dashboard/devices", allowedRoles: ["superadmin", "admin", "technical"] },
         { label: "Quản lý Tickets", icon: <FiClipboard size={16} />, link: "/dashboard/tickets", allowedRoles: ["superadmin", "admin", "technical"]  },
         { label: "Quản lý tài liệu", icon: <FiFolder size={16} />, link: "/dashboard/documents", allowedRoles: ["superadmin", "admin", "technical"]  },
+        { label: "Phần mềm lật trang", icon: <FiBook size={16} />, link: "/dashboard/flippageadmin", allowedRoles: ["superadmin", "admin", "marcom"] },
+      ],
+    },
+    {
+      title: "Workspace",
+      allowedRoles: ["marcom"],
+      subItems: [
+        { label: "Tickets", icon: <FiMonitor size={16} />, link: "/dashboard/ticket" },
         { label: "Phần mềm lật trang", icon: <FiBook size={16} />, link: "/dashboard/flippageadmin", allowedRoles: ["superadmin", "admin", "marcom"] },
       ],
     },

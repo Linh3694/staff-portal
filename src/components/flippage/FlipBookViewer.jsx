@@ -118,6 +118,7 @@ function FlipBookViewer({
     >
       <div 
         ref={bookContainerRef}
+        className="flex justify-center items-center"
         style={{
           position: "relative",
           width: containerWidth,
@@ -127,7 +128,7 @@ function FlipBookViewer({
           margin: "40px auto",
           transform: `scale(${zoom})`,
           transformOrigin,
-          transition: "transform 0.s5s ease-out",
+          transition: "transform 0.5s ease-out",
           boxShadow: "5px 5px 15px rgba(0, 0, 0, 0.3)",
         }}
         onWheel={handleWheelZoom}

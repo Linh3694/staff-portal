@@ -4,6 +4,22 @@ const { convertPdfToImages } = require("../utils/convertPdfToImages");
 const fs = require("fs");
 const path = require("path");
 
+// routes/flippage.js
+exports.checkCustomeNameUrl = async (req, res) => {
+  const { customName } = req.params;
+  
+  try {
+    const fileExists = await Pdf.exists({ customName }); // ✅ Sửa thành Pdf.exists(...)
+    if (!fileExists) {
+      return res.status(404).json({ exists: false, message: "customName không tồn tại" });
+    }
+    return res.json({ exists: true });
+  } catch (error) {
+    console.error("Lỗi kiểm tra customName:", error);
+    return res.status(500).json({ exists: false, error: "Lỗi server" });
+  }
+};
+
 exports.checkCustomName = async (req, res) => {
   try {
     const { customName } = req.params;

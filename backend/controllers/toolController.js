@@ -2,7 +2,6 @@ const Tool = require("../models/Tool");
 const User = require("../models/Users");
 const Room = require("../models/Room")
 const mongoose = require("mongoose");
-const Notification = require('../models/notification'); 
 
 // Lấy danh sách tool
 exports.getTools = async (req, res) => {
