@@ -25,6 +25,7 @@ function FlippageAdmin({currentUser}) {
   const [customNameMessage, setCustomNameMessage] = useState("");
   const [isCustomNameValid, setIsCustomNameValid] = useState(null);
   const [editBookmarks, setEditBookmarks] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
 
 
   // Định nghĩa hàm fetchFileList (bạn có thể chuyển đoạn này lên trên cùng, bên cạnh useEffect)
@@ -284,6 +285,7 @@ function FlippageAdmin({currentUser}) {
     formData.append("bookmarks", JSON.stringify(adjustedBookmarks));
     console.log(formData)
     try {
+      setIsUploading(true); // Bật trạng thái loading
       const res = await fetch(`${API_URL}/flippage/upload-pdf`, {
         method: "POST",
         headers: {
@@ -304,6 +306,8 @@ function FlippageAdmin({currentUser}) {
     } catch (err) {
       console.error(err);
       toast.error("Có lỗi khi upload PDF");
+    } finally {
+      setIsUploading(false); // Tắt trạng thái loading dù thành công hay lỗi
     }
   };
 
@@ -842,11 +846,12 @@ function FlippageAdmin({currentUser}) {
                   >
                     Hủy
                   </button>
-                    <button
+                  <button
                       onClick={handleSubmit}
+                      disabled={isUploading}
                       className="px-4 py-2 bg-[#FF5733] text-white font-bold rounded-lg shadow-md hover:bg-[#ff6b4a] transition-all"
                     >
-                      Tải lên
+                      {isUploading ? "Đang tải lên..." : "Tải lên"}
                     </button>
                   </div>
                 </div>

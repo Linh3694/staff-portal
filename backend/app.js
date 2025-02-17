@@ -40,6 +40,9 @@ const pdfRoutes = require("./routes/pdf");
 const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const networkDevicesRoutes = require("./routes/networkDevices");
+const jobRoutes = require("./routes/jobRoutes");
+const applicationRoutes = require("./routes/applicationRoutes");
+
 
 
 
@@ -127,6 +130,8 @@ app.use("/api/documents", documentRoutes);
 app.use("/api/newsfeed", newsfeedRoutes);  // Thêm dòng này
 app.use("/api/flippage", pdfRoutes);
 app.use("/api/network-devices", networkDevicesRoutes);
+app.use("/api/jobs", jobRoutes);
+app.use("/api/applications", applicationRoutes);
 
 
 

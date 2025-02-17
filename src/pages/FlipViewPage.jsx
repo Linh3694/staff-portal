@@ -6,11 +6,8 @@ import { FaRegArrowAltCircleLeft, FaRegArrowAltCircleRight } from "react-icons/f
 
 
 function FlipViewPage() {
-  const [searchParams] = useSearchParams();
   const { customName } = useParams(); 
   const navigate = useNavigate(); // 🔥 Dùng để chuyển hướng nếu không mở được trang
-
-  const title = searchParams.get("title") || "";
 
   const [images, setImages] = useState([]);
   const [doublePage, setDoublePage] = useState(false);
@@ -22,7 +19,6 @@ function FlipViewPage() {
   const [programmaticFlip, setProgrammaticFlip] = useState(false);
   const [targetPage, setTargetPage] = useState(null);
 
-
   const [bookmarks, setBookmarks] = useState([]);
   const [inputPage, setInputPage] = useState(1);
   const flipBookRef = useRef(null);
@@ -30,12 +26,15 @@ function FlipViewPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const [showBookmarkPanel, setShowBookmarkPanel] = useState(false);
-  
 
+  const [ratio, setRatio] = useState(1);
 
   // Mặc định chiều rộng/cao
   const [pageWidth, setPageWidth] = useState(550);
   const [pageHeight, setPageHeight] = useState(650);
+
+  const oldDimensionsRef = useRef({ width: 550, height: 650 });
+
 
   useEffect(() => {
     if (!customName) {
@@ -148,10 +147,12 @@ function FlipViewPage() {
       const img = new Image();
       img.src = images[0];
       img.onload = () => {
-        const ratio = img.naturalWidth / img.naturalHeight;
-        const maxHeight = 650;
+        const computedRatio = img.naturalWidth / img.naturalHeight;
+        setRatio(computedRatio);
+        // Cập nhật kích thước mặc định dựa trên giá trị maxHeight
+        const maxHeight = 700;
         setPageHeight(maxHeight);
-        setPageWidth(Math.round(ratio * maxHeight));
+        setPageWidth(Math.round(computedRatio * maxHeight));
       };
     }
   }, [images]);
@@ -239,34 +240,32 @@ const goToLastPage = () => {
 const toggleFullScreen = () => {
   const container = document.getElementById("flipview-container");
   if (!container) return;
+
   if (!document.fullscreenElement) {
-    container.requestFullscreen()
-      .then(() => {
-        setIsFullscreen(true);
-      })
-      .catch((err) => {
-        alert(`Lỗi bật toàn màn hình: ${err.message}`);
-      });
+    // Lưu kích thước cũ (nếu thật sự cần)
+    oldDimensionsRef.current = { width: pageWidth, height: pageHeight };
+
+    // Bật fullscreen
+    container.requestFullscreen().catch((err) => alert(err.message));
   } else {
-    document.exitFullscreen()
-      .then(() => {
-        setIsFullscreen(false);
-      })
-      .catch((err) => {
-        alert(`Lỗi tắt toàn màn hình: ${err.message}`);
-      });
+    // Thoát fullscreen
+    document.exitFullscreen().catch((err) => alert(err.message));
   }
 };
 
 useEffect(() => {
   const handleFullscreenChange = () => {
-    if (document.fullscreenElement) {
-      setIsFullscreen(true);
-    } else {
+    if (!document.fullscreenElement) {
+      // Đã thoát fullscreen
       setIsFullscreen(false);
+      // Khôi phục lại kích thước cũ
+      setPageWidth(oldDimensionsRef.current.width);
+      setPageHeight(oldDimensionsRef.current.height);
+    } else {
+      // Vừa vào fullscreen
+      setIsFullscreen(true);
     }
   };
-
   document.addEventListener("fullscreenchange", handleFullscreenChange);
   return () => {
     document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -303,7 +302,9 @@ useEffect(() => {
   return (
     <div
       id="flipview-container"
-      className="relative w-full min-h-screen overflow-auto flex flex-col items-center justify-center bg-cover bg-center"
+      className={`relative w-full h-full flex flex-col items-center justify-center overflow-hidden ${
+        isFullscreen ? "fixed inset-0 z-50 bg-black" : ""
+      }`}      
       style={{
         backgroundImage: isFullscreen
           ? "url(/pdf/fullscreen-back.png)"
@@ -323,7 +324,7 @@ useEffect(() => {
           className="absolute top-2 right-2 w-40 sm:w-28 md:w-[200px]"
         />
       </div>
-      <div className="relative w-full h-full">
+      <div className="relative w-full h-full flex justify-center items-center">
         {/* Logo góc trên */}
   
         {images.length > 0 ? (

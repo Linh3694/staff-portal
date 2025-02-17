@@ -103,11 +103,11 @@ router.get("/microsoft/callback", (req, res, next) => {
   passport.authenticate("azuread-openidconnect", (err, user, info) => {
     if (err) {
       console.error("❌ Lỗi từ Microsoft OAuth:", err);
-      return res.redirect(`https://360wiser.wellspring.edu.vn/login?error=${encodeURIComponent(err.message)}`);
+      return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent(err.message)}`);
     }
     if (!user) {
       console.error("❌ Lỗi xác thực: Không tìm thấy user.");
-      return res.redirect(`https://360wiser.wellspring.edu.vn/login?error=Authentication+failed`);
+      return res.redirect(`http://localhost:3000/login?error=Authentication+failed`);
     }
 
     try {
@@ -125,10 +125,10 @@ router.get("/microsoft/callback", (req, res, next) => {
       }
 
       // Nếu từ web, chuyển hướng về frontend
-      return res.redirect(`https://360wiser.wellspring.edu.vn/auth/microsoft/success?token=${token}`);
+      return res.redirect(`http://localhost:3000/auth/microsoft/success?token=${token}`);
     } catch (error) {
       console.error("❌ Lỗi khi tạo JWT:", error);
-      return res.redirect(`https://360wiser.wellspring.edu.vn/login?error=${encodeURIComponent(error.message)}`);
+      return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent(error.message)}`);
     }
   })(req, res, next);
 });

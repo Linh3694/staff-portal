@@ -23,14 +23,9 @@ import DocumentTable from "../components/document/DocumentTable";
 import DocumentDashboard from "../components/document/DocumentDashboard";
 import NewsfeedPage from "./NewsfeedPage";
 import FlippageAdmin from "../components/flippage/flippage-admin";
+import RecruitmentAdmin from "../components/recruitment/recruitment-admin"
 import { API_URL, BASE_URL } from "../config";
 import ChatPage from "../components/chat/ChatPage"
-
-const menuToUrl = {
-  "Quản lý thiết bị": "devices",
-  "Quản lý Tickets": "tickets",
-  "Quản lý tài liệu": "documents",
-};
 
 const urlToMenu = {
      devices: "Quản lý thiết bị",
@@ -43,11 +38,11 @@ const urlToMenu = {
      users: "Quản lý người dùng",
      students: "Quản lý học sinh",
      rooms: "Quản lý phòng học",
+     recruitmentadmin :"Quản lý tuyển dụng"
  };
 
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const location = useLocation();
 
   // --- State cho dữ liệu người dùng, thông báo, v.v.
@@ -60,8 +55,6 @@ const Dashboard = () => {
     jobTitle: "",
     department: "",
   });
-  const [notifications, setNotifications] = useState([]);
-  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   // --- State của Sidebar: menu chính và submenu được chọn
   // Mặc định mở nhóm "Workspace" và submenu đầu tiên là "Quản lý thiết bị"
@@ -114,79 +107,7 @@ const Dashboard = () => {
     }
   }, [selectedSubMenu]);
 
-  // --- Xử lý thông báo
-  useEffect(() => {
-    fetchLatestNotifications();
-  }, []);
 
-  const fetchLatestNotifications = async () => {
-    setLoadingNotifications(true);
-    try {
-      const response = await axios.get(`${API_URL}/notifications/latest`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-      setNotifications(response.data.notifications);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-    } finally {
-      setLoadingNotifications(false);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      await axios.post(
-        `${API_URL}/notifications/mark-all-as-read`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
-      );
-      setNotifications(
-        notifications.map((notification) => ({ ...notification, isRead: true }))
-      );
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error);
-    }
-  };
-
-  const markNotificationAsRead = async (notificationId) => {
-    try {
-      await axios.post(
-        `${API_URL}/notifications/${notificationId}/mark-as-read`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
-      );
-      setNotifications(
-        notifications.map((notification) =>
-          notification._id === notificationId
-            ? { ...notification, isRead: true }
-            : notification
-        )
-      );
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-    }
-  };
-
-  const unreadCount = notifications.filter(
-    (notification) => !notification.isRead
-  ).length;
-
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("role");
-    localStorage.removeItem("rememberedEmail");
-    navigate("/login");
-  };
 
   // --- Lấy dữ liệu người dùng hiện tại
   useEffect(() => {
@@ -267,6 +188,10 @@ const Dashboard = () => {
         return(
           <Ticket currentUser={currentUser}/>
         )
+      case "Quản lý tuyển dụng":
+        return(
+          <RecruitmentAdmin currentUser={currentUser}/>
+        )    
       case "Chat":
         return (
          <ChatPage currentUser={currentUser} />

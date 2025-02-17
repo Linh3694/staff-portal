@@ -38,10 +38,10 @@ function FlipBookViewer({
       const desiredWidth = pageWidth * (doublePage ? 2 : 1); 
       const desiredHeight = pageHeight;
       
-      const scaleX = clientWidth / desiredWidth;
-      const scaleY = clientHeight / desiredHeight;
-      const newZoom = Math.min(scaleX, scaleY, 1); // Giữ zoom <= 1 để không vượt khung
-  
+      const marginFactor = 0.9;
+      const scaleX = (clientWidth * marginFactor) / desiredWidth;
+      const scaleY = (clientHeight * marginFactor) / desiredHeight;
+      const newZoom = Math.min(scaleX, scaleY, 1);
       setZoom(newZoom);
     }
   
@@ -107,6 +107,7 @@ function FlipBookViewer({
 
   return (
     <div 
+    className="flex justify-center items-center"
       style={{
         width: "100%",
         minHeight: "100%",
@@ -127,7 +128,7 @@ function FlipBookViewer({
           maxHeight: "100%",    // Chiếm 90% bề dọc
           margin: "40px auto",
           transform: `scale(${zoom})`,
-          transformOrigin,
+          transformOrigin: "center center",
           transition: "transform 0.5s ease-out",
           boxShadow: "5px 5px 15px rgba(0, 0, 0, 0.3)",
         }}
