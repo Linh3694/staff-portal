@@ -72,49 +72,63 @@ passport.deserializeUser(async (id, done) => {
 
 // Route bắt đầu flow OAuth với Microsoft
 router.get("/microsoft", (req, res, next) => {
-    console.log("Request đến /api/auth/microsoft");
-    next();
-  }, passport.authenticate("azuread-openidconnect"));
+  const redirectUri = req.query.redirectUri || "";
+  const isMobile = req.query.mobile === "true";
 
-// Route callback với custom callback để xử lý lỗi và chuyển hướng theo flag needProfileUpdate
+  // Lưu thông tin tùy chỉnh vào session
+  req.session.authState = { redirectUri, isMobile };
+
+  console.log("📡 Lưu authState vào session:", req.session.authState);
+
+  passport.authenticate("azuread-openidconnect")(req, res, next);
+});
+
 router.get("/microsoft/callback", (req, res, next) => {
-    console.log("Query parameters in callback:", req.query);
+  console.log("📡 Callback Microsoft - Query Params:", req.query);
+
+  let redirectUri = "";
+  let isMobile = false;
+
+  // Lấy thông tin từ session (nếu có)
+  if (req.session && req.session.authState) {
+    redirectUri = req.session.authState.redirectUri;
+    isMobile = req.session.authState.isMobile;
+    // Xóa sau khi đã lấy để không lộ thông tin lần sau
+    delete req.session.authState;
+  }
+
+  console.log("🔗 Redirect URI lấy từ session:", redirectUri);
+  console.log("📱 Đăng nhập từ Mobile:", isMobile);
+
   passport.authenticate("azuread-openidconnect", (err, user, info) => {
     if (err) {
-        console.error("Lỗi từ Microsoft OAuth:", err);
-        return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent("Lỗi từ Microsoft OAuth: " + err.message)}`);
-      }
-      if (!user) {
-        console.error("Lỗi xác thực: Không tìm thấy user trong database hoặc authentication bị từ chối từ Microsoft.");
-        
-        if (info && info.message) {
-          console.error("Chi tiết lỗi từ Passport:", info.message);
-          return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent("Authentication failed: " + info.message)}`);
-        } else {
-          console.error("Không có thông tin cụ thể từ Passport.");
-          return res.redirect(`http://localhost:3000/login?error=Authentication+failed:+User+not+found+or+denied+by+Microsoft`);
-        }
-      }
+      console.error("❌ Lỗi từ Microsoft OAuth:", err);
+      return res.redirect(`https://360wiser.wellspring.edu.vn/login?error=${encodeURIComponent(err.message)}`);
+    }
+    if (!user) {
+      console.error("❌ Lỗi xác thực: Không tìm thấy user.");
+      return res.redirect(`https://360wiser.wellspring.edu.vn/login?error=Authentication+failed`);
+    }
+
     try {
-      // Tạo JWT token
+      // 🔑 Tạo JWT token
       const token = jwt.sign(
         { id: user._id, role: user.role },
         process.env.JWT_SECRET,
         { expiresIn: "1d" }
       );
-      const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
-      
-      // Nếu user cần cập nhật thông tin (chưa hoàn tất hồ sơ)
-      if (user.needProfileUpdate) {
-        // Chuyển hướng đến trang hoàn tất hồ sơ (frontend)
-        return res.redirect(`${frontendURL}/complete-profile?token=${token}`);
-      } else {
-        // Nếu không cần cập nhật, chuyển hướng tới trang thành công
-        return res.redirect(`${frontendURL}/auth/microsoft/success?token=${token}`);
+      console.log("🎫 Token JWT:", token); 
+      // Nếu đăng nhập từ mobile và có redirectUri thì chuyển về mobile
+      if (isMobile && redirectUri) {
+        console.log("📱 Chuyển về mobile:", `${redirectUri}?token=${token}`);
+        return res.redirect(`${redirectUri}?token=${token}`);
       }
-    } catch (tokenError) {
-      console.error("Lỗi khi tạo JWT:", tokenError);
-      return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent(tokenError.message)}`);
+
+      // Nếu từ web, chuyển hướng về frontend
+      return res.redirect(`https://360wiser.wellspring.edu.vn/auth/microsoft/success?token=${token}`);
+    } catch (error) {
+      console.error("❌ Lỗi khi tạo JWT:", error);
+      return res.redirect(`https://360wiser.wellspring.edu.vn/login?error=${encodeURIComponent(error.message)}`);
     }
   })(req, res, next);
 });

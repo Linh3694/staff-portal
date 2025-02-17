@@ -15,26 +15,29 @@ function MicrosoftAuthSuccess() {
       return;
     }
 
-    localStorage.setItem("authToken", token);
-
     try {
       const decoded = jwtDecode(token);
-      console.log("Payload của token:", decoded); // Kiểm tra lại payload
+      console.log("Payload của token:", decoded);
 
-      const userRole = decoded.role; // Lấy role từ token
-      if (!userRole) {
-        throw new Error("Token không chứa role.");
-      }
+      const userRole = decoded.role;
+      if (!userRole) throw new Error("Token không chứa role.");
 
-      // Lưu role vào localStorage
+      localStorage.setItem("authToken", token);
       localStorage.setItem("role", userRole);
 
-      // Kiểm tra role và điều hướng
-      if (["admin", "superadmin", "technical"].includes(userRole)) {
-        navigate("/dashboard");
+      // Kiểm tra nếu user đến từ mobile
+      const isMobile = params.get("mobile") === "true";
+
+      if (isMobile) {
+        // Nếu từ mobile, điều hướng về deep link
+        window.location.href = `360wisers://auth-callback?token=${token}`;
       } else {
-        console.error("Sai role không vào được");
-        navigate("/not-authorized");
+        // Nếu từ web, điều hướng bình thường
+        if (["admin", "superadmin", "technical"].includes(userRole)) {
+          navigate("/dashboard");
+        } else {
+          navigate("/not-authorized");
+        }
       }
     } catch (error) {
       console.error("Lỗi decode token:", error);

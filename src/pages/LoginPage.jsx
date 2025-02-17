@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import "react-toastify/dist/ReactToastify.css";
 import { API_URL } from "../config"; // import từ file config
 
