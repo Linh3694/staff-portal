@@ -33,7 +33,7 @@ function MicrosoftAuthSuccess() {
         window.location.href = `360wisers://auth-callback?token=${token}`;
       } else {
         // Nếu từ web, điều hướng bình thường
-        if (["admin", "superadmin", "technical"].includes(userRole)) {
+        if (["admin", "superadmin", "technical", "marcom", "hr" ].includes(userRole)) {
           navigate("/dashboard");
         } else {
           navigate("/not-authorized");
