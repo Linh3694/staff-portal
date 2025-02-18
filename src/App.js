@@ -26,7 +26,7 @@ function PublicRoute({ children }) {
   const userRole = localStorage.getItem("role");
 
   // Chỉ chuyển hướng nếu user đã đăng nhập và có role hợp lệ
-  if (isAuthenticated && ["admin", "superadmin", "technical","marcom","hr"].includes(userRole)) {
+  if (isAuthenticated && ["admin", "superadmin", "technical", "marcom", "hr"].includes(userRole)) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -111,7 +111,7 @@ function App() {
 
           {/* Trang Dashboard - Chỉ cho phép người dùng đã đăng nhập với role phù hợp */}
           <Route path="/dashboard/*" element={
-            <RequireAuth allowedRoles={["admin", "superadmin", "technical"]}>
+            <RequireAuth allowedRoles={["admin", "superadmin", "technical", "marcom", "hr"]}>
               <Dashboard />
             </RequireAuth>
           } />
