@@ -26,7 +26,7 @@ function PublicRoute({ children }) {
   const userRole = localStorage.getItem("role");
 
   // Chỉ chuyển hướng nếu user đã đăng nhập và có role hợp lệ
-  if (isAuthenticated && ["admin", "superadmin", "technical"].includes(userRole)) {
+  if (isAuthenticated && ["admin", "superadmin", "technical","marcom","hr"].includes(userRole)) {
     return <Navigate to="/dashboard" replace />;
   }
 
