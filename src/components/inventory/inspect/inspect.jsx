@@ -3,16 +3,26 @@ import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import { saveAs } from "file-saver";
 import { toast } from "react-toastify";
-import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config";
+import { API_URL, BASE_URL } from "../../../config";
 
 const Inspect = ({ laptopData, onClose, user, onInspectionComplete }) => {
-  // user: chủ máy (người sở hữu); inspector sẽ được lấy từ currentUser (kỹ thuật kiểm tra)
+  console.log("📌 Dữ liệu laptopData nhận được Inspect:", laptopData);
   const [inspector, setInspector] = useState(null);
+
   useEffect(() => {
-    // Giả sử currentUser được lưu trong localStorage dưới key "currentUser"
     const currentUser = localStorage.getItem("currentUser");
     if (currentUser) {
-      setInspector(JSON.parse(currentUser));
+      try {
+        const parsedUser = JSON.parse(currentUser);
+        if (parsedUser?._id) {
+          setInspector(parsedUser);
+          console.log("inspector",inspector)
+        } else {
+          console.warn("Dữ liệu currentUser không hợp lệ");
+        }
+      } catch (error) {
+        console.error("Lỗi khi parse currentUser:", error);
+      }
     }
   }, []);
 
@@ -225,11 +235,29 @@ const Inspect = ({ laptopData, onClose, user, onInspectionComplete }) => {
       return;
     }
     if (currentStep === 3) {
-      const incompleteCategories = getIncompleteCategories();
-      if (incompleteCategories.length > 0) {
-        alert(`Bạn chưa hoàn thành các danh mục kiểm tra sau:\n- ${incompleteCategories.join("\n- ")}`);
+      const requiredCategories = [
+        "Tổng thể",
+        "CPU",
+        "RAM",
+        "Ổ cứng",
+        "Màn hình",
+        "Pin",
+        "Kết nối",
+        "Phần mềm"
+      ];
+      
+      const missingCategories = requiredCategories.filter((category) => {
+        const data = evaluation[category] || {};
+        return !data.overallCondition || data.overallCondition.trim() === "";
+      });
+  
+      if (missingCategories.length > 0) {
+        alert(
+          `Bạn chưa hoàn thành các danh mục kiểm tra sau:\n- ${missingCategories.join("\n- ")}`
+        );
         return;
       }
+  
       if (!isInspectionSubmitted) {
         submitInspectionData();
       }
@@ -305,8 +333,9 @@ const Inspect = ({ laptopData, onClose, user, onInspectionComplete }) => {
 
       const data = {
         today: today,
-        user_fullname: laptopData.assigned[0]?.fullname || "Không xác định",
-        user_department: laptopData.assigned[0]?.department || "Không xác định",
+        userFullname: laptopData.assigned[0]?.label || "Không xác định",
+        userDepartment: laptopData.assigned[0]?.department || "Không xác định",
+        userJobtitle: laptopData.assigned[0]?.jobTitle,
         laptopName: laptopData.name || "Không xác định",
         laptopSerial: laptopData.serial || "Không xác định",
         laptopProcessor: laptopData.specs.processor || "Không xác định",
@@ -375,8 +404,9 @@ const Inspect = ({ laptopData, onClose, user, onInspectionComplete }) => {
 
       const data = {
         today: today,
-        user_fullname: laptopData.assigned[0]?.fullname || "Không xác định",
-        user_department: laptopData.assigned[0]?.department || "Không xác định",
+        userFullname: laptopData.assigned[0]?.label || "Không xác định",
+        userDepartment: laptopData.assigned[0]?.department || "Không xác định",
+        userJobtitle: laptopData.assigned[0]?.jobTitle,
         laptopName: laptopData.name || "Không xác định",
         laptopSerial: laptopData.serial || "Không xác định",
         laptopProcessor: laptopData.specs.processor || "Không xác định",
@@ -431,7 +461,7 @@ const Inspect = ({ laptopData, onClose, user, onInspectionComplete }) => {
       formData.append("file", new File([output], `inspection_report.docx`));
       formData.append("inspectId", inspectId);
 
-      const saveResponse = await fetch(`${API_URL}/reports`, {
+      const saveResponse = await fetch(`${API_URL}/inspects/uploadReport`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -471,7 +501,7 @@ const Inspect = ({ laptopData, onClose, user, onInspectionComplete }) => {
               <div>
                 <h3 className="text-xl font-bold mb-4">Hướng dẫn kiểm tra</h3>
                 <div className="h-80 rounded-lg mb-4 overflow-auto border p-2">
-                  {["/logo.png", "/logo192.png", "/logo512.png"].map((imgSrc, idx) => (
+                  {[ "/inspect/3.png","/inspect/4.png","/inspect/5.png"].map((imgSrc, idx) => (
                     <img key={idx} src={imgSrc} alt={`Hướng dẫn kiểm tra ${idx + 1}`} className="mb-2 w-full h-auto rounded-lg" />
                   ))}
                 </div>

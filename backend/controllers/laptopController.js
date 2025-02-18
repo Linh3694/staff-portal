@@ -153,8 +153,6 @@ exports.bulkUploadLaptops = async (req, res) => {
     if (!laptops || !Array.isArray(laptops) || laptops.length === 0) {
       return res.status(400).json({ message: "Không có dữ liệu hợp lệ để tải lên!" });
     }
-    
-
     const errors = [];
     const validLaptops = [];
 
@@ -310,7 +308,7 @@ exports.assignLaptop = async (req, res) => {
     // Populate thông tin người dùng
     const populatedLaptop = await laptop.populate({
       path: "assignmentHistory.user",
-      select: "fullname jobTitle avatarUrl",
+      select: "fullname jobTitle avatarUrl department",
     });
     
     res.status(200).json(
@@ -506,7 +504,7 @@ exports.getLaptopById = async (req, res) => {
 
   try {
     const laptop = await Laptop.findById(id)
-      .populate("assigned", "fullname email jobTitle avatarUrl")
+      .populate("assigned", "fullname email jobTitle avatarUrl department")
       .populate("room", "name location status")
       .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl")
       .populate("assignmentHistory.assignedBy", "fullname email jobTitle avatarUrl")

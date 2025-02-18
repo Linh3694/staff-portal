@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import { FaSearch } from "react-icons/fa";
@@ -8,7 +8,9 @@ import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import Dropdown from "../function/dropdown";
-import { API_URL, UPLOAD_URL, BASE_URL } from "../../config"; // import từ file config
+import { API_URL } from "../../config"; // import từ file config
+import _ from "lodash"; // hoặc import debounce trực tiếp: import { debounce } from 'lodash';
+
 
 const LaptopTable = () => {
         
@@ -59,7 +61,6 @@ const LaptopTable = () => {
         const [showUploadModal, setShowUploadModal] = useState(false);
         const [parsedData, setParsedData] = useState([]);
         const [isUploading, setIsUploading] = useState(false);
-        const [showDropdown, setShowDropdown] = useState(false);
         const [selectedOption, setSelectedOption] = useState("Tất cả trạng thái");
         const [selectedDepartment, setSelectedDepartment] = useState("Tất cả phòng ban");
         const [selectedManufacturer, setSelectedManufacturer] = useState("Tất cả nhà sản xuất");
@@ -92,9 +93,7 @@ const LaptopTable = () => {
               },
             })
             .then((response) => {
-              // Dữ liệu laptop đã được cập nhật
               const updatedLaptop = response.data; 
-              // Cập nhật state cục bộ (nếu đang giữ selectedLaptop)
               if (selectedLaptop && selectedLaptop._id === updatedLaptop._id) {
                 setSelectedLaptop(updatedLaptop);
               }
@@ -104,31 +103,27 @@ const LaptopTable = () => {
               console.error("Lỗi cập nhật specs:", error);
               throw error;
             });
-        };
-
-                
+        };       
           const handleViewDetails = (laptop) => {
             setSelectedLaptop(laptop); // Chỉ truyền dữ liệu xuống LaptopProductCard
             setRefreshKey((prevKey) => prevKey + 1); // Tăng giá trị để ép render
             setShowDetailModal(true);
           };
-          
-
           const fetchUsers = async () => {
             try {
               const token = localStorage.getItem("authToken");
               const response = await axios.get(`${API_URL}/users`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
-
+              console.log(response)
               if (response.data && Array.isArray(response.data)) {
                 setUsers(
                   response.data.map((user) => ({
                     value: user._id,
                     label: user.fullname,
                     title: user.jobTitle || "Không",
-                    departmentName: user.department || "Unknown",
-                    emailAddress : user.email,
+                    department: user.department || "Chưa xác định",
+                    email : user.email,
                     avatarUrl: user.avatarUrl || "Không có",
                   }))
                 );
@@ -166,7 +161,10 @@ const LaptopTable = () => {
                 assigned: laptop.assigned.map((user) => ({
                   value: user._id,
                   label: user.fullname,
-                  departmentName: user.department,
+                  department: user.department || "Chưa xác định",
+                  jobTitle: user.jobTitle,
+                  email: user.email,
+                  avatarUrl: user.avatarUrl,
                 })),
               }));
           
@@ -189,7 +187,7 @@ const LaptopTable = () => {
           }, []);
 
           
-          const applyFilters = (filters = {}) => {
+    const applyFilters = (filters = {}) => {
 
             let filtered = [...originalData];  
         
@@ -216,12 +214,9 @@ const LaptopTable = () => {
             // Lọc theo phòng ban
             if (filters.department && filters.department !== "Tất cả") {
                 filtered = filtered.filter((item) =>
-                    item.assigned.some((user) => user.departmentName === filters.department)
+                    item.assigned.some((user) => user.department === filters.department)
                 );
             }
-            console.log("Dữ liệu sau khi lọc:", filtered);
-  
-            // Cập nhật dữ liệu state
             setFilteredData(filtered);
   
             const newTotalPages = Math.ceil(filtered.length / 30);
@@ -370,14 +365,23 @@ const LaptopTable = () => {
                 const response = await axios.get(`${API_URL}/laptops/${laptopId}`, {
                   headers: { Authorization: `Bearer ${token}` },
                 });
+                
+                const rawLaptop = response.data; // Dữ liệu gốc từ API
+                const mappedLaptop = {
+                  ...rawLaptop,
+                  assigned: rawLaptop.assigned.map((user) => ({
+                    value: user._id,
+                    label: user.fullname,
+                    department: user.department || "Chưa xác định",
+                    jobTitle: user.jobTitle,
+                    email: user.email,
+                    avatarUrl: user.avatarUrl,
+                  })),
+                };
             
-                // Cập nhật dữ liệu chi tiết
-                setSelectedLaptop(response.data);
-            
-                console.log("Dữ liệu backend", response.data);
+                setSelectedLaptop(mappedLaptop);
               } catch (error) {
                 console.error("Error fetching laptop details:", error);
-                toast.error("Không thể tải thông tin laptop!");
               }
             };
 
@@ -608,51 +612,42 @@ const LaptopTable = () => {
             }
           };
           
-          const handleSearchChange = (e) => {
-            const query = e.target.value.toLowerCase();
-            setSearchTerm(query);
-          
-            if (!query) {
-              // Người dùng xóa hết => Hiển thị all
+          // Hàm lọc dữ liệu theo searchTerm
+          const filterData = (query) => {
+            if (!query.trim()) {
               setFilteredData(originalData);
               setTotalPages(Math.ceil(originalData.length / 30));
               setData(originalData.slice(0, 30));
               setCurrentPage(1);
-              setSuggestions([]); // Xóa gợi ý
+              setSuggestions([]);
               return;
             }
-          
-            // Nếu có từ khóa, lọc
             const filtered = originalData.filter((item) => {
-              // Gom nhiều trường để kiểm tra (name, manufacturer, serial, assigned user, room...)
               const assignedNames = Array.isArray(item.assigned)
-                ? item.assigned.map((u) => `${u.label} ${u.departmentName}`).join(" ")
+                ? item.assigned.map((u) => `${u.label} ${u.department}`).join(" ")
                 : "";
               const roomInfo = item.room
                 ? `${item.room.label} ${(item.room.location || []).join(" ")}`
                 : "";
-          
-              const combinedText = [
-                item.name,
-                item.manufacturer,
-                item.serial,
-                assignedNames,
-                roomInfo,
-              ]
+              const combinedText = [item.name, item.manufacturer, item.serial, assignedNames, roomInfo]
                 .join(" ")
                 .toLowerCase();
-          
               return combinedText.includes(query);
             });
-          
-            // Cập nhật filteredData
             setFilteredData(filtered);
             setTotalPages(Math.ceil(filtered.length / 30));
             setData(filtered.slice(0, 30));
             setCurrentPage(1);
-          
-            // Sinh mảng suggestions (10 item gợi ý đầu tiên)
             setSuggestions(filtered.slice(0, 10));
+          };
+
+          // Sử dụng debounce để giảm số lần lọc
+          const debouncedFilterData = useCallback(_.debounce(filterData, 300), [originalData]);
+
+          const handleSearchChange = (e) => {
+            const query = e.target.value.toLowerCase();
+            setSearchTerm(query);
+            debouncedFilterData(query);
           };
 
 
@@ -863,7 +858,6 @@ const LaptopTable = () => {
           setData(originalData.slice(0, 30)); // Chỉ hiển thị 30 items đầu tiên
           setCurrentPage(1);                 // Reset về trang 1
         }
-        console.log("Original Data updated:", originalData);
       }, [originalData]);
     
     // useEffect #3: Mỗi khi filteredData hoặc currentPage thay đổi => cắt 30 records hiển thị
@@ -871,7 +865,6 @@ const LaptopTable = () => {
         const startIndex = (currentPage - 1) * 30;
         const paginatedData = filteredData.slice(startIndex, startIndex + 30);
         setData(paginatedData);
-        console.log("Filtered Data updated:", filteredData);
       }, [filteredData, currentPage]);;
 
       // useEffect #4: Nếu đang mở detail (selectedLaptop), thì tìm laptop mới nhất trong data
@@ -884,11 +877,6 @@ const LaptopTable = () => {
         }
       }, [data]);
       // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
-      useEffect(() => {
-        console.log("Original Data:", originalData);
-        console.log("Filtered Data:", filteredData);
-        console.log("Displayed Data:", data);
-      }, [originalData, filteredData, data]);
 
   return (  
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -902,15 +890,9 @@ const LaptopTable = () => {
                 <input
                   type="text"
                   placeholder="Tìm kiếm laptop..."
-                  className="pl-10 pr-4 py-2 rounded-md w-100 px-3"
+                  className="pl-10 pr-4 py-2 rounded-md w-2/3"
                   value={searchTerm}
                   onChange={handleSearchChange}
-                  // Thêm onFocus để hiện gợi ý khi focus (nếu muốn)
-                  onFocus={() => {
-                    if (searchTerm && suggestions.length > 0) {
-                      setSuggestions(suggestions); 
-                    }
-                  }}
                 />
 
                 {/* Hiển thị suggestions (nếu có) */}
@@ -1032,7 +1014,7 @@ const LaptopTable = () => {
                                 >
                                   Tất cả phòng ban
                                 </button>
-                                {Array.from(new Set(originalData.flatMap((item) => item.assigned.map((user) => user.departmentName)))).map(
+                                {Array.from(new Set(originalData.flatMap((item) => item.assigned.map((user) => user.department)))).map(
                                   (department) => (
                                     <button
                                       key={department}
@@ -1183,7 +1165,7 @@ const LaptopTable = () => {
                           <div key={user.value || user._id}>
                             <p className="font-bold">{user.label}</p>
                             <span className="italic text-gray-400">
-                              {user.departmentName ? user.departmentName : "Không xác định"}
+                              {user.department ? user.department : "Không xác định"}
                             </span>
                           </div>
                         ))

@@ -49,7 +49,7 @@ const postSchema = new mongoose.Schema(
       badgeIcon: { type: String }, // Có thể lưu link icon
       message: { type: String },
     },
-
+    isPinned: { type: Boolean, default: false },
     comments: [commentSchema],
     reactions: [reactionSchema],
   },

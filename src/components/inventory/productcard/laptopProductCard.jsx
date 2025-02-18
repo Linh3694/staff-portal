@@ -25,7 +25,7 @@ const LaptopProductCard = ({
   fetchLaptopDetails,
   onUpdateLaptop,
 }) => {
-  console.log(laptopData)
+  console.log("📌 Dữ liệu laptopData nhận được Product:", laptopData);
   const [activeTab, setActiveTab] = useState("repairs");
   const [repairs, setRepairs] = useState([]); // Quản lý danh sách sửa chữa cục bộ
   // Dữ liệu tạm để thêm/sửa repair/update
