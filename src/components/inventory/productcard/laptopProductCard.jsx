@@ -938,8 +938,8 @@ const handleConfirmBroken = async () => {
       toast.error("Không có biên bản kiểm tra để tải về!");
       return;
     }
-  
     const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
+    console.log(fileUrl)
     window.open(fileUrl, "_blank"); // Mở tab mới để tải xuống file
   };
 
