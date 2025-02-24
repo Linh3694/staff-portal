@@ -454,7 +454,10 @@ exports.uploadHandoverReport = async (req, res) => {
     console.log("✅ Tìm thấy laptop:", laptop);
 
     let currentAssignment = laptop.assignmentHistory.find(
-      (history) => history.user.toString() === userId && !history.endDate
+      (history) => 
+        history.user && 
+        history.user.toString() === userId && 
+        !history.endDate
     );
 
     if (!currentAssignment) {
