@@ -10,8 +10,8 @@ import {
 import { API_URL, BASE_URL } from "../../config";
 
 /**
- * Profile hiển thị thông tin user (theo userId), 
- * cho phép chỉnh sửa, upload ảnh, 
+ * Profile hiển thị thông tin user (theo userId),
+ * cho phép chỉnh sửa, upload ảnh,
  * kèm 2 tab:
  *  - "Thiết bị" (Devices) -> hiển thị 5 danh mục
  *  - "Tickets" -> hiển thị tickets user là creator
@@ -20,16 +20,16 @@ const Profile = ({ userId, onBack }) => {
   // --------------------------------------------------
   // 1. STATE
   // --------------------------------------------------
-  const [user, setUser] = useState(null);      
+  const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedUser, setEditedUser] = useState(null); 
-  const [avatarUrl, setAvatarUrl] = useState(""); 
-  const [avatarFile, setAvatarFile] = useState(null); 
-  const [activeTab, setActiveTab] = useState("profile");  // "profile" | "devices" | "tickets"
+  const [editedUser, setEditedUser] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [activeTab, setActiveTab] = useState("profile"); // "profile" | "devices" | "tickets"
   const [newPassword, setNewPassword] = useState("");
   const [assignedItems, setAssignedItems] = useState(null); // { laptops: [], monitors: [], ...}
-  const [tickets, setTickets] = useState([]);               // danh sách ticket (nếu cần)
-  
+  const [tickets, setTickets] = useState([]); // danh sách ticket (nếu cần)
+
   // Danh mục devices
   const catalogeIcons = [
     { id: "laptops", name: "Laptop", icon: MdComputer },
@@ -61,7 +61,7 @@ const Profile = ({ userId, onBack }) => {
       const data = await res.json();
 
       setUser(data);
-      setEditedUser({ ...data }); 
+      setEditedUser({ ...data });
       if (data.avatarUrl) {
         // Nếu backend trả "/uploads/xxx", ta ghép BASE_URL
         setAvatarUrl(`${BASE_URL}${data.avatarUrl}`);
@@ -80,7 +80,7 @@ const Profile = ({ userId, onBack }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Không thể tải danh sách thiết bị!");
-      const data = await res.json(); 
+      const data = await res.json();
       // data.items = { laptops: [...], monitors: [...], etc. }
       setAssignedItems(data.items);
     } catch (error) {
@@ -97,7 +97,7 @@ const Profile = ({ userId, onBack }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Không thể tải tickets!");
-      const allTickets = await res.json();  // { tickets: [...] }
+      const allTickets = await res.json(); // { tickets: [...] }
 
       const userTickets = allTickets.tickets?.filter(
         (ticket) => ticket.creator?._id === id
@@ -136,7 +136,7 @@ const Profile = ({ userId, onBack }) => {
   // --------------------------------------------------
   const handleSave = async () => {
     if (!editedUser) return;
-    
+
     // Nếu user đang disabled mà ta chuyển sang active => yêu cầu newPassword
     const isReactivating = user?.disabled && !editedUser.disabled;
     if (isReactivating && !newPassword) {
@@ -154,7 +154,7 @@ const Profile = ({ userId, onBack }) => {
       formData.append("role", editedUser.role || "user");
       formData.append("employeeCode", editedUser.employeeCode || "");
       formData.append("disabled", editedUser.disabled ? "true" : "false");
-      
+
       if (isReactivating) {
         formData.append("newPassword", newPassword);
       }
@@ -229,7 +229,7 @@ const Profile = ({ userId, onBack }) => {
       >
         Quay lại
       </button>
-      
+
       <div className="flex">
         {/* Sidebar tab */}
         <div className="w-1/5 border border-gray-200 rounded-xl p-7">
@@ -281,8 +281,12 @@ const Profile = ({ userId, onBack }) => {
                 />
                 <div>
                   <h1 className="text-2xl font-bold">{user.fullname}</h1>
-                  <p className="text-lg">{user.jobTitle || "Chưa có chức vụ"}</p>
-                  <p className="text-sm">{user.department || "Không xác định"}</p>
+                  <p className="text-lg">
+                    {user.jobTitle || "Chưa có chức vụ"}
+                  </p>
+                  <p className="text-sm">
+                    {user.department || "Không xác định"}
+                  </p>
                 </div>
               </div>
 
@@ -312,7 +316,9 @@ const Profile = ({ userId, onBack }) => {
                       </div>
                       <div>
                         <p className="text-gray-500">Mã nhân viên</p>
-                        <p className="font-semibold">{user.employeeCode || "N/A"}</p>
+                        <p className="font-semibold">
+                          {user.employeeCode || "N/A"}
+                        </p>
                       </div>
                       <div>
                         <p className="text-gray-500">Chức vụ</p>
@@ -419,7 +425,10 @@ const Profile = ({ userId, onBack }) => {
                         <select
                           value={editedUser.disabled ? "disabled" : "active"}
                           onChange={(e) =>
-                            handleInputChange("disabled", e.target.value === "disabled")
+                            handleInputChange(
+                              "disabled",
+                              e.target.value === "disabled"
+                            )
                           }
                           className="border border-gray-300 rounded-lg p-2 w-full"
                         >
@@ -481,9 +490,7 @@ const Profile = ({ userId, onBack }) => {
             <div className="p-4">
               <div className="flex items-center space-x-2 mb-4">
                 <p className="text-2xl font-bold text-[#002147]">Thiết bị</p>
-                <span
-                  className="flex items-center justify-center w-7 h-7 rounded-full bg-[#FF5733] text-white text-sm"
-                >
+                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-[#FF5733] text-white text-sm">
                   {getTotalDevices()}
                 </span>
               </div>
@@ -515,7 +522,9 @@ const Profile = ({ userId, onBack }) => {
                     >
                       <MdComputer size={24} />
                       <div>
-                        <p className="font-bold">{laptop.name || "Không có tên"}</p>
+                        <p className="font-bold">
+                          {laptop.name || "Không có tên"}
+                        </p>
                         <p className="text-sm text-gray-600">
                           Serial: {laptop.serial || "N/A"}
                         </p>
@@ -531,7 +540,9 @@ const Profile = ({ userId, onBack }) => {
                     >
                       <MdDesktopMac size={24} />
                       <div>
-                        <p className="font-bold">{monitor.name || "Không có tên"}</p>
+                        <p className="font-bold">
+                          {monitor.name || "Không có tên"}
+                        </p>
                         <p className="text-sm text-gray-600">
                           Serial: {monitor.serial || "N/A"}
                         </p>
@@ -547,7 +558,9 @@ const Profile = ({ userId, onBack }) => {
                     >
                       <MdPrint size={24} />
                       <div>
-                        <p className="font-bold">{printer.name || "Không có tên"}</p>
+                        <p className="font-bold">
+                          {printer.name || "Không có tên"}
+                        </p>
                         <p className="text-sm text-gray-600">
                           Serial: {printer.serial || "N/A"}
                         </p>
@@ -579,7 +592,9 @@ const Profile = ({ userId, onBack }) => {
                     >
                       <MdBuild size={24} />
                       <div>
-                        <p className="font-bold">{tool.name || "Không có tên"}</p>
+                        <p className="font-bold">
+                          {tool.name || "Không có tên"}
+                        </p>
                         <p className="text-sm text-gray-600">
                           Serial: {tool.serial || "N/A"}
                         </p>
@@ -601,7 +616,9 @@ const Profile = ({ userId, onBack }) => {
                       key={ticket._id}
                       className="bg-gray-200 text-[#002147] rounded-lg px-4 py-2 flex flex-col space-y-2"
                     >
-                      <p className="font-bold">{ticket.title || "Không có tiêu đề"}</p>
+                      <p className="font-bold">
+                        {ticket.title || "Không có tiêu đề"}
+                      </p>
                       <p className="text-sm text-gray-600">
                         Trạng thái: {ticket.status}
                       </p>

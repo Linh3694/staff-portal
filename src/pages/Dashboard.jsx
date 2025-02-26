@@ -1,8 +1,6 @@
 // Dashboard.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
-import Dropdown from "../components/function/dropdown";
+import { useLocation } from "react-router-dom";
 
 // Import các component nội dung (điều chỉnh đường dẫn nếu cần)
 import LaptopTable from "../components/inventory/LaptopTable";
@@ -23,24 +21,26 @@ import DocumentTable from "../components/document/DocumentTable";
 import DocumentDashboard from "../components/document/DocumentDashboard";
 import NewsfeedPage from "./NewsfeedPage";
 import FlippageAdmin from "../components/flippage/flippage-admin";
-import RecruitmentAdmin from "../components/recruitment/recruitment-admin"
+import RecruitmentAdmin from "../components/recruitment/recruitment-admin";
+import HallOfFameAdminPage from "../components/halloffame/HallOfFameAdminPage";
 import { API_URL, BASE_URL } from "../config";
-import ChatPage from "../components/chat/ChatPage"
+import ChatPage from "../components/chat/ChatPage";
+import ChatBot from "../components/AI Agent/chat";
 
 const urlToMenu = {
-     devices: "Quản lý thiết bị",
-     tickets: "Quản lý Tickets",
-     documents: "Quản lý tài liệu",
-     newsfeeds: "Newsfeeds",
-     flippageadmin: "Phần mềm lật trang",
-     chat: "Chat",
-     profile: "Hồ sơ cá nhân",
-     users: "Quản lý người dùng",
-     students: "Quản lý học sinh",
-     rooms: "Quản lý phòng học",
-     recruitmentadmin :"Quản lý tuyển dụng"
- };
-
+  devices: "Quản lý thiết bị",
+  tickets: "Quản lý Tickets",
+  documents: "Quản lý tài liệu",
+  newsfeeds: "Newsfeeds",
+  flippageadmin: "Phần mềm lật trang",
+  chat: "Chat",
+  profile: "Hồ sơ cá nhân",
+  users: "Quản lý người dùng",
+  students: "Quản lý học sinh",
+  rooms: "Quản lý phòng học",
+  recruitmentadmin: "Quản lý tuyển dụng",
+  halloffame: "Quản lý vinh danh",
+};
 
 const Dashboard = () => {
   const location = useLocation();
@@ -77,15 +77,8 @@ const Dashboard = () => {
       "Thiết bị trình chiếu",
       "Khác",
     ],
-    "Quản lý Tickets": [
-      "Ticket lists",
-      "Teams",
-      "Reports",
-    ],
-    "Quản lý tài liệu": [
-      "Tài liệu", 
-      "Báo cáo",
-    ], 
+    "Quản lý Tickets": ["Ticket lists", "Teams", "Reports"],
+    "Quản lý tài liệu": ["Tài liệu", "Báo cáo"],
     // Nếu có mục nào khác cần tab, bạn có thể thêm ở đây.
   };
 
@@ -97,7 +90,6 @@ const Dashboard = () => {
     }
   }, [location]);
 
-
   // Khi thay đổi submenu được chọn, nếu mục đó có tab thì mặc định chọn tab đầu tiên
   useEffect(() => {
     if (tabMapping[selectedSubMenu]) {
@@ -106,8 +98,6 @@ const Dashboard = () => {
       setActiveTab("");
     }
   }, [selectedSubMenu]);
-
-
 
   // --- Lấy dữ liệu người dùng hiện tại
   useEffect(() => {
@@ -146,6 +136,90 @@ const Dashboard = () => {
     fetchCurrentUser();
   }, []);
 
+  // --- Nhúng Chatbot FPT AI
+  useEffect(() => {
+    const liveChatBaseUrl =
+      document.location.protocol + "//livechat.fpt.ai/v36/src";
+    const LiveChatSocketUrl = "livechat.fpt.ai:443";
+    const FptAppCode = "333b702eda462388fa14c1c33c62cead"; // Thay mã AppCode của bạn
+    const FptAppName = "Hỗ trợ đến hơi thở cuối cùng";
+
+    const CustomStyles = {
+      // Header
+      headerBackground: "#002855FF",
+      headerTextColor: "#FFFFFFFF",
+      headerLogoEnable: false,
+      headerLogoLink:
+        "https://360wiser.wellspring.edu.vn/login/wellsping-logo.png",
+      headerText: "Hỗ trợ đến hơi thở cuối cùng",
+
+      // Màu sắc chính
+      primaryColor: "#002855FF",
+      secondaryColor: "#F05023FF",
+      primaryTextColor: "#FFFFFFFF",
+      secondaryTextColor: "#FFFFFFDE",
+
+      // Nút & Input
+      buttonColor: "#F8F8F8FF",
+      buttonTextColor: "#002855FF",
+      sendMessagePlaceholder: "Bạn cần hỗ trợ gì?",
+
+      // Avatar bot
+      avatarBot:
+        "https://360wiser.wellspring.edu.vn/uploads/Avatar/bigwell.svg",
+
+      // Nút mở chatbot
+      floatButtonLogo: "",
+      floatButtonTooltip: "Chào mừng bạn đến với 360Wiser",
+      floatButtonTooltipEnable: true,
+
+      // Màn hình chào
+      customerLogo:
+        "https://360wiser.wellspring.edu.vn/login/wellsping-logo.png",
+      customerWelcomeText: "Hãy nhập tên của bạn",
+      customerButtonText: "Bắt đầu thôi",
+
+      // CSS Tùy chỉnh - ghi đè kích thước logo float button
+      css: ``,
+    };
+
+    const FptLiveChatConfigs = {
+      appName: FptAppName,
+      appCode: FptAppCode,
+      themes: "",
+      styles: CustomStyles,
+    };
+
+    // Chèn script chatbot
+    const script = document.createElement("script");
+    script.id = "fpt_ai_livechat_script";
+    script.src = liveChatBaseUrl + "/static/fptai-livechat.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    // Chèn stylesheet chatbot
+    const stylesheet = document.createElement("link");
+    stylesheet.id = "fpt_ai_livechat_style";
+    stylesheet.rel = "stylesheet";
+    stylesheet.href = liveChatBaseUrl + "/static/fptai-livechat.css";
+    document.body.appendChild(stylesheet);
+
+    // Khi script tải xong, khởi tạo chatbot
+    script.onload = function () {
+      if (typeof window.fpt_ai_render_chatbox === "function") {
+        window.fpt_ai_render_chatbox(
+          FptLiveChatConfigs,
+          liveChatBaseUrl,
+          LiveChatSocketUrl
+        );
+      } else {
+        console.error(
+          "⚠️ Lỗi: fpt_ai_render_chatbox chưa được tải hoặc không khả dụng."
+        );
+      }
+    };
+  }, []);
+
   // --- Hàm render nội dung chính dựa theo mục (submenu) và tab con đang được chọn
   const renderContent = () => {
     switch (selectedSubMenu) {
@@ -165,7 +239,7 @@ const Dashboard = () => {
       case "Quản lý người dùng":
         return (
           <UserTable
-            // Truyền props cần thiết (ví dụ: danh sách người dùng, hàm sync,…)
+          // Truyền props cần thiết (ví dụ: danh sách người dùng, hàm sync,…)
           />
         );
       case "Quản lý học sinh":
@@ -173,36 +247,30 @@ const Dashboard = () => {
       case "Quản lý phòng học":
         return (
           <RoomTable
-            // Truyền các props cần thiết
+          // Truyền các props cần thiết
           />
         );
       case "Newsfeeds":
-        return (
-          <NewsfeedPage currentUser={currentUser} />
-        );
+        return <NewsfeedPage currentUser={currentUser} />;
       case "Phần mềm lật trang":
-        return(
-          <FlippageAdmin currentUser={currentUser} />
-        )
+        return <FlippageAdmin currentUser={currentUser} />;
       case "Tickets":
-        return(
-          <Ticket currentUser={currentUser}/>
-        )
+        return <Ticket currentUser={currentUser} />;
       case "Quản lý tuyển dụng":
-        return(
-          <RecruitmentAdmin currentUser={currentUser}/>
-        )    
+        return <RecruitmentAdmin currentUser={currentUser} />;
+      case "Quản lý vinh danh":
+        return <HallOfFameAdminPage currentUser={currentUser} />;
       case "Chat":
-        return (
-         <ChatPage currentUser={currentUser} />
-        );
+        return <ChatPage currentUser={currentUser} />;
+      case "AI Agent":
+        return <ChatBot currentUser={currentUser} />;
       case "Hồ sơ cá nhân":
         return (
           <div>
             <Profile userId={currentUser.id} onBack={() => {}} />
           </div>
         );
-        case "Quản lý tài liệu":
+      case "Quản lý tài liệu":
         if (activeTab === "Tài liệu") return <DocumentTable />;
         if (activeTab === "Báo cáo") return <DocumentDashboard />;
         break;
@@ -221,45 +289,47 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-[#f8f8f8]">
       {/* Header */}
-      <nav
-          className={`sticky top-4 flex items-center justify-between rounded-full bg-white/10 p-2 backdrop-blur-xl transition-all duration-300 z-50 ${
-            isSidebarOpen || isSidebarHovered ? "ml-64" : "ml-24"
-          }`}
-        >       
-         <div className="flex-1 flex justify-center ">
-          {/* Nếu mục được chọn có định nghĩa tab (ví dụ: Quản lý thiết bị, Quản lý Tickets) thì hiển thị thanh tab */}
-          {tabMapping[selectedSubMenu] && (
-            <div className="flex items-center gap-1 h-[61px] bg-white p-4 rounded-full shadow-xl border">
-              {tabMapping[selectedSubMenu].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex font-bold items-center gap-2 px-4 py-2 rounded-full transform transition-colors transition-transform duration-300 hover:scale-105 ${
-                    activeTab === tab
-                      ? "bg-[#002147] text-white"
-                      : "bg-transparent text-gray-600 hover:bg-gray-200 hover:text-gray-800"
-                  }`}
-                >
-                  <span className="text-sm font-medium">{tab}</span>
-                </button>
-              ))}
+      {tabMapping[selectedSubMenu] &&
+        tabMapping[selectedSubMenu].length > 0 && (
+          <nav
+            className={`sticky top-4 flex items-center justify-between rounded-full bg-white/10 p-2 backdrop-blur-xl transition-all duration-300 z-50 ${
+              isSidebarOpen || isSidebarHovered ? "ml-64" : "ml-24"
+            }`}
+          >
+            <div className="flex-1 flex justify-center ">
+              {/* Nếu mục được chọn có định nghĩa tab (ví dụ: Quản lý thiết bị, Quản lý Tickets) thì hiển thị thanh tab */}
+              {tabMapping[selectedSubMenu] && (
+                <div className="flex items-center gap-1 h-[61px] bg-white p-4 rounded-full shadow-xl border">
+                  {tabMapping[selectedSubMenu].map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex font-bold items-center gap-2 px-4 py-2 rounded-full transform transition-colors transition-transform duration-300 hover:scale-105 ${
+                        activeTab === tab
+                          ? "bg-[#002147] text-white"
+                          : "bg-transparent text-gray-600 hover:bg-gray-200 hover:text-gray-800"
+                      }`}
+                    >
+                      <span className="text-sm font-medium">{tab}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        
-      </nav>
+          </nav>
+        )}
 
       {/* Sidebar mới */}
       <div className="z-50">
-      <Sidebar
-        currentUser={currentUser}
-        selectedMainMenu={selectedMainMenu}
-        setSelectedMainMenu={setSelectedMainMenu}
-        selectedSubMenu={selectedSubMenu}
-        setSelectedSubMenu={setSelectedSubMenu}
-        setIsSidebarOpen={setIsSidebarOpen} // Truyền state xuống Sidebar
-        setIsSidebarHovered={setIsSidebarHovered} // NEW
-      />
+        <Sidebar
+          currentUser={currentUser}
+          selectedMainMenu={selectedMainMenu}
+          setSelectedMainMenu={setSelectedMainMenu}
+          selectedSubMenu={selectedSubMenu}
+          setSelectedSubMenu={setSelectedSubMenu}
+          setIsSidebarOpen={setIsSidebarOpen} // Truyền state xuống Sidebar
+          setIsSidebarHovered={setIsSidebarHovered} // NEW
+        />
       </div>
       {/* Nội dung chính */}
       <div

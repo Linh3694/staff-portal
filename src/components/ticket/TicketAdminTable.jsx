@@ -3,9 +3,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { API_URL, UPLOAD_URL, BASE_URL } from "../../config"; // import từ file config
 import { FiSend } from "react-icons/fi";
-import { FaTrashCan , FaCheck, FaXmark  } from "react-icons/fa6";
-
-
+import { FaTrashCan, FaCheck, FaXmark } from "react-icons/fa6";
 
 const TicketAdminTable = ({ currentUser }) => {
   console.log("Current user:", currentUser);
@@ -13,7 +11,7 @@ const TicketAdminTable = ({ currentUser }) => {
   // ---------------------------------------------------------
   // 1. State chung về danh sách tickets
   // ---------------------------------------------------------
-  const [tickets, setTickets] = useState([]); 
+  const [tickets, setTickets] = useState([]);
   const [originalTickets, setOriginalTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -76,7 +74,9 @@ const TicketAdminTable = ({ currentUser }) => {
       setOriginalTickets(response.data.tickets);
       setLoading(false);
     } catch (error) {
-      setError(error.response?.data?.message || "Có lỗi xảy ra khi tải dữ liệu.");
+      setError(
+        error.response?.data?.message || "Có lỗi xảy ra khi tải dữ liệu."
+      );
       setLoading(false);
     }
   };
@@ -88,7 +88,9 @@ const TicketAdminTable = ({ currentUser }) => {
     }
     try {
       const res = await axios.get(`${API_URL}/tickets/${ticketId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
       console.log("📜 Dữ liệu từ API:", res.data.ticket); // ✅ Kiểm tra dữ liệu từ API
       if (res.data.success) {
@@ -131,15 +133,15 @@ const TicketAdminTable = ({ currentUser }) => {
   const getPriorityBackgroundColor = (priority) => {
     switch (priority) {
       case "Low":
-        return "#d1fae5"; 
+        return "#d1fae5";
       case "Medium":
-        return "#fef9c3"; 
+        return "#fef9c3";
       case "High":
-        return "#e98d9e"; 
+        return "#e98d9e";
       case "Urgent":
-        return "#C13346"; 
+        return "#C13346";
       default:
-        return "#f3f4f6"; 
+        return "#f3f4f6";
     }
   };
 
@@ -155,15 +157,15 @@ const TicketAdminTable = ({ currentUser }) => {
   const getPriorityDotColor = (priority) => {
     switch (priority) {
       case "Low":
-        return "#22c55e"; 
+        return "#22c55e";
       case "Medium":
-        return "#eab308"; 
+        return "#eab308";
       case "High":
-        return "#ef4444"; 
+        return "#ef4444";
       case "Urgent":
         return "#FF5733";
       default:
-        return "#6b7280"; 
+        return "#6b7280";
     }
   };
 
@@ -266,7 +268,10 @@ const TicketAdminTable = ({ currentUser }) => {
       setAssignedTicket(ticket);
       setSelectedAction("accept");
       setIsAssignedModalOpen(true);
-    } else if (ticket.status === "Processing" || ticket.status === "Waiting for Customer") {
+    } else if (
+      ticket.status === "Processing" ||
+      ticket.status === "Waiting for Customer"
+    ) {
       setProcessingTicket(ticket);
       setSelectedAction("update");
       setIsProcessingModalOpen(true);
@@ -281,7 +286,7 @@ const TicketAdminTable = ({ currentUser }) => {
   // 16a) Nhận (accept): chuyển ticket -> processing, assignedTo = currentUser
   const handleAccept = async () => {
     if (!assignedTicket) return;
-  
+
     try {
       const token = localStorage.getItem("authToken");
       const updatedTicket = {
@@ -289,16 +294,18 @@ const TicketAdminTable = ({ currentUser }) => {
         status: "Processing",
         assignedTo: currentUser?.id,
       };
-      
+
       console.log("[Accept] Gửi lên server:", updatedTicket);
-      
+
       const response = await axios.put(
         `${API_URL}/tickets/${assignedTicket._id}`,
         updatedTicket,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.success) {
-        toast.success("Nhận yêu cầu thành công! Ticket chuyển sang Processing.");
+        toast.success(
+          "Nhận yêu cầu thành công! Ticket chuyển sang Processing."
+        );
         setIsAssignedModalOpen(false);
         setAssignedTicket(null);
         fetchTickets(); // Refresh bảng
@@ -351,9 +358,9 @@ const TicketAdminTable = ({ currentUser }) => {
       const token = localStorage.getItem("authToken");
       const updatedTicket = {
         ...assignedTicket,
-        status: "Assigned", // hoặc vẫn "Assigned", 
-        assignedTo: assignedTicket.transferTo, 
-        // Lưu ý: Thực tế bạn cần {_id, fullname, email} - 
+        status: "Assigned", // hoặc vẫn "Assigned",
+        assignedTo: assignedTicket.transferTo,
+        // Lưu ý: Thực tế bạn cần {_id, fullname, email} -
         // chứ không chỉ user._id. Tùy backend yêu cầu.
       };
       console.log("[Transfer] Gửi lên server:", updatedTicket);
@@ -377,48 +384,49 @@ const TicketAdminTable = ({ currentUser }) => {
   };
 
   // 🛠 Hàm Xác nhận - Gửi API cập nhật trạng thái ticket
-const handleCancelUpdate = () => {
+  const handleCancelUpdate = () => {
     setSelectedStatus(null); // Reset trạng thái
     setIsProcessingModalOpen(false); // Đóng modal
-};
+  };
 
-const handleUpdateStatus = async () => {
-  // Nếu không chọn trạng thái mới, giữ nguyên trạng thái cũ
-  const newStatus = selectedStatus !== null ? selectedStatus : processingTicket.status;
+  const handleUpdateStatus = async () => {
+    // Nếu không chọn trạng thái mới, giữ nguyên trạng thái cũ
+    const newStatus =
+      selectedStatus !== null ? selectedStatus : processingTicket.status;
 
-  if (!newStatus) {
-    toast.error("Không thể cập nhật trạng thái. Vui lòng thử lại.");
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("authToken");
-    const res = await axios.put(
-      `${API_URL}/tickets/${processingTicket._id}`,
-      { status: newStatus },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    if (res.data.success) {
-      toast.success("Cập nhật trạng thái thành công!");
-
-      // Cập nhật giao diện
-      setProcessingTicket((prev) => ({
-        ...prev,
-        status: newStatus,
-      }));
-
-      // Đóng modal sau khi cập nhật thành công
-      setIsProcessingModalOpen(false);
-      setSelectedStatus(null); // Reset trạng thái chọn
+    if (!newStatus) {
+      toast.error("Không thể cập nhật trạng thái. Vui lòng thử lại.");
+      return;
     }
-  } catch (error) {
-    console.error("Lỗi khi cập nhật trạng thái:", error);
-    toast.error("Cập nhật thất bại! Vui lòng thử lại.");
-  }
-};
+
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await axios.put(
+        `${API_URL}/tickets/${processingTicket._id}`,
+        { status: newStatus },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (res.data.success) {
+        toast.success("Cập nhật trạng thái thành công!");
+
+        // Cập nhật giao diện
+        setProcessingTicket((prev) => ({
+          ...prev,
+          status: newStatus,
+        }));
+
+        // Đóng modal sau khi cập nhật thành công
+        setIsProcessingModalOpen(false);
+        setSelectedStatus(null); // Reset trạng thái chọn
+      }
+    } catch (error) {
+      console.error("Lỗi khi cập nhật trạng thái:", error);
+      toast.error("Cập nhật thất bại! Vui lòng thử lại.");
+    }
+  };
   // ---------------------------------------------------------
   // 17. tính năng chat
   // ---------------------------------------------------------
@@ -443,44 +451,46 @@ const handleUpdateStatus = async () => {
   }, [selectedTicket]);
 
   const handleSendMessage = async () => {
-  if (!newMessage.trim()) return;
+    if (!newMessage.trim()) return;
 
-  if (!selectedTicket || !selectedTicket._id) {
-    toast.error("Vui lòng chọn ticket trước khi gửi tin nhắn.");
-    return;
-  }
-
-  try {
-    const res = await axios.post(
-      `${API_URL}/tickets/${selectedTicket._id}/messages`,
-      { text: newMessage },
-      {
-        headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
-      }
-    );
-    if (res.data.success) {
-      // Thêm luôn vào state messages
-      setMessages((prev) => [
-        ...prev,
-        {
-          text: newMessage,
-          sender: currentUser?.fullname || "Me (tech)",
-          senderId: currentUser?.id,
-          senderAvatar: currentUser?.avatar || "/default-avatar.png",
-          time: new Date().toLocaleString("vi-VN"),
-          isSelf: true,
-        },
-      ]);
-      setNewMessage("");
-
-      // Hoặc fetch lại ticket: 
-      // await fetchTicketById(selectedTicket._id);
+    if (!selectedTicket || !selectedTicket._id) {
+      toast.error("Vui lòng chọn ticket trước khi gửi tin nhắn.");
+      return;
     }
-  } catch (error) {
-    console.error("🚨 Lỗi khi gửi tin nhắn:", error);
-    toast.error("Không thể gửi tin nhắn. Vui lòng thử lại.");
-  }
-};
+
+    try {
+      const res = await axios.post(
+        `${API_URL}/tickets/${selectedTicket._id}/messages`,
+        { text: newMessage },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
+      );
+      if (res.data.success) {
+        // Thêm luôn vào state messages
+        setMessages((prev) => [
+          ...prev,
+          {
+            text: newMessage,
+            sender: currentUser?.fullname || "Me (tech)",
+            senderId: currentUser?.id,
+            senderAvatar: currentUser?.avatar || "/default-avatar.png",
+            time: new Date().toLocaleString("vi-VN"),
+            isSelf: true,
+          },
+        ]);
+        setNewMessage("");
+
+        // Hoặc fetch lại ticket:
+        // await fetchTicketById(selectedTicket._id);
+      }
+    } catch (error) {
+      console.error("🚨 Lỗi khi gửi tin nhắn:", error);
+      toast.error("Không thể gửi tin nhắn. Vui lòng thử lại.");
+    }
+  };
 
   // ---------------------------------------------------------
   // 18. useEffect gọi fetch
@@ -493,23 +503,22 @@ const handleUpdateStatus = async () => {
   useEffect(() => {
     if (selectedTicket && selectedTicket.messages) {
       console.log("📥 Tin nhắn từ API:", selectedTicket.messages); // ✅ Debug API response
-  
+
       const mapped = selectedTicket.messages.map((m) => ({
         text: m.text,
-        sender: m?.sender?.fullname || "N/A", 
+        sender: m?.sender?.fullname || "N/A",
         senderId: m?.sender?._id,
         senderAvatar: m?.sender?.avatarUrl
-          ? `${BASE_URL}${m.sender.avatarUrl}`  // ✅ Format ảnh đầy đủ
-          : "/default-avatar.png", 
+          ? `${BASE_URL}${m.sender.avatarUrl}` // ✅ Format ảnh đầy đủ
+          : "/default-avatar.png",
         time: new Date(m.timestamp).toLocaleString("vi-VN"),
         isSelf: m?.sender?._id === currentUser?.id,
       }));
-  
+
       console.log("📥 Tin nhắn sau khi map:", mapped); // ✅ Debug dữ liệu tin nhắn
       setMessages(mapped);
     }
   }, [selectedTicket]);
-
 
   useEffect(() => {
     scrollToBottom();
@@ -523,23 +532,25 @@ const handleUpdateStatus = async () => {
       toast.error("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
-  
+
     try {
       const res = await axios.post(
         `${API_URL}/tickets/${selectedTicket._id}/subtasks`,
-        { 
-          title: newSubTask.title, 
-          assignedTo: newSubTask.assignedTo, 
-          status: "In Progress" // 🟡 Trạng thái mặc định
+        {
+          title: newSubTask.title,
+          assignedTo: newSubTask.assignedTo,
+          status: "In Progress", // 🟡 Trạng thái mặc định
         },
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
         }
       );
-  
+
       if (res.data.success) {
         toast.success("Thêm subtask thành công!");
-        setShowSubTaskModal(false)
+        setShowSubTaskModal(false);
         // ✅ Fetch lại ticket ngay lập tức để cập nhật UI
         fetchTicketById(selectedTicket._id);
       }
@@ -572,7 +583,7 @@ const handleUpdateStatus = async () => {
       toast.error("Lỗi: Không tìm thấy subtask hoặc ticket.");
       return;
     }
-  
+
     try {
       const token = localStorage.getItem("authToken");
       const res = await axios.put(
@@ -597,7 +608,6 @@ const handleUpdateStatus = async () => {
   return (
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
       <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
-        
         {/* Thanh công cụ lọc */}
         <div className="flex text-sm space-x-4 w-full mb-4 mt-2">
           {/* Hai bảng chính */}
@@ -721,7 +731,10 @@ const handleUpdateStatus = async () => {
                 <div className="flex items-center">
                   <p className="text-sm font-bold text-gray-500">ƯU TIÊN</p>
                   {sortConfig.key === "priority" && (
-                    <span className="ml-1 text-xs" style={{ fontSize: "0.75rem" }}>
+                    <span
+                      className="ml-1 text-xs"
+                      style={{ fontSize: "0.75rem" }}
+                    >
                       {sortConfig.direction === "asc"
                         ? "▲"
                         : sortConfig.direction === "desc"
@@ -886,7 +899,9 @@ const handleUpdateStatus = async () => {
                 <span
                   className="w-2 h-2 rounded-full mr-2"
                   style={{
-                    backgroundColor: getPriorityDotColor(assignedTicket.priority),
+                    backgroundColor: getPriorityDotColor(
+                      assignedTicket.priority
+                    ),
                   }}
                 ></span>
                 <p className="text-sm font-bold text-[#757575]">
@@ -909,8 +924,8 @@ const handleUpdateStatus = async () => {
                           Người yêu cầu
                         </p>
                         <p className="text-sm text-[#757575] mb-4 ml-3">
-                          {assignedTicket.creator?.fullname || "Không có mô tả"} -{" "}
-                          {assignedTicket.creator?.email || "Không có mô tả"}
+                          {assignedTicket.creator?.fullname || "Không có mô tả"}{" "}
+                          - {assignedTicket.creator?.email || "Không có mô tả"}
                         </p>
                       </div>
                       <div>
@@ -1068,8 +1083,8 @@ const handleUpdateStatus = async () => {
                             onChange={(e) =>
                               setAssignedTicket((prev) => ({
                                 ...prev,
-                                transferTo: e.target.value, 
-                                // Thực tế: Cần object { _id, fullname, email }, 
+                                transferTo: e.target.value,
+                                // Thực tế: Cần object { _id, fullname, email },
                                 // Tùy backend
                               }))
                             }
@@ -1105,7 +1120,7 @@ const handleUpdateStatus = async () => {
                   onClick={() => {
                     setAssignedTicket(null);
                     setIsAssignedModalOpen(false);
-                    setSelectedAction("accept"); 
+                    setSelectedAction("accept");
                   }}
                 >
                   Đóng
@@ -1115,98 +1130,118 @@ const handleUpdateStatus = async () => {
           </div>
         )}
 
-          {isProcessingModalOpen && processingTicket && (
-            <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-              <div className="bg-white w-[70%] h-[80%] rounded-lg shadow-lg p-6 flex flex-col gap-4 relative">
-                <h3 className="text-2xl font-bold text-[#002147] mb-2 text-start">
-                  {processingTicket.ticketCode}: {processingTicket.title}
-                </h3>
-                <div className="min-h-[550px] grid grid-cols-3 gap-5">
-               {/* 1️⃣ Cột trái - Nội dung yêu cầu */}
+        {isProcessingModalOpen && processingTicket && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+            <div className="bg-white w-[70%] h-[80%] rounded-lg shadow-lg p-6 flex flex-col gap-4 relative">
+              <h3 className="text-2xl font-bold text-[#002147] mb-2 text-start">
+                {processingTicket.ticketCode}: {processingTicket.title}
+              </h3>
+              <div className="min-h-[550px] grid grid-cols-3 gap-5">
+                {/* 1️⃣ Cột trái - Nội dung yêu cầu */}
                 <div className="flex flex-col h-full justify-between">
                   <div className="h-[430px] bg-[#F8F8F8] justify-evenly p-4 rounded-xl shadow-md">
                     {/* Tiêu đề */}
                     <div className="flex flex-col h-full justify-between">
                       {/* Phần nội dung phía trên */}
                       <div>
-                          <h3 className="text-lg font-bold text-center text-[#002855] bg-gray-200 px-4 py-2 rounded-lg mb-4">
-                            Nội dung yêu cầu
-                          </h3>
+                        <h3 className="text-lg font-bold text-center text-[#002855] bg-gray-200 px-4 py-2 rounded-lg mb-4">
+                          Nội dung yêu cầu
+                        </h3>
 
-                          {/* Tiêu đề yêu cầu */}
-                          <div className="mb-4">
-                            <p className="text-gray-700 font-semibold">Tiêu đề</p>
-                            <p className="text-md text-[#757575] p-2">{processingTicket?.title || "Chưa có tiêu đề"}</p>
+                        {/* Tiêu đề yêu cầu */}
+                        <div className="mb-4">
+                          <p className="text-gray-700 font-semibold">Tiêu đề</p>
+                          <p className="text-md text-[#757575] p-2">
+                            {processingTicket?.title || "Chưa có tiêu đề"}
+                          </p>
+                        </div>
+
+                        {/* Chi tiết yêu cầu */}
+                        <div className="mb-4">
+                          <p className="text-gray-700 font-semibold">
+                            Chi tiết
+                          </p>
+                          <div className="overflow-y-auto max-h-[180px] p-2">
+                            <p className="text-md text-[#757575] leading-relaxed">
+                              {processingTicket?.description ||
+                                "Không có mô tả chi tiết."}
+                            </p>
                           </div>
-
-                          {/* Chi tiết yêu cầu */}
-                          <div className="mb-4">
-                            <p className="text-gray-700 font-semibold">Chi tiết</p>
-                            <div className="overflow-y-auto max-h-[180px] p-2">
-                              <p className="text-md text-[#757575] leading-relaxed">
-                                {processingTicket?.description || "Không có mô tả chi tiết."}
-                              </p>
-                            </div>
-                          </div>
-                          </div>
-                     {/* Ảnh đính kèm */}
-                            <div>
-                              <p className="text-gray-500 font-semibold">Ảnh đính kèm</p>
-                              <div className="overflow-x-auto whitespace-nowrap flex gap-2 py-2">
-                                {processingTicket?.attachments?.length > 0 ? (
-                                  processingTicket.attachments.map((attachment, index) => {
-                                    const imageUrl = attachment.url.startsWith("http")
-                                      ? attachment.url
-                                      : `${UPLOAD_URL}/${attachment.url}`; // UPLOAD_URL là base URL của server chứa ảnh
-
-                                    return (
-                                      <img
-                                        key={index}
-                                        src={imageUrl}
-                                        alt={attachment.filename}
-                                        onError={(e) => (e.target.src = "/fallback-image.png")} // Thay ảnh mặc định nếu lỗi
-                                        className="w-24 h-24 object-cover rounded-lg border shadow cursor-pointer"
-                                        onClick={() => setSelectedImage(imageUrl)} // Mở modal khi click
-                                      />
-                                    );
-                                  })
-                                ) : (
-                                  <p className="text-gray-500 italic">Không có ảnh đính kèm</p>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Modal Preview Ảnh */}
-                            {selectedImage && (
-                                  <div
-                                    className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-                                    onClick={() => setSelectedImage(null)}
-                                  >
-                                    <div
-                                      className="relative bg-white p-4 rounded-lg shadow-lg max-w-[90vw] max-h-[90vh] flex flex-col items-center"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {/* Hình ảnh */}
-                                      <img
-                                        src={selectedImage}
-                                        alt="Preview"
-                                        className="max-w-full max-h-[80vh] object-contain rounded-lg"
-                                      />
-                                    </div>
-                                  </div>
-                                )}
+                        </div>
                       </div>
+                      {/* Ảnh đính kèm */}
+                      <div>
+                        <p className="text-gray-500 font-semibold">
+                          Ảnh đính kèm
+                        </p>
+                        <div className="overflow-x-auto whitespace-nowrap flex gap-2 py-2">
+                          {processingTicket?.attachments?.length > 0 ? (
+                            processingTicket.attachments.map(
+                              (attachment, index) => {
+                                const imageUrl = attachment.url.startsWith(
+                                  "http"
+                                )
+                                  ? attachment.url
+                                  : `${UPLOAD_URL}/${attachment.url}`; // UPLOAD_URL là base URL của server chứa ảnh
+
+                                return (
+                                  <img
+                                    key={index}
+                                    src={imageUrl}
+                                    alt={attachment.filename}
+                                    onError={(e) =>
+                                      (e.target.src = "/fallback-image.png")
+                                    } // Thay ảnh mặc định nếu lỗi
+                                    className="w-24 h-24 object-cover rounded-lg border shadow cursor-pointer"
+                                    onClick={() => setSelectedImage(imageUrl)} // Mở modal khi click
+                                  />
+                                );
+                              }
+                            )
+                          ) : (
+                            <p className="text-gray-500 italic">
+                              Không có ảnh đính kèm
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Modal Preview Ảnh */}
+                      {selectedImage && (
+                        <div
+                          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+                          onClick={() => setSelectedImage(null)}
+                        >
+                          <div
+                            className="relative bg-white p-4 rounded-lg shadow-lg max-w-[90vw] max-h-[90vh] flex flex-col items-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* Hình ảnh */}
+                            <img
+                              src={selectedImage}
+                              alt="Preview"
+                              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="bg-[#F8F8F8] p-4 rounded-lg shadow-md">
                     {/* Thiết bị sửa chữa */}
                     <div className="mb-4">
-                      <p className="text-gray-500 font-semibold">Thiết bị sửa chữa</p>
+                      <p className="text-gray-500 font-semibold">
+                        Thiết bị sửa chữa
+                      </p>
                       <div className="flex flex-col gap-2">
                         {processingTicket?.devices?.map((device, index) => (
-                          <div key={index} className="flex items-center justify-between bg-white p-2 rounded-md shadow">
+                          <div
+                            key={index}
+                            className="flex items-center justify-between bg-white p-2 rounded-md shadow"
+                          >
                             <p className="text-sm text-gray-700">{device}</p>
-                            <button className="text-red-500 text-sm" >✕</button>
+                            <button className="text-red-500 text-sm">✕</button>
                           </div>
                         ))}
                       </div>
@@ -1218,294 +1253,377 @@ const handleUpdateStatus = async () => {
                   </div>
                 </div>
 
-                  {/* 2️⃣ Cột giữa - Trao đổi & Lịch sử */}
-                  <div className=" bg-[#F8F8F8] p-4 rounded-lg flex flex-col">
+                {/* 2️⃣ Cột giữa - Trao đổi & Lịch sử */}
+                <div className=" bg-[#F8F8F8] p-4 rounded-lg flex flex-col">
                   {/* Tabs Chuyển Đổi */}
-                      <div className="w-full bg-[#E4E9EF] flex items-center rounded-2xl gap-2 p-1">
-                        <button
-                          className={`flex-1 text-center py-2 rounded-2xl font-bold transition-all duration-200 ${
-                            activeTab === "exchange"
-                              ? "bg-[#002855] text-white shadow-md"
-                              : "text-gray-500"
-                          }`}
-                          onClick={() => setActiveTab("exchange")}
-                        >
-                          Trao đổi
-                        </button>
-                        <button
-                          className={`flex-1 text-center py-2 rounded-2xl font-bold transition-all duration-200 ${
-                            activeTab === "history"
-                              ? "bg-[#002855] text-white shadow-md"
-                              : "text-gray-500"
-                          }`}
-                          onClick={() => setActiveTab("history")}
-                        >
-                          Lịch sử
-                        </button>
-                      </div>
-
-                      {/* Nội dung theo Tab */}
-                      <div className="flex flex-col flex-grow rounded-b-lg h-[400px]">
-                      {activeTab === "exchange" ? (
-                          // Nội dung tab Trao đổi
-                          <div className="flex flex-col h-full">
-                            {/* Danh sách tin nhắn (cuộn khi cần) */}
-                            <div className="flex flex-col space-y-2 overflow-y-auto h-full px-4 mt-4 mb-2">
-                              {messages.map((m, idx) => (
-                                <div key={idx} className={`flex items-center gap-1 ${m.isSelf ? "justify-end" : "justify-start"} mb-2`}>
-                                  {/* Avatar bên trái nếu là tin nhắn của người khác */}
-                                  {!m.isSelf && (
-                                    <img
-                                      src={m.senderAvatar}
-                                      alt="Avatar"
-                                      className="w-11 h-11 rounded-full border shadow-md object-cover"                                    />
-                                  )}
-
-                                  {/* Tin nhắn & thời gian */}
-                                  <div className="flex flex-col max-w-xs">
-                                    <div
-                                      className={`px-4 py-2 text-sm rounded-lg ${
-                                        m.isSelf ? "bg-[#E4E9EF] text-[#002147]" : "bg-[#EBEBEB] text-[#757575]"
-                                      }`}
-                                    >
-                                      {m.text}
-                                    </div>
-                                    <span className="text-[11px] italic text-gray-500 mt-1">{m.time}</span>
-                                  </div>
-
-                                  {/* Avatar bên phải nếu là tin nhắn của admin (người đang xem) */}
-                                  {m.isSelf && (
-                                    <img
-                                      src={m.senderAvatar}
-                                      alt="Avatar"
-                                      className="w-11 h-11 rounded-full border shadow-md object-cover"                                    />
-                                  )}
-                                </div>
-                              ))}
-                                <div ref={messagesEndRef} />
-                            </div>
-
-                            {/* Thanh nhập tin nhắn (luôn nằm dưới) */}
-                            <div className="flex flex-row justify-between items-center gap-2 p-2 ">
-                            <input
-                                type="text"
-                                placeholder="Nhập tin nhắn..."
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                className="flex-1 w-[70%] text-md border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              />
-                              <button
-                                onClick={handleSendMessage}
-                                className="bg-[#FF5733] text-white p-2 rounded-full flex items-center"
-                              >
-                                <FiSend size={20} />
-                              </button>
-                            </div>
-                          </div>
-                          
-                        ) : (
-                          // Nội dung tab Lịch sử
-                          <div>
-                            <h3 className="text-xl font-bold text-[#002147] mb-4">Lịch sử thao tác</h3>
-                            <div className="overflow-y-auto p-2 border rounded-lg bg-gray-50">
-                              {selectedTicket?.history?.length > 0 ? (
-                                selectedTicket.history.map((log, index) => (
-                                  <div key={index} className="mb-3">
-                                    <p className="text-sm font-semibold">{log.action}</p>
-                                    <p className="text-xs text-gray-500">
-                                      {log.user} - {new Date(log.timestamp).toLocaleString()}
-                                    </p>
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-gray-500 text-center">Chưa có lịch sử thao tác.</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                  <div className="w-full bg-[#E4E9EF] flex items-center rounded-2xl gap-2 p-1">
+                    <button
+                      className={`flex-1 text-center py-2 rounded-2xl font-bold transition-all duration-200 ${
+                        activeTab === "exchange"
+                          ? "bg-[#002855] text-white shadow-md"
+                          : "text-gray-500"
+                      }`}
+                      onClick={() => setActiveTab("exchange")}
+                    >
+                      Trao đổi
+                    </button>
+                    <button
+                      className={`flex-1 text-center py-2 rounded-2xl font-bold transition-all duration-200 ${
+                        activeTab === "history"
+                          ? "bg-[#002855] text-white shadow-md"
+                          : "text-gray-500"
+                      }`}
+                      onClick={() => setActiveTab("history")}
+                    >
+                      Lịch sử
+                    </button>
                   </div>
 
-                  {/* 3️⃣ Cột phải - Thông tin chung & Phân chia công việc */}
-                  <div className="rounded-md flex flex-col gap-2">
-                    {/* Hàng trên cùng: Hoàn thành - Đóng - Hủy */}
-                    {/* Hàng chọn trạng thái */}
-                    <div className="flex flex-row gap-2 bg-[#f8f8f8] p-2 rounded-lg ">
-                      {[
-                        { value: "Done", label: "Hoàn thành" },
-                        { value: "Closed", label: "Đóng" },
-                        { value: "Cancelled", label: "Hủy" },
-                      ].map((option) => (
-                        <button
-                          key={option.value}
-                          className={`flex-1 px-3 py-2 rounded-2xl font-semibold transition ${
-                            selectedStatus === option.value
-                              ? "bg-[#E44D26] text-white"
-                              : "bg-[#EBEBEB] text-[#BEBEBE]"
-                          }`}
-                          onClick={() => setSelectedStatus(option.value)}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Thông tin chung */}
+                  {/* Nội dung theo Tab */}
+                  <div className="flex flex-col flex-grow rounded-b-lg h-[400px]">
+                    {activeTab === "exchange" ? (
+                      // Nội dung tab Trao đổi
+                      <div className="flex flex-col h-full">
+                        {/* Danh sách tin nhắn (cuộn khi cần) */}
+                        <div className="flex flex-col space-y-2 overflow-y-auto h-full px-4 mt-4 mb-2">
+                          {messages.map((m, idx) => (
+                            <div
+                              key={idx}
+                              className={`flex items-center gap-1 ${
+                                m.isSelf ? "justify-end" : "justify-start"
+                              } mb-2`}
+                            >
+                              {/* Avatar bên trái nếu là tin nhắn của người khác */}
+                              {!m.isSelf && (
+                                <img
+                                  src={m.senderAvatar}
+                                  alt="Avatar"
+                                  className="w-11 h-11 rounded-full border shadow-md object-cover"
+                                />
+                              )}
+
+                              {/* Tin nhắn & thời gian */}
+                              <div className="flex flex-col max-w-xs">
+                                <div
+                                  className={`px-4 py-2 text-sm rounded-lg ${
+                                    m.isSelf
+                                      ? "bg-[#E4E9EF] text-[#002147]"
+                                      : "bg-[#EBEBEB] text-[#757575]"
+                                  }`}
+                                >
+                                  {m.text}
+                                </div>
+                                <span className="text-[11px] italic text-gray-500 mt-1">
+                                  {m.time}
+                                </span>
+                              </div>
+
+                              {/* Avatar bên phải nếu là tin nhắn của admin (người đang xem) */}
+                              {m.isSelf && (
+                                <img
+                                  src={m.senderAvatar}
+                                  alt="Avatar"
+                                  className="w-11 h-11 rounded-full border shadow-md object-cover"
+                                />
+                              )}
+                            </div>
+                          ))}
+                          <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Thanh nhập tin nhắn (luôn nằm dưới) */}
+                        <div className="flex flex-row justify-between items-center gap-2 p-2 ">
+                          <input
+                            type="text"
+                            placeholder="Nhập tin nhắn..."
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            className="flex-1 w-[70%] text-md border-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            onClick={handleSendMessage}
+                            className="bg-[#FF5733] text-white p-2 rounded-full flex items-center"
+                          >
+                            <FiSend size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Nội dung tab Lịch sử
+                      <div>
+                        <h3 className="text-xl font-bold text-[#002147] mb-4">
+                          Lịch sử thao tác
+                        </h3>
+                        <div className="overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                          {selectedTicket?.history?.length > 0 ? (
+                            selectedTicket.history.map((log, index) => (
+                              <div key={index} className="mb-3">
+                                <p className="text-sm font-semibold">
+                                  {log.action}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {log.user} -{" "}
+                                  {new Date(log.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-gray-500 text-center">
+                              Chưa có lịch sử thao tác.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3️⃣ Cột phải - Thông tin chung & Phân chia công việc */}
+                <div className="rounded-md flex flex-col gap-2">
+                  {/* Hàng trên cùng: Hoàn thành - Đóng - Hủy */}
+                  {/* Hàng chọn trạng thái */}
+                  <div className="flex flex-row gap-2 bg-[#f8f8f8] p-2 rounded-lg ">
+                    {[
+                      { value: "Done", label: "Hoàn thành" },
+                      { value: "Closed", label: "Đóng" },
+                      { value: "Cancelled", label: "Hủy" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        className={`flex-1 px-3 py-2 rounded-2xl font-semibold transition ${
+                          selectedStatus === option.value
+                            ? "bg-[#E44D26] text-white"
+                            : "bg-[#EBEBEB] text-[#BEBEBE]"
+                        }`}
+                        onClick={() => setSelectedStatus(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Thông tin chung */}
                   <div className="bg-[#F8F8F8] p-2 rounded-xl border-gray-200">
-                    <h2 className="text-lg font-semibold text-[#002147] mb-4">Thông tin chung</h2>
+                    <h2 className="text-lg font-semibold text-[#002147] mb-4">
+                      Thông tin chung
+                    </h2>
                     <div className="bg-[#E4E9EF] p-4 rounded-lg grid grid-cols-2 gap-3">
                       <p className="text-gray-600 font-medium">Mã yêu cầu</p>
                       <p className="text-[#002147] font-semibold text-right">
-                        {selectedTicket ? selectedTicket.ticketCode : "Đang tải..."}
+                        {selectedTicket
+                          ? selectedTicket.ticketCode
+                          : "Đang tải..."}
                       </p>
-                      <p className="text-gray-600 font-medium">Người thực hiện</p>
-                      <p className="text-[#002147] font-semibold text-right">{ selectedTicket ? selectedTicket.assignedTo.fullname : "Không có"}</p>
+                      <p className="text-gray-600 font-medium">
+                        Người thực hiện
+                      </p>
+                      <p className="text-[#002147] font-semibold text-right">
+                        {selectedTicket
+                          ? selectedTicket.assignedTo.fullname
+                          : "Không có"}
+                      </p>
 
                       <p className="text-gray-600 font-medium">Ngày yêu cầu</p>
-                      <p className="text-[#002147] font-semibold text-right">{new Date(selectedTicket?.createdAt).toLocaleDateString("vi-VN")}</p>
+                      <p className="text-[#002147] font-semibold text-right">
+                        {new Date(selectedTicket?.createdAt).toLocaleDateString(
+                          "vi-VN"
+                        )}
+                      </p>
 
                       <p className="text-gray-600 font-medium ">Trạng thái</p>
-                      <p className={`font-semibold text-right ${selectedTicket?.status === "Processing" ? "text-[#F5AA1E]" : selectedTicket?.status === "Closed" ? "text-[#3DB838]" : "text-[#00687F]"}`}>
-                        {selectedTicket?.status === "Processing" ? "Đang xử lý" :
-                        selectedTicket?.status === "Closed" ? "Đã đóng" : selectedTicket?.status}
+                      <p
+                        className={`font-semibold text-right ${
+                          selectedTicket?.status === "Processing"
+                            ? "text-[#F5AA1E]"
+                            : selectedTicket?.status === "Closed"
+                            ? "text-[#3DB838]"
+                            : "text-[#00687F]"
+                        }`}
+                      >
+                        {selectedTicket?.status === "Processing"
+                          ? "Đang xử lý"
+                          : selectedTicket?.status === "Closed"
+                          ? "Đã đóng"
+                          : selectedTicket?.status}
                       </p>
                     </div>
                   </div>
 
-                    {/* Phân chia công việc */}
-                    <div className="bg-[#F8F8F8] p-2 rounded-lg">
-                    <h2 className="text-lg font-semibold text-[#002147] mb-2">Sub-task</h2>
-                      {/* Danh sách sub-task */}
-                      {selectedTicket && selectedTicket.subTasks && selectedTicket.subTasks.length > 0 && (
-                      <div className="mt-2 max-h-[170px] overflow-y-auto space-y-2">
-                        {selectedTicket.subTasks.map((subTask) => (
-                          <div
-                            key={subTask._id}
-                            className={`bg-gray-200 p-2 rounded-lg flex items-center justify-between ${
+                  {/* Phân chia công việc */}
+                  <div className="bg-[#F8F8F8] p-2 rounded-lg">
+                    <h2 className="text-lg font-semibold text-[#002147] mb-2">
+                      Sub-task
+                    </h2>
+                    {/* Danh sách sub-task */}
+                    {selectedTicket &&
+                      selectedTicket.subTasks &&
+                      selectedTicket.subTasks.length > 0 && (
+                        <div className="mt-2 max-h-[170px] overflow-y-auto space-y-2">
+                          {selectedTicket.subTasks.map((subTask) => (
+                            <div
+                              key={subTask._id}
+                              className={`bg-gray-200 p-2 rounded-lg flex items-center justify-between ${
+                                subTask.status === "Completed"
+                                  ? "bg-[#E4EFE6]"
+                                  : subTask.status === "Cancelled"
+                                  ? "bg-[#EBEBEB] line-through"
+                                  : "bg-[#E4E9EF]"
+                              }`}
+                            >
+                              {/* Thông tin subtask */}
+                              <div
+                                className={`w-full flex flex-row justify-between ${
                                   subTask.status === "Completed"
                                     ? "bg-[#E4EFE6]"
                                     : subTask.status === "Cancelled"
                                     ? "bg-[#EBEBEB] line-through"
                                     : "bg-[#E4E9EF]"
-                                }`}>
-                            {/* Thông tin subtask */}
-                            <div className={`w-full flex flex-row justify-between ${
-                                  subTask.status === "Completed"
-                                    ? "bg-[#E4EFE6]"
-                                    : subTask.status === "Cancelled"
-                                    ? "bg-[#EBEBEB] line-through"
-                                    : "bg-[#E4E9EF]"
-                                }`}>
-                              <span
-                                className={`ml-2 font-semibold ${
-                                  subTask.status === "Completed"
-                                    ? "text-[#009483]"
-                                    : subTask.status === "Cancelled"
-                                    ? "text-gray-500 line-through"
-                                    : "text-black"
                                 }`}
                               >
-                                {subTask.title}
-                              </span>
-                         
+                                <span
+                                  className={`ml-2 font-semibold ${
+                                    subTask.status === "Completed"
+                                      ? "text-[#009483]"
+                                      : subTask.status === "Cancelled"
+                                      ? "text-gray-500 line-through"
+                                      : "text-black"
+                                  }`}
+                                >
+                                  {subTask.title}
+                                </span>
 
-                            {/* Các nút thao tác */}
-                            <div className="flex items-center flex-row justify-between">
-                              <span className="text-[#757575] font-semibold text-sm mr-2">{subTask.assignedTo?.fullname || subTask.assignedTo}</span>
-                              <button
-                                onClick={() => updateSubTaskStatus(subTask._id, "Completed")}
-                                className="px-1 py-1 text-[#009483]  transition"
-                              >
-                                <FaCheck />
-                                </button>
-                              <button
-                                onClick={() => updateSubTaskStatus(subTask._id, "Cancelled")}
-                                className="px-1 py-1  text-[#F05023]  transition"
-                              >
-                                <FaXmark />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteSubTask(subTask._id)}
-                                className="px-1 py-1  text-[#FF5733]  transition"
-                              >
-                                <FaTrashCan />
-                                </button>
+                                {/* Các nút thao tác */}
+                                <div className="flex items-center flex-row justify-between">
+                                  <span className="text-[#757575] font-semibold text-sm mr-2">
+                                    {subTask.assignedTo?.fullname ||
+                                      subTask.assignedTo}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      updateSubTaskStatus(
+                                        subTask._id,
+                                        "Completed"
+                                      )
+                                    }
+                                    className="px-1 py-1 text-[#009483]  transition"
+                                  >
+                                    <FaCheck />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      updateSubTaskStatus(
+                                        subTask._id,
+                                        "Cancelled"
+                                      )
+                                    }
+                                    className="px-1 py-1  text-[#F05023]  transition"
+                                  >
+                                    <FaXmark />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteSubTask(subTask._id)
+                                    }
+                                    className="px-1 py-1  text-[#FF5733]  transition"
+                                  >
+                                    <FaTrashCan />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                      {/* Nút thêm sub-task */}
-                      <button
-                        onClick={() => setShowSubTaskModal(true)}
-                        className="mt-2 text-[#002147] text-sm font-semibold flex items-center gap-1"
-                      >
-                        <span>+</span> Thêm Sub-task
-                      </button>
-
-                      {/* Modal nhập Sub-task */}
-                      {showSubTaskModal && (
-                        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                          <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
-                            <h2 className="text-lg font-bold mb-4">Thêm Sub-task</h2>
-                            
-                            {/* Form nhập Sub-task */}
-                            <input
-                              type="text"
-                              placeholder="Nhập tiêu đề sub-task..."
-                              value={newSubTask.title}
-                              onChange={(e) => setNewSubTask({ ...newSubTask, title: e.target.value })}
-                              className="w-full px-3 py-2 border rounded-lg mb-2"
-                            />
-
-                            {/* Chọn người thực hiện */}
-                            <select
-                              value={newSubTask.assignedTo}
-                              onChange={(e) => setNewSubTask({ ...newSubTask, assignedTo: e.target.value })}
-                              className="w-full px-3 py-2 border rounded-lg mb-2"
-                            >
-                              <option value="">Chọn người thực hiện</option>
-                              {technicalUsers.map((user) => (
-                                <option key={user._id} value={user.fullname}>
-                                  {user.fullname}
-                                </option>
-                              ))}
-                            </select>
-
-                            {/* Nút xác nhận */}
-                            <div className="flex justify-end gap-2">
-                              <button onClick={() => setShowSubTaskModal(false)} className="px-4 py-2 bg-[#EBEBEB] rounded-lg">Hủy</button>
-                              <button onClick={handleAddSubTask} className="px-4 py-2 bg-blue-500 text-white rounded-lg">Thêm</button>
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       )}
-                    </div>
-                  </div>
-                    
-                  </div>
-                  {/* Nút hành động */}
-                  <div className="flex items-end justify-end gap-4">
-                    {/* Nút Hủy */}
-                    <button 
-                      className="px-4 py-2 bg-[#EBEBEB] text-gray-500 rounded-lg"
-                      onClick={handleCancelUpdate}
+                    {/* Nút thêm sub-task */}
+                    <button
+                      onClick={() => setShowSubTaskModal(true)}
+                      className="mt-2 text-[#002147] text-sm font-semibold flex items-center gap-1"
                     >
-                      Hủy bỏ
+                      <span>+</span> Thêm Sub-task
                     </button>
 
-                    {/* Nút Xác nhận */}
-                    <button 
-                      className="px-4 py-2 bg-[#FF5733] text-white rounded-lg"
-                      onClick={handleUpdateStatus}
-                    >
-                      Cập nhật
-                    </button>
+                    {/* Modal nhập Sub-task */}
+                    {showSubTaskModal && (
+                      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                        <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
+                          <h2 className="text-lg font-bold mb-4">
+                            Thêm Sub-task
+                          </h2>
+
+                          {/* Form nhập Sub-task */}
+                          <input
+                            type="text"
+                            placeholder="Nhập tiêu đề sub-task..."
+                            value={newSubTask.title}
+                            onChange={(e) =>
+                              setNewSubTask({
+                                ...newSubTask,
+                                title: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 border rounded-lg mb-2"
+                          />
+
+                          {/* Chọn người thực hiện */}
+                          <select
+                            value={newSubTask.assignedTo}
+                            onChange={(e) =>
+                              setNewSubTask({
+                                ...newSubTask,
+                                assignedTo: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 border rounded-lg mb-2"
+                          >
+                            <option value="">Chọn người thực hiện</option>
+                            {technicalUsers.map((user) => (
+                              <option key={user._id} value={user.fullname}>
+                                {user.fullname}
+                              </option>
+                            ))}
+                          </select>
+
+                          {/* Nút xác nhận */}
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => setShowSubTaskModal(false)}
+                              className="px-4 py-2 bg-[#EBEBEB] rounded-lg"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              onClick={handleAddSubTask}
+                              className="px-4 py-2 bg-blue-500 text-white rounded-lg"
+                            >
+                              Thêm
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                </div>
+              </div>
+              {/* Nút hành động */}
+              <div className="flex items-end justify-end gap-4">
+                {/* Nút Hủy */}
+                <button
+                  className="px-4 py-2 bg-[#EBEBEB] text-gray-500 rounded-lg"
+                  onClick={handleCancelUpdate}
+                >
+                  Hủy bỏ
+                </button>
+
+                {/* Nút Xác nhận */}
+                <button
+                  className="px-4 py-2 bg-[#FF5733] text-white rounded-lg"
+                  onClick={handleUpdateStatus}
+                >
+                  Cập nhật
+                </button>
               </div>
             </div>
-          )}
-
+          </div>
+        )}
       </div>
     </div>
   );

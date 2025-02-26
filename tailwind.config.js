@@ -9,8 +9,19 @@ module.exports = {
         animation: {
           fadeIn: "fadeIn 0.3s ease-in-out",
           fadeOut: "fadeOut 0.3s ease-in-out",
+          shine: 'shine 5s linear infinite',
+          scrollDown: 'scrollDown 1.5s infinite',
         },
         keyframes: {
+          scrollDown: {
+            '0%': { transform: 'translateY(0)' },
+            '20%': { transform: 'translateY(15px)' },
+            '40%,100%': { transform: 'translateY(0)' },
+          },
+          shine: {
+            '0%': { 'background-position': '100%' },
+            '100%': { 'background-position': '-100%' },
+          },
           fadeIn: {
             from: { opacity: 0 },
             to: { opacity: 1 },
@@ -21,6 +32,7 @@ module.exports = {
           },
           
         },
+      
         colors: {
           'navy-700': '#1B2559',
           'blue-500': '#3B82F6',

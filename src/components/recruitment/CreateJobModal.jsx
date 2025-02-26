@@ -15,41 +15,51 @@ function CreateJobModal({ isOpen, onClose, onJobCreated }) {
   const handleChange = (e) => {
     setJobData({ ...jobData, [e.target.name]: e.target.value });
   };
-  
+
   const handleSubmit = async () => {
-    if (!jobData.title || !jobData.description || !jobData.requirements || !jobData.location) {
-        toast.error("Vui lòng nhập đầy đủ thông tin!");
-        return;
+    if (
+      !jobData.title ||
+      !jobData.description ||
+      !jobData.requirements ||
+      !jobData.location
+    ) {
+      toast.error("Vui lòng nhập đầy đủ thông tin!");
+      return;
     }
 
     try {
-        const res = await fetch(`${API_URL}/jobs`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-            },
-            body: JSON.stringify(jobData), // Không cần split hoặc join nữa
-        });
+      const res = await fetch(`${API_URL}/jobs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify(jobData), // Không cần split hoặc join nữa
+      });
 
-        if (!res.ok) throw new Error("Không thể tạo công việc");
+      if (!res.ok) throw new Error("Không thể tạo công việc");
 
-        const newJob = await res.json();
-        toast.success("Công việc đã được tạo!");
-        onJobCreated(newJob);
-        onClose();
+      const newJob = await res.json();
+      toast.success("Công việc đã được tạo!");
+      onJobCreated(newJob);
+      onClose();
     } catch (error) {
-        toast.error("Có lỗi xảy ra khi tạo công việc");
+      toast.error("Có lỗi xảy ra khi tạo công việc");
     }
-};
+  };
 
   return (
     isOpen && (
       <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
         <div className="bg-white rounded-lg p-6 w-full max-w-3xl shadow-lg">
           <div className="flex justify-between items-center border-b pb-3">
-            <h2 className="text-lg font-bold text-[#002147]">Tạo công việc mới</h2>
-            <button onClick={onClose} className="text-red-500 hover:text-red-700">
+            <h2 className="text-lg font-bold text-[#002147]">
+              Tạo công việc mới
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-red-500 hover:text-red-700"
+            >
               <FaTimes size={18} />
             </button>
           </div>
@@ -57,7 +67,9 @@ function CreateJobModal({ isOpen, onClose, onJobCreated }) {
           <div className="mt-4 space-y-4">
             {/* Tiêu đề công việc */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700">Tiêu đề công việc</label>
+              <label className="block text-sm font-semibold text-gray-700">
+                Tiêu đề công việc
+              </label>
               <input
                 type="text"
                 name="title"
@@ -70,7 +82,9 @@ function CreateJobModal({ isOpen, onClose, onJobCreated }) {
 
             {/* Mô tả công việc */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700">Mô tả công việc</label>
+              <label className="block text-sm font-semibold text-gray-700">
+                Mô tả công việc
+              </label>
               <textarea
                 name="description"
                 value={jobData.description}
@@ -82,20 +96,26 @@ function CreateJobModal({ isOpen, onClose, onJobCreated }) {
             </div>
 
             {/* Yêu cầu công việc */}
-                <div>
-                <label className="block text-sm font-semibold text-gray-700">Yêu cầu công việc</label>
-                <textarea
-                    name="requirements"
-                    value={jobData.requirements} // ✅ Giữ nguyên chuỗi
-                    onChange={(e) => setJobData({ ...jobData, requirements: e.target.value })} // ✅ Không cần `.split()`
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    rows="4"
-                    placeholder="Nhập yêu cầu công việc..."
-                />
-                </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700">
+                Yêu cầu công việc
+              </label>
+              <textarea
+                name="requirements"
+                value={jobData.requirements} // ✅ Giữ nguyên chuỗi
+                onChange={(e) =>
+                  setJobData({ ...jobData, requirements: e.target.value })
+                } // ✅ Không cần `.split()`
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                rows="4"
+                placeholder="Nhập yêu cầu công việc..."
+              />
+            </div>
             {/* Mức lương */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700">Mức lương</label>
+              <label className="block text-sm font-semibold text-gray-700">
+                Mức lương
+              </label>
               <input
                 type="text"
                 name="salaryRange"
@@ -108,7 +128,9 @@ function CreateJobModal({ isOpen, onClose, onJobCreated }) {
 
             {/* Địa điểm làm việc */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700">Địa điểm làm việc</label>
+              <label className="block text-sm font-semibold text-gray-700">
+                Địa điểm làm việc
+              </label>
               <input
                 type="text"
                 name="location"

@@ -1,7 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import url('https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700&display=swap');
 
 
 
@@ -116,4 +117,59 @@ code {
 /* Ẩn nút tăng/giảm trên Firefox */
 .no-spinner {
   -moz-appearance: textfield;
+}
+
+
+/* Ẩn thanh cuộn cho Timeline horizontal */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE và Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+
+.hall-of-fame-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* hoặc điều chỉnh theo nhu cầu */
+}
+
+.shiny-button-wrapper {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+}
+
+.shiny-text {
+  position: relative;
+  font-size: 3rem;
+  font-weight: bold;
+  color: white;
+  overflow: hidden;
+}
+
+.shiny-text::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-25deg);
+  transition: left 0.75s ease-in-out;
+}
+
+.shiny-button-wrapper:hover .shiny-text::before {
+  left: 125%;
 }
