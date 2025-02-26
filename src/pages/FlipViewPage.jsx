@@ -2,11 +2,13 @@ import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import MyImageFlipBook from "../components/flippage/MyImageFlipBook";
 import { API_URL } from "../config";
-import { FaRegArrowAltCircleLeft, FaRegArrowAltCircleRight } from "react-icons/fa";
-
+import {
+  FaRegArrowAltCircleLeft,
+  FaRegArrowAltCircleRight,
+} from "react-icons/fa";
 
 function FlipViewPage() {
-  const { customName } = useParams(); 
+  const { customName } = useParams();
   const navigate = useNavigate(); // 🔥 Dùng để chuyển hướng nếu không mở được trang
 
   const [images, setImages] = useState([]);
@@ -35,29 +37,23 @@ function FlipViewPage() {
 
   const oldDimensionsRef = useRef({ width: 550, height: 650 });
 
-
   useEffect(() => {
     if (!customName) {
       console.error("❌ Lỗi: Không tìm thấy customName trong URL");
       navigate("/login");
       return;
     }
-  
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      console.error("❌ Lỗi: Không có token, vui lòng đăng nhập!");
-      navigate("/login");
-      return;
-    }
-  
+
     // Kiểm tra customName có tồn tại trong hệ thống không
-    fetch(`${API_URL}/flippage/check-custom-name/${encodeURIComponent(customName)}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
+    fetch(
+      `${API_URL}/flippage/check-custom-name/${encodeURIComponent(customName)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    )
       .then((res) => {
         if (!res.ok) throw new Error(`Lỗi kiểm tra customName: ${res.status}`);
         return res.json();
@@ -78,25 +74,22 @@ function FlipViewPage() {
   useEffect(() => {
     if (!customName) {
       console.error("❌ Lỗi: Không tìm thấy customName trong URL");
-      navigate("/login"); 
+      navigate("/login");
       return;
     }
-  
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      console.error("❌ Lỗi: Không có token, vui lòng đăng nhập!");
-      return;
-    }
-  
-    fetch(`${API_URL}/flippage/get-pdf-status/${encodeURIComponent(customName)}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
+
+    fetch(
+      `${API_URL}/flippage/get-pdf-status/${encodeURIComponent(customName)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    )
       .then((res) => {
-        if (!res.ok) throw new Error(`Lỗi kiểm tra trạng thái PDF: ${res.status}`);
+        if (!res.ok)
+          throw new Error(`Lỗi kiểm tra trạng thái PDF: ${res.status}`);
         return res.json();
       })
       .then((data) => {
@@ -121,7 +114,6 @@ function FlipViewPage() {
     fetch(`${API_URL}/flippage/get-images/${encodeURIComponent(customName)}`, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
         "Content-Type": "application/json",
       },
     })
@@ -140,7 +132,6 @@ function FlipViewPage() {
       .catch((err) => console.error("❌ Lỗi khi tải ảnh:", err));
   }, [customName, isActive]);
 
-
   // 2) Dựa vào ảnh đầu tiên -> tính ratio -> set pageWidth/pageHeight
   useEffect(() => {
     if (images.length > 0) {
@@ -157,131 +148,128 @@ function FlipViewPage() {
     }
   }, [images]);
 
-
-useEffect(() => {
-  fetch(`${API_URL}/flippage/get-bookmarks/${customName}`, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-      "Content-Type": "application/json",
-    },
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.bookmarks) setBookmarks(data.bookmarks);
+  useEffect(() => {
+    fetch(`${API_URL}/flippage/get-bookmarks/${customName}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
     })
-    .catch((err) => console.error("❌ Lỗi khi lấy bookmarks:", err));
-}, [customName]);
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.bookmarks) setBookmarks(data.bookmarks);
+      })
+      .catch((err) => console.error("❌ Lỗi khi lấy bookmarks:", err));
+  }, [customName]);
 
-useEffect(() => {
-  if (flipBookRef.current) {
-    setTimeout(() => {
-      const pageCount = flipBookRef.current.pageFlip()?.getPageCount() || 1;
-      setTotalPages(pageCount);  // 📌 Gửi totalPages về FlipViewPage
-    }, 500);
-  }
-}, [flipBookRef, doublePage]);
-
-const goToPrevPage = () => {
-  if (flipBookRef.current && flipBookRef.current.pageFlip()) {
-    if (currentPage > 1) {
-      flipBookRef.current.pageFlip().flipPrev();
-      setCurrentPage((prev) => prev - 1); // Cập nhật state
+  useEffect(() => {
+    if (flipBookRef.current) {
+      setTimeout(() => {
+        const pageCount = flipBookRef.current.pageFlip()?.getPageCount() || 1;
+        setTotalPages(pageCount); // 📌 Gửi totalPages về FlipViewPage
+      }, 500);
     }
-  }
-};
+  }, [flipBookRef, doublePage]);
 
-const goToNextPage = () => {
-  if (flipBookRef.current && flipBookRef.current.pageFlip()) {
-    if (currentPage < totalPages) {
-      flipBookRef.current.pageFlip().flipNext();
-      setCurrentPage((prev) => prev + 1); // Cập nhật state
+  const goToPrevPage = () => {
+    if (flipBookRef.current && flipBookRef.current.pageFlip()) {
+      if (currentPage > 1) {
+        flipBookRef.current.pageFlip().flipPrev();
+        setCurrentPage((prev) => prev - 1); // Cập nhật state
+      }
     }
-  }
-};
+  };
 
-const goToPage = (e) => {
-  e.preventDefault();
-  // Dùng luôn hàm helper với số trang từ input (đã 1-indexed)
-  handleGoToPage(inputPage);
-};
+  const goToNextPage = () => {
+    if (flipBookRef.current && flipBookRef.current.pageFlip()) {
+      if (currentPage < totalPages) {
+        flipBookRef.current.pageFlip().flipNext();
+        setCurrentPage((prev) => prev + 1); // Cập nhật state
+      }
+    }
+  };
 
+  const goToPage = (e) => {
+    e.preventDefault();
+    // Dùng luôn hàm helper với số trang từ input (đã 1-indexed)
+    handleGoToPage(inputPage);
+  };
 
-const handleGoToPage = (pageNumber) => {
-  if (!flipBookRef.current) return;
+  const handleGoToPage = (pageNumber) => {
+    if (!flipBookRef.current) return;
 
-  if (pageNumber < 1 || pageNumber > totalPages) {
-    alert(`Số trang không hợp lệ! (1 - ${totalPages})`);
-    return;
-  }
+    if (pageNumber < 1 || pageNumber > totalPages) {
+      alert(`Số trang không hợp lệ! (1 - ${totalPages})`);
+      return;
+    }
 
-  setTargetPage(pageNumber);
+    setTargetPage(pageNumber);
 
-  // Đổi từ flip(...) sang turnToPage(...)
-  flipBookRef.current.pageFlip().turnToPage(pageNumber - 1);
-};
+    // Đổi từ flip(...) sang turnToPage(...)
+    flipBookRef.current.pageFlip().turnToPage(pageNumber - 1);
+  };
 
+  const goToFirstPage = () => {
+    if (flipBookRef.current && flipBookRef.current.pageFlip()) {
+      flipBookRef.current.pageFlip().flip(0);
+      // Không cần setTimeout, handleFlip sẽ cập nhật currentPage khi flip xong
+    }
+  };
 
-const goToFirstPage = () => {
-  if (flipBookRef.current && flipBookRef.current.pageFlip()) {
-    flipBookRef.current.pageFlip().flip(0);
-    // Không cần setTimeout, handleFlip sẽ cập nhật currentPage khi flip xong
-  }
-};
+  const goToLastPage = () => {
+    if (flipBookRef.current && flipBookRef.current.pageFlip()) {
+      const lastPageIndex = flipBookRef.current.pageFlip()?.getPageCount() - 1;
+      flipBookRef.current.pageFlip().flip(lastPageIndex);
+      // Không cần setTimeout, handleFlip sẽ cập nhật currentPage khi flip xong
+    }
+  };
 
-const goToLastPage = () => {
-  if (flipBookRef.current && flipBookRef.current.pageFlip()) {
-    const lastPageIndex = flipBookRef.current.pageFlip()?.getPageCount() - 1;
-    flipBookRef.current.pageFlip().flip(lastPageIndex);
-    // Không cần setTimeout, handleFlip sẽ cập nhật currentPage khi flip xong
-  }
-};
+  const toggleFullScreen = () => {
+    const container = document.getElementById("flipview-container");
+    if (!container) return;
 
-const toggleFullScreen = () => {
-  const container = document.getElementById("flipview-container");
-  if (!container) return;
-
-  if (!document.fullscreenElement) {
-    // Lưu kích thước cũ (nếu thật sự cần)
-    oldDimensionsRef.current = { width: pageWidth, height: pageHeight };
-
-    // Bật fullscreen
-    container.requestFullscreen().catch((err) => alert(err.message));
-  } else {
-    // Thoát fullscreen
-    document.exitFullscreen().catch((err) => alert(err.message));
-  }
-};
-
-useEffect(() => {
-  const handleFullscreenChange = () => {
     if (!document.fullscreenElement) {
-      // Đã thoát fullscreen
-      setIsFullscreen(false);
-      // Khôi phục lại kích thước cũ
-      setPageWidth(oldDimensionsRef.current.width);
-      setPageHeight(oldDimensionsRef.current.height);
+      // Lưu kích thước cũ (nếu thật sự cần)
+      oldDimensionsRef.current = { width: pageWidth, height: pageHeight };
+
+      // Bật fullscreen
+      container.requestFullscreen().catch((err) => alert(err.message));
     } else {
-      // Vừa vào fullscreen
-      setIsFullscreen(true);
+      // Thoát fullscreen
+      document.exitFullscreen().catch((err) => alert(err.message));
     }
   };
-  document.addEventListener("fullscreenchange", handleFullscreenChange);
-  return () => {
-    document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  };
-}, []);
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        // Đã thoát fullscreen
+        setIsFullscreen(false);
+        // Khôi phục lại kích thước cũ
+        setPageWidth(oldDimensionsRef.current.width);
+        setPageHeight(oldDimensionsRef.current.height);
+      } else {
+        // Vừa vào fullscreen
+        setIsFullscreen(true);
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
 
   // 3️⃣ Nếu tài liệu bị vô hiệu hóa, hiển thị thông báo
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
-        <h2 className="text-2xl font-bold text-gray-500">⏳ Đang kiểm tra trạng thái tài liệu...</h2>
+        <h2 className="text-2xl font-bold text-gray-500">
+          ⏳ Đang kiểm tra trạng thái tài liệu...
+        </h2>
       </div>
     );
   }
-  
+
   if (!isActive) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
@@ -298,13 +286,12 @@ useEffect(() => {
     );
   }
 
-
   return (
     <div
       id="flipview-container"
-      className={`relative w-full h-full flex flex-col items-center justify-center overflow-hidden ${
+      className={`relative w-full h-screen flex flex-col items-center justify-center overflow-hidden ${
         isFullscreen ? "fixed inset-0 z-50 bg-black" : ""
-      }`}      
+      }`}
       style={{
         backgroundImage: isFullscreen
           ? "url(/pdf/fullscreen-back.png)"
@@ -313,7 +300,7 @@ useEffect(() => {
       }}
     >
       <div>
-      <img
+        <img
           src="/pdf/wellsping-logo.png"
           alt="Wellspring Logo"
           className="absolute top-4 left-2 w-48 sm:w-32 md:w-[240px]"
@@ -326,11 +313,11 @@ useEffect(() => {
       </div>
       <div className="relative w-full h-full flex justify-center items-center">
         {/* Logo góc trên */}
-  
+
         {images.length > 0 ? (
           <>
-          <div className="flex-grow flex items-center justify-center p-4">
-          <MyImageFlipBook
+            <div className="h-full flex-grow flex items-center justify-center p-4">
+              <MyImageFlipBook
                 imageUrls={images}
                 doublePage={doublePage}
                 currentPage={currentPage}
@@ -348,24 +335,24 @@ useEffect(() => {
                 setTargetPage={setTargetPage}
               />
             </div>
-  
+
             {/* Thanh điều khiển */}
             <div className="fixed bottom-0 left-0 w-full bg-gray-500 bg-opacity-70 py-2 flex flex-wrap justify-center items-center gap-4 sm:gap-10 px-2 z-50">
-            <button
+              <button
                 onClick={() => setShowPageList(!showPageList)}
                 className="text-white hover:text-gray-300"
               >
                 <i className="fas fa-list-ul"></i>
               </button>
-  
+
               <button
                 onClick={() => setShowBookmarkPanel(!showBookmarkPanel)}
                 className="text-white hover:text-gray-300"
               >
                 <i className="far fa-bookmark"></i>
               </button>
-  
-              <button 
+
+              <button
                 onClick={() => {
                   setDoublePage(!doublePage);
                   setCurrentPage(1);
@@ -374,16 +361,25 @@ useEffect(() => {
               >
                 <i className="fas fa-book-open"></i>
               </button>
-  
-              <button onClick={goToFirstPage} className="text-white hover:text-gray-300">
+
+              <button
+                onClick={goToFirstPage}
+                className="text-white hover:text-gray-300"
+              >
                 <i className="fas fa-angle-double-left"></i>
               </button>
-  
-              <button onClick={goToPrevPage} className="text-white hover:text-gray-300">
+
+              <button
+                onClick={goToPrevPage}
+                className="text-white hover:text-gray-300"
+              >
                 <i className="fas fa-angle-left"></i>
               </button>
-  
-              <form onSubmit={goToPage} className="flex items-center bg-white px-2 rounded-md shadow-md">
+
+              <form
+                onSubmit={goToPage}
+                className="flex items-center bg-white px-2 rounded-md shadow-md"
+              >
                 <input
                   type="number"
                   className="w-10 h-8 text-left text-sm font-semibold bg-transparent border-none outline-none no-spinner"
@@ -392,22 +388,33 @@ useEffect(() => {
                   max={totalPages}
                   onChange={(e) => setInputPage(Number(e.target.value))}
                 />
-                <span className="text-gray-700 text-sm font-semibold">/ {totalPages}</span>
+                <span className="text-gray-700 text-sm font-semibold">
+                  / {totalPages}
+                </span>
               </form>
-  
-              <button onClick={goToNextPage} className="text-white hover:text-gray-300">
+
+              <button
+                onClick={goToNextPage}
+                className="text-white hover:text-gray-300"
+              >
                 <i className="fas fa-angle-right"></i>
               </button>
-  
-              <button onClick={goToLastPage} className="text-white hover:text-gray-300">
+
+              <button
+                onClick={goToLastPage}
+                className="text-white hover:text-gray-300"
+              >
                 <i className="fas fa-angle-double-right"></i>
               </button>
-  
-              <button onClick={toggleFullScreen} className="text-white hover:text-gray-300">
+
+              <button
+                onClick={toggleFullScreen}
+                className="text-white hover:text-gray-300"
+              >
                 <i className="fas fa-expand"></i>
               </button>
             </div>
-  
+
             {/* Panel Bookmark */}
             {bookmarks.length > 0 && (
               <aside
@@ -415,7 +422,9 @@ useEffect(() => {
                   showBookmarkPanel ? "translate-x-0" : "-translate-x-full"
                 }`}
               >
-                <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">Bookmarks</h3>
+                <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">
+                  Bookmarks
+                </h3>
                 {bookmarks.map((bm, index) => (
                   <button
                     key={index}
@@ -430,7 +439,7 @@ useEffect(() => {
                 ))}
               </aside>
             )}
-  
+
             {/* Panel Danh sách trang - đặt ở bên phải để tránh chồng lấn */}
             {images.length > 0 && (
               <aside
@@ -438,7 +447,9 @@ useEffect(() => {
                   showPageList ? "translate-x-0" : "translate-x-full"
                 }`}
               >
-                <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">Danh sách trang</h3>
+                <h3 className="text-lg text-center text-white font-bold mb-4 mt-2">
+                  Danh sách trang
+                </h3>
                 {images.map((img, idx) => {
                   const pageNumber = idx + 1;
                   return (
@@ -463,7 +474,8 @@ useEffect(() => {
         ) : (
           <div className="flex flex-col items-center justify-center h-full px-4">
             <p className="text-gray-600 text-xl sm:text-2xl text-center">
-              Tài liệu này đang bị khóa. Vui lòng liên hệ Admin để biết thêm chi tiết.
+              Tài liệu này đang bị khóa. Vui lòng liên hệ Admin để biết thêm chi
+              tiết.
             </p>
           </div>
         )}

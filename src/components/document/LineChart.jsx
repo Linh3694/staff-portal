@@ -35,7 +35,8 @@ const LineChart = ({
 
   // Chuyển chỉ số tháng tài khoá thành nhãn hiển thị, ví dụ: 1 → "Tháng 7"
   const fiscalMonthToLabel = (index) => {
-    const actualMonth = index >= 1 && index <= 12 ? (index <= 6 ? index + 6 : index - 6) : index;
+    const actualMonth =
+      index >= 1 && index <= 12 ? (index <= 6 ? index + 6 : index - 6) : index;
     return `Tháng ${actualMonth}`;
   };
 
@@ -43,46 +44,53 @@ const LineChart = ({
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-  
+
       try {
         console.log("Fetching data from API...");
         const res = await axios.get(`${API_URL}/documents`);
         const docs = res.data;
         console.log("Documents fetched:", docs);
-  
+
         const prCostsByYear = {};
         const prCostsByMonth = {};
-  
+
         docs.forEach((doc) => {
           if (doc.loai === "Tờ Trình/PR" && doc.chiPhi) {
             const fiscalYear = getFiscalYearRange(doc.createdAt);
-            prCostsByYear[fiscalYear] = (prCostsByYear[fiscalYear] || 0) + doc.chiPhi;
-  
-            if (typeof doc.thangSuDung === "string" && doc.thangSuDung.includes("-")) {
+            prCostsByYear[fiscalYear] =
+              (prCostsByYear[fiscalYear] || 0) + doc.chiPhi;
+
+            if (
+              typeof doc.thangSuDung === "string" &&
+              doc.thangSuDung.includes("-")
+            ) {
               const [yearUsedStr, monthUsedStr] = doc.thangSuDung.split("-");
               const fiscalYearUsed =
                 Number(monthUsedStr) < 7
                   ? `${Number(yearUsedStr) - 1}-${yearUsedStr}`
                   : `${yearUsedStr}-${Number(yearUsedStr) + 1}`;
               const fiscalMonth = getFiscalMonth(yearUsedStr, monthUsedStr);
-              if (!prCostsByMonth[fiscalYearUsed]) prCostsByMonth[fiscalYearUsed] = {};
+              if (!prCostsByMonth[fiscalYearUsed])
+                prCostsByMonth[fiscalYearUsed] = {};
               prCostsByMonth[fiscalYearUsed][fiscalMonth] =
                 (prCostsByMonth[fiscalYearUsed][fiscalMonth] || 0) + doc.chiPhi;
             }
           }
         });
-  
+
         // Tính toán dữ liệu năm trước
         const previousYear = selectedYear.split("-").map(Number);
-        const previousFiscalYear = `${previousYear[0] - 1}-${previousYear[1] - 1}`;
-  
+        const previousFiscalYear = `${previousYear[0] - 1}-${
+          previousYear[1] - 1
+        }`;
+
         setTimeout(() => {
           setChartData({
             series: [
               {
                 name: `Chi phí PR - Năm tài khoá ${selectedYear}`,
                 data: Array.from({ length: 12 }, (_, i) => {
-                  const dataObj = (prCostsByMonth[selectedYear]) || {};
+                  const dataObj = prCostsByMonth[selectedYear] || {};
                   return dataObj[i + 1] || 0;
                 }),
               },
@@ -101,7 +109,9 @@ const LineChart = ({
               stroke: { curve: "smooth" },
               markers: { size: 5 },
               xaxis: {
-                categories: Array.from({ length: 12 }, (_, i) => i + 1).map(fiscalMonthToLabel),
+                categories: Array.from({ length: 12 }, (_, i) => i + 1).map(
+                  fiscalMonthToLabel
+                ),
                 title: { text: "Tháng (theo năm tài khoá)" },
               },
               yaxis: {
@@ -113,10 +123,12 @@ const LineChart = ({
                 custom: ({ series, seriesIndex, dataPointIndex }) => {
                   const currentValue = series[seriesIndex][dataPointIndex] || 0;
                   const currentFiscalMonth = dataPointIndex + 1; // Chắc chắn rằng index bắt đầu từ 1
-              
-                  const lastYearDataObj = prCostsByMonth[previousFiscalYear] || {};
-                  const lastYearValue = lastYearDataObj[currentFiscalMonth] || null;
-              
+
+                  const lastYearDataObj =
+                    prCostsByMonth[previousFiscalYear] || {};
+                  const lastYearValue =
+                    lastYearDataObj[currentFiscalMonth] || null;
+
                   let comparisonText;
                   if (lastYearValue === null) {
                     comparisonText = `<span style="color: gray;">Không có dữ liệu năm ngoái</span>`;
@@ -124,18 +136,26 @@ const LineChart = ({
                     const percentageChange = lastYearValue
                       ? ((currentValue - lastYearValue) / lastYearValue) * 100
                       : 0;
-              
+
                     const isIncrease = percentageChange >= 0;
                     comparisonText = isIncrease
-                      ? `<span style="color: green;"> Tăng ${percentageChange.toFixed(2)}%</span>`
-                      : `<span style="color: red;"> Giảm ${Math.abs(percentageChange.toFixed(2))}%</span>`;
+                      ? `<span style="color: green;"> Tăng ${percentageChange.toFixed(
+                          2
+                        )}%</span>`
+                      : `<span style="color: red;"> Giảm ${Math.abs(
+                          percentageChange.toFixed(2)
+                        )}%</span>`;
                   }
-              
+
                   return `
                     <div style="padding: 10px; background: white; border-radius: 5px;">
-                      <strong>${fiscalMonthToLabel(currentFiscalMonth)}</strong><br/>
+                      <strong>${fiscalMonthToLabel(
+                        currentFiscalMonth
+                      )}</strong><br/>
                       <span style="color: #002147; font-weight:bold"> Chi phí: </span>
-                      <strong>${currentValue.toLocaleString("vi-VN")} VND</strong><br/>
+                      <strong>${currentValue.toLocaleString(
+                        "vi-VN"
+                      )} VND</strong><br/>
                       ${comparisonText}
                     </div>
                   `;
@@ -152,7 +172,7 @@ const LineChart = ({
         setLoading(false);
       }
     };
-  
+
     fetchData();
   }, [selectedYear]);
 
@@ -167,10 +187,13 @@ const LineChart = ({
             {
               name: `Chi phí PR - Năm tài khoá ${selectedYear}`,
               data: Array.from({ length: 12 }, (_, i) => {
-                const dataObj = (prev.prCostsByMonth && prev.prCostsByMonth[selectedYear]) || {};
+                const dataObj =
+                  (prev.prCostsByMonth && prev.prCostsByMonth[selectedYear]) ||
+                  {};
                 // Lọc dữ liệu theo tháng từ monthRange.start đến monthRange.end
                 const fiscalMonth = i + 1;
-                return fiscalMonth >= monthRange.start && fiscalMonth <= monthRange.end
+                return fiscalMonth >= monthRange.start &&
+                  fiscalMonth <= monthRange.end
                   ? dataObj[fiscalMonth] || 0
                   : 0;
               }),
@@ -185,7 +208,9 @@ const LineChart = ({
             {
               name: `Chi phí PR - Năm tài khoá ${selectedYear}`,
               data: Array.from({ length: 12 }, (_, i) => {
-                const dataObj = (prev.prCostsByMonth && prev.prCostsByMonth[selectedYear]) || {};
+                const dataObj =
+                  (prev.prCostsByMonth && prev.prCostsByMonth[selectedYear]) ||
+                  {};
                 return dataObj[i + 1] || 0;
               }),
             },
@@ -194,7 +219,9 @@ const LineChart = ({
             ...prev.options,
             xaxis: {
               ...prev.options.xaxis,
-              categories: Array.from({ length: 12 }, (_, i) => i + 1).map(fiscalMonthToLabel),
+              categories: Array.from({ length: 12 }, (_, i) => i + 1).map(
+                fiscalMonthToLabel
+              ),
               min: undefined,
               max: undefined,
             },
@@ -214,7 +241,9 @@ const LineChart = ({
           ...prev.options,
           xaxis: {
             ...prev.options.xaxis,
-            categories: Array.from({ length: 12 }, (_, i) => i + 1).map(fiscalMonthToLabel),
+            categories: Array.from({ length: 12 }, (_, i) => i + 1).map(
+              fiscalMonthToLabel
+            ),
             title: { text: "Tháng (theo năm tài khoá)" },
             min: undefined,
             max: undefined,
@@ -228,7 +257,9 @@ const LineChart = ({
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold text-[#002147]">Chi phí trong năm tài khoá</h2>
+        <h2 className="text-lg font-bold text-[#002147]">
+          Chi phí trong năm tài khoá
+        </h2>
       </div>
 
       <Chart

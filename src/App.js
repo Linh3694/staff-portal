@@ -15,10 +15,11 @@ import "./App.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./i18n";
 import FlipViewPage from "./pages/FlipViewPage";
-import AuthForm from "./pages/Events/2025-tet/AuthForm"
-import Event from "./pages/Events/2025-tet/Event"
-import DetailEvent from "./pages/Events/2025-tet/detailEvent"
-import EventManagement from "./pages/Events/2025-tet/EventManagement"
+import HallofFame from "./pages/HallOfFame-homepage"
+import HallOfFamePublicPage from "./pages/HallOfFame-detail"
+import "slick-carousel/slick/slick.css"; 
+import "slick-carousel/slick/slick-theme.css";
+
 
 // PublicRoute: Nếu người dùng đã đăng nhập, chuyển hướng về Dashboard
 function PublicRoute({ children }) {
@@ -44,21 +45,12 @@ function RequireAuth({ children, allowedRoles }) {
   }
 
   if (allowedRoles && !allowedRoles.includes(userRole)) {
-    // Thay vì chuyển hướng về /login, bạn có thể:
-    // - Hiển thị một trang thông báo lỗi,
-    // - Hoặc xóa thông tin đăng nhập (logout) rồi chuyển hướng.
-    // Ví dụ, chuyển hướng về một trang NotAuthorized:
     return <Navigate to="/not-authorized" replace />;
   }
 
   return children;
 }
 
-// RequireEventAuth: Dành cho các trang Event (nếu cần)
-function RequireEventAuth() {
-  const location = useLocation();
-  return <Navigate to="/auth" replace state={{ from: location }} />;
-}
 
 function App() {
   const [isEventAuthenticated, setIsEventAuthenticated] = useState(false);
@@ -91,6 +83,18 @@ function App() {
       <Router>
         <Routes>
         <Route
+          path="/hall-of-honor"
+          element={
+              <HallofFame />
+          }
+        />
+        <Route
+          path="/hall-of-honor/detail"
+          element={
+              <HallOfFamePublicPage />
+          }
+        />
+        <Route
           path="/:customName"
           element={
               <FlipViewPage />
@@ -105,57 +109,14 @@ function App() {
               </PublicRoute>
             }
           />
-
           {/* Trang Microsoft Auth Success (sau khi đăng nhập Microsoft) */}
           <Route path="/auth/microsoft/success" element={<MicrosoftAuthSuccess />} />
-
           {/* Trang Dashboard - Chỉ cho phép người dùng đã đăng nhập với role phù hợp */}
           <Route path="/dashboard/*" element={
             <RequireAuth allowedRoles={["admin", "superadmin", "technical", "marcom", "hr"]}>
               <Dashboard />
             </RequireAuth>
           } />
-
-          {/* Trang Ticket - Yêu cầu đăng nhập */}
-          {/* <Route
-            path="/ticket"
-            element={
-              <RequireAuth>
-                <Ticket />
-              </RequireAuth>
-            }
-          /> */}
-
-          {/* Trang Auth dành cho Event */}
-          <Route
-            path="/auth"
-            element={<AuthForm setIsEventAuthenticated={setIsEventAuthenticated} />}
-          />
-
-          {/* Trang Event (yêu cầu xác thực riêng) */}
-          <Route
-            path="/event_tet2025"
-            element={
-              isEventAuthenticated ? (
-                <Event isEventAuthenticated={isEventAuthenticated} />
-              ) : (
-                <Navigate to="/auth" />
-              )
-            }
-          />
-
-          {/* Trang chi tiết Event */}
-          <Route
-            path="/event_tet2025/:slug"
-            element={isEventAuthenticated ? <DetailEvent /> : <RequireEventAuth />}
-          />
-
-          {/* Trang quản lý Event */}
-          <Route
-            path="/event-management"
-            element={isEventAuthenticated ? <EventManagement /> : <Navigate to="/auth" />}
-          />
-
           {/* Default route: Nếu truy cập URL không xác định, chuyển về trang Login */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

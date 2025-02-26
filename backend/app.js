@@ -21,8 +21,6 @@ const userRoutes = require("./routes/users");
 const clientsSync = require('./routes/clientsSync');
 const activityRoutes = require('./routes/activityRoutes');
 const ticketRoutes = require("./routes/tickets");
-const eventRoutes = require("./routes/eventRoutes");
-const photoRoutes = require("./routes/photoRoutes");
 const inspectRoutes = require("./routes/inspect");
 const studentRoutes = require("./routes/students");
 const documentRoutes = require("./routes/documents");
@@ -33,6 +31,13 @@ const messageRoutes = require("./routes/messageRoutes");
 const networkDevicesRoutes = require("./routes/networkDevices");
 const jobRoutes = require("./routes/jobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
+const familyRoutes = require("./routes/familyRoutes");
+const schoolYearRoutes = require("./routes/schoolYearRoutes");
+const classRoutes = require("./routes/classRoutes");
+const enrollmentRoutes = require("./routes/studentClassEnrollmentRoutes");
+const photoRoutes = require("./routes/photoRoutes");
+const awardRecordRoutes = require("./routes/awardRecordRoutes");
+const awardCategoryRoutes = require("./routes/awardCategoryRoutes");
 
 const app = express();
 
@@ -89,8 +94,6 @@ app.use("/api/clients-sync", clientsSync.router);
 app.use("/api/tools", toolRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/tickets", ticketRoutes);
-app.use("/api/events", eventRoutes);
-app.use("/api/photos", photoRoutes);
 app.use("/api/inspects", inspectRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/documents", documentRoutes);
@@ -101,6 +104,14 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/families", familyRoutes);
+app.use("/api/students", studentRoutes);
+app.use("/api/schoolyears", schoolYearRoutes);
+app.use("/api/classes", classRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
+app.use("/api/photos", photoRoutes);
+app.use("/api/award-records", awardRecordRoutes); 
+app.use("/api/award-categories", awardCategoryRoutes);
 
 // Khởi động server
 const PORT = process.env.PORT || 3000;

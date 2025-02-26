@@ -1,23 +1,18 @@
+// middleware/uploadStudents.js
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
 
-// Đảm bảo thư mục /uploads/Events tồn tại
-const uploadPath = path.join(__dirname, "../uploads/Events");
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath, { recursive: true });
-}
-
-// Cấu hình Multer
+// Cấu hình lưu file
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadPath); // Đặt thư mục đích là uploads/Events
+    cb(null, "uploads/Students");
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`); // Tạo tên file duy nhất
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
   },
 });
 
 const upload = multer({ storage });
-
 module.exports = upload;

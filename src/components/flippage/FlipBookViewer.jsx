@@ -1,8 +1,11 @@
 import React, { useRef, useEffect, useState } from "react";
 import HTMLFlipBook from "react-pageflip";
-import { FaRegArrowAltCircleLeft, FaRegArrowAltCircleRight } from "react-icons/fa";
+import {
+  FaRegArrowAltCircleLeft,
+  FaRegArrowAltCircleRight,
+} from "react-icons/fa";
 
-function FlipBookViewer({ 
+function FlipBookViewer({
   children,
   doublePage = false,
   pageWidth = 550,
@@ -17,7 +20,7 @@ function FlipBookViewer({
   programmaticFlip,
   setProgrammaticFlip,
   targetPage,
-  setTargetPage
+  setTargetPage,
 }) {
   const bookContainerRef = useRef(null);
 
@@ -32,22 +35,24 @@ function FlipBookViewer({
       const container = document.getElementById("flipview-container");
       if (!container) return;
       const { clientWidth, clientHeight } = container;
-  
+
       // Tính toán tỉ lệ để flipbook vừa khung
       // Giả sử bạn có pageWidth/pageHeight chuẩn, ví dụ 700x900
-      const desiredWidth = pageWidth * (doublePage ? 2 : 1); 
+      const desiredWidth = pageWidth * (doublePage ? 2 : 1);
       const desiredHeight = pageHeight;
-      
+
       const marginFactor = 0.9;
       const scaleX = (clientWidth * marginFactor) / desiredWidth;
       const scaleY = (clientHeight * marginFactor) / desiredHeight;
-      const newZoom = Math.min(scaleX, scaleY, 1);
+
+      // Điều chỉnh zoom dựa trên devicePixelRatio nếu cần
+      const newZoom = Math.min(scaleX, scaleY);
       setZoom(newZoom);
     }
-  
+
     window.addEventListener("resize", handleResize);
     handleResize(); // Gọi 1 lần khi mount
-  
+
     return () => window.removeEventListener("resize", handleResize);
   }, [pageWidth, pageHeight, doublePage]);
 
@@ -101,13 +106,11 @@ function FlipBookViewer({
   }
 
   // Tính chiều rộng container: nếu doublePage=true -> gấp đôi
-  const containerWidth = doublePage
-    ? pageWidth * 2
-    : pageWidth;
+  const containerWidth = doublePage ? pageWidth * 2 : pageWidth;
 
   return (
-    <div 
-    className="flex justify-center items-center"
+    <div
+      className="h-screen flex justify-center items-center "
       style={{
         width: "100%",
         minHeight: "100%",
@@ -117,16 +120,16 @@ function FlipBookViewer({
         perspective: "1500px",
       }}
     >
-      <div 
+      <div
         ref={bookContainerRef}
         className="flex justify-center items-center"
         style={{
           position: "relative",
           width: containerWidth,
           height: pageHeight,
-          maxWidth: "100%",     // Chiếm 90% bề ngang
-          maxHeight: "100%",    // Chiếm 90% bề dọc
-          margin: "40px auto",
+          maxWidth: "100%", // Chiếm 90% bề ngang
+          maxHeight: "calc(100% - 50px)",
+          margin: "0 auto",
           transform: `scale(${zoom})`,
           transformOrigin: "center center",
           transition: "transform 0.5s ease-out",
@@ -134,8 +137,6 @@ function FlipBookViewer({
         }}
         onWheel={handleWheelZoom}
       >
-        
-
         {doublePage ? (
           <HTMLFlipBook
             key={key}

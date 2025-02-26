@@ -6,7 +6,6 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 
-
 // Hàm format số tiền sang dạng có dấu chấm phần thập phân (theo chuẩn vi-VN)
 const formatChiPhi = (value) => {
   if (!value) return "Chưa cập nhật";
@@ -26,7 +25,7 @@ const DocumentTable = () => {
   // Modal EDIT
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
-  const [selectedFileEdit, setSelectedFileEdit] = useState(null);     // Cho modal Edit
+  const [selectedFileEdit, setSelectedFileEdit] = useState(null); // Cho modal Edit
 
   // Modal DELETE
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -50,8 +49,7 @@ const DocumentTable = () => {
     try {
       const res = await axios.get(`${API_URL}/documents`);
       setDocuments(res.data);
-      console.log(res.data)
-
+      console.log(res.data);
     } catch (error) {
       console.error("Lỗi khi tải tài liệu:", error.message);
       toast.error("Lỗi khi tải danh sách tài liệu.");
@@ -65,19 +63,19 @@ const DocumentTable = () => {
   // Tìm kiếm
   const filteredDocuments = useMemo(() => {
     let filtered = documents;
-  
+
     // Áp dụng tìm kiếm
     if (searchKeyword) {
       filtered = filtered.filter((doc) =>
         doc.ten?.toLowerCase().includes(searchKeyword.toLowerCase())
       );
     }
-  
+
     // Áp dụng filter theo loại tài liệu (trừ khi chọn "Tất cả")
     if (selectedFilter !== "Tất cả") {
       filtered = filtered.filter((doc) => doc.loai === selectedFilter);
     }
-  
+
     return filtered;
   }, [documents, searchKeyword, selectedFilter]);
 
@@ -96,7 +94,6 @@ const DocumentTable = () => {
     }
     return sortableDocs;
   }, [filteredDocuments, sortConfig]);
-
 
   // Phân trang
   const paginatedDocuments = useMemo(() => {
@@ -133,12 +130,12 @@ const DocumentTable = () => {
       if (selectedFileCreate) {
         formData.append("file", selectedFileCreate);
       }
-  
+
       // Gửi với Content-Type: multipart/form-data
       await axios.post(`${API_URL}/documents`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-  
+
       toast.success("Thêm tài liệu thành công!");
       setIsCreateModalOpen(false);
       // Reset lại state
@@ -174,11 +171,15 @@ const DocumentTable = () => {
       if (selectedFileEdit) {
         formData.append("file", selectedFileEdit);
       }
-  
-      await axios.put(`${API_URL}/documents/${selectedDocument._id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-  
+
+      await axios.put(
+        `${API_URL}/documents/${selectedDocument._id}`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
       toast.success("Cập nhật tài liệu thành công!");
       setIsModalOpen(false);
       setSelectedFileEdit(null);
@@ -209,11 +210,14 @@ const DocumentTable = () => {
   return (
     <div className="w-full h-full px-6 pb-6 border sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
       <div className="flex justify-between items-center mb-4 mt-3">
-        <div className="text-2xl font-bold text-navy-700">Danh sách tài liệu</div>
+        <div className="text-2xl font-bold text-navy-700">
+          Danh sách tài liệu
+        </div>
         {/* Nút thêm mới */}
         <button
           onClick={openCreateModal}
-          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 ">
+          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
+        >
           Thêm mới
         </button>
       </div>
@@ -230,19 +234,23 @@ const DocumentTable = () => {
           />
         </div>
         <div className="flex items-center space-x-2">
-          {["Tất cả", "Tờ Trình/PR", "Biên bản", "Hợp đồng", "Hoàn công"].map((type) => (
-            <button
-              key={type}
-              onClick={() => setSelectedFilter(type === selectedFilter ? null : type)}
-              className={`px-4 py-2 text-sm font-bold rounded-lg transition ${
-                selectedFilter === type
-                  ? "bg-[#002147] text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              {type}
-            </button>
-          ))}
+          {["Tất cả", "Tờ Trình/PR", "Biên bản", "Hợp đồng", "Hoàn công"].map(
+            (type) => (
+              <button
+                key={type}
+                onClick={() =>
+                  setSelectedFilter(type === selectedFilter ? null : type)
+                }
+                className={`px-4 py-2 text-sm font-bold rounded-lg transition ${
+                  selectedFilter === type
+                    ? "bg-[#002147] text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                {type}
+              </button>
+            )
+          )}
         </div>
       </div>
 
@@ -258,7 +266,9 @@ const DocumentTable = () => {
                     setSortConfig((prev) => ({
                       key: "ten",
                       direction:
-                        prev.key === "ten" && prev.direction === "asc" ? "desc" : "asc",
+                        prev.key === "ten" && prev.direction === "asc"
+                          ? "desc"
+                          : "asc",
                     }))
                   }
                 >
@@ -398,7 +408,9 @@ const DocumentTable = () => {
             <label className="block mb-2">Loại tài liệu</label>
             <select
               value={newDocument.loai}
-              onChange={(e) => setNewDocument({ ...newDocument, loai: e.target.value })}
+              onChange={(e) =>
+                setNewDocument({ ...newDocument, loai: e.target.value })
+              }
               className="border p-2 rounded-md w-full mb-4"
             >
               <option value="">Chọn loại tài liệu</option>
@@ -413,7 +425,9 @@ const DocumentTable = () => {
             <input
               type="month"
               value={newDocument.thangSuDung}
-              onChange={(e) => setNewDocument({ ...newDocument, thangSuDung: e.target.value })}
+              onChange={(e) =>
+                setNewDocument({ ...newDocument, thangSuDung: e.target.value })
+              }
               className="border p-2 rounded-md w-full mb-4"
             />
 
@@ -495,7 +509,12 @@ const DocumentTable = () => {
             <label className="block mb-2">Loại tài liệu</label>
             <select
               value={selectedDocument.loai}
-              onChange={(e) => setSelectedDocument({ ...selectedDocument, loai: e.target.value })}
+              onChange={(e) =>
+                setSelectedDocument({
+                  ...selectedDocument,
+                  loai: e.target.value,
+                })
+              }
               className="border p-2 rounded-md w-full mb-4"
             >
               <option value="">Chọn loại tài liệu</option>
@@ -510,7 +529,12 @@ const DocumentTable = () => {
             <input
               type="month"
               value={selectedDocument.thangSuDung}
-              onChange={(e) => setSelectedDocument({ ...selectedDocument, thangSuDung: e.target.value })}
+              onChange={(e) =>
+                setSelectedDocument({
+                  ...selectedDocument,
+                  thangSuDung: e.target.value,
+                })
+              }
               className="border p-2 rounded-md w-full mb-4"
             />
 
@@ -542,7 +566,7 @@ const DocumentTable = () => {
               className="border p-2 rounded-md w-full mb-4"
             />
 
-              {/* INPUT chọn file (edit) */}
+            {/* INPUT chọn file (edit) */}
             <label className="block mb-2">File (nếu muốn cập nhật)</label>
             <input
               type="file"
@@ -552,7 +576,7 @@ const DocumentTable = () => {
                 }
               }}
               className="mb-4"
-            />  
+            />
 
             <div className="mt-6 flex justify-end space-x-2">
               <button
@@ -568,7 +592,6 @@ const DocumentTable = () => {
                 Lưu thay đổi
               </button>
             </div>
-            
           </div>
         </div>
       )}

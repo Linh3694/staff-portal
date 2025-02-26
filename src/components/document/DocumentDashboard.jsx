@@ -3,14 +3,19 @@ import axios from "axios";
 import { API_URL } from "../../config";
 import LineChart from "./LineChart";
 import Widget from "./Widget";
-import { MdDescription, MdAssignment, MdGavel, MdCheckCircle } from "react-icons/md";
+import {
+  MdDescription,
+  MdAssignment,
+  MdGavel,
+  MdCheckCircle,
+} from "react-icons/md";
 import { FaDollarSign } from "react-icons/fa6";
 import Dropdown from "../function/dropdown"; // Import đúng đường dẫn của Dropdown
 
-
 // Helper: chuyển chỉ số fiscal month thành nhãn hiển thị (ví dụ: 1 → "Tháng 7")
 const fiscalMonthToLabel = (fiscalMonthIndex) => {
-  const actualMonth = fiscalMonthIndex <= 6 ? fiscalMonthIndex + 6 : fiscalMonthIndex - 6;
+  const actualMonth =
+    fiscalMonthIndex <= 6 ? fiscalMonthIndex + 6 : fiscalMonthIndex - 6;
   return `Tháng ${actualMonth}`;
 };
 
@@ -67,23 +72,33 @@ const DocumentDashboard = () => {
         const allDocs = res.data;
         console.log("Fetched documents:", allDocs);
         setDocuments(allDocs);
-  
+
         // Lọc dữ liệu theo năm tài khoá đang chọn
-        const filteredDocs = allDocs.filter((doc) => getFiscalYearFromDoc(doc) === selectedYear);
-  
+        const filteredDocs = allDocs.filter(
+          (doc) => getFiscalYearFromDoc(doc) === selectedYear
+        );
+
         // Tính tổng chi phí cho PR trong năm tài khoá được chọn
         const totalCost = filteredDocs
           .filter((d) => d.loai === "Tờ Trình/PR" && d.chiPhi)
           .reduce((sum, doc) => sum + doc.chiPhi, 0);
         setTotalCostByYear(totalCost);
         console.log("Total cost for selected fiscal year:", totalCost);
-  
+
         // Cập nhật số lượng tài liệu theo loại
-        const toTrinhPR = filteredDocs.filter((d) => d.loai === "Tờ Trình/PR").length;
-        const bienBan = filteredDocs.filter((d) => d.loai === "Biên bản").length;
-        const hopDong = filteredDocs.filter((d) => d.loai === "Hợp đồng").length;
-        const hoanCong = filteredDocs.filter((d) => d.loai === "Hoàn công").length;
-  
+        const toTrinhPR = filteredDocs.filter(
+          (d) => d.loai === "Tờ Trình/PR"
+        ).length;
+        const bienBan = filteredDocs.filter(
+          (d) => d.loai === "Biên bản"
+        ).length;
+        const hopDong = filteredDocs.filter(
+          (d) => d.loai === "Hợp đồng"
+        ).length;
+        const hoanCong = filteredDocs.filter(
+          (d) => d.loai === "Hoàn công"
+        ).length;
+
         setWidgetsData({
           totalCost,
           toTrinhPR,
@@ -91,12 +106,11 @@ const DocumentDashboard = () => {
           hopDong,
           hoanCong,
         });
-  
       } catch (error) {
         console.error("Lỗi khi lấy danh sách tài liệu:", error);
       }
     };
-  
+
     fetchDocs();
   }, [selectedYear]); // Khi `selectedYear` thay đổi, fetch lại dữ liệu
 
@@ -105,47 +119,52 @@ const DocumentDashboard = () => {
       try {
         const res = await axios.get(`${API_URL}/documents`);
         const allDocs = res.data;
-  
+
         // Lấy tất cả các năm tài khoá đã có trong DB từ PR
         const fiscalYearSet = new Set(
           allDocs
             .filter((d) => d.loai === "Tờ Trình/PR")
             .map((doc) => getFiscalYearFromDoc(doc))
         );
-  
+
         // Tạo danh sách năm tài khoá có sẵn
         let sortedFiscalYears = Array.from(fiscalYearSet).sort();
-  
+
         // Xác định năm tài khoá hiện tại theo ngày tháng thực tế
         const today = new Date();
         const currentYear = today.getFullYear();
         const currentFiscalYear =
-          today.getMonth() + 1 < 7 ? `${currentYear - 1}-${currentYear}` : `${currentYear}-${currentYear + 1}`;
-  
+          today.getMonth() + 1 < 7
+            ? `${currentYear - 1}-${currentYear}`
+            : `${currentYear}-${currentYear + 1}`;
+
         // Xác định năm tài khoá lớn nhất trong DB
-        const lastFiscalYear = sortedFiscalYears.length > 0 ? sortedFiscalYears[sortedFiscalYears.length - 1] : currentFiscalYear;
-  
+        const lastFiscalYear =
+          sortedFiscalYears.length > 0
+            ? sortedFiscalYears[sortedFiscalYears.length - 1]
+            : currentFiscalYear;
+
         // Tạo năm tài khoá tiếp theo (dự trù 1 năm trong tương lai)
         const [startYear] = lastFiscalYear.split("-").map(Number);
         const nextFiscalYear = `${startYear + 1}-${startYear + 2}`;
-  
+
         // Luôn thêm năm tài khoá hiện tại nếu chưa có
         if (!sortedFiscalYears.includes(currentFiscalYear)) {
           sortedFiscalYears.push(currentFiscalYear);
         }
-  
+
         // Luôn thêm năm tài khoá trong tương lai
         sortedFiscalYears.push(nextFiscalYear);
-  
+
         // Sắp xếp theo thứ tự mới nhất lên trước
         sortedFiscalYears = sortedFiscalYears.sort().reverse();
-  
+
         setAvailableFiscalYears(sortedFiscalYears);
       } catch (error) {
         console.error("Lỗi khi lấy danh sách năm tài khoá:", error);
       }
     };
-  
+
     fetchFiscalYears();
   }, []);
 
@@ -158,7 +177,9 @@ const DocumentDashboard = () => {
     const [docYear, docMonth] = doc.thangSuDung.split("-").map(Number);
     const fiscalMonthDoc = getFiscalMonth(docYear, docMonth);
     if (monthRange.start !== null && monthRange.end !== null) {
-      return fiscalMonthDoc >= monthRange.start && fiscalMonthDoc <= monthRange.end;
+      return (
+        fiscalMonthDoc >= monthRange.start && fiscalMonthDoc <= monthRange.end
+      );
     } else if (monthRange.start !== null && monthRange.end === null) {
       return fiscalMonthDoc === monthRange.start;
     }
@@ -189,12 +210,18 @@ const DocumentDashboard = () => {
   let prTitle = `Tất cả PR trong năm ${selectedYear}`;
   if (monthRange.start !== null && monthRange.end !== null) {
     if (monthRange.start === monthRange.end) {
-      prTitle = `PR tháng ${fiscalMonthToLabel(monthRange.start)}/${selectedYear}`;
+      prTitle = `PR tháng ${fiscalMonthToLabel(
+        monthRange.start
+      )}/${selectedYear}`;
     } else {
-      prTitle = `PR từ ${fiscalMonthToLabel(monthRange.start)} đến ${fiscalMonthToLabel(monthRange.end)}/${selectedYear}`;
+      prTitle = `PR từ ${fiscalMonthToLabel(
+        monthRange.start
+      )} đến ${fiscalMonthToLabel(monthRange.end)}/${selectedYear}`;
     }
   } else if (monthRange.start !== null && monthRange.end === null) {
-    prTitle = `PR tháng ${fiscalMonthToLabel(monthRange.start)}/${selectedYear}`;
+    prTitle = `PR tháng ${fiscalMonthToLabel(
+      monthRange.start
+    )}/${selectedYear}`;
   }
 
   return (
@@ -204,35 +231,35 @@ const DocumentDashboard = () => {
         <h2 className="text-xl font-bold text-[#002147]">Báo cáo tài liệu</h2>
         <div>
           <Dropdown
-              button={
-                <button
-                  className="flex items-center justify-center w-32 px-3 py-2 bg-white border rounded-md shadow-md hover:bg-gray-100"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                >
-                  <span>{selectedYear || "Chọn năm tài khoá"}</span>
-                </button>
-              }
-              animation="origin-bottom transition-all duration-300 ease-in-out"
-              children={
-                <div className="absolute items-center justify-center right-0 top-10 mt-2 w-32 bg-white border rounded-md shadow-md z-50">
-                  {availableFiscalYears.map((year) => (
-                    <button
-                      key={year}
-                      onClick={() => {
-                        setSelectedYear(year);
-                        setIsDropdownOpen(false); // Đóng dropdown sau khi chọn
-                      }}
-                      className={`block w-full text-left px-4 py-2 hover:bg-gray-200 ${
-                        selectedYear === year ? "bg-gray-300 font-bold" : ""
-                      }`}
-                    >
-                      {year}
-                    </button>
-                  ))}
-                </div>
-              }
-              classNames="relative"
-            />
+            button={
+              <button
+                className="flex items-center justify-center w-32 px-3 py-2 bg-white border rounded-md shadow-md hover:bg-gray-100"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
+                <span>{selectedYear || "Chọn năm tài khoá"}</span>
+              </button>
+            }
+            animation="origin-bottom transition-all duration-300 ease-in-out"
+            children={
+              <div className="absolute items-center justify-center right-0 top-10 mt-2 w-32 bg-white border rounded-md shadow-md z-50">
+                {availableFiscalYears.map((year) => (
+                  <button
+                    key={year}
+                    onClick={() => {
+                      setSelectedYear(year);
+                      setIsDropdownOpen(false); // Đóng dropdown sau khi chọn
+                    }}
+                    className={`block w-full text-left px-4 py-2 hover:bg-gray-200 ${
+                      selectedYear === year ? "bg-gray-300 font-bold" : ""
+                    }`}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+            }
+            classNames="relative"
+          />
         </div>
       </div>
       {/* Widgets */}
@@ -311,32 +338,38 @@ const DocumentDashboard = () => {
               </tbody>
             </table>
           ) : (
-            <p className="text-gray-500 text-center mt-4">Không có dữ liệu PR</p>
+            <p className="text-gray-500 text-center mt-4">
+              Không có dữ liệu PR
+            </p>
           )}
 
           {totalPages > 1 && (
             <div className="flex items-center gap-2 mt-4">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => {
-                    console.log("Changing to page:", page);
-                    setCurrentPage(page);
-                  }}
-                  className={`px-3 py-1 border rounded ${
-                    page === currentPage ? "bg-[#002147] text-white" : ""
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <button
+                    key={page}
+                    onClick={() => {
+                      console.log("Changing to page:", page);
+                      setCurrentPage(page);
+                    }}
+                    className={`px-3 py-1 border rounded ${
+                      page === currentPage ? "bg-[#002147] text-white" : ""
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
             </div>
           )}
         </div>
       </div>
 
       <div className="mt-6 p-6 rounded-lg shadow-xl bg-white">
-        <h3 className="text-lg font-bold text-[#002147] mb-3">Tài liệu gần đây</h3>
+        <h3 className="text-lg font-bold text-[#002147] mb-3">
+          Tài liệu gần đây
+        </h3>
         <ul className="space-y-2">
           {recentDocuments.map((doc) => (
             <li key={doc._id} className="p-3">
@@ -344,7 +377,8 @@ const DocumentDashboard = () => {
                 <strong>{doc.ten}</strong>
               </p>
               <p className="text-xs text-gray-500">
-                Ngày tạo: {new Date(doc.createdAt).toLocaleDateString("vi-VN")} | {doc.loai}
+                Ngày tạo: {new Date(doc.createdAt).toLocaleDateString("vi-VN")}{" "}
+                | {doc.loai}
               </p>
             </li>
           ))}

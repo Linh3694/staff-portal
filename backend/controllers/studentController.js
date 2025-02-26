@@ -1,253 +1,170 @@
-const XLSX = require("xlsx");
-const fs = require("fs");
-const path = require("path");
+// controllers/studentController.js
+
 const Student = require("../models/Students");
+const Family = require("../models/Family");
+const StudentClassEnrollment = require("../models/StudentClassEnrollment");
+const ClassModel = require("../models/Class");
+const xlsx = require("xlsx");
+const fs = require("fs");
 
-// Lấy danh sách students
-exports.getAllStudents = async (req, res) => {
-  try {
-    const students = await Student.find();
-    res.json(students);
-  } catch (error) {
-    console.error("Error getting students:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Tạo mới student
+/** Tạo 1 student */
 exports.createStudent = async (req, res) => {
   try {
-    const { studentCode, name, email, klass, birthYear } = req.body;
-
-    // Kiểm tra trùng studentCode
-    const existingStudent = await Student.findOne({ studentCode });
-    if (existingStudent) {
-      return res.status(400).json({ message: "Mã học sinh đã tồn tại!" });
+    const newStudent = await Student.create(req.body);
+    // Nếu cần đồng bộ 2 chiều Family -> students
+    if (newStudent.family) {
+      await Family.findByIdAndUpdate(newStudent.family, {
+        $push: { students: newStudent._id },
+      });
     }
-
-    // Parse `klass` nếu nó là chuỗi JSON
-    let parsedKlass = [];
-    if (typeof klass === "string") {
-      try {
-        parsedKlass = JSON.parse(klass);
-      } catch (error) {
-        return res.status(400).json({
-          message: "Định dạng 'klass' không hợp lệ. Vui lòng truyền đúng định dạng JSON.",
-        });
-      }
-    } else if (Array.isArray(klass)) {
-      parsedKlass = klass;
-    }
-
-    const newStudent = new Student({
-      studentCode,
-      name,
-      email,
-      klass: parsedKlass,
-      birthYear,
-    });
-    const savedStudent = await newStudent.save();
-    res.status(201).json(savedStudent);
-  } catch (error) {
-    console.error("Error creating student:", error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(201).json(newStudent);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
 };
 
-// Lấy 1 student
+/** Lấy tất cả student */
+exports.getAllStudents = async (req, res) => {
+  try {
+    const students = await Student.find().populate("family");
+    return res.json(students);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+};
+
+/** Lấy 1 student theo id */
 exports.getStudentById = async (req, res) => {
   try {
     const { id } = req.params;
-    const student = await Student.findById(id);
+    const student = await Student.findById(id).populate("family");
     if (!student) {
-      return res.status(404).json({ message: "Không tìm thấy học sinh!" });
+      return res.status(404).json({ message: "Student not found" });
     }
-
-    res.json({
-      student,
-      classHistory: student.klass, // Danh sách lớp theo từng năm học
-    });
-  } catch (error) {
-    console.error("Error getting student:", error);
-    res.status(500).json({ message: "Server error" });
+    return res.json(student);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
 };
 
-// Cập nhật student
+/** Update 1 student */
 exports.updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { studentCode, name, email, klass, birthYear } = req.body;
-
-    // Kiểm tra học sinh tồn tại
-    const existingStudent = await Student.findById(id);
-    if (!existingStudent) {
-      return res.status(404).json({ message: "Không tìm thấy học sinh!" });
+    const updated = await Student.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updated) {
+      return res.status(404).json({ message: "Student not found" });
     }
-
-    // Xử lý `klass` để tránh nhân đôi và đảm bảo `className` không bị thiếu
-    let updatedKlass = existingStudent.klass || [];
-
-    if (klass) {
-      let parsedKlass = [];
-
-      if (typeof klass === "string") {
-        try {
-          parsedKlass = JSON.parse(klass);
-        } catch (error) {
-          return res.status(400).json({ message: "Lỗi phân tích JSON cho 'klass'!" });
-        }
-      } else if (Array.isArray(klass)) {
-        parsedKlass = klass;
-      }
-
-      // Lọc bỏ các mục `className` bị thiếu hoặc không hợp lệ
-      parsedKlass = parsedKlass
-        .filter(k => k.className && typeof k.className === "string" && k.className.trim() !== "")
-        .map(k => ({
-          year: k.year || new Date().getFullYear(), // Nếu thiếu `year`, dùng năm hiện tại
-          className: k.className.trim() // Loại bỏ khoảng trắng thừa
-        }));
-
-      // Duyệt danh sách lớp mới và chỉ thêm nếu chưa tồn tại
-      parsedKlass.forEach(newClass => {
-        const exists = updatedKlass.some(existingClass =>
-          existingClass.year === newClass.year && existingClass.className === newClass.className
-        );
-        if (!exists) {
-          updatedKlass.push(newClass);
-        }
-      });
-    }
-
-    // Cập nhật học sinh
-    const updatedStudent = await Student.findByIdAndUpdate(
-      id,
-      {
-        studentCode,
-        name,
-        email,
-        klass: updatedKlass, // Chỉ cập nhật danh sách lớp hợp lệ
-        birthYear,
-      },
-      { new: true, runValidators: true }
-    );
-
-    res.json(updatedStudent);
-  } catch (error) {
-    console.error("Error updating student:", error);
-    res.status(500).json({ message: "Lỗi server khi cập nhật học sinh!" });
+    // Nếu family thay đổi => cập nhật 2 chiều
+    // ...
+    return res.json(updated);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
 };
 
-// Xoá student
+/** Xoá 1 student */
 exports.deleteStudent = async (req, res) => {
   try {
     const { id } = req.params;
-    const deletedStudent = await Student.findByIdAndDelete(id);
-    if (!deletedStudent) {
-      return res.status(404).json({ message: "Không tìm thấy học sinh!" });
+    const deleted = await Student.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Student not found" });
     }
-    res.json({ message: "Xoá học sinh thành công" });
-  } catch (error) {
-    console.error("Error deleting student:", error);
-    res.status(500).json({ message: "Server error" });
+    // Gỡ student khỏi Family.students (nếu xài 2 chiều)
+    if (deleted.family) {
+      await Family.findByIdAndUpdate(deleted.family, {
+        $pull: { students: deleted._id },
+      });
+    }
+    return res.json({ message: "Student deleted successfully" });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
 };
 
-exports.uploadExcel = async (req, res) => {
+/**
+ * Bulk upload students qua Excel:
+ * - Cột "ID học sinh" => xác định studentCode
+ * - "Họ tên HS" => name
+ * - "Ngày sinh(DD/MM/YYYY)" => birthDate => parseExcelDate
+ * - "Lớp hiện tại" => Tìm Class => Tự động tạo enrollment
+ */
+exports.bulkUploadStudents = async (req, res) => {
   try {
-    const filePath = req.file.path;
-    const workbook = XLSX.readFile(filePath);
-    const sheetName = workbook.SheetNames[0];
-    const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-    
-    for (const row of sheetData) {
-      const studentCode = row["ID"];
-      const name = row["Student Name"];
-      const email = row["Email"];
-      const className = row[" Class"]?.trim(); // Loại bỏ dấu cách thừa
-      const schoolYear = row["School Year"];
-      const normalizeGender = (gender) => {
-        if (!gender) return "Khác"; // Nếu trống, mặc định là "Khác"
-        const genderMap = {
-          "Nam": "Nam",
-          "Nữ": "Nữ",
-          "Nữ": "Nữ", // Chuyển "Nữ" thành "Nữ"
-          "Khác": "Khác",
-          "Other": "Khác",
-          "Male": "Nam",
-          "Female": "Nữ"
-        };
-        return genderMap[gender.trim()] || "Khác"; // Nếu không khớp, mặc định là "Khác"
-      };
-      
-      // Trong vòng lặp đọc Excel, thay đổi đoạn này:
-      const gender = normalizeGender(row["Gender"]); // Chuẩn hóa giá trị gender
-      // Xử lý birthDate từ các cột _x001D_Day, Month, _x001D_Year
-      let birthDate = null;
-      if (row["_x001D_Day"] && row["Month"] && row["_x001D_Year"]) {
-        birthDate = new Date(`${row["_x001D_Year"]}-${row["Month"]}-${row["_x001D_Day"]}`);
-      }
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
 
-      let parsedKlass = [];
-      if (className) {
-        parsedKlass = [{ year: new Date().getFullYear(), className }];
-      }
+    // Đọc Excel
+    const workbook = xlsx.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
 
-      const existingStudent = await Student.findOne({ studentCode });
+    for (const row of rows) {
+      // Lấy mã học sinh
+      const studentCode = row["ID học sinh"]?.toString().trim();
+      if (!studentCode) continue; // Bỏ qua nếu ko có ID
 
-      if (existingStudent) {
-        existingStudent.name = name || existingStudent.name;
-        existingStudent.email = email || existingStudent.email;
-        existingStudent.gender = gender || existingStudent.gender;
-        existingStudent.birthDate = birthDate || existingStudent.birthDate;
-        existingStudent.schoolYear = schoolYear || existingStudent.schoolYear;
-        existingStudent.klass = [...existingStudent.klass, ...parsedKlass];
-        await existingStudent.save();
-      } else {
-        const newStudent = new Student({
+      // Tìm student
+      let student = await Student.findOne({ studentCode });
+      if (!student) {
+        // Create
+        student = new Student({
           studentCode,
-          name,
-          email,
-          gender,
-          birthDate,
-          schoolYear,
-          klass: parsedKlass,
+          name: row["Họ tên HS"] || "Unknown",
+          birthDate: parseExcelDate(row["Ngày sinh(DD/MM/YYYY)"]),
+          // ... other fields ...
         });
-        await newStudent.save();
+      } else {
+        // Update
+        student.name = row["Họ tên HS"] || student.name;
+        const newBD = parseExcelDate(row["Ngày sinh(DD/MM/YYYY)"]);
+        if (newBD) student.birthDate = newBD;
+      }
+      await student.save();
+      
+    }
+
+    return res.json({ message: "Bulk upload Students success!" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
+  } finally {
+    // Xoá file tạm nếu muốn
+    // fs.unlinkSync(req.file.path);
+  }
+};
+
+/**
+ * parseExcelDate:
+ * - Nếu là number => parse bằng xlsx.SSF.parse_date_code (Excel serial date).
+ * - Nếu là string => parse DD/MM/YYYY
+ */
+function parseExcelDate(value) {
+  if (!value) return null;
+
+  // Trường hợp value là số => Excel date code
+  if (typeof value === "number") {
+    // Xài xlsx.SSF.parse_date_code
+    const dateObj = xlsx.SSF.parse_date_code(value);
+    if (dateObj) {
+      return new Date(dateObj.y, dateObj.m - 1, dateObj.d);
+    }
+    return null;
+  }
+
+  // Nếu là string => parse dd/MM/yyyy
+  if (typeof value === "string") {
+    const parts = value.split("/");
+    if (parts.length === 3) {
+      const d = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const y = parseInt(parts[2], 10);
+      if (d && m && y) {
+        return new Date(y, m - 1, d);
       }
     }
-
-    res.status(200).json({ message: "Upload và xử lý dữ liệu thành công!" });
-  } catch (error) {
-    console.error("Error processing Excel file:", error);
-    res.status(500).json({ message: "Đã xảy ra lỗi khi xử lý file Excel." });
   }
-};
-
-
-exports.updateStudentClass = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { className } = req.body;
-
-    if (!className) {
-      return res.status(400).json({ message: "Tên lớp không được để trống!" });
-    }
-
-    const student = await Student.findById(id);
-    if (!student) {
-      return res.status(404).json({ message: "Không tìm thấy học sinh!" });
-    }
-
-    // Thêm lớp mới vào danh sách lớp
-    student.klass.push({ year: new Date().getFullYear(), className });
-    await student.save();
-
-    res.json({ message: "Cập nhật lớp thành công!", student });
-  } catch (error) {
-    console.error("Error updating student class:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+  return null;
+}

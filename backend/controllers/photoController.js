@@ -1,330 +1,417 @@
-const Photo = require("../models/Photos");
-const Event = require("../models/Events");
-const mongoose = require("mongoose");
+// controllers/photoController.js
+const Photo = require("../models/Photo");
+const Student = require("../models/Students");
+const SchoolYear = require("../models/SchoolYear");
+const StudentClassEnrollment = require("../models/StudentClassEnrollment");
+const xlsx = require("xlsx");
+const fs = require("fs");
+const AdmZip = require("adm-zip");
+const sharp = require("sharp");
+const path = require("path");
 
-// Lấy danh sách ảnh theo ID sự kiện
-exports.getPhotosByEvent = async (req, res) => {
-  const { eventId, userId } = req.query;
+// Hàm lấy năm học mới nhất của học sinh hoặc fallback về năm học mới nhất trong hệ thống
+const getLatestSchoolYear = async (studentId) => {
+  // 1. Lấy năm học mới nhất từ bảng StudentClassEnrollment
+  const lastEnrollment = await StudentClassEnrollment
+    .findOne({ student: studentId })
+    .sort({ startDate: -1 })
+    .populate("schoolYear");
 
-  if (!eventId || !mongoose.Types.ObjectId.isValid(eventId)) {
-    return res.status(400).json({ message: "ID sự kiện không hợp lệ!" });
+  if (lastEnrollment && lastEnrollment.schoolYear) {
+    return lastEnrollment.schoolYear._id;
   }
 
-  try {
-    let filter = { eventId, approved: true };
+  // 2. Nếu không có, lấy năm học mới nhất từ SchoolYear
+  const latestSchoolYear = await SchoolYear.findOne()
+    .sort({ startDate: -1 }) // Lấy năm học có startDate mới nhất
+    .select("_id");
 
-    // Nếu có userId, chỉ lấy bài dự thi của user đó
-    if (userId) {
-      filter.uploaderId = userId;
+  return latestSchoolYear ? latestSchoolYear._id : null;
+};
+
+/**
+ * Upload ảnh cho 1 học sinh (theo năm học).
+ * Nếu không truyền `student` trên body, hàm sẽ suy ra từ tên file.
+ */
+exports.uploadStudentPhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const photos = await Photo.find(filter).select("uploaderId uploaderName url title votes message voters createdAt");
+    let { student, schoolYear } = req.body;
+    const originalName = req.file.originalname; // Ví dụ: "HS001.jpg"
+    const uploadedPath = req.file.path;         // Ví dụ: "uploads/Students/photo-1234567.jpg"
 
-    if (!photos.length) {
-      return res.status(200).json([]); // Trả về mảng rỗng thay vì lỗi 404
+    // Nếu client không truyền `student`, ta suy ra từ tên file
+    if (!student) {
+      const baseName = path.parse(originalName).name; // Lấy phần "HS001"
+      const foundStudent = await Student.findOne({ studentCode: baseName });
+
+      if (!foundStudent) {
+        if (fs.existsSync(uploadedPath)) fs.unlinkSync(uploadedPath);
+        return res
+          .status(400)
+          .json({ message: `Không tìm thấy học sinh: ${baseName}` });
+      }
+      student = foundStudent._id;
     }
 
-    res.status(200).json(photos);
-  } catch (error) {
-    console.error("❌ Lỗi khi lấy ảnh:", error);
-    res.status(500).json({ message: "Lỗi khi lấy danh sách ảnh!" });
-  }
-};
-
-// Thêm ảnh mới
-exports.uploadPhoto = async (req, res) => {
-  console.log(req.body);
-  console.log(req.file);
-
-  const { eventId, title, message, uploaderName } = req.body;
-  const url = `/uploads/Events/${req.file?.filename}`; // Đường dẫn file
-
-  try {
-    const event = await Event.findById(eventId); // Kiểm tra sự kiện có tồn tại không
-    if (!event) {
-      return res.status(404).json({ message: "Không tìm thấy sự kiện!" });
+    // Nếu client không truyền `schoolYear`, tự động lấy năm học mới nhất
+    if (!schoolYear) {
+      schoolYear = await getLatestSchoolYear(student);
+      if (!schoolYear) {
+        if (fs.existsSync(uploadedPath)) fs.unlinkSync(uploadedPath);
+        return res
+          .status(400)
+          .json({ message: "Không tìm thấy năm học hợp lệ" });
+      }
     }
 
-    // Tạo ảnh mới với trạng thái "chưa phê duyệt"
-    const newPhoto = new Photo({ eventId, title, url, message, uploaderName, approved: false });
-    await newPhoto.save();
-    res.status(201).json({ message: "Ảnh đã được tải lên và chờ phê duyệt!", newPhoto });
-  } catch (error) {
-    console.error("Error uploading photo:", error);
-    res.status(500).json({ message: "Lỗi khi tải ảnh lên!" });
-  }
-};
+    // Chuyển ảnh thành .webp
+    const fileNameWebp = `photo-${Date.now()}.webp`;
+    const outPath = `uploads/Students/${fileNameWebp}`;
 
-exports.getPendingPhotos = async (req, res) => {
-  try {
-    const pendingPhotos = await Photo.find({ approved: false, denied: false }); // Không lấy ảnh đã bị từ chối
-    res.status(200).json(pendingPhotos);
-  } catch (error) {
-    console.error("Error fetching pending photos:", error);
-    res.status(500).json({ message: "Lỗi khi lấy danh sách ảnh chưa được phê duyệt!" });
-  }
-};
+    await sharp(uploadedPath).webp({ quality: 80 }).toFile(outPath);
 
-exports.getApprovedPhotos = async (req, res) => {
-  try {
-    const approvedPhotos = await Photo.find({ approved: true, denied: false });
-    res.status(200).json(approvedPhotos);
-  } catch (error) {
-    console.error("Error fetching approved photos:", error);
-    res.status(500).json({ message: "Lỗi khi lấy danh sách ảnh đã duyệt!" });
-  }
-};
-
-exports.getDeniedPhotos = async (req, res) => {
-  try {
-    const deniedPhotos = await Photo.find({ denied: true });
-    res.status(200).json(deniedPhotos);
-  } catch (error) {
-    console.error("Error fetching denied photos:", error);
-    res.status(500).json({ message: "Lỗi khi lấy danh sách ảnh đã bị từ chối!" });
-  }
-};
-
-exports.approvePhoto = async (req, res) => {
-  const { id } = req.params;
-  try {
-    // Lưu ý: cần “phủ” denied = false
-    const photo = await Photo.findByIdAndUpdate(
-      id,
-      { approved: true, denied: false },
-      { new: true }
-    );
-
-    if (!photo) {
-      return res.status(404).json({ message: "Không tìm thấy ảnh!" });
-    }
-    res.status(200).json({ message: "Ảnh đã được phê duyệt!", photo });
-  } catch (error) {
-    console.error("Error approving photo:", error);
-    res.status(500).json({ message: "Lỗi khi phê duyệt ảnh!" });
-  }
-};
-
-exports.rejectPhoto = async (req, res) => {
-  const { id } = req.params;
-  try {
-    // Cập nhật ảnh để đảm bảo nó bị từ chối và không còn pending
-    const photo = await Photo.findByIdAndUpdate(
-      id,
-      { denied: true, approved: false },
-      { new: true }
-    );
-
-    if (!photo) {
-      return res.status(404).json({ message: "Không tìm thấy ảnh!" });
+    // Xóa ảnh gốc
+    if (fs.existsSync(uploadedPath)) {
+      fs.unlinkSync(uploadedPath);
     }
 
-    res.status(200).json({ message: "Ảnh đã bị từ chối!", photo });
-  } catch (error) {
-    console.error("Error rejecting photo:", error);
-    res.status(500).json({ message: "Lỗi khi từ chối ảnh!" });
+    // Tạo Photo
+    const newPhoto = await Photo.create({
+      student,           // gán student
+      class: null,       // null vì là ảnh cá nhân
+      schoolYear,
+      photoUrl: outPath,
+    });
+
+    return res.status(201).json(newPhoto);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
   }
 };
 
-// Vote cho ảnh
-exports.votePhoto = async (req, res) => {
+exports.getAllPhotos = async (req, res) => {
   try {
-    const { id } = req.params; // ID ảnh
-    const { userId } = req.body; // ID người dùng
-
-    console.log("🟡 Nhận yêu cầu vote từ client:", { id, userId });
-
-    if (!userId) {
-      return res.status(400).json({ message: "Thiếu userId!" });
-    }
-
-    // Tìm ảnh trong database
-    const photo = await Photo.findById(id);
-    if (!photo) {
-      return res.status(404).json({ message: "Ảnh không tồn tại!" });
-    }
-
-    console.log("✅ Ảnh tìm thấy:", photo);
-
-    const hasVoted = photo.votedUsers.includes(userId);
-
-    // Nếu đã vote -> Bỏ vote
-    if (hasVoted) {
-      await Photo.findByIdAndUpdate(id, {
-        $pull: { votedUsers: userId }, // Xóa userId khỏi danh sách vote
-        $inc: { votes: -1 } // Giảm số vote đi 1
-      });
-      console.log("❌ Người dùng đã bỏ vote:", userId);
-      return res.status(200).json({ isVoted: false, votes: Math.max(0, photo.votes - 1) });
-    } 
-    // Nếu chưa vote -> Vote
-    else {
-      await Photo.findByIdAndUpdate(id, {
-        $push: { votedUsers: userId }, // Thêm userId vào danh sách vote
-        $inc: { votes: 1 } // Tăng số vote lên 1
-      });
-      console.log("❤️ Người dùng đã vote:", userId);
-      return res.status(200).json({ isVoted: true, votes: photo.votes + 1 });
-    }
-  } catch (error) {
-    console.error("❌ Lỗi khi thả/bỏ vote:", error);
-    return res.status(500).json({ message: "Lỗi server!" });
+    const photos = await Photo.find()
+      .populate("student")
+      .populate("class")     // populate thêm lớp
+      .populate("schoolYear");
+    return res.json(photos);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
 };
 
-// Thêm bình luận vào ảnh
-exports.addComment = async (req, res) => {
-  console.log(req.params)
-  console.log(req.body)
-  const { id } = req.params; // ID của ảnh
-  const { text, user } = req.body; // Nội dung bình luận và tên người dùng
-
-  if (!text || !user) {
-    return res.status(400).json({ message: "Vui lòng nhập nội dung và tên người bình luận!" });
-  }
-
-  try {
-    const photo = await Photo.findById(id);
-    if (!photo) {
-      return res.status(404).json({ message: "Không tìm thấy ảnh!" });
-    }
-
-    // Thêm bình luận
-    photo.comments.push({ text, user });
-    await photo.save();
-    res.status(200).json(photo.comments); // Trả về danh sách bình luận mới
-  } catch (error) {
-    console.error("Error adding comment:", error);
-    res.status(500).json({ message: "Lỗi khi thêm bình luận!" });
-  }
-};
-
-// Lấy danh sách bình luận của ảnh
-exports.getComments = async (req, res) => {
-  const { id } = req.params; // ID của ảnh
-
-  try {
-    const photo = await Photo.findById(id);
-    if (!photo) {
-      return res.status(404).json({ message: "Không tìm thấy ảnh!" });
-    }
-
-    res.status(200).json(photo.comments);
-  } catch (error) {
-    console.error("Error fetching comments:", error);
-    res.status(500).json({ message: "Lỗi khi lấy bình luận!" });
-  }
-};
-
-// Xóa ảnh
-exports.deletePhoto = async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const deletedPhoto = await Photo.findByIdAndDelete(id);
-    if (!deletedPhoto) {
-      return res.status(404).json({ message: "Không tìm thấy ảnh để xóa!" });
-    }
-    res.status(200).json({ message: "Xóa ảnh thành công!" });
-  } catch (error) {
-    console.error("Error deleting photo:", error);
-    res.status(500).json({ message: "Lỗi khi xóa ảnh!" });
-  }
-};
-
-exports.getLeaderboard = async (req, res) => {
-  const { eventId } = req.query;
-
-  try {
-    const leaderboard = await Photo.find({ eventId, approved: true })
-      .sort({ votes: -1 }) // Sắp xếp giảm dần theo số vote
-      .select("uploaderName title votes url eventId message comments"); // Thêm trường url để trả về ảnh
-    
-      res.status(200).json(leaderboard);
-  } catch (error) {
-    console.error("Error fetching leaderboard:", error);
-    res.status(500).json({ message: "Failed to fetch leaderboard." });
-  }
-};
-
-// Lấy leaderboard của tất cả sự kiện (thử thách)
-exports.getLeaderboardAll = async (req, res) => {
-  try {
-    // Lấy danh sách tất cả các sự kiện
-    const events = await Event.find().select("_id name number"); 
-
-    if (!events.length) {
-      return res.status(404).json({ message: "Không tìm thấy thử thách nào!" });
-    }
-
-    // Lấy danh sách ảnh từ tất cả thử thách (eventId)
-    const leaderboardData = await Promise.all(
-      events.map(async (event) => {
-        const photos = await Photo.find({ eventId: event._id, approved: true })
-          .sort({ votes: -1 }) // Sắp xếp theo số vote giảm dần
-          .select("uploaderName title votes url eventId message createdAt comments");
-
-        return {
-          eventId: event._id,
-          eventName: event.name,
-          eventNumber: event.number,
-          photos,
-        };
-      })
-    );
-
-    res.status(200).json(leaderboardData);
-  } catch (error) {
-    console.error("Error fetching leaderboard for all events:", error);
-    res.status(500).json({ message: "Lỗi khi lấy leaderboard của tất cả sự kiện." });
-  }
-};
-
-
-// Lấy chi tiết ảnh theo ID
 exports.getPhotoById = async (req, res) => {
-  const { id } = req.params;
-  const { userId } = req.query; // Nhận userId từ query params
-
   try {
-    // Tìm ảnh theo ID
-    const photo = await Photo.findById(id);
+    const { id } = req.params;
+    const photo = await Photo.findById(id)
+      .populate("student")
+      .populate("class")
+      .populate("schoolYear");
     if (!photo) {
-      return res.status(404).json({ message: "Không tìm thấy ảnh!" });
+      return res.status(404).json({ message: "Photo not found" });
     }
-
-    // Kiểm tra nếu người dùng đã vote hay chưa
-    const isVoted = userId ? photo.votedUsers.includes(userId) : false;
-
-    // Trả về thông tin chi tiết ảnh
-    res.status(200).json({ ...photo.toObject(), isVoted });
-  } catch (error) {
-    console.error("❌ Lỗi khi lấy chi tiết ảnh:", error);
-    res.status(500).json({ message: "Lỗi khi lấy thông tin ảnh!" });
+    return res.json(photo);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
 };
 
-exports.getPhotoCounts = async (req, res) => {
+exports.deletePhoto = async (req, res) => {
   try {
-    const eventIds = req.query.eventIds ? req.query.eventIds.split(",") : [];
-    
-    if (eventIds.length === 0) {
-      return res.status(400).json({ error: "Missing eventIds parameter" });
+    const { id } = req.params;
+    const deleted = await Photo.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Photo not found" });
+    }
+    // Nếu muốn xoá file vật lý
+    // if (fs.existsSync(deleted.photoUrl)) fs.unlinkSync(deleted.photoUrl);
+    return res.json({ message: "Photo deleted successfully" });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+};
+
+/**
+ * Bulk upload Photos từ file .zip
+ * - Logic cũ: dựa vào tên file => tìm học sinh => lưu photo.
+ * - Có thể mở rộng để nhận diện class (nếu file .zip dành cho lớp).
+ */
+exports.bulkUploadPhotosFromZip = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No ZIP file uploaded" });
+    }
+    const zipPath = req.file.path;
+    const zip = new AdmZip(zipPath);
+    const zipEntries = zip.getEntries();
+
+    const outputDir = "uploads/Students/";
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const counts = await Photo.aggregate([
-      { $match: { eventId: { $in: eventIds.map(id => new mongoose.Types.ObjectId(id)) }, approved: true } }, // Chỉ lấy ảnh đã được duyệt
-      { $group: { _id: "$eventId", count: { $sum: 1 } } }
-    ]);
+    // 1) Lấy ngày hiện tại
+    const now = new Date();
 
-    const countMap = counts.reduce((acc, { _id, count }) => {
-      acc[_id.toString()] = count;
-      return acc;
-    }, {});
+    // 2) Tìm SchoolYear tương ứng với ngày hiện tại
+    let defaultSY = await SchoolYear.findOne({
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).sort({ startDate: -1 });
+    console.log(defaultSY)
+    // 3) Nếu không tìm thấy => fallback năm học mới nhất
+    if (!defaultSY) {
+      defaultSY = await SchoolYear.findOne().sort({ startDate: -1 });
+    }
 
-    res.status(200).json(countMap);
+    // Bung file từ ZIP
+    for (const entry of zipEntries) {
+      const fileName = entry.entryName;
+    
+      // 1) Bỏ qua thư mục (entry.isDirectory = true)
+      if (entry.isDirectory) {
+        continue;
+      }
+    
+      // 2) Bỏ qua file .DS_Store, __MACOSX,... 
+      // (nếu fileName chứa "__MACOSX", hoặc kết thúc là ".DS_Store"... thì skip)
+      if (fileName.includes("__MACOSX") || fileName.endsWith(".DS_Store")) {
+        continue;
+      }
+    
+      // 3) Bỏ qua file không có đuôi .jpg/.jpeg/.png (tùy bạn)
+      const lower = fileName.toLowerCase();
+      if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg") && !lower.endsWith(".png")) {
+        continue;
+      }
+    
+      // Nếu qua được các chốt chặn trên => đây là file ảnh hợp lệ
+      // => Tiến hành parse baseName
+      const splitted = fileName.split("/");
+      // Lấy "WS12010001.jpg" phần cuối
+      const justFile = splitted[splitted.length - 1]; 
+      const baseName = justFile.split(".")[0]; 
+      console.log(fileName, "=> baseName:", baseName);
+      // Tìm student theo studentCode = baseName
+      const student = await Student.findOne({ studentCode: baseName });
+
+      // Nếu không thấy student => tuỳ logic (skip, báo lỗi, ...)
+      if (!student) {
+        continue; 
+      }
+
+      // Bung ảnh ra memory
+      const fileBuffer = entry.getData();
+
+      // Convert sang .webp
+      const outName = `${baseName}-${Date.now()}.webp`;
+      const outPath = `${outputDir}${outName}`;
+      await sharp(fileBuffer).webp({ quality: 80 }).toFile(outPath);
+
+      // Tạo/ update Photo
+      let photo = await Photo.findOne({
+        student: student._id,
+        schoolYear: defaultSY._id,
+      });
+      if (!photo) {
+        photo = new Photo({
+          student: student._id,
+          class: null, // Ở bulk này, ta chỉ đang xử lý ảnh HS
+          schoolYear: defaultSY._id,
+          photoUrl: outPath,
+        });
+      } else {
+        // Update => ví dụ xoá file cũ nếu muốn
+        photo.photoUrl = outPath;
+      }
+      await photo.save();
+    }
+
+    return res.json({ message: "Bulk upload từ ZIP thành công!" });
   } catch (error) {
-    console.error("❌ Lỗi khi lấy số lượng ảnh:", error);
-    res.status(500).json({ message: "Lỗi khi lấy số lượng ảnh!" });
+    console.error(error);
+    return res.status(500).json({ error: error.message });
+  } finally {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+  }
+};
+
+/**
+ * (Tuỳ chọn) Hàm upload ảnh cho 1 LỚP (theo năm học).
+ * Nếu muốn "lưu ảnh của lớp học" thì gọi endpoint này.
+ */
+exports.uploadClassPhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    let { classId, schoolYear } = req.body; 
+    if (!classId) {
+      return res.status(400).json({ message: "Thiếu classId" });
+    }
+
+    // Kiểm tra class có tồn tại không
+    const foundClass = await require("../models/Class").findById(classId);
+    if (!foundClass) {
+      // Xoá file vừa upload để tránh rác
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ message: "Không tìm thấy Class." });
+    }
+
+    // Nếu không truyền schoolYear => lấy thẳng schoolYear từ lớp
+    // (hoặc fallback logic như findOne({ startDate <= now <= endDate }) tuỳ bạn)
+    if (!schoolYear) {
+      if (foundClass.schoolYear) {
+        schoolYear = foundClass.schoolYear;
+      } else {
+        // Hoặc fallback: 
+        const latestSY = await SchoolYear.findOne().sort({ startDate: -1 });
+        if (!latestSY) {
+          if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+          return res.status(400).json({ message: "Không tìm thấy năm học hợp lệ" });
+        }
+        schoolYear = latestSY._id;
+      }
+    }
+
+    // Convert ảnh -> .webp
+    const uploadedPath = req.file.path;
+    const fileNameWebp = `class-photo-${Date.now()}.webp`;
+    const outPath = `uploads/Students/${fileNameWebp}`;
+
+    await sharp(uploadedPath)
+      .webp({ quality: 80 })
+      .toFile(outPath);
+
+    // Xoá ảnh gốc
+    if (fs.existsSync(uploadedPath)) {
+      fs.unlinkSync(uploadedPath);
+    }
+
+    // Tạo bản ghi Photo
+    const newPhoto = await Photo.create({
+      student: null, // null vì là ảnh của lớp
+      class: foundClass._id,
+      schoolYear,
+      photoUrl: outPath,
+    });
+
+    return res.status(201).json(newPhoto);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+// Ở cuối file controllers/photoController.js
+exports.bulkUploadClassPhotosFromZip = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No ZIP file uploaded" });
+    }
+
+    // Giải nén file ZIP
+    const zipPath = req.file.path;
+    const zip = new AdmZip(zipPath);
+    const zipEntries = zip.getEntries();
+
+    // Thư mục chứa ảnh
+    const outputDir = "uploads/Students/";
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    // Xác định fallback SchoolYear nếu lớp không có
+    const fallbackSY = await SchoolYear.findOne()
+      .sort({ startDate: -1 })
+      .select("_id");
+
+    // Lặp qua từng file trong ZIP
+    let countUploaded = 0;
+    for (const entry of zipEntries) {
+      const fileName = entry.entryName;
+    
+      // 1) Bỏ qua thư mục (entry.isDirectory = true)
+      if (entry.isDirectory) {
+        continue;
+      }
+    
+      // 2) Bỏ qua file .DS_Store, __MACOSX,... 
+      // (nếu fileName chứa "__MACOSX", hoặc kết thúc là ".DS_Store"... thì skip)
+      if (fileName.includes("__MACOSX") || fileName.endsWith(".DS_Store")) {
+        continue;
+      }
+    
+      // 3) Bỏ qua file không có đuôi .jpg/.jpeg/.png (tùy bạn)
+      const lower = fileName.toLowerCase();
+      if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg") && !lower.endsWith(".png")) {
+        continue;
+      }
+    
+      // Nếu qua được các chốt chặn trên => đây là file ảnh hợp lệ
+      // => Tiến hành parse baseName
+      const splitted = fileName.split("/");
+      // Lấy "WS12010001.jpg" phần cuối
+      const justFile = splitted[splitted.length - 1]; 
+      const baseName = justFile.split(".")[0]; 
+
+      // Tìm class theo className = baseName
+      const foundClass = await require("../models/Class").findOne({
+        className: baseName,
+      });
+      if (!foundClass) {
+        // Không tìm thấy => bỏ qua (hoặc tùy logic, bạn có thể báo lỗi)
+        console.log(`Không tìm thấy class: ${baseName}`);
+        continue;
+      }
+
+      // Lấy schoolYear từ lớp, nếu lớp chưa gán => xài fallbackSY
+      const syId = foundClass.schoolYear || fallbackSY?._id;
+      if (!syId) {
+        console.log(`Class ${foundClass.className} chưa gán schoolYear và không có fallback`);
+        continue;
+      }
+
+      // Bung file ra memory
+      const fileBuffer = entry.getData();
+      // Convert sang webp
+      const outName = `${baseName}-${Date.now()}.webp`;
+      const outPath = `${outputDir}${outName}`;
+      await sharp(fileBuffer).webp({ quality: 80 }).toFile(outPath);
+
+      // Tạo (hoặc update) Photo
+      // Ở đây, ta tạo mới => 1 lớp có thể có nhiều ảnh theo năm học.
+      const newPhoto = new Photo({
+        student: null,
+        class: foundClass._id,
+        schoolYear: syId,
+        photoUrl: outPath,
+      });
+      await newPhoto.save();
+
+      countUploaded++;
+    }
+
+    return res.json({
+      message: "Bulk upload Class Photos từ ZIP thành công!",
+      total: countUploaded,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
+  } finally {
+    // Xoá file ZIP sau khi xử lý xong
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
   }
 };

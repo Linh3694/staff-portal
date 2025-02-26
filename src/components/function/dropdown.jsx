@@ -27,9 +27,7 @@ const Dropdown = (props) => {
 
   return (
     <div ref={wrapperRef} className="relative flex">
-      <div onMouseDown={() => setOpenWrapper(!openWrapper)}>
-        {button}
-      </div>
+      <div onMouseDown={() => setOpenWrapper(!openWrapper)}>{button}</div>
       <div
         className={`${classNames} absolute z-10 ${
           animation

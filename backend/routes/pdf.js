@@ -7,14 +7,15 @@ const authenticate = require("../middleware/authMiddleware");
 
 // Endpoint upload PDF
 router.post("/upload-pdf", authenticate, upload.single("pdfFile"), pdfController.uploadPdf);
-router.get("/get-images/:customName", authenticate, pdfController.getImages);
+router.get("/get-images/:customName", pdfController.getImages);
 router.get("/get-all-pdfs", authenticate, pdfController.getAllPdfs);
 router.put("/update-pdf/:id", authenticate, pdfController.updatePdf )
 router.delete("/delete-pdf/:id", authenticate, pdfController.deletePdf);
-router.put("/toggle-active/:id", authenticate, pdfController.toggleActiveStatus);
+router.put("/toggle-active/:id",  pdfController.toggleActiveStatus);
 router.delete("/delete-permanently/:id", pdfController.permanentlyDeletePdf);
-router.get("/get-bookmarks/:customName", authenticate, pdfController.getBookmarks);
+router.get("/get-bookmarks/:customName", pdfController.getBookmarks);
 router.put("/update-bookmarks/:id", authenticate, pdfController.updateBookmarks);
-router.get("/check-customname/:customName", authenticate, pdfController.checkCustomName);
-router.get("/check-custom-name/:customName", authenticate, pdfController.checkCustomeNameUrl);
+router.get("/check-customname/:customName", pdfController.checkCustomName);
+router.get("/check-custom-name/:customName", pdfController.checkCustomeNameUrl);
+router.get("/get-pdf-status/:customName", pdfController.getPdfStatus);
 module.exports = router;

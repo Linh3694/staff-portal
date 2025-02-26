@@ -368,3 +368,17 @@ exports.updateBookmarks = async (req, res) => {
     res.status(500).json({ error: "Lỗi server khi cập nhật bookmarks." });
   }
 };  
+
+exports.getPdfStatus = async (req, res) => {
+  const { customName } = req.params;
+  try {
+    const pdfData = await Pdf.findOne({ customName });
+    if (!pdfData) {
+      return res.status(404).json({ error: "Không tìm thấy PDF", active: false });
+    }
+    return res.json({ active: pdfData.active });
+  } catch (error) {
+    console.error("Lỗi khi kiểm tra trạng thái PDF:", error);
+    return res.status(500).json({ error: "Lỗi server", active: false });
+  }
+};
