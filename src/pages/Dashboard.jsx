@@ -26,6 +26,7 @@ import HallOfFameAdminPage from "../components/halloffame/HallOfFameAdminPage";
 import { API_URL, BASE_URL } from "../config";
 import ChatPage from "../components/chat/ChatPage";
 import ChatBot from "../components/AI Agent/chat";
+import DashboardInventory from "../components/inventory/dashboard";
 
 const urlToMenu = {
   devices: "Quản lý thiết bị",
@@ -71,6 +72,7 @@ const Dashboard = () => {
   // Định nghĩa cấu hình các tab cho một số mục
   const tabMapping = {
     "Quản lý thiết bị": [
+      "Dashboard",
       "Laptop || Desktop",
       "Màn hình",
       "Máy in",
@@ -224,6 +226,7 @@ const Dashboard = () => {
   const renderContent = () => {
     switch (selectedSubMenu) {
       case "Quản lý thiết bị":
+        if (activeTab === "Dashboard") return <DashboardInventory />;
         if (activeTab === "Laptop || Desktop") return <LaptopTable />;
         if (activeTab === "Màn hình") return <MonitorTable />;
         if (activeTab === "Máy in") return <PrinterTable />;

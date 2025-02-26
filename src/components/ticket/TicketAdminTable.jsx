@@ -880,7 +880,7 @@ const TicketAdminTable = ({ currentUser }) => {
             onClick={() => setIsAssignedModalOpen(false)}
           >
             <div
-              className="bg-white w-[40%] rounded-lg shadow-lg p-6 relative"
+              className="bg-white w-[60%] rounded-lg shadow-lg p-6 relative"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-2xl font-bold text-[#002147] mb-2 text-start">
@@ -909,10 +909,10 @@ const TicketAdminTable = ({ currentUser }) => {
                 </p>
               </div>
 
-              <div className="flex space-x-5">
+              <div className="h-full flex  space-x-5">
                 {/* Bên trái: Nội dung ticket */}
-                <div className="flex-1 pr-6 bg-[#f8f8f8] rounded-lg p-4">
-                  <div className="space-y-4">
+                <div className="h-full flex-1  pr-6 bg-[#f8f8f8] rounded-lg p-4">
+                  <div className="h-full space-y-4">
                     <div>
                       <h4 className="text-base flex items-center justify-center rounded-lg h-10 font-bold mt-2 bg-[#E4E9EF] text-[#002147]">
                         NỘI DUNG YÊU CẦU
@@ -1132,14 +1132,14 @@ const TicketAdminTable = ({ currentUser }) => {
 
         {isProcessingModalOpen && processingTicket && (
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-            <div className="bg-white w-[70%] h-[80%] rounded-lg shadow-lg p-6 flex flex-col gap-4 relative">
+            <div className="bg-white w-[80%] rounded-lg p-6 flex flex-col gap-4 relative">
               <h3 className="text-2xl font-bold text-[#002147] mb-2 text-start">
                 {processingTicket.ticketCode}: {processingTicket.title}
               </h3>
-              <div className="min-h-[550px] grid grid-cols-3 gap-5">
+              <div className="h-full grid grid-cols-3 gap-5">
                 {/* 1️⃣ Cột trái - Nội dung yêu cầu */}
                 <div className="flex flex-col h-full justify-between">
-                  <div className="h-[430px] bg-[#F8F8F8] justify-evenly p-4 rounded-xl shadow-md">
+                  <div className="h-full bg-[#F8F8F8] justify-evenly p-4 rounded-xl ">
                     {/* Tiêu đề */}
                     <div className="flex flex-col h-full justify-between">
                       {/* Phần nội dung phía trên */}
@@ -1228,8 +1228,7 @@ const TicketAdminTable = ({ currentUser }) => {
                     </div>
                   </div>
 
-                  <div className="bg-[#F8F8F8] p-4 rounded-lg shadow-md">
-                    {/* Thiết bị sửa chữa */}
+                  {/* <div className="bg-[#F8F8F8] p-4 rounded-lg shadow-md">
                     <div className="mb-4">
                       <p className="text-gray-500 font-semibold">
                         Thiết bị sửa chữa
@@ -1250,11 +1249,11 @@ const TicketAdminTable = ({ currentUser }) => {
                         <span>+</span> Thêm thiết bị
                       </button>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* 2️⃣ Cột giữa - Trao đổi & Lịch sử */}
-                <div className=" bg-[#F8F8F8] p-4 rounded-lg flex flex-col">
+                <div className="h-full bg-[#F8F8F8] p-4 rounded-lg flex flex-col">
                   {/* Tabs Chuyển Đổi */}
                   <div className="w-full bg-[#E4E9EF] flex items-center rounded-2xl gap-2 p-1">
                     <button
@@ -1280,12 +1279,12 @@ const TicketAdminTable = ({ currentUser }) => {
                   </div>
 
                   {/* Nội dung theo Tab */}
-                  <div className="flex flex-col flex-grow rounded-b-lg h-[400px]">
+                  <div className="flex flex-col flex-grow rounded-b-lg h-full">
                     {activeTab === "exchange" ? (
                       // Nội dung tab Trao đổi
                       <div className="flex flex-col h-full">
                         {/* Danh sách tin nhắn (cuộn khi cần) */}
-                        <div className="flex flex-col space-y-2 overflow-y-auto h-full px-4 mt-4 mb-2">
+                        <div className="h-full flex flex-col space-y-2 overflow-y-auto px-4 mt-4 mb-2">
                           {messages.map((m, idx) => (
                             <div
                               key={idx}
