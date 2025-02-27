@@ -84,7 +84,6 @@ const LaptopTable = () => {
   };
 
   const handleUpdateSpecs = (laptopId, updatedSpecs) => {
-    console.log("Cập nhật specs cho laptop:", laptopId, updatedSpecs);
     const token = localStorage.getItem("authToken");
     return axios
       .put(`${API_URL}/laptops/${laptopId}/specs`, updatedSpecs, {
@@ -116,7 +115,6 @@ const LaptopTable = () => {
       const response = await axios.get(`${API_URL}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(response);
       if (response.data && Array.isArray(response.data)) {
         setUsers(
           response.data.map((user) => ({
@@ -176,8 +174,6 @@ const LaptopTable = () => {
       setCurrentPage(1);
       // Hiển thị trước 30 items
       setData(laptops.slice(0, 30));
-
-      console.log("Fetched total laptops:", laptops.length);
     } catch (error) {
       console.error("Error fetching laptops:", error);
     }
@@ -321,16 +317,12 @@ const LaptopTable = () => {
           assignedBy: currentUser?._id || null,
         }),
       });
-
-      console.log("Response from API:", response); // Debug toàn bộ response
-
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "API lỗi không xác định.");
       }
 
       const data = await response.json();
-      console.log("Parsed data:", data); // Debug dữ liệu đã parse
 
       if (!data || !data._id) {
         throw new Error("Dữ liệu trả về từ API không hợp lệ.");
@@ -526,10 +518,6 @@ const LaptopTable = () => {
       }
       const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Assuming currentUser is stored in localStorage
       const userId = currentUser ? currentUser._id : null; // Retrieve the user's ID
-      console.log(
-        "Current User từ localStorage:",
-        localStorage.getItem("currentUser")
-      );
 
       if (!userId) {
         toast.error("User is not logged in. Please log in and try again.");
@@ -678,8 +666,6 @@ const LaptopTable = () => {
         const sheetName = workbook.SheetNames[0];
         const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-        console.log("Dữ liệu thô từ Excel:", sheetData);
-
         // Chuẩn hóa dữ liệu
         const normalizedData = sheetData
           .map((row, index) => {
@@ -779,8 +765,6 @@ const LaptopTable = () => {
           })
           .filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
 
-        console.log("Dữ liệu chuẩn hóa:", normalizedData);
-
         if (normalizedData.length === 0) {
           toast.error("File Excel không chứa dữ liệu hợp lệ!", {
             className: "toast-error",
@@ -813,8 +797,6 @@ const LaptopTable = () => {
     }
 
     try {
-      console.log("Dữ liệu gửi lên:", parsedData);
-
       const response = await axios.post(
         `${API_URL}/laptops/bulk-upload`,
         { laptops: parsedData },
@@ -1683,8 +1665,6 @@ const LaptopTable = () => {
                         : [],
                       room: editingLaptop.room?.value || null, // Chỉ lấy ID phòng
                     };
-
-                    console.log("Payload gửi lên server:", payload);
 
                     await axios.put(
                       `${API_URL}/laptops/${editingLaptop._id}`,

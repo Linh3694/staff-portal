@@ -20,8 +20,6 @@ import Dropdown from "../../function/dropdown";
 import { IoLocationOutline } from "react-icons/io5";
 import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
 
-console.log("PrinterProductCard.js");
-
 const PrinterProductCard = ({
   printerData,
   onCloseModal,
@@ -171,7 +169,6 @@ const PrinterProductCard = ({
         const res = await fetch(`${API_URL}/users`);
         if (!res.ok) throw new Error("Failed to fetch users");
         const data = await res.json();
-        console.log("Fetched users:", data); // Debug dữ liệu
         setAllUsers(data); // Lưu danh sách người dùng
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -256,7 +253,6 @@ const PrinterProductCard = ({
         const response = await axios.get(`${API_URL}/rooms`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("Rooms fetched:", response.data.rooms);
         setRooms(response.data.rooms || []);
       } catch (error) {
         console.error("Lỗi khi tải danh sách phòng:", error);
@@ -272,14 +268,9 @@ const PrinterProductCard = ({
       toast.error("Vui lòng nhập thông tin hợp lệ trước khi bàn giao!");
       return;
     }
-    console.log("Bắt đầu bàn giao với dữ liệu:", {
-      printerId: printerData._id,
-      selectedUser,
-      notes,
-    });
+
     try {
       const response = await onAssign(printerData._id, selectedUser, notes);
-      console.log("API response:", response);
       if (!response || !response._id) {
         throw new Error("API không trả về dữ liệu hợp lệ.");
       }
@@ -411,7 +402,6 @@ const PrinterProductCard = ({
       }
       const response = await onRevoke(localPrinter._id, reasonsToSave);
       const updatedPrinter = response.printer; // Lấy phần dữ liệu printer
-      console.log("Reasons:", reasonsToSave);
       setLocalPrinter(updatedPrinter); // Đồng bộ dữ liệu chi tiết
       setLocalStatus(updatedPrinter.status); // Cập nhật lại trạng thái hiển thị
       setCurrentHolder(null); // Xóa người sử dụng hiện tại
@@ -500,9 +490,6 @@ const PrinterProductCard = ({
         [field]: value || null, // Chỉ gửi trường cần cập nhật
       };
     }
-
-    console.log("Payload gửi đi:", payload);
-
     onUpdateSpecs(printerData._id, payload)
       .then((updatedPrinter) => {
         toast.success("Cập nhật thông số thành công!");
@@ -624,8 +611,6 @@ const PrinterProductCard = ({
   };
   const handleFileUpload = (e) => {
     const file = e.target?.files?.[0]; // Lấy file từ event
-    console.log("File tải lên:", file);
-
     if (!file) {
       toast.error("Không có tệp nào được chọn!");
       return;
@@ -649,7 +634,6 @@ const PrinterProductCard = ({
         },
       })
       .then((response) => {
-        console.log("Upload response:", response.data);
         toast.success("Tải lên thành công!");
 
         // Cập nhật dữ liệu trong frontend
@@ -690,7 +674,6 @@ const PrinterProductCard = ({
       );
 
       const updatedPrinter = response.data;
-      console.log("Updated printer:", updatedPrinter);
 
       // Lấy thông tin chi tiết phòng
       const roomResponse = await axios.get(
@@ -702,7 +685,6 @@ const PrinterProductCard = ({
         }
       );
       const detailedRoom = roomResponse.data;
-      console.log("Detailed room:", detailedRoom);
 
       // Đồng bộ lại state `localRoom` và `localPrinter`
       setLocalRoom(detailedRoom);

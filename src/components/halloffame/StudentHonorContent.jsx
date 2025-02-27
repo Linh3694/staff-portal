@@ -596,36 +596,36 @@ const StudentHonorContent = ({ categoryId }) => {
                 </span>
               </div>
               {openLevel === level.id && (
-                <div className="p-4 rounded-lg">
+                <div className="px-[4px] rounded-lg">
                   {studentCards.length === 0 ? (
                     <div className="text-gray-500 italic">
                       {t("noMatchingRecords", "Không có record nào phù hợp...")}
                     </div>
                   ) : (
-                    <div className="grid md:grid-cols-5 grid-cols-1 gap-4">
+                    <div className="grid xl:grid-cols-5 md:grid-cols-4 grid-cols-2 gap-4">
                       {studentCards.map((item, idx) => {
                         const { record, student } = item;
                         return (
                           <div
                             key={idx}
-                            className="max-h-[375px] border rounded-lg p-3 shadow-sm bg-[#E6EEF6] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                            className="md:h-[375px] h-[250px] border rounded-lg p-3 shadow-sm bg-[#E6EEF6] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                             onClick={() => handleOpenModal(record, student)}
                           >
                             {student.photo?.photoUrl ? (
                               <img
                                 src={`${BASE_URL}/${student.photo.photoUrl}`}
                                 alt="Student"
-                                className="h-[260px] md:w-[208px] w-[300px] object-cover mt-2 rounded-lg"
+                                className="md:h-[260px] h-[160px] md:w-[208px] w-[208px] object-cover mt-2 rounded-lg"
                               />
                             ) : (
                               <div className="text-xs italic text-gray-400">
                                 {t("noPhoto", "Chưa có ảnh")}
                               </div>
                             )}
-                            <div className="text-[#F05023] text-[20px] font-bold">
+                            <div className="text-[#F05023] md:text-[20px] text-[15px] font-bold text-center">
                               {student.student?.name}
                             </div>
-                            <div className="text-sm font-semibold">
+                            <div className="md:text-sm text-xs font-semibold">
                               {t("classLabel", "Lớp")}{" "}
                               {student.currentClass?.name ||
                                 student.currentClass?.className ||
@@ -645,11 +645,11 @@ const StudentHonorContent = ({ categoryId }) => {
       {/* Modal hiển thị chi tiết khi click vào 1 học sinh */}
       {showModal && modalStudent && modalRecord && (
         <div className="fixed inset-0  flex items-center justify-center z-50 bg-black bg-opacity-50">
-          <div className="md:w-[930px] w-full bg-white rounded-lg pt-10 px-10 pb-5 relative shadow-lg">
+          <div className="md:w-[930px] w-[95%] bg-white rounded-lg md:pt-10 md:px-12 px-0 pt-[15px] pb-5 relative shadow-lg">
             {/* Bố cục chia làm 2 phần: Ảnh bên trái - Thông tin bên phải */}
-            <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
+            <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0 ">
               {/* Khung ảnh với nền lệch */}
-              <div className="relative flex-shrink-0">
+              <div className="relative flex-shrink-0 px-[20px]">
                 {/* Nền phía sau ảnh */}
                 <div className="absolute -top-4 -left-4 md:w-[322px] md:h-[428px] w-full h-auto bg-[#E6EEF6] rounded-lg shadow-lg"></div>
                 {/* Ảnh chính */}
@@ -657,7 +657,7 @@ const StudentHonorContent = ({ categoryId }) => {
                   <img
                     src={`${BASE_URL}/${modalStudent.photo.photoUrl}`}
                     alt="Student"
-                    className="relative z-10 md:w-[322px] md:h-[428px] w-[350px] h-[200px] object-cover rounded-lg shadow-md"
+                    className="relative z-10 md:w-[322px] md:h-[428px] w-full h-[200px] items-center object-cover rounded-lg shadow-md"
                   />
                 ) : (
                   <div className="relative z-10 md:w-[322px] md:h-[428px] w-[150px] h-[200px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
@@ -669,19 +669,19 @@ const StudentHonorContent = ({ categoryId }) => {
               </div>
 
               {/* Phần thông tin học sinh */}
-              <div className="flex flex-col items-start justify-start">
-                <div className="w-[500px] flex flex-col">
-                  <h2 className="text-[24px] font-bold text-[#F05023]">
+              <div className="flex flex-col items-start justify-start md:px-0 px-[20px] ">
+                <div className="md:w-[500px] w-full flex flex-col">
+                  <h2 className="md:text-[24px] text-[16px] font-bold text-[#F05023]">
                     {modalStudent.student?.name}
                   </h2>
                   <div className="flex justify-start gap-6 mt-1 text-[#757575] text-[14px]">
-                    <span className="font-semibold">
+                    <span className="font-semibold md:text-[16px] text-[12px]">
                       {t("classLabel", "Lớp")}{" "}
                       {modalStudent.currentClass?.name ||
                         modalStudent.currentClass?.className ||
                         t("noClass", "Chưa cập nhật lớp")}
                     </span>
-                    <span className="font-semibold">
+                    <span className="font-semibold md:text-[16px] text-[12px]">
                       {t("schoolYearLabel", "Khóa")}{" "}
                       {findSchoolYearLabel(modalRecord.subAward?.schoolYear)}
                     </span>
@@ -690,7 +690,7 @@ const StudentHonorContent = ({ categoryId }) => {
                 </div>
 
                 {/* Danh hiệu */}
-                <p className="text-[#002855] font-semibold text-[18px]">
+                <p className="text-[#002855] font-semibold md:text-[18px] text-[14px]">
                   {getSubAwardLabel(modalRecord)}
                 </p>
 

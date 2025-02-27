@@ -20,8 +20,6 @@ import Dropdown from "../../function/dropdown";
 import { IoLocationOutline } from "react-icons/io5";
 import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
 
-console.log("ProjectorProductCard.js");
-
 const ProjectorProductCard = ({
   projectorData,
   onCloseModal,
@@ -177,7 +175,6 @@ const ProjectorProductCard = ({
         const res = await fetch(`${API_URL}/users`);
         if (!res.ok) throw new Error("Failed to fetch users");
         const data = await res.json();
-        console.log("Fetched users:", data); // Debug dữ liệu
         setAllUsers(data); // Lưu danh sách người dùng
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -258,7 +255,6 @@ const ProjectorProductCard = ({
         const response = await axios.get(`${API_URL}/rooms`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("Rooms fetched:", response.data.rooms);
         setRooms(response.data.rooms || []);
       } catch (error) {
         console.error("Lỗi khi tải danh sách phòng:", error);
@@ -274,14 +270,9 @@ const ProjectorProductCard = ({
       toast.error("Vui lòng nhập thông tin hợp lệ trước khi bàn giao!");
       return;
     }
-    console.log("Bắt đầu bàn giao với dữ liệu:", {
-      projectorId: projectorData._id,
-      selectedUser,
-      notes,
-    });
+
     try {
       const response = await onAssign(projectorData._id, selectedUser, notes);
-      console.log("API response:", response);
       if (!response || !response._id) {
         throw new Error("API không trả về dữ liệu hợp lệ.");
       }
@@ -412,7 +403,6 @@ const ProjectorProductCard = ({
       }
       const response = await onRevoke(localProjector._id, reasonsToSave);
       const updatedProjector = response.projector; // Lấy phần dữ liệu projector
-      console.log("Reasons:", reasonsToSave);
       setLocalProjector(updatedProjector); // Đồng bộ dữ liệu chi tiết
       setLocalStatus(updatedProjector.status); // Cập nhật lại trạng thái hiển thị
       setCurrentHolder(null); // Xóa người sử dụng hiện tại
@@ -498,9 +488,6 @@ const ProjectorProductCard = ({
         [field]: value || null, // Chỉ gửi trường cần cập nhật
       };
     }
-
-    console.log("Payload gửi đi:", payload);
-
     onUpdateSpecs(projectorData._id, payload)
       .then((updatedProjector) => {
         toast.success("Cập nhật thông số thành công!");
@@ -622,7 +609,6 @@ const ProjectorProductCard = ({
   };
   const handleFileUpload = (e) => {
     const file = e.target?.files?.[0]; // Lấy file từ event
-    console.log("File tải lên:", file);
 
     if (!file) {
       toast.error("Không có tệp nào được chọn!");
@@ -647,7 +633,6 @@ const ProjectorProductCard = ({
         },
       })
       .then((response) => {
-        console.log("Upload response:", response.data);
         toast.success("Tải lên thành công!");
 
         // Cập nhật dữ liệu trong frontend
@@ -688,7 +673,6 @@ const ProjectorProductCard = ({
       );
 
       const updatedProjector = response.data;
-      console.log("Updated projector:", updatedProjector);
 
       // Lấy thông tin chi tiết phòng
       const roomResponse = await axios.get(
@@ -700,7 +684,6 @@ const ProjectorProductCard = ({
         }
       );
       const detailedRoom = roomResponse.data;
-      console.log("Detailed room:", detailedRoom);
 
       // Đồng bộ lại state `localRoom` và `localProjector`
       setLocalRoom(detailedRoom);

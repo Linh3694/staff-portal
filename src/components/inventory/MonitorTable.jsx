@@ -178,8 +178,6 @@ const MonitorTable = () => {
       setCurrentPage(1);
       // Hiển thị trước 30 items
       setData(monitors.slice(0, 30));
-
-      console.log("Fetched total monitors:", monitors.length);
     } catch (error) {
       console.error("Error fetching monitors:", error);
     }
@@ -217,7 +215,6 @@ const MonitorTable = () => {
         item.assigned.some((user) => user.departmentName === filters.department)
       );
     }
-    console.log("Dữ liệu sau khi lọc:", filtered);
 
     // Cập nhật dữ liệu state
     setFilteredData(filtered);
@@ -321,15 +318,12 @@ const MonitorTable = () => {
         }),
       });
 
-      console.log("Response from API:", response); // Debug toàn bộ response
-
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "API lỗi không xác định.");
       }
 
       const data = await response.json();
-      console.log("Parsed data:", data); // Debug dữ liệu đã parse
 
       if (!data || !data._id) {
         throw new Error("Dữ liệu trả về từ API không hợp lệ.");
@@ -370,8 +364,6 @@ const MonitorTable = () => {
 
       // Cập nhật dữ liệu chi tiết
       setSelectedMonitor(response.data);
-
-      console.log("Dữ liệu backend", response.data);
     } catch (error) {
       console.error("Error fetching monitor details:", error);
       toast.error("Không thể tải thông tin monitor!");
@@ -516,10 +508,6 @@ const MonitorTable = () => {
       }
       const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Assuming currentUser is stored in localStorage
       const userId = currentUser ? currentUser._id : null; // Retrieve the user's ID
-      console.log(
-        "Current User từ localStorage:",
-        localStorage.getItem("currentUser")
-      );
 
       if (!userId) {
         toast.error("User is not logged in. Please log in and try again.");
@@ -666,9 +654,6 @@ const MonitorTable = () => {
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-        console.log("Dữ liệu thô từ Excel:", sheetData);
-
         // Chuẩn hóa dữ liệu
         const normalizedData = sheetData
           .map((row, index) => {
@@ -764,8 +749,6 @@ const MonitorTable = () => {
           })
           .filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
 
-        console.log("Dữ liệu chuẩn hóa:", normalizedData);
-
         if (normalizedData.length === 0) {
           toast.error("File Excel không chứa dữ liệu hợp lệ!", {
             className: "toast-error",
@@ -798,8 +781,6 @@ const MonitorTable = () => {
     }
 
     try {
-      console.log("Dữ liệu gửi lên:", parsedData);
-
       const response = await axios.post(
         `${API_URL}/monitors/bulk-upload`,
         { monitors: parsedData },
@@ -877,7 +858,6 @@ const MonitorTable = () => {
       setData(originalData.slice(0, 30)); // Chỉ hiển thị 30 items đầu tiên
       setCurrentPage(1); // Reset về trang 1
     }
-    console.log("Original Data updated:", originalData);
   }, [originalData]);
 
   // useEffect #3: Mỗi khi filteredData hoặc currentPage thay đổi => cắt 30 records hiển thị
@@ -885,7 +865,6 @@ const MonitorTable = () => {
     const startIndex = (currentPage - 1) * 30;
     const paginatedData = filteredData.slice(startIndex, startIndex + 30);
     setData(paginatedData);
-    console.log("Filtered Data updated:", filteredData);
   }, [filteredData, currentPage]);
 
   // useEffect #4: Nếu đang mở detail (selectedMonitor), thì tìm monitor mới nhất trong data
@@ -897,12 +876,6 @@ const MonitorTable = () => {
       if (updatedMonitor) setSelectedMonitor(updatedMonitor);
     }
   }, [data]);
-  // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
-  useEffect(() => {
-    console.log("Original Data:", originalData);
-    console.log("Filtered Data:", filteredData);
-    console.log("Displayed Data:", data);
-  }, [originalData, filteredData, data]);
 
   return (
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -1640,8 +1613,6 @@ const MonitorTable = () => {
                         : [],
                       room: editingMonitor.room?.value || null, // Chỉ lấy ID phòng
                     };
-
-                    console.log("Payload gửi lên server:", payload);
 
                     await axios.put(
                       `${API_URL}/monitors/${editingMonitor._id}`,

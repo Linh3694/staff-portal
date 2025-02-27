@@ -86,7 +86,6 @@ const PrinterTable = () => {
   };
 
   const handleUpdateSpecs = (printerId, updatedSpecs) => {
-    console.log("Dữ liệu cập nhật specs:", updatedSpecs);
     const token = localStorage.getItem("authToken");
     return axios
       .put(`${API_URL}/printers/${printerId}/specs`, updatedSpecs, {
@@ -180,8 +179,6 @@ const PrinterTable = () => {
       setCurrentPage(1);
       // Hiển thị trước 30 items
       setData(printers.slice(0, 30));
-
-      console.log("Fetched total printers:", printers.length);
     } catch (error) {
       console.error("Error fetching printers:", error);
     }
@@ -224,8 +221,6 @@ const PrinterTable = () => {
         item.assigned.some((user) => user.departmentName === filters.department)
       );
     }
-    console.log("Dữ liệu sau khi lọc:", filtered);
-
     // Cập nhật dữ liệu state
     setFilteredData(filtered);
 
@@ -330,16 +325,12 @@ const PrinterTable = () => {
         }),
       });
 
-      console.log("Response from API:", response); // Debug toàn bộ response
-
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "API lỗi không xác định.");
       }
 
       const data = await response.json();
-      console.log("Parsed data:", data); // Debug dữ liệu đã parse
-
       if (!data || !data._id) {
         throw new Error("Dữ liệu trả về từ API không hợp lệ.");
       }
@@ -379,8 +370,6 @@ const PrinterTable = () => {
 
       // Cập nhật dữ liệu chi tiết
       setSelectedPrinter(response.data);
-
-      console.log("Dữ liệu backend", response.data);
     } catch (error) {
       console.error("Error fetching printer details:", error);
       toast.error("Không thể tải thông tin printer!");
@@ -525,10 +514,6 @@ const PrinterTable = () => {
       }
       const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Assuming currentUser is stored in localStorage
       const userId = currentUser ? currentUser._id : null; // Retrieve the user's ID
-      console.log(
-        "Current User từ localStorage:",
-        localStorage.getItem("currentUser")
-      );
 
       if (!userId) {
         toast.error("User is not logged in. Please log in and try again.");
@@ -677,8 +662,6 @@ const PrinterTable = () => {
         const sheetName = workbook.SheetNames[0];
         const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-        console.log("Dữ liệu thô từ Excel:", sheetData);
-
         // Chuẩn hóa dữ liệu
         const normalizedData = sheetData
           .map((row, index) => {
@@ -778,8 +761,6 @@ const PrinterTable = () => {
           })
           .filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
 
-        console.log("Dữ liệu chuẩn hóa:", normalizedData);
-
         if (normalizedData.length === 0) {
           toast.error("File Excel không chứa dữ liệu hợp lệ!", {
             className: "toast-error",
@@ -812,8 +793,6 @@ const PrinterTable = () => {
     }
 
     try {
-      console.log("Dữ liệu gửi lên:", parsedData);
-
       const response = await axios.post(
         `${API_URL}/printers/bulk-upload`,
         { printers: parsedData },
@@ -891,7 +870,6 @@ const PrinterTable = () => {
       setData(originalData.slice(0, 30)); // Chỉ hiển thị 30 items đầu tiên
       setCurrentPage(1); // Reset về trang 1
     }
-    console.log("Original Data updated:", originalData);
   }, [originalData]);
 
   // useEffect #3: Mỗi khi filteredData hoặc currentPage thay đổi => cắt 30 records hiển thị
@@ -899,7 +877,6 @@ const PrinterTable = () => {
     const startIndex = (currentPage - 1) * 30;
     const paginatedData = filteredData.slice(startIndex, startIndex + 30);
     setData(paginatedData);
-    console.log("Filtered Data updated:", filteredData);
   }, [filteredData, currentPage]);
 
   // useEffect #4: Nếu đang mở detail (selectedPrinter), thì tìm printer mới nhất trong data
@@ -911,12 +888,6 @@ const PrinterTable = () => {
       if (updatedPrinter) setSelectedPrinter(updatedPrinter);
     }
   }, [data]);
-  // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
-  useEffect(() => {
-    console.log("Original Data:", originalData);
-    console.log("Filtered Data:", filteredData);
-    console.log("Displayed Data:", data);
-  }, [originalData, filteredData, data]);
 
   return (
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -1742,9 +1713,6 @@ const PrinterTable = () => {
                         : [],
                       room: editingPrinter.room?.value || null, // Chỉ lấy ID phòng
                     };
-
-                    console.log("Payload gửi lên server:", payload);
-
                     await axios.put(
                       `${API_URL}/printers/${editingPrinter._id}`,
                       payload,

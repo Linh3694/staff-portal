@@ -20,8 +20,6 @@ import Dropdown from "../../function/dropdown";
 import { IoLocationOutline } from "react-icons/io5";
 import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
 
-console.log("MonitorProductCard.js");
-
 const MonitorProductCard = ({
   monitorData,
   onCloseModal,
@@ -177,7 +175,6 @@ const MonitorProductCard = ({
         const res = await fetch(`${API_URL}/users`);
         if (!res.ok) throw new Error("Failed to fetch users");
         const data = await res.json();
-        console.log("Fetched users:", data); // Debug dữ liệu
         setAllUsers(data); // Lưu danh sách người dùng
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -258,7 +255,6 @@ const MonitorProductCard = ({
         const response = await axios.get(`${API_URL}/rooms`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("Rooms fetched:", response.data.rooms);
         setRooms(response.data.rooms || []);
       } catch (error) {
         console.error("Lỗi khi tải danh sách phòng:", error);
@@ -274,14 +270,8 @@ const MonitorProductCard = ({
       toast.error("Vui lòng nhập thông tin hợp lệ trước khi bàn giao!");
       return;
     }
-    console.log("Bắt đầu bàn giao với dữ liệu:", {
-      monitorId: monitorData._id,
-      selectedUser,
-      notes,
-    });
     try {
       const response = await onAssign(monitorData._id, selectedUser, notes);
-      console.log("API response:", response);
       if (!response || !response._id) {
         throw new Error("API không trả về dữ liệu hợp lệ.");
       }
@@ -413,7 +403,6 @@ const MonitorProductCard = ({
       }
       const response = await onRevoke(localMonitor._id, reasonsToSave);
       const updatedMonitor = response.monitor; // Lấy phần dữ liệu monitor
-      console.log("Reasons:", reasonsToSave);
       setLocalMonitor(updatedMonitor); // Đồng bộ dữ liệu chi tiết
       setLocalStatus(updatedMonitor.status); // Cập nhật lại trạng thái hiển thị
       setCurrentHolder(null); // Xóa người sử dụng hiện tại
@@ -501,9 +490,6 @@ const MonitorProductCard = ({
         [field]: value || null, // Chỉ gửi trường cần cập nhật
       };
     }
-
-    console.log("Payload gửi đi:", payload);
-
     onUpdateSpecs(monitorData._id, payload)
       .then((updatedMonitor) => {
         toast.success("Cập nhật thông số thành công!");
@@ -625,8 +611,6 @@ const MonitorProductCard = ({
   };
   const handleFileUpload = (e) => {
     const file = e.target?.files?.[0]; // Lấy file từ event
-    console.log("File tải lên:", file);
-
     if (!file) {
       toast.error("Không có tệp nào được chọn!");
       return;
@@ -650,7 +634,6 @@ const MonitorProductCard = ({
         },
       })
       .then((response) => {
-        console.log("Upload response:", response.data);
         toast.success("Tải lên thành công!");
 
         // Cập nhật dữ liệu trong frontend
@@ -691,7 +674,6 @@ const MonitorProductCard = ({
       );
 
       const updatedMonitor = response.data;
-      console.log("Updated monitor:", updatedMonitor);
 
       // Lấy thông tin chi tiết phòng
       const roomResponse = await axios.get(
@@ -703,7 +685,6 @@ const MonitorProductCard = ({
         }
       );
       const detailedRoom = roomResponse.data;
-      console.log("Detailed room:", detailedRoom);
 
       // Đồng bộ lại state `localRoom` và `localMonitor`
       setLocalRoom(detailedRoom);
