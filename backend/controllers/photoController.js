@@ -363,6 +363,7 @@ exports.bulkUploadClassPhotosFromZip = async (req, res) => {
       // Lấy "WS12010001.jpg" phần cuối
       const justFile = splitted[splitted.length - 1]; 
       const baseName = justFile.split(".")[0]; 
+      console.log(fileName, "=> baseName:", baseName);
 
       // Tìm class theo className = baseName
       const foundClass = await require("../models/Class").findOne({

@@ -29,6 +29,10 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const uploadZip = multer({ storage, fileFilter });
+const uploadZip = multer({ 
+  storage, 
+  fileFilter,
+  limits: { fileSize: 4096 * 1024 * 1024 } // 4GB
+});
 
 module.exports = uploadZip;

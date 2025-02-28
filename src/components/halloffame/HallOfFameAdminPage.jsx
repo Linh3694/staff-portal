@@ -236,7 +236,9 @@ function HallOfFameAdminPage() {
       // Reset
       setCategoryFormData({
         name: "",
+        nameEng: "",
         description: "",
+        descriptionEng: "",
         coverImage: "",
         baseAcademicYear: "",
         subAwards: [],
@@ -265,7 +267,9 @@ function HallOfFameAdminPage() {
 
     setCategoryFormData({
       name: cat.name,
+      nameEng: cat.nameEng,
       description: cat.description,
+      descriptionEng: cat.descriptionEng,
       coverImage: cat.coverImage,
       baseAcademicYear: cat.baseAcademicYear || "",
       subAwards: cat.subAwards || [], // Lưu Sub Awards để hiển thị đúng
@@ -632,12 +636,12 @@ function HallOfFameAdminPage() {
                   </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">
-                      {cat.name}
+                      {cat.name} || {cat.nameEng}
                     </p>
                   </td>
                   <td className="max-w-[1000px] border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700 line-clamp-2">
-                      {cat.description}
+                      {cat.description} || {cat.descriptionEng}
                     </p>
                   </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
@@ -965,6 +969,19 @@ function HallOfFameAdminPage() {
                 />
               </div>
               <div>
+                <label className="block font-medium">Name:</label>
+                <input
+                  className="border rounded w-full p-2"
+                  value={categoryFormData.nameEng}
+                  onChange={(e) =>
+                    setCategoryFormData({
+                      ...categoryFormData,
+                      nameEng: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
                 <label className="block font-medium">Mô tả:</label>
                 <textarea
                   className="border rounded w-full p-2"
@@ -973,6 +990,19 @@ function HallOfFameAdminPage() {
                     setCategoryFormData({
                       ...categoryFormData,
                       description: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block font-medium">Description</label>
+                <textarea
+                  className="border rounded w-full p-2"
+                  value={categoryFormData.descriptionEng}
+                  onChange={(e) =>
+                    setCategoryFormData({
+                      ...categoryFormData,
+                      descriptionEng: e.target.value,
                     })
                   }
                 />

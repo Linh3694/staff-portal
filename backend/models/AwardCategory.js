@@ -28,8 +28,10 @@ const SubAwardSchema = new Schema(
 );
 
 const AwardCategorySchema = new Schema({
-  name: { type: String, required: true },      // Ví dụ: "Học bổng Tài năng"
-  description: { type: String },               // Mô tả chung
+  name: { type: String, required: true },   
+  nameEng: { type: String, required: true },   // Ví dụ: "Học bổng Tài năng"
+  description: { type: String },     
+  descriptionEng: { type: String },          // Mô tả chung
   coverImage: { type: String },                // Đường dẫn ảnh cover (upload qua middleware)
   subAwards: [SubAwardSchema],
   createdAt: { type: Date, default: Date.now },

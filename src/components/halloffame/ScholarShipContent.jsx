@@ -197,11 +197,15 @@ const ScholarShipContent = ({ categoryId }) => {
       {/* Tiêu đề, mô tả và ảnh cover */}
       <div>
         <h2 className="text-[40px] text-[#F05023] text-center font-bold mb-2">
-          {currentCategory.name || t("award", "Danh hiệu")}
+          {i18n.language === "vi"
+            ? currentCategory.name || t("award", "Danh hiệu")
+            : currentCategory.nameEng || t("award", "Award")}
         </h2>
-        <div className="w-[900px] mx-auto text-left mt-4 mb-4">
-          <p className="mb-4 text-[#002855] font-semibold text-[18px]">
-            {currentCategory.description || ""}
+        <div className="md:w-[900px] w-full mx-auto text-left mt-4 mb-4">
+          <p className="mb-4 text-[#002855] text-justify font-semibold md:text-[18px] text-[15px]">
+            {i18n.language === "vi"
+              ? currentCategory.description || ""
+              : currentCategory.descriptionEng || ""}
           </p>
         </div>
         {currentCategory.coverImage && (
