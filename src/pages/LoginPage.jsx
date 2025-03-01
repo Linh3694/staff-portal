@@ -53,7 +53,7 @@ const LoginPage = () => {
         <img
           src="/login/building.svg"
           alt="Building"
-          className="w-[800px] xl:w-[1100px] 2xl:w-[1500px]"
+          className="w-[800px] xl:w-[1100px] 2xl:w-[1385px]"
         />
       </div>
       <div className="xl:w-[400px] w-[300px] fixed xl:bottom-16 bottom-8 left-1/2 transform -translate-x-1/2 animate-slide-up">

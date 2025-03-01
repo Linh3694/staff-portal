@@ -51,6 +51,8 @@ function HallOfFameAdminPage() {
   // Danh sách lớp
   const [classesList, setClassesList] = useState([]);
   const [classInput, setClassInput] = useState("");
+  const [excelClasses, setExcelClasses] = useState([]);
+  const [excelClassCount, setExcelClassCount] = useState(0);
 
   // ----------------- USEEFFECT -----------------
   useEffect(() => {
@@ -360,6 +362,55 @@ function HallOfFameAdminPage() {
 
     reader.readAsBinaryString(file);
   };
+
+  const handleExcelClassUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const binaryStr = evt.target.result;
+      // Đọc file Excel
+      const workbook = XLSX.read(binaryStr, { type: "binary" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      if (rows.length < 2) {
+        alert("File Excel không có dữ liệu hợp lệ.");
+        return;
+      }
+
+      // rows[0] là header, duyệt từ dòng 1 trở đi
+      const newClasses = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+
+        const className = row[0] ? row[0].toString().trim() : "";
+        const note = row[1] ? row[1].toString().trim() : "";
+        const noteEng = row[2] ? row[2].toString().trim() : "";
+
+        if (!className) continue;
+
+        // Tìm lớp dựa vào tên lớp trong classesList
+        const foundClass = classesList.find(
+          (cl) => cl.className.toLowerCase() === className.toLowerCase()
+        );
+        if (!foundClass) {
+          console.warn(`Không tìm thấy lớp có tên: ${className}`);
+          continue;
+        }
+
+        newClasses.push({ class: foundClass._id, note, noteEng });
+      }
+
+      setExcelClasses(newClasses);
+      setExcelClassCount(newClasses.length);
+    };
+
+    reader.readAsBinaryString(file);
+  };
   // ----------------- RECORD FORM -----------------
   // Khi chọn AwardCategory
   const handleAwardCategoryChange = (e) => {
@@ -409,31 +460,37 @@ function HallOfFameAdminPage() {
   const handleRecordSubmit = async (e) => {
     e.preventDefault();
 
-    // Gộp học sinh lẻ + Excel
+    // Gộp dữ liệu học sinh thủ công và từ Excel
     const finalStudents = [...recordFormData.students, ...excelStudents];
 
-    // Parse lớp
+    // Xử lý lớp nhập tay
     const classNames = classInput
       .split(",")
       .map((c) => c.trim())
       .filter(Boolean);
-
-    // Tìm _id cho các lớp
-    const matchedClassIds = [];
+    const manualClasses = [];
     for (let cname of classNames) {
-      const foundCls = classesList.find((cl) => cl.className === cname);
+      const foundCls = classesList.find(
+        (cl) => cl.className.toLowerCase() === cname.toLowerCase()
+      );
       if (foundCls) {
-        matchedClassIds.push(foundCls._id);
+        // Nếu nhập tay thì giả sử note và noteEng là rỗng
+        manualClasses.push({ class: foundCls._id, note: "", noteEng: "" });
       } else {
         console.warn(`Không tìm thấy lớp: ${cname}`);
       }
     }
 
-    if (finalStudents.length === 0 && matchedClassIds.length === 0) {
+    // Kết hợp dữ liệu lớp từ nhập tay và file Excel
+    const classRecords = [...manualClasses, ...excelClasses];
+
+    // Kiểm tra có ít nhất 1 học sinh hoặc 1 lớp
+    if (finalStudents.length === 0 && classRecords.length === 0) {
       alert("Vui lòng thêm ít nhất 1 học sinh hoặc 1 lớp");
       return;
     }
 
+    // Kiểm tra dữ liệu học sinh (như trước)
     for (let i = 0; i < finalStudents.length; i++) {
       const stu = finalStudents[i];
       if (!stu.student) {
@@ -446,13 +503,14 @@ function HallOfFameAdminPage() {
       }
     }
 
+    // Gửi payload – có thể đổi field name thành classRecords (với cấu trúc gồm { class, note, noteEng })
     const dataToSend = {
       ...recordFormData,
-      awardClasses: matchedClassIds, // mảng _id lớp
-      students: finalStudents, // mảng học sinh
+      awardClasses: classRecords, // sử dụng key đúng theo schema
+      students: finalStudents,
     };
 
-    // Xoá field subAwardSelectedIndex cho gọn
+    // Xoá các field không cần thiết
     delete dataToSend.subAwardSelectedIndex;
 
     try {
@@ -460,7 +518,6 @@ function HallOfFameAdminPage() {
         await axios.post(`${API_URL}/award-records`, dataToSend);
         alert("Tạo mới record thành công!");
       } else {
-        // updateRecord
         await axios.put(
           `${API_URL}/award-records/${editingRecord}`,
           dataToSend
@@ -479,6 +536,8 @@ function HallOfFameAdminPage() {
       setExcelStudents([]);
       setExcelRecordCount(0);
       setClassInput("");
+      setExcelClasses([]);
+      setExcelClassCount(0);
       setEditingRecord(null);
       fetchRecords();
     } catch (error) {
@@ -829,17 +888,19 @@ function HallOfFameAdminPage() {
             {/* Chọn Lớp (nếu vinh danh lớp) */}
             <div>
               <label className="block font-medium">
-                Nhập tên lớp (có thể nhập nhiều, ngăn cách bởi dấu phẩy):
+                Upload file Excel cho lớp (Các cột: Tên lớp, Note, NoteEng):
               </label>
               <input
-                type="text"
-                className="border rounded p-1 w-full"
-                value={classInput}
-                onChange={(e) => setClassInput(e.target.value)}
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleExcelClassUpload}
+                className="border rounded p-1 mb-2"
               />
-              <p className="text-sm text-gray-500">
-                Ví dụ: <em>1A1, 1A2, 2B1</em>
-              </p>
+              {excelClassCount > 0 && (
+                <div className="text-sm text-green-600">
+                  Số lượng lớp từ Excel: {excelClassCount}
+                </div>
+              )}
             </div>
 
             <div>

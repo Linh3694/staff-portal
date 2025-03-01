@@ -313,7 +313,7 @@ const ClassHonorContent = ({ categoryId }) => {
         if (!selectedMonth) return false;
         if (String(r.subAward?.month) !== selectedMonth) return false;
       }
-      // Lọc khối
+      // --- Sửa phần lọc theo khối ---
       if (selectedGradeRange) {
         const [minG, maxG] =
           selectedGradeRange === "primary"
@@ -323,7 +323,7 @@ const ClassHonorContent = ({ categoryId }) => {
             : [10, 12];
 
         const matchAnyClassInRange = r.awardClasses.some((cls) => {
-          const matched = cls.className?.match(/\d+/);
+          const matched = cls.classInfo?.className?.match(/\d+/);
           if (!matched) return false;
           const classNumber = parseInt(matched[0], 10);
           return classNumber >= minG && classNumber <= maxG;
@@ -331,10 +331,10 @@ const ClassHonorContent = ({ categoryId }) => {
         if (!matchAnyClassInRange) return false;
       }
 
-      // Lọc theo "selectedClass" (nếu bạn có)
+      // --- Sửa phần lọc theo tên lớp ---
       if (selectedClass.trim()) {
         const matchExact = r.awardClasses.some(
-          (cls) => cls.className === selectedClass.trim()
+          (cls) => cls.classInfo?.className === selectedClass.trim()
         );
         if (!matchExact) return false;
       }
@@ -344,24 +344,18 @@ const ClassHonorContent = ({ categoryId }) => {
     // Bước 2: Nếu có searchName => chỉ giữ lớp match, ngược lại giữ nguyên
     .map((record) => {
       if (!searchName.trim()) {
-        // Không search => giữ nguyên
         return record;
       }
-
       const searchTerm = normalize(searchName.trim());
-      // Lọc các lớp khớp với từ khoá
       const matchedClasses = record.awardClasses.filter((cls) => {
-        const normName = normalize(cls.className || "");
+        const normName = normalize(cls.classInfo?.className || "");
         return normName.includes(searchTerm);
       });
       if (matchedClasses.length === 0) {
-        // Record này không có lớp nào match => loại
         return null;
       }
-      // Giữ record, nhưng chỉ với các lớp match
       return { ...record, awardClasses: matchedClasses };
     })
-    // Bỏ qua record null (không có lớp match)
     .filter(Boolean);
 
   // --------------------------------------------------
@@ -381,10 +375,9 @@ const ClassHonorContent = ({ categoryId }) => {
   const filterRecordsByLevel = (recordsArr, minClass, maxClass) => {
     return recordsArr
       .map((record) => {
-        // Lọc bớt classes không nằm trong range
         const classesInRange = record.awardClasses.filter((cls) => {
-          if (!cls?.className) return false;
-          const matched = cls.className.match(/\d+/);
+          if (!cls?.classInfo?.className) return false;
+          const matched = cls.classInfo.className.match(/\d+/);
           if (!matched) return false;
           const classNumber = parseInt(matched[0], 10);
           return classNumber >= minClass && classNumber <= maxClass;
@@ -443,7 +436,7 @@ const ClassHonorContent = ({ categoryId }) => {
   // 7) Giao diện
   // --------------------------------------------------
   return (
-    <div className="p-10 min-w-[960px] mx-auto mt-[40px] overflow-y-auto">
+    <div className="lg:p-6 px-3 lg:min-w-[960px] w-full mx-auto mt-[40px] overflow-y-auto">
       {/* Tiêu đề, mô tả và ảnh cover */}
       <div>
         <h2 className="text-[40px] text-[#F05023] text-center font-bold mb-2">
@@ -451,7 +444,7 @@ const ClassHonorContent = ({ categoryId }) => {
             ? currentCategory.name || t("award", "Danh hiệu")
             : currentCategory.nameEng || t("award", "Award")}
         </h2>
-        <div className="md:w-[900px] w-full mx-auto text-left mt-4 mb-4">
+        <div className="lg:w-[900px] w-full mx-auto text-left mt-4 mb-4">
           <p className="mb-4 text-[#002855] text-justify font-semibold md:text-[18px] text-[15px]">
             {i18n.language === "vi"
               ? currentCategory.description || ""
@@ -476,8 +469,8 @@ const ClassHonorContent = ({ categoryId }) => {
             key={tab}
             className={`pb-1 ${
               activeTab === tab
-                ? "text-[#002855] font-semibold text-[32px] border-b-2 border-[#002855]"
-                : "text-[#757575] text-[24px]"
+                ? "text-[#002855] font-semibold lg:text-[32px] text-[24px] border-b-2 border-[#002855]"
+                : "text-[#757575] lg:text-[24px] text-[18px]"
             }`}
             onClick={() => setActiveTab(tab)}
           >
@@ -496,7 +489,7 @@ const ClassHonorContent = ({ categoryId }) => {
           activeTab === "semester" ||
           activeTab === "month") && (
           <select
-            className="w-[300px] py-2 bg-[#f5f5f5] text-[#757575] border-none rounded-full focus:outline-none"
+            className="lg:w-[300px] py-2 bg-[#f5f5f5] text-[#757575] border-none rounded-full focus:outline-none"
             value={selectedSchoolYearId}
             onChange={(e) => {
               setSelectedSchoolYearId(e.target.value);
@@ -550,7 +543,7 @@ const ClassHonorContent = ({ categoryId }) => {
           <input
             type="text"
             placeholder={t("searchNamePlaceholder", "Tìm kiếm tên lớp")}
-            className="w-[400px] px-4 py-2 bg-[#f5f5f5] text-[#757575] border-none rounded-full focus:outline-none"
+            className="lg:w-[400px] w-[250px] px-4 py-2 bg-[#f5f5f5] text-[#757575] border-none rounded-full focus:outline-none"
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
           />
@@ -566,10 +559,9 @@ const ClassHonorContent = ({ categoryId }) => {
       {/* Nếu đang gõ searchName => hiển thị flat, else => group theo khối */}
       {searchName.trim() ? (
         // ------------ 1) Hiển thị phẳng ------------
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredRecords
             .flatMap((rec) =>
-              // Gom tất cả các lớp vào mảng
               rec.awardClasses.map((cls) => ({ record: rec, cls }))
             )
             .map((item, idx) => {
@@ -577,24 +569,22 @@ const ClassHonorContent = ({ categoryId }) => {
               return (
                 <div
                   key={idx}
-                  className="border rounded-lg p-3 shadow-sm bg-[#E6EEF6] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                  className="w-full border rounded-lg p-3 shadow-sm bg-[#E6EEF6] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                   onClick={() => handleOpenModalClass(record, cls)}
                 >
-                  {/* Ảnh lớp */}
-                  {classPhotos[cls._id] ? (
+                  {classPhotos[cls.classInfo?._id] ? (
                     <img
-                      src={`${BASE_URL}/${classPhotos[cls._id]}`}
-                      alt={`Ảnh lớp ${cls.className}`}
-                      className="mt-2 w-[320px] h-[156px] object-cover rounded-lg"
+                      src={`${BASE_URL}/${classPhotos[cls.classInfo?._id]}`}
+                      alt={`Ảnh lớp ${cls.classInfo?.className}`}
+                      className="mt-2 w-full px-10 lg:px-0 h-[156px] object-cover rounded-lg"
                     />
                   ) : (
                     <div className="text-xs italic text-gray-400">
                       Chưa có ảnh
                     </div>
                   )}
-                  {/* Tên lớp */}
                   <div className="text-[#F05023] text-[20px] font-bold mt-2">
-                    {t("classLabel", "Lớp")} {cls.className}
+                    {t("classLabel", "Lớp")} {cls.classInfo?.className}
                   </div>
                 </div>
               );
@@ -623,9 +613,12 @@ const ClassHonorContent = ({ categoryId }) => {
             if (classCards.length === 0) return null;
 
             return (
-              <div key={level.id} className="border-b border-gray-200 pb-4">
+              <div
+                key={level.id}
+                className="w-full border-b border-gray-200 pb-4"
+              >
                 <div
-                  className="flex justify-between items-center cursor-pointer py-4 text-[#002855] text-[22px] font-semibold"
+                  className=" w-full flex justify-between items-center cursor-pointer py-4 text-[#002855] text-[22px] font-semibold"
                   onClick={() =>
                     setOpenLevel(openLevel === level.id ? null : level.id)
                   }
@@ -641,7 +634,7 @@ const ClassHonorContent = ({ categoryId }) => {
                 </div>
                 {openLevel === level.id && (
                   <div className="p-4 rounded-lg">
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {classCards.map((item, idx) => {
                         const { record, cls } = item;
                         return (
@@ -650,11 +643,13 @@ const ClassHonorContent = ({ categoryId }) => {
                             className="border rounded-2xl p-3 shadow-sm bg-[#E6EEF6] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                             onClick={() => handleOpenModalClass(record, cls)}
                           >
-                            {classPhotos[cls._id] ? (
+                            {classPhotos[cls.classInfo?._id] ? (
                               <img
-                                src={`${BASE_URL}/${classPhotos[cls._id]}`}
-                                alt={`Ảnh lớp ${cls.className}`}
-                                className="mt-2 w-[640px] h-[312px] object-cover rounded-2xl"
+                                src={`${BASE_URL}/${
+                                  classPhotos[cls.classInfo?._id]
+                                }`}
+                                alt={`Ảnh lớp ${cls.classInfo?.className}`}
+                                className="mt-2 w-full object-contain rounded-2xl"
                               />
                             ) : (
                               <div className="text-xs italic text-gray-400">
@@ -662,7 +657,8 @@ const ClassHonorContent = ({ categoryId }) => {
                               </div>
                             )}
                             <div className="text-[#F05023] text-[20px] font-bold mt-2">
-                              {t("classLabel", "Lớp")} {cls.className}
+                              {t("classLabel", "Lớp")}{" "}
+                              {cls.classInfo?.className}
                             </div>
                           </div>
                         );
@@ -679,17 +675,19 @@ const ClassHonorContent = ({ categoryId }) => {
       {/* ----------------- Modal hiển thị khi click 1 lớp ----------------- */}
       {showModal && modalClass && modalRecord && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-          <div className="bg-white w-[980px] h-[569px] p-12 rounded-lg relative">
+          <div className="bg-white w-[90%] sm:w-[80%] md:w-[80%] lg:w-[80%] xl:w-[70%] 2xl:w-[60%] h-auto max-h-screen px-5 pt-6 pb-0 md:pb-2 md:px-8 lg:px-12 lg:pt-10 xl:px-14 xl:pt-10 rounded-lg relative overflow-y-auto">
             {/* Nội dung modal */}
-            <div className="flex gap-6">
+            <div className="w-full flex flex-col lg:flex-row gap-4">
               {/* Ảnh lớp */}
-              <div className="relative items-center justify-center ">
-                <div className="absolute -top-6 -left-4 w-[342px] h-[428px] bg-[#E6EEF6] rounded-lg shadow-lg"></div>
-                {classPhotos[modalClass._id] ? (
+              <div className="w-full relative flex items-center justify-center">
+                <div className="hidden lg:block absolute top-1 -left-4 xl:-top-2 xl:-left-8 w-[300px] h-[430px] xl:w-[342px] xl:h-[450px] bg-[#E6EEF6] rounded-lg shadow-lg"></div>
+                {classPhotos[modalClass.classInfo?._id] ? (
                   <img
-                    src={`${BASE_URL}/${classPhotos[modalClass._id]}`}
+                    src={`${BASE_URL}/${
+                      classPhotos[modalClass.classInfo?._id]
+                    }`}
                     alt="Class"
-                    className="relative z-10 w-[518px] h-[377px] object-cover rounded-lg shadow-md"
+                    className="relative z-10 w-full h-auto xl:w-[646px] xl:h-[377px] lg:h-[360px] lg:w-[550px] object-cover rounded-lg shadow-md"
                   />
                 ) : (
                   <div className="relative z-10 w-[518px] h-[377px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
@@ -699,43 +697,44 @@ const ClassHonorContent = ({ categoryId }) => {
               </div>
 
               {/* Thông tin lớp */}
-              <div className="flex flex-col">
-                <h2 className="text-[24px] font-bold text-[#F05023] mb-2">
-                  {t("classLabel", "Lớp")} {modalClass.className}
+              <div className="w-full lg:w-[670px] xl:w-[700px] flex flex-col">
+                <h2 className="w-full lg:text-[24px] md:text-[20px] text-[16px] font-bold text-[#F05023] mb-2">
+                  {t("classLabel", "Lớp")} {modalClass.classInfo?.className}
                 </h2>
-                <span className="text-[#757575] text-[14px] font-semibold">
+                <span className="w-full text-[#757575] md:text-[16px] text-[14px] font-semibold">
                   {t("schoolYearLabel", "Khóa")}{" "}
                   {findSchoolYearLabel(modalRecord.subAward?.schoolYear)}
                 </span>
 
-                <hr className="border-t border-gray-100 my-4 w-full" />
+                <hr className=" w-full border-t border-gray-100 my-2 lg:my-4" />
 
-                <p className="mb-2 font-semibold text-[#002855] text-[18px]">
+                <p className=" w-full mb-2 font-semibold text-[#002855] text-[13px] md:text-[15px] lg:text-[18px]">
                   {getSubAwardLabel(modalRecord)}
                 </p>
 
-                {/* Tuỳ ý hiển thị thêm GVCN, mô tả, v.v.  */}
-                {(i18n.language === "vi"
-                  ? modalClass.note
-                  : modalClass.noteEng) && (
-                  <p className="italic text-[#002855] mt-2">
-                    “
-                    {i18n.language === "vi"
-                      ? modalClass.note
-                      : modalClass.noteEng}
-                    ”
-                  </p>
-                )}
+                <div className="w-full h-auto lg:h-[300px] xl:h-[300px] overflow-y-auto">
+                  {(i18n.language === "vi"
+                    ? modalClass.note
+                    : modalClass.noteEng) && (
+                    <p className="italic text-[#002855] my-auto text-justify lg:text-left text-[13px] md:text-[16px]">
+                      “
+                      {i18n.language === "vi"
+                        ? modalClass.note
+                        : modalClass.noteEng}
+                      ”
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
-            <hr className="border-t-2 border-gray-100 mt-12 mb-5" />
+            <hr className="border-t-2 border-gray-100 my-2 md:my-5" />
 
             {/* Nút đóng */}
-            <div className=" flex justify-center">
+            <div className="flex w-full mx-auto my-3 items-center justify-center">
               <button
                 onClick={handleCloseModal}
-                className="bg-gray-300 px-4 py-2 rounded-md text-gray-800 font-semibold hover:bg-gray-400"
+                className="bg-gray-300 lg:px-4 px-2 lg:py-2 py-1 rounded-md text-[#757575] text-[14px] lg:text-[16px] font-semibold hover:bg-gray-400"
               >
                 {t("close", "Đóng")}
               </button>
