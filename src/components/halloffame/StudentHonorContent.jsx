@@ -649,7 +649,7 @@ const StudentHonorContent = ({ categoryId }) => {
       {/* Modal hiển thị chi tiết khi click vào 1 học sinh */}
       {showModal && modalStudent && modalRecord && (
         <div className="fixed inset-0  flex items-center justify-center z-50 bg-black bg-opacity-50">
-          <div className="lg:w-[930px] md:w-[80%] w-[95%] h-auto bg-white rounded-lg lg:pt-10 lg:px-12 px-0 pt-[15px] pb-5 relative shadow-lg">
+          <div className="lg:w-[930px] md:w-[80%] w-[95%] h-auto bg-white rounded-lg lg:pt-10 lg:px-12 pt-[15px] pb-5 relative shadow-lg">
             {/* Bố cục chia làm 2 phần: Ảnh bên trái - Thông tin bên phải */}
             <div className="flex flex-col lg:flex-row lg:space-x-6 space-y-6 lg:space-y-0 ">
               {/* Khung ảnh với nền lệch */}
@@ -713,13 +713,13 @@ const StudentHonorContent = ({ categoryId }) => {
               </div>
             </div>
 
-            <hr className="border-t-2 border-gray-100 my-2 md:my-5" />
+            <hr className="border-t-2 border-gray-100 my-2 mx-5 md:mx-0 md:my-5" />
 
             {/* Nút đóng */}
             <div className="flex w-full mx-auto items-center justify-center">
               <button
                 onClick={handleCloseModal}
-                className="bg-gray-300 lg:px-4 px-2 lg:py-2 py-1 rounded-md text-[#757575] text-[12px] lg:text-[16px] font-semibold hover:bg-gray-400"
+                className="bg-gray-300 lg:px-4 px-2 lg:py-2 py-1 rounded-md text-[#757575] text-[13px] lg:text-[16px] font-semibold hover:bg-gray-400"
               >
                 {t("close", "Đóng")}
               </button>
