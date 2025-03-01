@@ -551,7 +551,7 @@ const StudentHonorContent = ({ categoryId }) => {
                     <img
                       src={`${BASE_URL}/${student.photo.photoUrl}`}
                       alt="Student"
-                      className="lg:h-[260px] h-[160px] lg:w-[208px] w-[208px] object-cover mt-2"
+                      className="lg:h-[260px] h-[160px] lg:w-[208px] w-[208px] object-cover object-top mt-2"
                     />
                   ) : (
                     <div className="text-xs italic text-gray-400">
@@ -619,7 +619,7 @@ const StudentHonorContent = ({ categoryId }) => {
                               <img
                                 src={`${BASE_URL}/${student.photo.photoUrl}`}
                                 alt="Student"
-                                className="lg:h-[260px] h-[160px] lg:w-[208px] w-[208px] object-cover mt-2 rounded-lg"
+                                className="lg:h-[260px] h-[160px] lg:w-[208px] w-[208px] object-cover object-top mt-2 rounded-lg"
                               />
                             ) : (
                               <div className="text-xs italic text-gray-400">
@@ -661,7 +661,7 @@ const StudentHonorContent = ({ categoryId }) => {
                   <img
                     src={`${BASE_URL}/${modalStudent.photo.photoUrl}`}
                     alt="Student"
-                    className="relative z-10 lg:w-[322px] lg:h-[428px] w-full h-[200px] items-center object-cover rounded-lg shadow-md"
+                    className="relative z-10 lg:w-[322px] lg:h-[428px] w-full h-[200px] items-center object-cover object-top rounded-lg shadow-md"
                   />
                 ) : (
                   <div className="relative z-10 lg:w-[322px] lg:h-[428px] w-[150px] h-[200px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
