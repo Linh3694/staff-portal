@@ -697,19 +697,20 @@ const StudentHonorContent = ({ categoryId }) => {
                 <p className=" w-full mb-2 font-semibold text-[#002855] text-[13px] md:text-[15px] lg:text-[18px]">
                   {getSubAwardLabel(modalRecord)}
                 </p>
-
-                {/* Nội dung lời nhắn */}
-                {(i18n.language === "vi"
-                  ? modalStudent.note
-                  : modalStudent.noteEng) && (
-                  <p className="italic text-[#002855] my-auto text-justify lg:text-left text-[14px] md:text-[16px]">
-                    “
-                    {i18n.language === "vi"
-                      ? modalStudent.note
-                      : modalStudent.noteEng}
-                    ”
-                  </p>
-                )}
+                <div>
+                  {/* Nội dung lời nhắn */}
+                  {(i18n.language === "vi"
+                    ? modalStudent.note
+                    : modalStudent.noteEng) && (
+                    <p className="italic text-[#002855] my-auto text-justify lg:text-left text-[14px] md:text-[16px]">
+                      “
+                      {i18n.language === "vi"
+                        ? modalStudent.note
+                        : modalStudent.noteEng}
+                      ”
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
