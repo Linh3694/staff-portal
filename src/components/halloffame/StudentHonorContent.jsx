@@ -661,7 +661,7 @@ const StudentHonorContent = ({ categoryId }) => {
                   <img
                     src={`${BASE_URL}/${modalStudent.photo.photoUrl}`}
                     alt="Student"
-                    className="relative z-10 lg:w-[322px] lg:h-[428px] w-full h-[200px] items-center object-cover object-top rounded-lg shadow-md"
+                    className="relative z-10 lg:w-[322px] lg:h-[428px] w-full h-[260px] items-center object-cover object-top rounded-lg shadow-md"
                   />
                 ) : (
                   <div className="relative z-10 lg:w-[322px] lg:h-[428px] w-[150px] h-[200px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
@@ -702,7 +702,7 @@ const StudentHonorContent = ({ categoryId }) => {
                 {(i18n.language === "vi"
                   ? modalStudent.note
                   : modalStudent.noteEng) && (
-                  <p className="italic text-[#002855] mt-2 text-justify">
+                  <p className="italic text-[#002855] my-auto text-justify lg:text-left text-[13px] md:text-[16px]">
                     “
                     {i18n.language === "vi"
                       ? modalStudent.note
