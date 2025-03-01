@@ -713,13 +713,13 @@ const StudentHonorContent = ({ categoryId }) => {
               </div>
             </div>
 
-            <hr className="border-t-2 border-gray-100 mt-4" />
+            <hr className="border-t-2 border-gray-100 my-2 md:my-5" />
 
             {/* Nút đóng */}
-            <div className="mt-6 flex justify-center">
+            <div className="flex w-full mx-auto items-center justify-center">
               <button
                 onClick={handleCloseModal}
-                className="bg-gray-300 px-4 py-2 rounded-md text-gray-800 font-semibold hover:bg-gray-400"
+                className="bg-gray-300 lg:px-4 px-2 lg:py-2 py-1 rounded-md text-[#757575] text-[12px] lg:text-[16px] font-semibold hover:bg-gray-400"
               >
                 {t("close", "Đóng")}
               </button>

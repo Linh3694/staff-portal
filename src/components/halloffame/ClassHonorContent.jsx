@@ -731,10 +731,10 @@ const ClassHonorContent = ({ categoryId }) => {
             <hr className="border-t-2 border-gray-100 my-2 md:my-5" />
 
             {/* Nút đóng */}
-            <div className="flex w-full mx-auto my-3 items-center justify-center">
+            <div className="flex w-full mx-auto items-center justify-center">
               <button
                 onClick={handleCloseModal}
-                className="bg-gray-300 lg:px-4 px-2 lg:py-2 py-1 rounded-md text-[#757575] text-[14px] lg:text-[16px] font-semibold hover:bg-gray-400"
+                className="bg-gray-300 lg:px-4 px-2 lg:py-2 py-1 rounded-md text-[#757575] text-[12px] lg:text-[16px] font-semibold hover:bg-gray-400"
               >
                 {t("close", "Đóng")}
               </button>
