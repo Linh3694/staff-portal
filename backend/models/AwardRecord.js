@@ -19,6 +19,19 @@ const StudentAwardSchema = new Schema(
   { _id: false }
 );
 
+const AwardClassSchema = new Schema(
+  {
+    class: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Class",
+      required: true,
+    },
+    note: { type: String },
+    noteEng: { type: String },
+  },
+  { _id: false }
+);
+
 const SubAwardDetailSchema = new Schema(
   {
     type: { 
@@ -41,18 +54,8 @@ const AwardRecordSchema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "AwardCategory",
     },
-    awardClasses: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Class",
-        note: { 
-          type: String, 
-        },
-        noteEng: { 
-          type: String, 
-        },
-      },
-    ],
+    awardClasses: [AwardClassSchema], // Dùng subdocument cho awardClasses
+
     // Thông tin chi tiết của subAward (nếu award theo tháng, học kỳ, năm hay tùy chỉnh)
     subAward: {
       type: SubAwardDetailSchema,

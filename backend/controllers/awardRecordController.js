@@ -60,9 +60,9 @@ exports.getAllAwardRecords = async (req, res) => {
       {
         $lookup: {
           from: "classes",
-          localField: "awardClasses",
+          localField: "awardClasses.class",
           foreignField: "_id",
-          as: "awardClasses",
+          as: "awardClassesInfo",
         },
       },
       // (5) Lookup StudentClassEnrollment và join với thông tin Class
@@ -161,12 +161,42 @@ exports.getAllAwardRecords = async (req, res) => {
           },
         },
       },
+      {
+        $addFields: {
+          awardClasses: {
+            $map: {
+              input: "$awardClasses",
+              as: "ac",
+              in: {
+                $mergeObjects: [
+                  "$$ac",
+                  {
+                    classInfo: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$awardClassesInfo",
+                            as: "info",
+                            cond: { $eq: ["$$info._id", "$$ac.class"] }
+                          }
+                        },
+                        0
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
       // (7) Loại bỏ các trường tạm thời
       {
         $project: {
           populatedStudents: 0,
           studentEnrollments: 0,
           photos: 0,
+          awardClassesInfo: 0
         },
       },
     ]);
