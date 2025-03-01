@@ -694,7 +694,7 @@ const StudentHonorContent = ({ categoryId }) => {
                 </div>
 
                 {/* Danh hiệu */}
-                <p className="text-[#002855] font-semibold lg:text-[18px] text-[14px]">
+                <p className=" w-full mb-2 font-semibold text-[#002855] text-[13px] md:text-[15px] lg:text-[18px]">
                   {getSubAwardLabel(modalRecord)}
                 </p>
 
@@ -702,7 +702,7 @@ const StudentHonorContent = ({ categoryId }) => {
                 {(i18n.language === "vi"
                   ? modalStudent.note
                   : modalStudent.noteEng) && (
-                  <p className="italic text-[#002855] my-auto text-justify lg:text-left text-[13px] md:text-[16px]">
+                  <p className="italic text-[#002855] my-auto text-justify lg:text-left text-[14px] md:text-[16px]">
                     “
                     {i18n.language === "vi"
                       ? modalStudent.note
