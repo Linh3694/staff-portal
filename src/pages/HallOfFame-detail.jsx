@@ -120,7 +120,7 @@ function HallOfFamePublicPage() {
         <div className="flex-1">{renderMainContent()}</div>
 
         {/* 2 nút Lên/Xuống ở góc phải */}
-        <div className="fixed bottom-10 right-3 flex flex-col space-y-5 z-50">
+        <div className="hidden md:flex fixed bottom-10 right-3 flex-col space-y-5 z-50">
           {/* Nút Lên */}
           <button
             onClick={scrollToTop}

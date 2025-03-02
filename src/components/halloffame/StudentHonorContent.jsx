@@ -661,7 +661,7 @@ const StudentHonorContent = ({ categoryId }) => {
                   <img
                     src={`${BASE_URL}/${modalStudent.photo.photoUrl}`}
                     alt="Student"
-                    className="relative z-10 lg:w-[322px] lg:h-[428px] w-full h-[320px] items-center object-cover rounded-lg shadow-md"
+                    className="relative z-10 lg:w-[322px] lg:h-[428px] w-full h-[320px] items-center object-cover object-top rounded-lg shadow-md "
                   />
                 ) : (
                   <div className="relative z-10 lg:w-[322px] lg:h-[428px] w-[150px] h-[200px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">

@@ -675,7 +675,7 @@ const ClassHonorContent = ({ categoryId }) => {
       {/* ----------------- Modal hiển thị khi click 1 lớp ----------------- */}
       {showModal && modalClass && modalRecord && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-          <div className="bg-white w-[90%] sm:w-[80%] md:w-[80%] lg:w-[80%] xl:w-[70%] 2xl:w-[60%] h-auto max-h-screen px-5 pt-6 pb-0 md:pb-2 md:px-8 lg:px-12 lg:pt-10 xl:px-14 xl:pt-10 rounded-lg relative overflow-y-auto">
+          <div className="bg-white w-[90%] sm:w-[80%] md:w-[80%] lg:w-[80%] xl:w-[70%] 2xl:w-[60%] h-auto max-h-screen px-5 pt-6 pb-2 md:pb-2 md:px-8 lg:px-12 lg:pt-10 xl:px-14 xl:pt-10 rounded-lg relative overflow-y-auto">
             {/* Nội dung modal */}
             <div className="w-full flex flex-col lg:flex-row gap-4">
               {/* Ảnh lớp */}
