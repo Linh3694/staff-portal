@@ -18,4 +18,6 @@ router.put("/update-bookmarks/:id", authenticate, pdfController.updateBookmarks)
 router.get("/check-customname/:customName", pdfController.checkCustomName);
 router.get("/check-custom-name/:customName", pdfController.checkCustomeNameUrl);
 router.get("/get-pdf-status/:customName", pdfController.getPdfStatus);
+router.get("/fix-all-file-names", pdfController.fixAllFileNames);
+
 module.exports = router;

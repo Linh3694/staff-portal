@@ -26,6 +26,17 @@ function FlippageAdmin({ currentUser }) {
   const [isCustomNameValid, setIsCustomNameValid] = useState(null);
   const [editBookmarks, setEditBookmarks] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  function decodeLatin1(str) {
+    if (!str) return str;
+    // Tách từng ký tự thành mã charCode
+    const bytes = new Uint8Array([...str].map((ch) => ch.charCodeAt(0)));
+    // Giải mã byte[] theo windows-1252 (latin1)
+    const decoded = new TextDecoder("windows-1252").decode(bytes);
+    // Sau đó normalize về NFC (gộp dấu)
+    return decoded.normalize("NFC");
+  }
 
   // Định nghĩa hàm fetchFileList (bạn có thể chuyển đoạn này lên trên cùng, bên cạnh useEffect)
   const fetchFileList = () => {
@@ -452,11 +463,35 @@ function FlippageAdmin({ currentUser }) {
     }
   };
 
+  // Hàm lọc fileList theo searchTerm
+  const filteredFiles = fileList.filter((file) => {
+    const lowerTerm = searchTerm.toLowerCase();
+    const fileNameMatch = file.fileName?.toLowerCase().includes(lowerTerm);
+    const customNameMatch = file.customName?.toLowerCase().includes(lowerTerm);
+    const uploaderMatch =
+      file.uploader &&
+      file.uploader.fullname &&
+      file.uploader.fullname.toLowerCase().includes(lowerTerm);
+    return fileNameMatch || customNameMatch || uploaderMatch;
+  });
+
   return (
     <div className="min-h-screen p-6">
       <div className="w-full h-full p-6 bg-white rounded-xl shadow-md border">
+        <h2 className="font-bold text-lg mb-4">Danh sách PDF đã upload</h2>
+
         <div className="flex flex-row justify-between items-center">
-          <h2 className="font-bold text-lg mb-4">Danh sách PDF đã upload</h2>
+          <div className="flex items-center gap-2">
+            {/* Ô search */}
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên file, Url, người tạo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-[350px] px-4 py-2 border border-gray-300 bg-[#f8f8f8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+            />
+            {/* Nút search (nếu muốn bấm để trigger tìm kiếm) */}
+          </div>
           <button
             onClick={() => setIsUploadModalOpen(true)}
             className="px-4 py-2 bg-[#002147] text-white font-bold rounded-lg shadow-md hover:bg-[#001b33] transition-all"
@@ -464,7 +499,7 @@ function FlippageAdmin({ currentUser }) {
             Tạo mới
           </button>
         </div>
-        {fileList.length > 0 ? (
+        {filteredFiles.length > 0 ? (
           <table className="w-full">
             <thead>
               <tr className="!border-px !border-gray-400">
@@ -492,7 +527,7 @@ function FlippageAdmin({ currentUser }) {
               </tr>
             </thead>
             <tbody>
-              {fileList.map((file, index) => (
+              {filteredFiles.map((file, index) => (
                 <tr key={index} className="border-b border-gray-200">
                   <td className="text-[#002147] border-white/0 py-3 pr-4 ">
                     <p className="text-sm font-bold text-navy-700">
@@ -501,7 +536,7 @@ function FlippageAdmin({ currentUser }) {
                   </td>
                   <td className="max-w-[400px] border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">
-                      {file.fileName}
+                      {file.fileName ? file.fileName.normalize("NFC") : ""}{" "}
                     </p>
                   </td>
                   <td className="max-w-[400px] border-white/0 py-3 pr-4">

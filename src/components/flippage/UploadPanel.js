@@ -24,7 +24,6 @@ function UploadPanel({ onUploadedImages }) {
         throw new Error("Upload thất bại");
       }
       const data = await response.json();
-      // data.images là mảng URL ảnh
       onUploadedImages && onUploadedImages(data.images);
     } catch (err) {
       console.error(err);

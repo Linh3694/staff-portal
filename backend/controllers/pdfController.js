@@ -48,49 +48,93 @@ exports.checkCustomName = async (req, res) => {
   }
 };
 
+function decodeAndNormalizeFileName(str) {
+  if (!str) return "";
+  const decoded = Buffer.from(str, "latin1").toString("utf8");
+  // Nếu kết quả giải mã chứa ký tự thay thế "�", trả về chuỗi gốc (giả sử chuỗi đó đã được fix)
+  if (decoded.includes("�")) {
+    return str;
+  }
+  return decoded.normalize("NFC");
+}
+exports.fixAllFileNames = async (req, res) => {
+  try {
+    // Lấy tất cả PDF
+    const pdfs = await Pdf.find();
+
+    let countFixed = 0;
+
+    for (const pdf of pdfs) {
+      const original = pdf.fileName;
+      // Thử giải mã & normalize
+      const fixed = decodeAndNormalizeFileName(original);
+
+      // Nếu tên mới khác tên cũ, cập nhật
+      if (fixed !== original) {
+        pdf.fileName = fixed;
+        await pdf.save();
+        countFixed++;
+      }
+    }
+
+    return res.json({
+      message: `Đã kiểm tra ${pdfs.length} file. Đã sửa ${countFixed} tên file bị lỗi.`,
+    });
+  } catch (err) {
+    console.error("❌ Lỗi fixAllFileNames:", err);
+    return res.status(500).json({ error: "Lỗi server khi sửa tên file." });
+  }
+};
+
 exports.uploadPdf = async (req, res) => {
-  console.log(req.body.bookmarks)
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No PDF file uploaded." });
     }
 
+    // Đường dẫn file PDF đã lưu (Multer đã lưu với tên là: <timestamp>-<originalname>)
     const pdfFilePath = req.file.path;
     const folderName = path.basename(pdfFilePath, path.extname(pdfFilePath));
 
-    // 🔥 Lấy uploader từ `req.user._id`
+    // Lấy uploader từ req.user (đảm bảo middleware auth đã gắn req.user)
     const uploaderId = req.user?._id;
     if (!uploaderId) {
       return res.status(400).json({ error: "Không xác định được người tải lên." });
     }
 
+    // Lấy bookmarks từ body nếu có (JSON string)
     const bookmarks = req.body.bookmarks ? JSON.parse(req.body.bookmarks) : [];
-    console.log(bookmarks)   
+    console.log("Bookmarks:", bookmarks);
+
+    // Xử lý customName: normalize, loại bỏ dấu và chuyển khoảng trắng thành dấu gạch ngang
     let customName = req.body.customName
       ?.trim()
       .toLowerCase()
-      .normalize("NFD") // Loại bỏ dấu Tiếng Việt
+      .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/\s+/g, "-") || folderName;
 
-    // 📌 Kiểm tra trùng customName
+    // Kiểm tra trùng lặp customName trong DB
     const existingPdf = await Pdf.findOne({ customName });
     if (existingPdf) {
       return res.status(400).json({ error: `File với customName "${customName}" đã tồn tại! Hãy chọn tên khác.` });
     }
 
-    // Convert PDF -> Ảnh
+    // Convert PDF -> Ảnh (sử dụng hàm convertPdfToImages, truyền folderName để lưu ảnh)
     await convertPdfToImages(pdfFilePath, folderName, 150);
 
-    // ✅ Lưu vào MongoDB với uploader là `_id` của User
+    console.log("originalName:", req.file.originalname);
+    const fixedFileName = decodeAndNormalizeFileName(req.file.originalname);
+    console.log("fixedFileName:", fixedFileName);
+
+    // Tạo mới đối tượng Pdf và lưu vào MongoDB
     const newPdf = new Pdf({
-      fileName: req.file.originalname,
+      fileName: fixedFileName,
       customName,
       folderName,
       uploader: uploaderId,
       active: true,
-      bookmarks, // 📌 Lưu danh sách bookmarks vào DB
-
+      bookmarks, // Lưu danh sách bookmarks nếu có
     });
 
     await newPdf.save();
@@ -161,9 +205,6 @@ exports.getAllPdfs = async (req, res) => {
     const pdfs = await Pdf.find()
       .populate("uploader", "fullname email avatarUrl") // 🔥 Lấy thông tin User
       .sort({ uploadDate: -1 });
-
-    console.log("📂 Dữ liệu từ MongoDB:", pdfs);
-
     res.json(
       pdfs.map((pdf) => ({
         _id: pdf._id,

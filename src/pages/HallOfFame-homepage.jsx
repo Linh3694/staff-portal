@@ -306,7 +306,7 @@ const HallofFame = () => {
       >
         {/* Tiêu đề */}
         <div className="relative w-full text-center mt-20 mb-10 z-10">
-          <h2 className="text-[32px] font-bold text-[#002147] uppercase tracking-wide">
+          <h2 className="text-[32px] font-semibold text-[#002147]  tracking-wide">
             {t("principalMessageHeader", "Thông điệp của Hiệu trưởng")}
           </h2>
         </div>
@@ -447,9 +447,9 @@ const HallofFame = () => {
             </div>
           </div>
 
-          {/* Hàng ảnh dưới */}
-          <div className="marquee-container mt-4 ml-30">
-            <div className="marquee-track">
+          {/* Hàng ảnh dưới - thêm offset để so le */}
+          <div className="marquee-container mt-4">
+            <div className="marquee-track transform translate-x-[50px]">
               {bottomImages.map((img, index) => (
                 <img
                   key={`bottom-${index}`}
@@ -473,8 +473,8 @@ const HallofFame = () => {
         {/* Overlay gradient nửa trong suốt */}
         <div
           className="absolute inset-0 pointer-events-none 
-             bg-[linear-gradient(180deg,rgba(24,43,85,0.6)_0%,rgba(24,43,85,1)_95%)] 
-             shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+               bg-[linear-gradient(180deg,rgba(24,43,85,0.6)_0%,rgba(24,43,85,1)_95%)]
+               shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
         />
         {/* Nội dung đè lên slider + overlay */}
         <div className="relative z-10 w-full h-full flex flex-row items-center justify-between px-[400px] text-center text-white">
@@ -492,7 +492,7 @@ const HallofFame = () => {
             onClick={() => navigate("/hall-of-honor/detail")}
             className="mt-2 px-16 py-2 bg-[#002147] rounded-full font-semibold transition-colors"
           >
-            <h3 className="shimmer-text text-[24px] font-bold">
+            <h3 className="shimmer-text text-[24px] font-bold ">
               Bảng vinh danh
             </h3>
           </button>
