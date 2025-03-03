@@ -48,7 +48,7 @@ function HallOfFamePublicPage() {
       case "67b5a7864c93fbb31475ad44":
         return <StudentHonorContent categoryId={selectedCategoryId} />;
 
-      //// Học sinh danh dự
+      //// Học bổng tài năng
       case "67b5a81e4c93fbb31475ad4a":
         return <ScholarShipContent categoryId={selectedCategoryId} />;
 
