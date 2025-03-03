@@ -173,3 +173,69 @@ code {
 .shiny-button-wrapper:hover .shiny-text::before {
   left: 125%;
 }
+
+/* file globals.css hoặc index.css */
+/* Ví dụ: globals.css / App.css */
+.shimmer-text {
+    background: linear-gradient(
+    45deg,
+    #F9D16F 0%,
+    #FFFFFF 40%,
+    #F9D16F 100%
+  );
+  background-size: 200% 100%;
+  
+  /* Cắt gradient theo chữ */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* Animation quét từ phải sang trái (hoặc ngược lại) */
+  animation: goldShimmer 2s linear infinite;
+}
+
+@keyframes goldShimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: 0% center;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: 0% center;
+  }
+}
+
+/* Ví dụ trong App.css hoặc globals.css */
+.marquee-container {
+  width: 100%;
+  overflow: hidden;
+  /* Chiều cao tùy chỉnh, 
+     ở đây mình để h-auto để auto-fit theo ảnh, 
+     hoặc bạn có thể đặt fixed height. */
+  height: auto;
+  margin: 1rem 0;
+}
+
+.marquee-track {
+  display: inline-flex;
+  white-space: nowrap; /* Để các ảnh không bị xuống dòng */
+  /* Tạo animation 20s, lặp vô hạn, linear (tốc độ đều), chạy từ trái -> phải */
+  animation: marquee 20s linear infinite;
+}
+
+/* Tăng giảm 20s để điều chỉnh tốc độ (càng nhỏ chạy càng nhanh) */
+@layer utilities {
+  @keyframes marquee {
+    0%   { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 20s linear infinite linear;
+  }
+}
