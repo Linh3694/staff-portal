@@ -78,7 +78,12 @@ function HallOfFamePublicPage() {
         >
           <FaBars size={24} />
         </button>
-        <div>
+        <div className="flex flex-row gap-10 items-center">
+          <img
+            src="/halloffame/HOH-white.png"
+            className="h-12"
+            alt="Wellspring Logo"
+          />
           <img
             src="/halloffame/WS-white.png"
             className="h-16"

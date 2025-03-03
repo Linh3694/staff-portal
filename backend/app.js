@@ -64,8 +64,8 @@ if (!fs.existsSync(uploadPath)) {
 
 // Middlewares
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "4096mb" }));
+app.use(express.urlencoded({ limit: "4096mb", extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(uploadPath));
 
@@ -112,6 +112,17 @@ app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/photos", photoRoutes);
 app.use("/api/award-records", awardRecordRoutes); 
 app.use("/api/award-categories", awardCategoryRoutes);
+
+// Route trả về danh sách file trong thư mục /uploads/Students
+app.get("/uploads/Students", (req, res) => {
+  const studentsDir = path.join(__dirname, "uploads", "Students");
+  fs.readdir(studentsDir, (err, files) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(files);
+  });
+});
 
 // Khởi động server
 const PORT = process.env.PORT || 3000;
