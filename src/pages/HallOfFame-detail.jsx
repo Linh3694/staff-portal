@@ -143,16 +143,16 @@ function HallOfFamePublicPage() {
         </div>
       </div>
       {/* Footer */}
-      <div className="hidden lg:block w-full mt-10">
+      <footer className="hidden lg:block w-full mt-10">
         <img src="/halloffame/Footer.jpg" alt="Footer" className="w-full" />
-      </div>
-      <div className="lg:hidden w-full mt-10">
+      </footer>
+      <footer className="lg:hidden w-full mt-10">
         <img
           src="/halloffame/Footer_mobile.jpg"
           alt="Footer"
           className="w-full"
         />
-      </div>
+      </footer>
     </div>
   );
 }

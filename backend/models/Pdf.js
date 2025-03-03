@@ -17,6 +17,8 @@ const pdfSchema = new mongoose.Schema({
       page: { type: Number },
     },
   ],
+  clickCount: { type: Number, default: 0 },
+
 
 });
 

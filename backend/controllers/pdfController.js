@@ -3,6 +3,7 @@ const Pdf = require("../models/Pdf");
 const { convertPdfToImages } = require("../utils/convertPdfToImages");
 const fs = require("fs");
 const path = require("path");
+const viewCache = {};
 
 // routes/flippage.js
 exports.checkCustomeNameUrl = async (req, res) => {
@@ -19,6 +20,7 @@ exports.checkCustomeNameUrl = async (req, res) => {
     return res.status(500).json({ exists: false, error: "Lỗi server" });
   }
 };
+
 
 exports.checkCustomName = async (req, res) => {
   try {
@@ -83,6 +85,22 @@ exports.fixAllFileNames = async (req, res) => {
   } catch (err) {
     console.error("❌ Lỗi fixAllFileNames:", err);
     return res.status(500).json({ error: "Lỗi server khi sửa tên file." });
+  }
+};
+
+exports.fixMissingViews = async (req, res) => {
+  try {
+    // Update tất cả các PDF mà chưa có trường clickCount (hoặc trường này không tồn tại)
+    const result = await Pdf.updateMany(
+      { clickCount: { $exists: false } },
+      { $set: { clickCount: 0 } }
+    );
+    return res.json({
+      message: `Đã cập nhật ${result.modifiedCount || result.nModified} tài liệu, thêm trường clickCount.`,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi cập nhật views:", error);
+    return res.status(500).json({ error: "Lỗi server khi cập nhật views." });
   }
 };
 
@@ -152,43 +170,52 @@ exports.getImages = async (req, res) => {
     
     // Tìm PDF trong DB
     const pdfData = await Pdf.findOne({ customName });
-
     if (!pdfData) {
       return res.status(404).json({
         error: `Không tìm thấy PDF với customName: "${customName}"`,
       });
     }
-
     console.log("📂 Folder name trong DB:", pdfData.folderName);
 
-    // 🔥 Kiểm tra trạng thái active
+    // Kiểm tra trạng thái active
     if (!pdfData.active) {
       return res.status(403).json({ error: "Tài liệu này đã bị vô hiệu hóa." });
     }
 
-    // Thư mục gốc đang lưu ảnh
-    const imageDir = path.join(__dirname, "..", "public", "uploads", "pdf-images");
+    // Lấy IP của client (nếu có proxy, sử dụng header x-forwarded-for)
+    const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip;
+    const cacheKey = `${clientIp}-${customName}`;
+    const now = Date.now();
+    const threshold = 60 * 1000; // 60 giây
 
+    // Nếu chưa có key trong cache hoặc thời gian đã vượt quá threshold, tăng clickCount
+    if (!viewCache[cacheKey] || now - viewCache[cacheKey] > threshold) {
+      viewCache[cacheKey] = now;
+      pdfData.clickCount = (pdfData.clickCount || 0) + 1;
+      await pdfData.save();
+    }
+
+    // Xác định thư mục chứa ảnh PDF
+    const imageDir = path.join(__dirname, "..", "public", "uploads", "pdf-images");
     if (!fs.existsSync(imageDir)) {
       return res.status(404).json({
         error: `Không tìm thấy thư mục ảnh cho PDF "${customName}"`,
       });
     }
 
-    // Tìm các file .png bắt đầu với folderName
+    // Lọc các file ảnh .png bắt đầu với folderName
     const allFiles = fs.readdirSync(imageDir);
     const imageFiles = allFiles.filter(
       (file) =>
         file.startsWith(pdfData.folderName) && file.endsWith(".png")
     );
-
     if (imageFiles.length === 0) {
       return res.status(404).json({
         error: `Không tìm thấy ảnh cho PDF "${customName}"`,
       });
     }
 
-    // Tạo đường dẫn URL (host/uploads/pdf-images/<filename>)
+    // Tạo URL cho các ảnh
     const imageUrls = imageFiles.map((file) => {
       return `${req.protocol}://${req.get("host")}/uploads/pdf-images/${file}`;
     });
@@ -224,6 +251,7 @@ exports.getAllPdfs = async (req, res) => {
           : null,
         active: pdf.active,
         uploadDate: new Date(pdf.uploadDate).toLocaleString(),
+        clickCount : pdf.clickCount,
       }))
     );
   } catch (err) {

@@ -71,7 +71,11 @@ function FlippageAdmin({ currentUser }) {
 
   // Sửa lại useEffect ban đầu để dùng fetchFileList:
   useEffect(() => {
-    fetchFileList();
+    const intervalId = setInterval(() => {
+      fetchFileList();
+    }, 5000); // gọi lại API mỗi 5 giây
+
+    return () => clearInterval(intervalId);
   }, []);
 
   // Gọi API lấy danh sách tất cả file PDF từ MongoDB
@@ -513,10 +517,13 @@ function FlippageAdmin({ currentUser }) {
                   <p className="text-sm font-bold text-gray-500">URL</p>
                 </th>
                 <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">Ngày tạo</p>
+                  <p className="text-sm font-bold text-gray-500">Views</p>
                 </th>
                 <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                   <p className="text-sm font-bold text-gray-500">Người tạo</p>
+                </th>
+                <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-500">Ngày tạo</p>
                 </th>
                 <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                   <p className="text-sm font-bold text-gray-500">Active</p>
@@ -534,12 +541,12 @@ function FlippageAdmin({ currentUser }) {
                       {index + 1}
                     </p>
                   </td>
-                  <td className="max-w-[400px] border-white/0 py-3 pr-4">
+                  <td className="max-w-[350px] border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">
                       {file.fileName ? file.fileName.normalize("NFC") : ""}{" "}
                     </p>
                   </td>
-                  <td className="max-w-[400px] border-white/0 py-3 pr-4">
+                  <td className="max-w-[350px] border-white/0 py-3 pr-4">
                     <a
                       href={`/${file.customName}`}
                       target="_blank"
@@ -550,12 +557,12 @@ function FlippageAdmin({ currentUser }) {
                       </p>
                     </a>
                   </td>
+
                   <td className="border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">
-                      {file.uploadDate}
+                      {file.clickCount || 0}
                     </p>
                   </td>
-                  {/* Cột Người Tạo */}
                   <td className="border-white/0 py-3 pr-4 flex items-center gap-3">
                     <img
                       src={file.uploader?.avatar || "/default-avatar.png"}
@@ -570,6 +577,11 @@ function FlippageAdmin({ currentUser }) {
                         {file.uploader?.email || ""}
                       </p>
                     </div>
+                  </td>
+                  <td className="border-white/0 py-3 pr-4">
+                    <p className="text-sm font-bold text-navy-700">
+                      {file.uploadDate}
+                    </p>
                   </td>
 
                   {/* Cột Active (Switch On/Off) */}
