@@ -49,11 +49,10 @@ const HallofFame = () => {
     principals[0],
   ];
 
-  const videoRef = useRef(null);
-  const triggerRef = useRef(null);
   const navigate = useNavigate();
   const section1Ref = useRef(null);
   const section2Ref = useRef(null);
+  const carouselContainerRef = useRef(null); // Ref cho container carousel
 
   // State cho carousel
   const [currentIndex, setCurrentIndex] = useState(1);
@@ -68,11 +67,9 @@ const HallofFame = () => {
   const gap = 20; // khoảng cách giữa các slide
   const shift = currentIndex * (itemWidth + gap);
 
-  const slides = ["/halloffame/bg-slide1.jpg", "/halloffame/bg-slide2.jpg"];
-
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [topImages, setTopImages] = useState([]);
   const [bottomImages, setBottomImages] = useState([]);
+  const starStudents = t("starStudents", { returnObjects: true });
 
   useEffect(() => {
     async function fetchImages() {
@@ -188,45 +185,185 @@ const HallofFame = () => {
     }
   }, [disableTransition]);
 
+  // Hiệu ứng cho Section 1: mờ dần khi cuộn xuống
   useEffect(() => {
-    // Parallax cho Section 1 (video background)
-    gsap.to(section1Ref.current, {
-      y: -100,
-      ease: "none",
-      scrollTrigger: {
-        trigger: section1Ref.current,
-        start: "top top",
-        end: "bottom top",
-        scrub: true,
-      },
-    });
-
-    // Parallax cho Section 2 (có thể áp dụng cho toàn section hoặc các thành phần riêng bên trong)
-    gsap.to(section2Ref.current, {
-      y: -50,
-      ease: "none",
-      scrollTrigger: {
-        trigger: section2Ref.current,
-        start: "top bottom",
-        end: "bottom top",
-        scrub: true,
-      },
-    });
-
-    // Parallax cho các phần tử cụ thể bên trong Section 2 (ví dụ: hình ảnh trong carousel)
-    gsap.utils.toArray(".parallax-item").forEach((item) => {
-      gsap.to(item, {
-        y: -30,
-        ease: "none",
+    gsap.fromTo(
+      section1Ref.current,
+      { opacity: 1, y: 0 },
+      {
+        opacity: 0,
+        y: -100,
+        ease: "power3.out",
         scrollTrigger: {
-          trigger: item,
-          start: "top bottom",
-          end: "bottom top",
+          trigger: section1Ref.current,
+          start: "top top",
+          end: "bottom 20%",
           scrub: true,
         },
-      });
-    });
+        duration: 5,
+      }
+    );
   }, []);
+
+  useEffect(() => {
+    gsap.fromTo(
+      ".section2-content", // hoặc carouselContainerRef.current
+      { opacity: 0, y: 200 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 1,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: section2Ref.current,
+          start: "top 50%", // Bắt đầu khi top của section2 = 50% viewport
+          toggleActions: "play none none none",
+        },
+      }
+    );
+  }, []);
+
+  // Hiệu ứng cho carousel container trong Section 2: fade in khi cuộn vào
+  useEffect(() => {
+    gsap.fromTo(
+      carouselContainerRef.current,
+      { opacity: 0, y: 100 },
+      {
+        opacity: 1,
+        y: 0,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: section2Ref.current,
+          start: "top 80%",
+          end: "top 50%",
+          scrub: true,
+        },
+        duration: 2,
+      }
+    );
+  }, []);
+
+  // currentSlide: index của ảnh đang được highlight (phóng to)
+  const [currentSlide, setCurrentSlide] = useState(0);
+  // quoteIndex: index của ảnh đang mở quote (nếu = null thì đóng)
+  const [quoteIndex, setQuoteIndex] = useState(null);
+
+  // Dùng ref để lưu trữ interval, dễ dàng clear khi mở quote
+  const autoSlideRef = useRef(null);
+
+  // Hàm khởi tạo auto-slide (chuyển slide 3s/lần)
+  const startAutoSlide = () => {
+    // Đảm bảo clear trước khi setInterval mới
+    if (autoSlideRef.current) clearInterval(autoSlideRef.current);
+    autoSlideRef.current = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % starStudents.length);
+    }, 3000);
+  };
+
+  // Hàm dừng auto-slide
+  const stopAutoSlide = () => {
+    if (autoSlideRef.current) {
+      clearInterval(autoSlideRef.current);
+      autoSlideRef.current = null;
+    }
+  };
+
+  // Khởi tạo auto-slide khi mount
+  useEffect(() => {
+    startAutoSlide();
+    return () => {
+      // Clear interval khi unmount
+      stopAutoSlide();
+    };
+  }, []);
+
+  // Xử lý click ảnh -> toggle quote
+  const handleClickStudent = (index) => {
+    if (quoteIndex === index) {
+      // Đang mở -> đóng
+      setQuoteIndex(null);
+      // Khởi động lại auto-slide
+      startAutoSlide();
+    } else {
+      // Đóng quote khác (nếu có)
+      setQuoteIndex(index);
+      // Dừng auto-slide
+      stopAutoSlide();
+    }
+  };
+
+  // ======================
+  // Section 3: Carousel cho StarStudents (vòng lặp vô hạn)
+  // ======================
+  // Tạo mảng mở rộng để tạo vòng lặp vô hạn: clone phần tử cuối và đầu
+  const extendedStars = [
+    starStudents[starStudents.length - 1],
+    ...starStudents,
+    starStudents[0],
+  ];
+
+  const cardWidth = 360; // kích thước 1 thẻ
+
+  // Thẻ ở giữa (vị trí index = 2 của extendedStars) là thẻ active ban đầu
+  const [starCurrentSlide, setStarCurrentSlide] = useState(2);
+  // Lưu chỉ số (real index) của thẻ đang mở hộp giới thiệu; null nếu không mở
+  const [starQuoteIndex, setStarQuoteIndex] = useState(null);
+
+  const starContainerRef = useRef(null);
+  const starAutoSlideRef = useRef(null);
+  const starTransitionRef = useRef(null);
+
+  // Hàm auto-run cho Section 3 (mỗi 2 giây)
+  const startStarAutoSlide = () => {
+    if (starAutoSlideRef.current) clearInterval(starAutoSlideRef.current);
+    starAutoSlideRef.current = setInterval(() => {
+      setStarCurrentSlide((prev) => prev + 1);
+    }, 2000);
+  };
+
+  const stopStarAutoSlide = () => {
+    if (starAutoSlideRef.current) {
+      clearInterval(starAutoSlideRef.current);
+      starAutoSlideRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    startStarAutoSlide();
+    return () => {
+      stopStarAutoSlide();
+    };
+  }, [starStudents]);
+
+  // Xử lý khi transition kết thúc cho Section 3
+  const handleStarTransitionEnd = () => {
+    if (starCurrentSlide === extendedStars.length - 1) {
+      starTransitionRef.current.style.transition = "none";
+      setStarCurrentSlide(1);
+      void starTransitionRef.current.offsetWidth;
+      starTransitionRef.current.style.transition = "transform 0.5s ease-in-out";
+    }
+    if (starCurrentSlide === 0) {
+      starTransitionRef.current.style.transition = "none";
+      setStarCurrentSlide(extendedStars.length - 2);
+      void starTransitionRef.current.offsetWidth;
+      starTransitionRef.current.style.transition = "transform 0.5s ease-in-out";
+    }
+  };
+
+  // Khi click vào thẻ của Section 3: cuộn thẻ đó vào giữa và mở hộp giới thiệu
+  const handleStarCardClick = (index) => {
+    setStarCurrentSlide(index);
+    // Nếu thẻ đang mở thì đóng, ngược lại mở và dừng auto-run
+    if (starQuoteIndex === index - 1) {
+      // Lưu ý: real index của thẻ = index - 1 (vì extendedStars)
+      setStarQuoteIndex(null);
+      startStarAutoSlide();
+    } else {
+      setStarQuoteIndex(index - 1);
+      stopStarAutoSlide();
+    }
+  };
 
   return (
     <>
@@ -248,13 +385,13 @@ const HallofFame = () => {
             onClick={() => navigate("/hall-of-honor")}
             className="px-4 py-2 rounded-md font-semibold hover:bg-white hover:text-[#002855] transition-colors"
           >
-            Trang chủ
+            {t("homepage")}
           </button>
           <button
             onClick={() => navigate("/hall-of-honor/detail")}
             className="px-4 py-2 rounded-md font-semibold hover:bg-white hover:text-[#002855] transition-colors"
           >
-            Bảng vinh danh
+            {t("hallhonor")}
           </button>
         </div>
 
@@ -284,36 +421,35 @@ const HallofFame = () => {
       {/* Section 1: Video Background */}
       <section
         ref={section1Ref}
-        className="relative w-full h-screen overflow-hidden flex items-center justify-center"
+        className="relative w-full min-h-screen overflow-hidden flex items-center justify-center"
       >
-        <video
-          ref={videoRef}
-          src="/halloffame/homepage.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          webkit-playsinline="true"
-          disablePictureInPicture
+        <img
+          src="/halloffame/banner.gif"
+          alt="Banner GIF"
           className="absolute top-0 left-0 w-full h-full object-cover"
-        ></video>
+        />
       </section>
 
       {/* Section 2: Carousel */}
       <section
         ref={section2Ref}
-        className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden"
+        className="relative w-full flex flex-col items-center justify-center overflow-hidden pb-20 pt-10"
       >
+        {/* <div
+          className="absolute top-0 left-0 w-full h-40 pointer-events-none
+          bg-gradient-to-b from-[rgba(24,43,85,0.8)] to-[rgba(24,43,85,0)]"
+        /> */}
         {/* Tiêu đề */}
-        <div className="relative w-full text-center mt-20 mb-10 z-10">
-          <h2 className="text-[32px] font-semibold text-[#002147]  tracking-wide">
+        <div className="relative w-full text-center mb-10 z-10">
+          <h2 className="text-[32px] font-semibold text-[#002147] uppercase  tracking-wide">
             {t("principalMessageHeader", "Thông điệp của Hiệu trưởng")}
           </h2>
         </div>
 
         {/* Vùng carousel */}
         <div
-          className="relative w-full mx-auto overflow-hidden z-10"
+          ref={carouselContainerRef} // Áp dụng ref cho container carousel
+          className="relative w-full mx-auto overflow-hidden z-10 section2-content"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -336,13 +472,11 @@ const HallofFame = () => {
                 <div
                   key={index}
                   style={{ width: itemWidth, height: itemHeight }}
-                  className={`flex-shrink-0 rounded-[20px] px-10 py-12 transition-all duration-500 ease-in-out overflow-hidden
-              ${
-                isActive
-                  ? "bg-[#f8f8f8] scale-100 opacity-100 shadow-xl" // Slide đang hiển thị
-                  : "bg-[#D9D9D9] scale-75 opacity-90" // Slide chờ 2 bên
-              }
-            `}
+                  className={`carousel-slide flex-shrink-0 rounded-[20px] px-10 py-12 transition-all duration-500 ease-in-out overflow-hidden ${
+                    isActive
+                      ? "bg-[#f8f8f8] scale-100 opacity-100"
+                      : "bg-[#D9D9D9] scale-75 opacity-90"
+                  }`}
                 >
                   <div className="flex flex-row h-full items-start">
                     {/* Ảnh nền chìm phía sau */}
@@ -418,6 +552,117 @@ const HallofFame = () => {
               );
             })}
           </div>
+        </div>
+      </section>
+      <section
+        className="relative w-full h-[720px] flex flex-col items-center justify-center bg-cover bg-center"
+        style={{ backgroundImage: "url(/halloffame/section3.png)" }}
+      >
+        {/* Tiêu đề Section 3 */}
+        <div className="text-center mb-12">
+          <p className="text-[24px] font-medium text-[#F9D16F]">
+            {t("studenthonor")}
+          </p>
+
+          {/* Gạch ngang */}
+          <div className="flex justify-center my-4">
+            <img
+              src="/halloffame/vector.png"
+              alt="Divider"
+              className="w-[200px] md:w-[300px] h-auto"
+            />
+          </div>
+
+          <h2 className="text-[36px] md:text-4xl font-bold text-[#F9D16F] uppercase">
+            {t("student_feedback")}
+          </h2>
+        </div>
+
+        {/* Vùng 4 ảnh */}
+        <div className="relative flex items-center justify-center space-x-20 transition-all duration-500">
+          {starStudents.map((student, index) => {
+            const isActive = index === quoteIndex; // Ảnh đang mở giới thiệu
+
+            return (
+              <div
+                className={`relative flex transition-all duration-500 ${
+                  isActive ? "w-[720px]" : "w-[360px]"
+                } h-[360px]`}
+                onClick={() => handleClickStudent(index)}
+                key={index}
+              >
+                {/* Ảnh học sinh (LUÔN cố định) */}
+                <div className="relative w-[360px] h-[360px]">
+                  <img
+                    src={student.image} // Nếu bạn có trường image, nếu không hãy thay thế bằng ảnh mặc định
+                    alt={student.name[i18n.language]}
+                    className="absolute inset-0 w-full h-full object-cover rounded-xl transition-all duration-500"
+                  />
+                </div>
+
+                {/* Frame Avatar - Luôn nằm trên ảnh khi chưa click */}
+                {!isActive && (
+                  <div className="absolute inset-0 w-[360px] h-[360px] pointer-events-none z-50">
+                    <img
+                      src="/halloffame/frameavatar.png"
+                      alt="Avatar Frame"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* Frame Quote - Hiện khi click vào ảnh, luôn full chiều cao */}
+                {isActive && (
+                  <div className="absolute inset-0 w-[720px] h-full pointer-events-none z-50 flex items-stretch">
+                    <img
+                      src="/halloffame/framequote.png"
+                      alt="Quote Frame"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Overlay gradient chứa text */}
+                <div
+                  className="absolute bottom-0 w-[360px] px-4 py-10 bg-gradient-to-t rounded-b-lg"
+                  style={{
+                    background:
+                      "linear-gradient(to top, rgba(10, 40, 80, 0.9) 0%, rgba(30, 60, 120, 0) 100%)",
+                  }}
+                >
+                  <p className="absolute bottom-12 text-md font-semibold text-[#F9D16F]">
+                    {student.year[i18n.language]}
+                  </p>
+                  <p className="absolute bottom-4 text-2xl uppercase font-bold text-[#F9D16F]">
+                    {student.name[i18n.language]}
+                  </p>
+                </div>
+
+                {/* Hộp giới thiệu mở bên cạnh */}
+                {isActive && (
+                  <div
+                    className="w-[360px] bg-[#0F2B47] p-6 rounded-r-xl flex flex-col justify-center transition-all duration-500 overflow-hidden"
+                    style={{
+                      maxHeight: isActive ? "500px" : "0px", // Giới hạn chiều cao
+                      opacity: isActive ? 1 : 0, // Làm hiệu ứng fade in
+                    }}
+                  >
+                    <p className="text-lg font-semibold text-[#F9D16F]">
+                      {student.year[i18n.language]}
+                    </p>
+                    <h3 className="text-2xl font-bold text-[#F9D16F]">
+                      {student.name[i18n.language]}
+                    </h3>
+                    <p className="text-white text-[12px] mt-4 transition-all duration-500 ease-in-out">
+                      {i18n.language === "vi"
+                        ? student.quoteVi
+                        : student.quoteEn}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
       {/* Section slider */}
@@ -500,11 +745,15 @@ const HallofFame = () => {
       </section>
       {/* Footer */}
       <div className="hidden lg:block w-full">
-        <img src="/halloffame/Footer.jpg" alt="Footer" className="w-full" />
+        <img
+          src="/halloffame/Footer.png"
+          alt="Footer"
+          className="w-full object-cover"
+        />
       </div>
       <div className="lg:hidden w-full">
         <img
-          src="/halloffame/Footer_mobile.jpg"
+          src="/halloffame/Footer_mobile.png"
           alt="Footer"
           className="w-full"
         />

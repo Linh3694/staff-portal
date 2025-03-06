@@ -30,10 +30,16 @@ function MicrosoftAuthSuccess() {
 
       if (isMobile) {
         // Nếu từ mobile, điều hướng về deep link
-        window.location.href = `360wisers://auth-callback?token=${token}`;
+        setTimeout(() => {
+          window.location.replace(`360wisers://auth-callback?token=${token}`);
+        }, 1000);
       } else {
         // Nếu từ web, điều hướng bình thường
-        if (["admin", "superadmin", "technical", "marcom", "hr" ].includes(userRole)) {
+        if (
+          ["admin", "superadmin", "technical", "marcom", "hr"].includes(
+            userRole
+          )
+        ) {
           navigate("/dashboard");
         } else {
           navigate("/not-authorized");
