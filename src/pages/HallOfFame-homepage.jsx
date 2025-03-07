@@ -70,22 +70,28 @@ const HallofFame = () => {
   const [topImages, setTopImages] = useState([]);
   const [bottomImages, setBottomImages] = useState([]);
   const starStudents = t("starStudents", { returnObjects: true });
-
+  const preloadImages = (imageUrls) => {
+    imageUrls.forEach((url) => {
+      const img = new Image();
+      img.src = url;
+    });
+  };
   useEffect(() => {
     async function fetchImages() {
       try {
-        // Gọi API lấy danh sách file trong /Students
         const { data } = await axios.get(`${UPLOAD_URL}/Students`);
         if (Array.isArray(data)) {
-          // Lọc các file bắt đầu bằng "WS"
           const filtered = data.filter((file) => file.startsWith("WS"));
-          // Trộn ngẫu nhiên
           shuffleArray(filtered);
-          // Lấy 50 file đầu
           const selected = filtered.slice(0, 20);
-          // Chia 2 mảng: 25 ảnh hàng trên, 25 ảnh hàng dưới
           setTopImages(selected.slice(0, 10));
           setBottomImages(selected.slice(10, 20));
+
+          // Preload images ngay sau khi set state
+          preloadImages([
+            "/halloffame/WS-opacity-20.png",
+            ...selected.map((img) => `${UPLOAD_URL}/Students/${img}`),
+          ]);
         }
       } catch (err) {
         console.error("Error fetching images:", err);
