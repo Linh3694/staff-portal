@@ -392,15 +392,22 @@ const StudentHonorContent = ({ categoryId }) => {
     if (!record?.subAward) return "";
     const { type, month, semester, schoolYear } = record.subAward;
     const categoryName = t(`category_${categoryId}`, t("award", "Danh hiệu"));
+    const schoolYearLabel = findSchoolYearLabel(schoolYear);
+
     if (type === "month") {
-      return `${categoryName} - ${t("month", "Tháng")} ${month || "?"}`;
+      return `${categoryName} - ${t("month", "Tháng")} ${month || "?"} - ${t(
+        "schoolYear",
+        "Năm học"
+      )} ${schoolYearLabel}`;
     } else if (type === "semester") {
-      return `${categoryName} - ${t("semester", "Học kì")} ${semester || "?"}`;
+      return `${categoryName} - ${t("semester", "Học kì")} ${
+        semester || "?"
+      } - ${t("schoolYear", "Năm học")} ${schoolYearLabel}`;
     } else if (type === "year") {
       return `${categoryName} - ${t(
         "schoolYear",
         "Năm học"
-      )} ${findSchoolYearLabel(schoolYear)}`;
+      )} ${schoolYearLabel}`;
     }
     return categoryName;
   };
@@ -648,20 +655,28 @@ const StudentHonorContent = ({ categoryId }) => {
       )}
       {/* Modal hiển thị chi tiết khi click vào 1 học sinh */}
       {showModal && modalStudent && modalRecord && (
-        <div className="fixed inset-0  flex items-center justify-center z-50 bg-black bg-opacity-50">
-          <div className="lg:w-[930px] md:w-[80%] w-[95%] h-auto bg-white rounded-lg lg:pt-10 lg:px-12 pt-[15px] pb-5 relative shadow-lg">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div
+            className="lg:w-[980px] md:w-[80%] w-[95%] h-auto rounded-lg lg:py-20 lg:px-20 py-5 relative shadow-lg"
+            style={{
+              backgroundImage: `url(${
+                window.innerWidth >= 1024
+                  ? "/halloffame/studentcard-desktop.png"
+                  : "/halloffame/studentcard-mobile.png"
+              })`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          >
             {/* Bố cục chia làm 2 phần: Ảnh bên trái - Thông tin bên phải */}
             <div className="flex flex-col lg:flex-row lg:space-x-6 space-y-6 lg:space-y-0 ">
               {/* Khung ảnh với nền lệch */}
               <div className="relative flex-shrink-0 px-[20px] lg:px-0">
-                {/* Nền phía sau ảnh */}
-                <div className="absolute -top-5 -left-5 lg:w-[322px] lg:h-[428px] w-full h-auto bg-[#E6EEF6] rounded-lg shadow-lg"></div>
-                {/* Ảnh chính */}
                 {modalStudent.photo?.photoUrl ? (
                   <img
                     src={`${BASE_URL}/${modalStudent.photo.photoUrl}`}
                     alt="Student"
-                    className="relative z-10 lg:w-[322px] lg:h-[428px] w-full h-[320px] items-center object-cover object-top rounded-lg shadow-md "
+                    className="relative z-10 lg:w-[281px] lg:h-[352px] w-full h-[320px] items-center object-cover object-top rounded-lg shadow-md "
                   />
                 ) : (
                   <div className="relative z-10 lg:w-[322px] lg:h-[428px] w-[150px] h-[200px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
@@ -675,34 +690,30 @@ const StudentHonorContent = ({ categoryId }) => {
               {/* Phần thông tin học sinh */}
               <div className="flex flex-col items-start justify-start lg:px-[10px] px-[20px] ">
                 <div className="lg:w-[500px] w-full flex flex-col">
-                  <h2 className="lg:text-[24px] text-[16px] font-bold text-[#F05023]">
+                  <h2 className="lg:text-[24px] text-[16px] font-bold text-[#F9D16F]">
                     {modalStudent.student?.name}
                   </h2>
-                  <div className="flex justify-start gap-6 mt-1 text-[#757575] text-[14px]">
+                  <div className="flex justify-start gap-6 mt-1 text-[#F9D16F] text-[14px]">
                     <span className="font-semibold lg:text-[16px] text-[12px]">
                       {t("classLabel", "Lớp")}{" "}
                       {modalStudent.currentClass?.name ||
                         modalStudent.currentClass?.className ||
                         t("noClass", "Chưa cập nhật lớp")}
                     </span>
-                    <span className="font-semibold lg:text-[16px] text-[12px]">
-                      {t("schoolYearLabel", "Khóa")}{" "}
-                      {findSchoolYearLabel(modalRecord.subAward?.schoolYear)}
-                    </span>
                   </div>
                   <hr className="border-t border-gray-100 my-3 w-full" />
                 </div>
 
                 {/* Danh hiệu */}
-                <p className=" w-full mb-2 font-semibold text-[#002855] text-[13px] md:text-[15px] lg:text-[18px]">
+                <p className=" w-full mb-2 font-semibold text-white text-[13px] md:text-[15px] lg:text-[18px]">
                   {getSubAwardLabel(modalRecord)}
                 </p>
-                <div>
+                <div className="border-b-2 pb-4">
                   {/* Nội dung lời nhắn */}
                   {(i18n.language === "vi"
                     ? modalStudent.note
                     : modalStudent.noteEng) && (
-                    <p className="italic text-[#002855] my-auto text-justify lg:text-left text-[14px] md:text-[16px]">
+                    <p className=" text-white my-auto text-justify lg:text-left text-[14px] md:text-[16px]">
                       “
                       {i18n.language === "vi"
                         ? modalStudent.note
@@ -714,13 +725,11 @@ const StudentHonorContent = ({ categoryId }) => {
               </div>
             </div>
 
-            <hr className="border-t-2 border-gray-100 my-2 mx-5 md:mx-0 md:my-5" />
-
             {/* Nút đóng */}
-            <div className="flex w-full mx-auto items-center justify-center">
+            <div className="flex w-full mx-auto items-center justify-center pt-10">
               <button
                 onClick={handleCloseModal}
-                className="bg-gray-300 lg:px-4 px-2 lg:py-2 py-1 rounded-md text-[#757575] text-[13px] lg:text-[16px] font-semibold hover:bg-gray-400"
+                className="bg-[#F9D16F] lg:px-16 px-2 lg:py-1 py-1 rounded-md text-[#002855] text-[13px] lg:text-[16px] font-semibold hover:bg-gray-400"
               >
                 {t("close", "Đóng")}
               </button>

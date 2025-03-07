@@ -675,19 +675,29 @@ const ClassHonorContent = ({ categoryId }) => {
       {/* ----------------- Modal hiển thị khi click 1 lớp ----------------- */}
       {showModal && modalClass && modalRecord && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-          <div className="bg-white w-[90%] sm:w-[80%] md:w-[80%] lg:w-[80%] xl:w-[70%] 2xl:w-[60%] h-auto max-h-screen px-5 pt-6 pb-2 md:pb-2 md:px-8 lg:px-12 lg:pt-10 xl:px-14 xl:pt-10 rounded-lg relative overflow-y-auto">
+          <div
+            className="lg:w-[1200px] md:w-[80%] w-[95%] h-auto rounded-lg lg:py-16 lg:px-16 p-8 relative shadow-lg"
+            style={{
+              backgroundImage: `url(${
+                window.innerWidth >= 1024
+                  ? "/halloffame/studentcard-desktop.png"
+                  : "/halloffame/studentcard-mobile.png"
+              })`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          >
             {/* Nội dung modal */}
             <div className="w-full flex flex-col lg:flex-row gap-4">
               {/* Ảnh lớp */}
               <div className="w-full relative flex items-center justify-center">
-                <div className="hidden lg:block absolute top-1 -left-4 xl:-top-2 xl:-left-8 w-[300px] h-[430px] xl:w-[342px] xl:h-[450px] bg-[#E6EEF6] rounded-lg shadow-lg"></div>
                 {classPhotos[modalClass.classInfo?._id] ? (
                   <img
                     src={`${BASE_URL}/${
                       classPhotos[modalClass.classInfo?._id]
                     }`}
                     alt="Class"
-                    className="relative z-10 w-full h-auto xl:w-[646px] xl:h-[377px] lg:h-[360px] lg:w-[550px] object-cover rounded-lg shadow-md"
+                    className="relative z-10 w-full h-auto object-cover rounded-lg shadow-md"
                   />
                 ) : (
                   <div className="relative z-10 w-[518px] h-[377px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
@@ -698,25 +708,25 @@ const ClassHonorContent = ({ categoryId }) => {
 
               {/* Thông tin lớp */}
               <div className="w-full lg:w-[670px] xl:w-[700px] flex flex-col">
-                <h2 className="w-full lg:text-[24px] md:text-[20px] text-[16px] font-bold text-[#F05023] mb-2">
+                <h2 className="w-full lg:text-[24px] md:text-[20px] text-[16px] font-bold text-[#F9D16F] mb-2">
                   {t("classLabel", "Lớp")} {modalClass.classInfo?.className}
                 </h2>
-                <span className="w-full text-[#757575] md:text-[16px] text-[14px] font-semibold">
+                <span className="w-full text-[#F9D16F] md:text-[16px] text-[14px] font-semibold">
                   {t("schoolYearLabel", "Khóa")}{" "}
                   {findSchoolYearLabel(modalRecord.subAward?.schoolYear)}
                 </span>
 
-                <hr className=" w-full border-t border-gray-100 my-2 lg:my-4" />
+                <hr className="w-full border-t border-gray-100 my-2 lg:my-4" />
 
-                <p className=" w-full mb-2 font-semibold text-[#002855] text-[13px] md:text-[15px] lg:text-[18px]">
+                <p className=" w-full mb-2 font-semibold text-white  text-[13px] md:text-[15px] lg:text-[18px]">
                   {getSubAwardLabel(modalRecord)}
                 </p>
 
-                <div className="w-full h-auto lg:h-[300px] xl:h-[300px] overflow-y-auto">
+                <div className="w-full h-auto overflow-y-auto border-b-2 pb-4">
                   {(i18n.language === "vi"
                     ? modalClass.note
                     : modalClass.noteEng) && (
-                    <p className="italic text-[#002855] my-auto text-justify lg:text-left text-[13px] md:text-[16px]">
+                    <p className=" text-white  my-auto text-justify lg:text-left text-[13px] md:text-[15px]">
                       “
                       {i18n.language === "vi"
                         ? modalClass.note
@@ -728,13 +738,11 @@ const ClassHonorContent = ({ categoryId }) => {
               </div>
             </div>
 
-            <hr className="border-t-2 border-gray-100 my-2 md:my-5" />
-
             {/* Nút đóng */}
             <div className="flex w-full mx-auto my-2 items-center justify-center">
               <button
                 onClick={handleCloseModal}
-                className="bg-gray-300 lg:px-4 px-2 lg:py-2 py-1 rounded-md text-[#757575] text-[14px] lg:text-[16px] font-semibold hover:bg-gray-400"
+                className="bg-[#F9D16F] lg:px-4 px-2 lg:py-2 py-1 rounded-md text-[#002855] text-[14px] lg:text-[16px] font-semibold hover:bg-gray-400"
               >
                 {t("close", "Đóng")}
               </button>
