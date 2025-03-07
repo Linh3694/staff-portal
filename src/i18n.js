@@ -18,7 +18,10 @@ const resources = {
       "noPhoto": "No photo",
       "classLabel": "Class",
       "schoolYearLabel": "Label",
+      "hallmark_of_fame": "HALLMARK OF HONOR",
+      "achievement_description": "The Hall of Honor is a place to recognize and honor the achievements of students and classes at Wellspring Hanoi. The achievements are divided into categories such as Class Honor, Student Honor, Top Graduates, Scholarship Talent, WISers Excellent, WISers Inspiration, WISers Honor, WISers Effort, Standardized Test Achievements, and Competition & Tournament Achievements.",
       "noClass": "Not updated",
+      "achievement": "Achievement",
       "noInterface": "No interface for this category yet.",
       "selectSchoolYear": "Select school year",
       "selectSemester": "Select semester",
@@ -47,23 +50,23 @@ const resources = {
       "principalMessageHeader": "Principal's Message",
 
       principal1: {
-        name: "Mr. Nguyễn Vĩnh Sơn",
+        name: "Mr. Nguyen Vinh Son",
         title: "Principal of Wellspring Hanoi",
         message:
-          "Mỗi con học sinh đều xứng đáng được đón nhận, ghi nhận và công nhận về những phẩm chất cao quý, những giá trị tốt đẹp, những thành tích, kết quả nỗ lực của bản thân. Những việc làm tốt, những hành động đẹp, những tiến bộ, nỗ lực vượt trội hay sự trưởng thành trong suy nghĩ, hành động của các con - tất cả đều cần được khích lệ, động viên và vinh danh.",
+          "Every student deserves to be embraced, recognized, and acknowledged for their noble qualities, positive values, achievements, and the results of their efforts. Kind acts, admirable behaviors, progress, exceptional efforts, or maturity in their thoughts and actions - all must be encouraged, supported, and honored.",
         quote: {
           text: "Education is not the filling of a pail, but the lighting of a fire.",
           author: "William Butler Yeats"
         }
       },
       principal2: {
-        name: "Ms. Hoàng Thị Minh",
+        name: "Ms. Hoang Thi Minh",
         title: "Middle School Principal",
         message:
           "Dear Wellspring Secondary Students,\n\n We always deeply appreciate and take pride in every effort and achievement you make. Scholarships and awards are not just recognition but also motivation for you to keep exploring, growing, and conquering new goals. Whether big or small, every accomplishment and experience is a valuable part of your journey to maturity. Let’s create unforgettable memories together and build a bright future ahead, WISers! We are committed to creating an energetic, loving, and creative educational environment where every student can reach their full potential."
       },
       principal3: {
-        name: "Ms. Lê Thuý Ngà",
+        name: "Ms. Le Thuy Nga",
         title: "Elementary School Principal",
         message:
           "Every day, my heart is warmed by your joyful, kind, and respectful arrival at school, each moment a step in your growth. These admirable qualities will be recognized and rewarded by your teachers, who are dedicated to guiding you towards even brighter achievements. Each acknowledgment from your teachers is a cherished encouragement, meant to inspire and motivate you as they observe and ensure fairness in all rewards. I wish for each of you to continuously feel celebrated, upholding the pride of your teachers and parents"
@@ -80,7 +83,7 @@ const resources = {
           },
           "quoteVi": "Với mình, giá trị tiền tệ của học bổng hàng năm Wellspring trao cho con chỉ là một phần của lí do con luôn đăng ký mỗi năm. Con luôn trân trọng sự công nhận của nhà trường đối với những cố gắng, thành tích và cống hiến của mình đối với nhà trường. Điều này đã luôn tạo cho con động lực để tiếp tục nỗ lực hơn nữa. Ở Wellspring, mỗi học sinh là một cá nhân với những tài năng và cống hiến riêng - những tâm hồn rực rỡ đầy sắc màu, và quỹ học bổng tài năng Wellspring đã luôn tồn tại để ghi nhận và động viên các WISers. Lời khuyên của con dành cho các WISers mong muốn ứng tuyển là hãy tìm một thứ bạn đam mê và thấy ý nghĩa, hãy theo đuổi hết mình và cống hiến, và bạn sẽ thành công.",
           "quoteEn": "For me, the monetary value of the Wellspring Talent Scholarship was always only one side of why I applied again and again every year. I always saw the scholarship as the school’s recognition of my efforts, achievements, and contributions to the Wellspring community. This recognition gave me the motivation to continue giving my all and always strive for better. At Wellspring, each student has their own talents and contribution – the soul with beautifully unique shades. For my juniors who are pursuing a scholarship, my only advice is to find something you are passionate about, and put your all in it, and you will be successful.",
-          "image": "/halloffame/student4.png",        
+          "image": "/halloffame/student1.jpg",        
         },
         {
           "name": {
@@ -89,37 +92,37 @@ const resources = {
           },
           "year": {
             "vi": "Học sinh lớp 12ADN3",
-            "en": "Alumni of 2020 - 2022"
+            "en": "Student of Class 12ADN3"
           },
           "quoteVi": "Con đã tham gia bốn kỳ thi học bổng của Wellspring – một chương trình ý nghĩa giúp con rèn luyện tư duy logic, sáng tạo và khám phá bản thân. Mỗi năm, nhà trường mang đến những chủ đề và hình thức thi mới. Con ấn tượng nhất với phần thi video cá nhân về 'hạnh phúc' - năm 2024, nơi con thể hiện dấu ấn riêng qua cách kể chuyện sáng tạo, chia sẻ niềm vui từ tiết học, hoạt động ngoại khóa và khoảnh khắc bên bạn bè. Con khuyên các bạn ứng tuyển hãy tự tin, sáng tạo và thể hiện rõ cá tính của mình.",
           "quoteEn": "I have participated in four Wellspring scholarship competitions—an inspiring program that has helped me develop logical thinking, creativity, and self-discovery. Each year, the school introduces new themes and testing formats. In 2024, I was most impressed by the individual video competition on 'happiness', where I expressed my unique perspective through creative storytelling, sharing the joy of engaging lessons, extracurricular activities, and moments with friends. My advice for future applicants is to be confident, think outside the box, and showcase their individuality.",
-          "image": "/halloffame/student2.png",
+          "image": "/halloffame/student2.jpg",
         },
         {
           "name": {
-            "vi": "Trần Minh Hoàng",
-            "en": "Tran Minh Hoang"
+            "vi": "Nguyễn Khải Anh",
+            "en": "Nguyen Khai Anh"
           },
           "year": {
-            "vi": "Cựu học sinh khoá 2019 - 2021",
-            "en": "Alumni of 2019 - 2021"
+            "vi": "Học sinh lớp 9AD",
+            "en": "Student of Class 9AD"
           },
           "quoteVi": "Trong suốt quá trình học tại Wellspring, chương trình học, hoạt động ngoại khóa, cuộc thi và học bổng đã là nguồn động lực lớn giúp con không ngừng phát triển, và con rất biết ơn vì điều đó. Bài học quan trọng nhất mà con rút ra từ hành trình của mình là hãy luôn giữ vững niềm tin rằng mình có thể chinh phục mọi thử thách. Chúc các bạn học sinh luôn tích cực tham gia các hoạt động ngoại khóa, luôn trau dồi kỹ năng, giữ một tinh thần tích cực và sáng tạo không ngừng.",
           "quoteEn": "Throughout my time at Wellspring, the curriculum, extracurricular activities, competitions, and scholarships have been a great source of motivation, helping me continuously grow, and I am truly grateful for that. The most important lesson I have learned from my journey is to always believe that I can overcome any challenge. I encourage you all to actively participate in extracurricular activities, continuously develop your skills, maintain a positive mindset, and always be creative.",
-          "image": "/halloffame/student3.png",
+          "image": "/halloffame/student3.jpg",
         },
         {
           "name": {
-            "vi": "Phạm Thảo My",
-            "en": "Pham Thao My"
+            "vi": "Phạm Quang Anh",
+            "en": "Pham Quang Anh"
           },
           "year": {
-            "vi": "Cựu học sinh khoá 2018 - 2020",
-            "en": "Alumni of 2018 - 2020"
+            "vi": "Học sinh lớp 5A6",
+            "en": "Student of Class 5A6"
           },
           "quoteVi": "Trong thời gian học ở trường Wellspring, con cảm thấy vui, thú vị, phù hợp với độ tuổi của con. Con được trải nghiệm rất nhiều kiến thức, kĩ năng bổ ích thông qua các tiết học như: Toán, thể thao, khoa học. Con luôn cảm ơn bố mẹ đã tạo điều kiện cho con học tập tại một ngôi trường tốt như Wellspring. Để đạt được học bổng thì con đặt lên hàng đầu sự chỉn chu trong làm bài; trả lời, thuyết trình lưu loát và sáng tạo không ngừng. Ngoài ra, bố mẹ là người giúp đỡ cho con, làm thầy cô hoặc ban giám khảo để con tập luyện thuyết trình. Từ đó, con trở nên tự tin, mạnh mẽ hơn khi khó khăn.",
           "quoteEn": "During my time studying at Wellspring School, I felt happy, engaged, and well-suited to my age. I gained a lot of valuable knowledge and skills through subjects like Math, Sports, and Science. I am always grateful to my parents for providing me with the opportunity to study at such a great school like Wellspring. In order to achieve the scholarship, I prioritize meticulousness in my work; I strive to respond, present fluently, and continuously think creatively. Additionally, my parents are the ones who support me, acting as teachers or judges to help me practice presenting. As a result, I have become more confident and resilient when faced with challenges.",
-          "image": "/halloffame/student4.png",
+          "image": "/halloffame/student4.jpg",
         }
       ]
     }
@@ -141,10 +144,12 @@ const resources = {
       "classLabel": "Lớp",
       "schoolYearLabel": "Khoá",
       "noClass": "Chưa cập nhật lớp",
+      "achievement": "Thành tích",
       "noInterface": "Chưa có giao diện cho danh mục này.",
       "selectSchoolYear": "Chọn năm học",
       "selectSemester": "Chọn học kì",
       "selectMonth": "Chọn tháng",
+      "hallmark_of_fame": "Dấu ấn danh vọng",
       "searchNamePlaceholder": "Tìm kiếm tên",
       "schoolYearText": "Năm học",
       "noMatchingRecords": "Không có record nào phù hợp...",
@@ -153,6 +158,7 @@ const resources = {
       "student_honor": "Học sinh Danh dự",
       "top_graduates": "Thủ khoa Tốt nghiệp",
       "scholarship_talent": "Học bổng Tài năng",
+      "achievement_description": "Bảng vinh danh là nơi ghi nhận và vinh danh những thành tích của học sinh và lớp học tại Wellspring Hà Nội. Các thành tích được chia thành các danh mục như Lớp Danh dự, Học sinh Danh dự, Thủ khoa Tốt nghiệp, Học bổng Tài năng, WISers Ưu tú, WISers Truyền cảm hứng, WISers Danh dự, WISers Nỗ lực, Thành tích các bài thi chuẩn hóa, Thành tích trong các cuộc thi và giải đấu.",
       "wiser_excellent": "WISers Ưu tú",
       "wiser_inspiration": "WISers Truyền cảm hứng",
       "wiser_honor": "WISers Danh dự",
@@ -201,7 +207,7 @@ const resources = {
           },
           "quoteVi": "Với mình, giá trị tiền tệ của học bổng hàng năm Wellspring trao cho con chỉ là một phần của lí do con luôn đăng ký mỗi năm. Con luôn trân trọng sự công nhận của nhà trường đối với những cố gắng, thành tích và cống hiến của mình đối với nhà trường. Điều này đã luôn tạo cho con động lực để tiếp tục nỗ lực hơn nữa. Ở Wellspring, mỗi học sinh là một cá nhân với những tài năng và cống hiến riêng - những tâm hồn rực rỡ đầy sắc màu, và quỹ học bổng tài năng Wellspring đã luôn tồn tại để ghi nhận và động viên các WISers. Lời khuyên của con dành cho các WISers mong muốn ứng tuyển là hãy tìm một thứ bạn đam mê và thấy ý nghĩa, hãy theo đuổi hết mình và cống hiến, và bạn sẽ thành công.",
           "quoteEn": "For me, the monetary value of the Wellspring Talent Scholarship was always only one side of why I applied again and again every year. I always saw the scholarship as the school’s recognition of my efforts, achievements, and contributions to the Wellspring community. This recognition gave me the motivation to continue giving my all and always strive for better. At Wellspring, each student has their own talents and contribution – the soul with beautifully unique shades. For my juniors who are pursuing a scholarship, my only advice is to find something you are passionate about, and put your all in it, and you will be successful.",
-          "image": "/halloffame/student4.png",        
+          "image": "/halloffame/student1.jpg",        
         },
         {
           "name": {
@@ -210,37 +216,37 @@ const resources = {
           },
           "year": {
             "vi": "Học sinh lớp 12ADN3",
-            "en": "Alumni of 2020 - 2022"
+            "en": "Student of Class 12ADN3"
           },
           "quoteVi": "Con đã tham gia bốn kỳ thi học bổng của Wellspring – một chương trình ý nghĩa giúp con rèn luyện tư duy logic, sáng tạo và khám phá bản thân. Mỗi năm, nhà trường mang đến những chủ đề và hình thức thi mới. Con ấn tượng nhất với phần thi video cá nhân về 'hạnh phúc' - năm 2024, nơi con thể hiện dấu ấn riêng qua cách kể chuyện sáng tạo, chia sẻ niềm vui từ tiết học, hoạt động ngoại khóa và khoảnh khắc bên bạn bè. Con khuyên các bạn ứng tuyển hãy tự tin, sáng tạo và thể hiện rõ cá tính của mình.",
           "quoteEn": "I have participated in four Wellspring scholarship competitions—an inspiring program that has helped me develop logical thinking, creativity, and self-discovery. Each year, the school introduces new themes and testing formats. In 2024, I was most impressed by the individual video competition on 'happiness', where I expressed my unique perspective through creative storytelling, sharing the joy of engaging lessons, extracurricular activities, and moments with friends. My advice for future applicants is to be confident, think outside the box, and showcase their individuality.",
-          "image": "/halloffame/student2.png",
+          "image": "/halloffame/student2.jpg",
         },
         {
           "name": {
-            "vi": "Trần Minh Hoàng",
-            "en": "Tran Minh Hoang"
+            "vi": "Nguyễn Khải Anh",
+            "en": "Nguyen Khai Anh"
           },
           "year": {
-            "vi": "Cựu học sinh khoá 2019 - 2021",
-            "en": "Alumni of 2019 - 2021"
+            "vi": "Học sinh lớp 9AD",
+            "en": "Student of Class 9AD"
           },
           "quoteVi": "Trong suốt quá trình học tại Wellspring, chương trình học, hoạt động ngoại khóa, cuộc thi và học bổng đã là nguồn động lực lớn giúp con không ngừng phát triển, và con rất biết ơn vì điều đó. Bài học quan trọng nhất mà con rút ra từ hành trình của mình là hãy luôn giữ vững niềm tin rằng mình có thể chinh phục mọi thử thách. Chúc các bạn học sinh luôn tích cực tham gia các hoạt động ngoại khóa, luôn trau dồi kỹ năng, giữ một tinh thần tích cực và sáng tạo không ngừng.",
           "quoteEn": "Throughout my time at Wellspring, the curriculum, extracurricular activities, competitions, and scholarships have been a great source of motivation, helping me continuously grow, and I am truly grateful for that. The most important lesson I have learned from my journey is to always believe that I can overcome any challenge. I encourage you all to actively participate in extracurricular activities, continuously develop your skills, maintain a positive mindset, and always be creative.",
-          "image": "/halloffame/student3.png",
+          "image": "/halloffame/student3.jpg",
         },
         {
           "name": {
-            "vi": "Phạm Thảo My",
-            "en": "Pham Thao My"
+            "vi": "Phạm Quang Anh",
+            "en": "Pham Quang Anh"
           },
           "year": {
-            "vi": "Cựu học sinh khoá 2018 - 2020",
-            "en": "Alumni of 2018 - 2020"
+            "vi": "Học sinh lớp 5A6",
+            "en": "Student of Class 5A6"
           },
           "quoteVi": "Trong thời gian học ở trường Wellspring, con cảm thấy vui, thú vị, phù hợp với độ tuổi của con. Con được trải nghiệm rất nhiều kiến thức, kĩ năng bổ ích thông qua các tiết học như: Toán, thể thao, khoa học. Con luôn cảm ơn bố mẹ đã tạo điều kiện cho con học tập tại một ngôi trường tốt như Wellspring. Để đạt được học bổng thì con đặt lên hàng đầu sự chỉn chu trong làm bài; trả lời, thuyết trình lưu loát và sáng tạo không ngừng. Ngoài ra, bố mẹ là người giúp đỡ cho con, làm thầy cô hoặc ban giám khảo để con tập luyện thuyết trình. Từ đó, con trở nên tự tin, mạnh mẽ hơn khi khó khăn.",
           "quoteEn": "During my time studying at Wellspring School, I felt happy, engaged, and well-suited to my age. I gained a lot of valuable knowledge and skills through subjects like Math, Sports, and Science. I am always grateful to my parents for providing me with the opportunity to study at such a great school like Wellspring. In order to achieve the scholarship, I prioritize meticulousness in my work; I strive to respond, present fluently, and continuously think creatively. Additionally, my parents are the ones who support me, acting as teachers or judges to help me practice presenting. As a result, I have become more confident and resilient when faced with challenges.",
-          "image": "/halloffame/student4.png",
+          "image": "/halloffame/student4.jpg",
         }
       ]
     }

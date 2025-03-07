@@ -144,7 +144,7 @@ function HallOfFamePublicPage() {
       </div>
       {/* Footer */}
       <footer className="hidden lg:block w-full">
-        <img src="/halloffame/Footer.png" alt="Footer" className="w-full" />
+        <img src="/halloffame/Footer.svg" alt="Footer" className="w-full" />
       </footer>
       <footer className="lg:hidden w-full">
         <img

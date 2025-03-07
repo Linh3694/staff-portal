@@ -82,10 +82,10 @@ const HallofFame = () => {
           // Trộn ngẫu nhiên
           shuffleArray(filtered);
           // Lấy 50 file đầu
-          const selected = filtered.slice(0, 50);
+          const selected = filtered.slice(0, 20);
           // Chia 2 mảng: 25 ảnh hàng trên, 25 ảnh hàng dưới
-          setTopImages(selected.slice(0, 25));
-          setBottomImages(selected.slice(25, 50));
+          setTopImages(selected.slice(0, 10));
+          setBottomImages(selected.slice(10, 20));
         }
       } catch (err) {
         console.error("Error fetching images:", err);
@@ -185,25 +185,25 @@ const HallofFame = () => {
     }
   }, [disableTransition]);
 
-  // Hiệu ứng cho Section 1: mờ dần khi cuộn xuống
-  useEffect(() => {
-    gsap.fromTo(
-      section1Ref.current,
-      { opacity: 1, y: 0 },
-      {
-        opacity: 0,
-        y: -100,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: section1Ref.current,
-          start: "top top",
-          end: "bottom 20%",
-          scrub: true,
-        },
-        duration: 5,
-      }
-    );
-  }, []);
+  // // Hiệu ứng cho Section 1: mờ dần khi cuộn xuống
+  // useEffect(() => {
+  //   gsap.fromTo(
+  //     section1Ref.current,
+  //     { opacity: 1, y: 0 },
+  //     {
+  //       opacity: 0,
+  //       y: -100,
+  //       ease: "power3.out",
+  //       scrollTrigger: {
+  //         trigger: section1Ref.current,
+  //         start: "top top",
+  //         end: "bottom 20%",
+  //         scrub: true,
+  //       },
+  //       duration: 5,
+  //     }
+  //   );
+  // }, []);
 
   useEffect(() => {
     gsap.fromTo(
@@ -423,17 +423,22 @@ const HallofFame = () => {
         ref={section1Ref}
         className="relative w-full min-h-screen overflow-hidden flex items-center justify-center"
       >
-        <img
-          src="/halloffame/banner.gif"
-          alt="Banner GIF"
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
           className="absolute top-0 left-0 w-full h-full object-cover"
-        />
+        >
+          <source src="/halloffame/banner.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
       </section>
 
       {/* Section 2: Carousel */}
       <section
         ref={section2Ref}
-        className="relative w-full flex flex-col items-center justify-center overflow-hidden pb-20 pt-10"
+        className="relative w-full flex flex-col items-center justify-center overflow-hidden py-40"
       >
         {/* <div
           className="absolute top-0 left-0 w-full h-40 pointer-events-none
@@ -554,6 +559,7 @@ const HallofFame = () => {
           </div>
         </div>
       </section>
+
       <section
         className="relative w-full h-[720px] flex flex-col items-center justify-center bg-cover bg-center"
         style={{ backgroundImage: "url(/halloffame/section3.png)" }}
@@ -596,7 +602,7 @@ const HallofFame = () => {
                   <img
                     src={student.image} // Nếu bạn có trường image, nếu không hãy thay thế bằng ảnh mặc định
                     alt={student.name[i18n.language]}
-                    className="absolute inset-0 w-full h-full object-cover rounded-xl transition-all duration-500"
+                    className="absolute inset-0 w-full h-full object-cover object-top rounded-xl transition-all duration-500"
                   />
                 </div>
 
@@ -624,16 +630,16 @@ const HallofFame = () => {
 
                 {/* Overlay gradient chứa text */}
                 <div
-                  className="absolute bottom-0 w-[360px] px-4 py-10 bg-gradient-to-t rounded-b-lg"
+                  className="absolute bottom-0 w-[360px] px-4 py-16 bg-gradient-to-t rounded-b-lg"
                   style={{
                     background:
-                      "linear-gradient(to top, rgba(10, 40, 80, 0.9) 0%, rgba(30, 60, 120, 0) 100%)",
+                      "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",
                   }}
                 >
-                  <p className="absolute bottom-12 text-md font-semibold text-[#F9D16F]">
+                  <p className="absolute bottom-14 text-md font-semibold text-[#F9D16F]">
                     {student.year[i18n.language]}
                   </p>
-                  <p className="absolute bottom-4 text-2xl uppercase font-bold text-[#F9D16F]">
+                  <p className="absolute bottom-4 text-3xl uppercase font-bold text-[#F9D16F]">
                     {student.name[i18n.language]}
                   </p>
                 </div>
@@ -663,6 +669,65 @@ const HallofFame = () => {
               </div>
             );
           })}
+        </div>
+      </section>
+      {/* Section: Dấu ấn danh vọng */}
+      <section className="relative w-full flex flex-col items-center justify-center p-20 overflow-hidden">
+        {/* Ảnh nền chìm */}
+        <div
+          className="w-[1075px] h-[1075px] absolute -right-44 bottom-[50px] bg-no-repeat bg-contain"
+          style={{ backgroundImage: "url('/halloffame/WS-opacity-20.png')" }}
+        />
+
+        {/* Tiêu đề */}
+        <h2 className="text-[32px] font-bold text-[#002147] uppercase mb-12">
+          {t("hallmark_of_fame", "Dấu ấn danh vọng")}
+        </h2>
+
+        {/* Video chính */}
+        <div className="relative flex flex-row w-full items-center justify-center mb-10">
+          <iframe
+            className="w-[880px] h-[495px] lg:h-[560px] shadow-lg rounded-lg"
+            src="https://www.youtube.com/embed/abc123"
+            title="YouTube video player"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+          <div className="flex flex-col self-start px-8">
+            <p className="text-left my-5 text-[#002147] font-semibold uppercase text-[24px]">
+              {t("achievement", "THÀNH TÍCH")}
+            </p>
+            <p className="max-w-[385px] text-left text-[20px] text-[#757575]">
+              {t(
+                "achievement_description",
+                "Mô tả về thành tích đại loại là viết dài dài tầm này là vừa"
+              )}
+            </p>
+          </div>
+        </div>
+
+        {/* Video thứ hai */}
+        <div className="relative flex flex-row items-center justify-center w-full">
+          <div className="flex flex-col self-start px-8">
+            <p className="text-right my-5 text-[#002147] font-semibold uppercase text-[24px]">
+              {t("achievement", "THÀNH TÍCH")}
+            </p>
+            <p className="text-right max-w-[385px] text-[20px] text-[#757575]">
+              {t(
+                "achievement_description",
+                "Mô tả về thành tích đại loại là viết dài dài tầm này là vừa"
+              )}
+            </p>
+          </div>
+          <iframe
+            className="w-[880px] h-[495px] lg:h-[560px] shadow-lg rounded-lg"
+            src="https://www.youtube.com/embed/def456"
+            title="YouTube video player"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
         </div>
       </section>
       {/* Section slider */}
@@ -730,15 +795,15 @@ const HallofFame = () => {
             <img
               src="/halloffame/HOH-gold.png"
               alt="Hall of Honor"
-              className="shimmer-text w-[300px] md:w-[400px] mb-8"
+              className="shimmer-text w-[612px] mb-8"
             />
           </div>
           <button
             onClick={() => navigate("/hall-of-honor/detail")}
-            className="mt-2 px-16 py-2 bg-[#002147] rounded-full font-semibold transition-colors"
+            className="w-[433px] mt-2 px-16 py-2 bg-[#F9D16F] rounded-full font-semibold transition-colors"
           >
-            <h3 className="shimmer-text text-[24px] font-bold ">
-              Bảng vinh danh
+            <h3 className="shimmer-text-2 text-[24px] font-bold">
+              Xem Bảng Vinh Danh
             </h3>
           </button>
         </div>
@@ -746,7 +811,7 @@ const HallofFame = () => {
       {/* Footer */}
       <div className="hidden lg:block w-full">
         <img
-          src="/halloffame/Footer.png"
+          src="/halloffame/Footer.svg"
           alt="Footer"
           className="w-full object-cover"
         />
