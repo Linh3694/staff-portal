@@ -7,6 +7,10 @@ import { useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import Splide from "@splidejs/splide";
+import { AutoScroll } from "@splidejs/splide-extension-auto-scroll";
+import "@splidejs/splide/dist/css/splide.min.css";
+import "animate.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -39,7 +43,7 @@ const HallofFame = () => {
       name: t("principal3.name"),
       title: t("principal3.title"),
       message: t("principal3.message"),
-      image: "/halloffame/hoangthiminh.jpg",
+      image: "/halloffame/lethuynga.png",
     },
   ];
 
@@ -101,6 +105,34 @@ const HallofFame = () => {
     fetchImages();
   }, []);
 
+  useEffect(() => {
+    const splide = new Splide(".splide", {
+      type: "loop",
+      drag: "free",
+      focus: "center",
+      autoWidth: true,
+      autoScroll: {
+        speed: 0.5,
+      },
+      gap: "1.5rem", // Hoặc 20, 30px, v.v.
+
+      breakpoints: {
+        1024: {
+          autoWidth: false,
+          perPage: 2,
+        },
+        640: {
+          autoWidth: false,
+          perPage: 1,
+        },
+      },
+    });
+
+    splide.mount({ AutoScroll });
+
+    return () => splide.destroy();
+  }, []);
+
   // Hàm trộn mảng
   function shuffleArray(arr) {
     let currentIndex = arr.length;
@@ -120,15 +152,19 @@ const HallofFame = () => {
       const width = window.innerWidth;
       if (width < 640) {
         // Mobile: 90% chiều rộng, chiều cao nhỏ hơn
-        setItemWidth(width * 0.9);
-        setItemHeight(300);
+        setItemWidth(width * 1);
+        setItemHeight(400);
       } else if (width < 1024) {
         // Laptop 13" hoặc 14": 80% chiều rộng, chiều cao trung bình
         setItemWidth(width * 0.8);
         setItemHeight(400);
+      } else if (width < 1600) {
+        // Màn hình dưới 1600px: 85% chiều rộng, chiều cao lớn hơn
+        setItemWidth(width * 0.65);
+        setItemHeight(500);
       } else {
         // Laptop lớn 15.6" và FullHD 24": sử dụng kích thước cố định hoặc tỷ lệ cố định
-        setItemWidth(1280);
+        setItemWidth(1333);
         setItemHeight(560);
       }
     };
@@ -170,12 +206,10 @@ const HallofFame = () => {
   // Sau khi transition kết thúc, xử lý chuyển đổi nếu đang ở slide clone
   const handleTransitionEnd = () => {
     if (currentIndex === extendedPrincipals.length - 1) {
-      // Nếu đang ở clone của ảnh đầu, vô hiệu transition và cập nhật về ảnh số 1 thật sự
       setDisableTransition(true);
       setCurrentIndex(1);
     }
     if (currentIndex === 0) {
-      // Nếu đang ở clone của ảnh cuối, vô hiệu transition và cập nhật về ảnh số 4 thật sự
       setDisableTransition(true);
       setCurrentIndex(extendedPrincipals.length - 2);
     }
@@ -183,7 +217,6 @@ const HallofFame = () => {
   };
 
   useEffect(() => {
-    // Sau khi cập nhật index, bật lại transition ngay sau 1 frame
     if (disableTransition) {
       requestAnimationFrame(() => {
         setDisableTransition(false);
@@ -191,60 +224,38 @@ const HallofFame = () => {
     }
   }, [disableTransition]);
 
-  // // Hiệu ứng cho Section 1: mờ dần khi cuộn xuống
-  // useEffect(() => {
-  //   gsap.fromTo(
-  //     section1Ref.current,
-  //     { opacity: 1, y: 0 },
-  //     {
-  //       opacity: 0,
-  //       y: -100,
-  //       ease: "power3.out",
-  //       scrollTrigger: {
-  //         trigger: section1Ref.current,
-  //         start: "top top",
-  //         end: "bottom 20%",
-  //         scrub: true,
-  //       },
-  //       duration: 5,
-  //     }
-  //   );
-  // }, []);
-
   useEffect(() => {
     gsap.fromTo(
-      ".section2-content", // hoặc carouselContainerRef.current
-      { opacity: 0, y: 200 },
+      ".section2-title",
+      { opacity: 0, y: 50 },
       {
         opacity: 1,
         y: 0,
-        duration: 1,
+        duration: 3,
         ease: "power3.out",
         scrollTrigger: {
           trigger: section2Ref.current,
-          start: "top 50%", // Bắt đầu khi top của section2 = 50% viewport
+          start: "top 80%",
           toggleActions: "play none none none",
         },
       }
     );
   }, []);
 
-  // Hiệu ứng cho carousel container trong Section 2: fade in khi cuộn vào
   useEffect(() => {
     gsap.fromTo(
-      carouselContainerRef.current,
-      { opacity: 0, y: 100 },
+      ".section2-slide",
+      { opacity: 0, y: 50 },
       {
         opacity: 1,
         y: 0,
+        duration: 3,
         ease: "power3.out",
         scrollTrigger: {
           trigger: section2Ref.current,
-          start: "top 80%",
-          end: "top 50%",
-          scrub: true,
+          start: "top 60%",
+          toggleActions: "play none none none",
         },
-        duration: 2,
       }
     );
   }, []);
@@ -341,36 +352,6 @@ const HallofFame = () => {
     };
   }, [starStudents]);
 
-  // Xử lý khi transition kết thúc cho Section 3
-  const handleStarTransitionEnd = () => {
-    if (starCurrentSlide === extendedStars.length - 1) {
-      starTransitionRef.current.style.transition = "none";
-      setStarCurrentSlide(1);
-      void starTransitionRef.current.offsetWidth;
-      starTransitionRef.current.style.transition = "transform 0.5s ease-in-out";
-    }
-    if (starCurrentSlide === 0) {
-      starTransitionRef.current.style.transition = "none";
-      setStarCurrentSlide(extendedStars.length - 2);
-      void starTransitionRef.current.offsetWidth;
-      starTransitionRef.current.style.transition = "transform 0.5s ease-in-out";
-    }
-  };
-
-  // Khi click vào thẻ của Section 3: cuộn thẻ đó vào giữa và mở hộp giới thiệu
-  const handleStarCardClick = (index) => {
-    setStarCurrentSlide(index);
-    // Nếu thẻ đang mở thì đóng, ngược lại mở và dừng auto-run
-    if (starQuoteIndex === index - 1) {
-      // Lưu ý: real index của thẻ = index - 1 (vì extendedStars)
-      setStarQuoteIndex(null);
-      startStarAutoSlide();
-    } else {
-      setStarQuoteIndex(index - 1);
-      stopStarAutoSlide();
-    }
-  };
-
   return (
     <>
       <header className="fixed top-0 left-0 w-full h-[80px] bg-[#002855] text-white flex items-center lg:shadow-none justify-between lg:px-20 px-6 shadow-md z-50">
@@ -427,14 +408,14 @@ const HallofFame = () => {
       {/* Section 1: Video Background */}
       <section
         ref={section1Ref}
-        className="relative w-full min-h-screen overflow-hidden flex items-center justify-center"
+        className="fixed-section relative w-full min-h-screen overflow-hidden flex items-center justify-center rounded-t-3xl"
       >
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="absolute top-0 left-0 w-full h-full object-cover"
+          className="absolute top-0 left-0 w-full h-full md:object-cover object-contain"
         >
           <source src="/halloffame/banner.mp4" type="video/mp4" />
           Your browser does not support the video tag.
@@ -444,15 +425,11 @@ const HallofFame = () => {
       {/* Section 2: Carousel */}
       <section
         ref={section2Ref}
-        className="relative w-full flex flex-col items-center justify-center overflow-hidden py-40"
+        className="bg-white relative w-full flex flex-col items-center justify-center overflow-hidden h-screen mt-[100vh]"
       >
-        {/* <div
-          className="absolute top-0 left-0 w-full h-40 pointer-events-none
-          bg-gradient-to-b from-[rgba(24,43,85,0.8)] to-[rgba(24,43,85,0)]"
-        /> */}
         {/* Tiêu đề */}
         <div className="relative w-full text-center mb-10 z-10">
-          <h2 className="text-[32px] font-semibold text-[#002147] uppercase  tracking-wide">
+          <h2 className="section2-title xl:text-[32px] text-xl font-semibold text-[#002147] uppercase  tracking-wide">
             {t("principalMessageHeader", "Thông điệp của Hiệu trưởng")}
           </h2>
         </div>
@@ -460,7 +437,7 @@ const HallofFame = () => {
         {/* Vùng carousel */}
         <div
           ref={carouselContainerRef} // Áp dụng ref cho container carousel
-          className="relative w-full mx-auto overflow-hidden z-10 section2-content"
+          className="section2-slide relative w-full mx-auto overflow-hidden z-10 section2-content"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -504,27 +481,23 @@ const HallofFame = () => {
                     <img
                       src={principal.image}
                       alt={principal.name}
-                      className="w-auto h-[1500px] absolute -bottom-[50px] right-10  object-contain pointer-events-none"
-                      style={{
-                        width: itemWidth * 0.4,
-                        height: itemHeight * 0.85,
-                      }}
+                      className="w-auto 2xl:h-[500px] h-[450px] absolute -bottom-[50px] 2xl:right-10 right-0 object-contain pointer-events-none"
                     />
                     {/* Cột text */}
-                    <div className="w-[730px] flex flex-col items-start z-10">
+                    <div className="2xl:w-[730px] w-[600px] flex flex-col items-start z-10">
                       <div>
-                        <div className="mb-4">
+                        <div className="my-3">
                           <p
                             style={{ whiteSpace: "pre-line" }}
-                            className="text-[#002855] text-xl text-semibold leading-[30px]"
+                            className="text-[#002855] 2xl:text-xl text-lg text-semibold leading-relaxed"
                           >
                             {principal.message}
                           </p>
                         </div>
                         {principal.quote && (
-                          <blockquote className="italic text-[#002855] text-xl text-semibold leading-[30px]">
+                          <blockquote className="italic text-[#002855] 2xl:text-xl text-lg text-semibold leading-relaxed">
                             “{principal.quote.text}”
-                            <footer className="mt-2 text-right text-[#002855] text-lg text-semibold leading-[30px]">
+                            <footer className="mt-2 text-right text-[#002855] 2xl:text-lg text-md text-semibold leading-relaxed">
                               - {principal.quote.author}
                             </footer>
                           </blockquote>
@@ -537,7 +510,7 @@ const HallofFame = () => {
                             {principal.title}
                           </p>
                           {/* Nút chuyển slide */}
-                          <div className="absolute md:bottom-12 bottom-4">
+                          <div className="absolute md:bottom-8 bottom-4">
                             {isActive && (
                               <div className="mt-4 flex space-x-2">
                                 <button
@@ -567,7 +540,7 @@ const HallofFame = () => {
       </section>
 
       <section
-        className="relative w-full h-[720px] flex flex-col items-center justify-center bg-cover bg-center"
+        className="relative w-full h-[720px] flex flex-col items-center justify-center bg-cover bg-center overflow-hidden"
         style={{ backgroundImage: "url(/halloffame/section3.png)" }}
       >
         {/* Tiêu đề Section 3 */}
@@ -575,8 +548,6 @@ const HallofFame = () => {
           <p className="text-[24px] font-medium text-[#F9D16F]">
             {t("studenthonor")}
           </p>
-
-          {/* Gạch ngang */}
           <div className="flex justify-center my-4">
             <img
               src="/halloffame/vector.png"
@@ -584,101 +555,111 @@ const HallofFame = () => {
               className="w-[200px] md:w-[300px] h-auto"
             />
           </div>
-
           <h2 className="text-[36px] md:text-4xl font-bold text-[#F9D16F] uppercase">
             {t("student_feedback")}
           </h2>
         </div>
 
-        {/* Vùng 4 ảnh */}
-        <div className="relative flex items-center justify-center space-x-20 transition-all duration-500">
-          {starStudents.map((student, index) => {
-            const isActive = index === quoteIndex; // Ảnh đang mở giới thiệu
+        {/* Slider Splide */}
+        <div className="splide w-full max-w-[1900px]">
+          <div className="splide__track">
+            <ul className="splide__list">
+              {starStudents.map((student, index) => {
+                const isActive = index === quoteIndex; // Kiểm tra nếu học sinh được chọn
+                return (
+                  <li
+                    className={`
+                      splide__slide 
+                      relative 
+                      flex 
+                      transition-all 
+                      duration-500
+                      overflow-hidden
 
-            return (
-              <div
-                className={`relative flex transition-all duration-500 ${
-                  isActive ? "w-[720px]" : "w-[360px]"
-                } h-[360px]`}
-                onClick={() => handleClickStudent(index)}
-                key={index}
-              >
-                {/* Ảnh học sinh (LUÔN cố định) */}
-                <div className="relative w-[360px] h-[360px]">
-                  <img
-                    src={student.image} // Nếu bạn có trường image, nếu không hãy thay thế bằng ảnh mặc định
-                    alt={student.name[i18n.language]}
-                    className="absolute inset-0 w-full h-full object-cover object-top rounded-xl transition-all duration-500"
-                  />
-                </div>
-
-                {/* Frame Avatar - Luôn nằm trên ảnh khi chưa click */}
-                {!isActive && (
-                  <div className="absolute inset-0 w-[360px] h-[360px] pointer-events-none z-50">
-                    <img
-                      src="/halloffame/frameavatar.png"
-                      alt="Avatar Frame"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                )}
-
-                {/* Frame Quote - Hiện khi click vào ảnh, luôn full chiều cao */}
-                {isActive && (
-                  <div className="absolute inset-0 w-[720px] h-full pointer-events-none z-50 flex items-stretch">
-                    <img
-                      src="/halloffame/framequote.png"
-                      alt="Quote Frame"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-
-                {/* Overlay gradient chứa text */}
-                <div
-                  className="absolute bottom-0 w-[360px] px-4 py-16 bg-gradient-to-t rounded-b-lg"
-                  style={{
-                    background:
-                      "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",
-                  }}
-                >
-                  <p className="absolute bottom-14 text-md font-semibold text-[#F9D16F]">
-                    {student.year[i18n.language]}
-                  </p>
-                  <p className="absolute bottom-4 text-3xl uppercase font-bold text-[#F9D16F]">
-                    {student.name[i18n.language]}
-                  </p>
-                </div>
-
-                {/* Hộp giới thiệu mở bên cạnh */}
-                {isActive && (
-                  <div
-                    className="w-[360px] bg-[#0F2B47] p-6 rounded-r-xl flex flex-col justify-center transition-all duration-500 overflow-hidden"
-                    style={{
-                      maxHeight: isActive ? "500px" : "0px", // Giới hạn chiều cao
-                      opacity: isActive ? 1 : 0, // Làm hiệu ứng fade in
-                    }}
+                      ${isActive ? "w-[720px]" : "w-[360px]"}
+                    `}
+                    onClick={() => handleClickStudent(index)}
+                    key={index}
                   >
-                    <p className="text-lg font-semibold text-[#F9D16F]">
-                      {student.year[i18n.language]}
-                    </p>
-                    <h3 className="text-2xl font-bold text-[#F9D16F]">
-                      {student.name[i18n.language]}
-                    </h3>
-                    <p className="text-white text-[12px] mt-4 transition-all duration-500 ease-in-out">
-                      {i18n.language === "vi"
-                        ? student.quoteVi
-                        : student.quoteEn}
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                    {/* Ảnh học sinh */}
+                    <div className="relative 2xl:w-[360px] w-[280px] h-[360px]">
+                      <img
+                        src={student.image}
+                        alt={student.name[i18n.language]}
+                        className="absolute inset-0 w-full h-full object-cover object-top rounded-xl transition-all duration-500"
+                      />
+                    </div>
+
+                    {/* Frame Avatar */}
+                    {!isActive && (
+                      <div className="absolute inset-0 2xl:w-[360px] w-[280px] h-[360px] pointer-events-none z-50">
+                        <img
+                          src="/halloffame/frameavatar.png"
+                          alt="Avatar Frame"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {/* Frame Quote */}
+                    {isActive && (
+                      <div className="absolute inset-0 2xl:w-[720px] w-[560px] h-full pointer-events-none z-50 flex items-stretch">
+                        <img
+                          src="/halloffame/framequote.png"
+                          alt="Quote Frame"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {/* Overlay gradient chứa text */}
+                    <div
+                      className="2xl:w-[360px] w-[280px] px-4 py-12 absolute bottom-0 transition-all duration-500 rounded-b-lg"
+                      style={{
+                        background:
+                          "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",
+                      }}
+                    >
+                      <p className="absolute bottom-14 text-md font-semibold text-[#F9D16F]">
+                        {student.year[i18n.language]}
+                      </p>
+                      <p className="absolute bottom-4 2xl:text-3xl text-2xl uppercase font-bold text-[#F9D16F]">
+                        {student.name[i18n.language]}
+                      </p>
+                    </div>
+
+                    {/* Hộp giới thiệu mở bên cạnh */}
+                    {isActive && (
+                      <div
+                        className="p-6 rounded-xl flex flex-col justify-center transition-all duration-500 ease-in-out"
+                        style={{
+                          // Khi chưa active => maxWidth = 0 => ẩn. Khi active => hiển thị đầy đủ
+                          maxWidth: isActive ? "360px" : "0px",
+                          opacity: isActive ? 1 : 0,
+                        }}
+                      >
+                        <p className="text-lg font-semibold text-[#F9D16F]">
+                          {student.year[i18n.language]}
+                        </p>
+                        <h3 className="text-2xl font-bold text-[#F9D16F]">
+                          {student.name[i18n.language]}
+                        </h3>
+                        <p className="text-white text-[12px] mt-4">
+                          {i18n.language === "vi"
+                            ? student.quoteVi
+                            : student.quoteEn}
+                        </p>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </div>
       </section>
       {/* Section: Dấu ấn danh vọng */}
-      <section className="relative w-full flex flex-col items-center justify-center p-20 overflow-hidden">
+      <section className=" bg-white relative w-full flex flex-col items-center justify-center p-20 overflow-hidden">
         {/* Ảnh nền chìm */}
         <div
           className="w-[1075px] h-[1075px] absolute -right-44 bottom-[50px] bg-no-repeat bg-contain"
@@ -737,7 +718,7 @@ const HallofFame = () => {
         </div>
       </section>
       {/* Section slider */}
-      <section className="relative w-full h-[570px] overflow-hidden">
+      <section className="bg-white relative w-full h-[570px] overflow-hidden">
         {/* Slider 2 hàng, full width */}
         <div className="absolute top-0 left-0 w-full h-full my-20">
           {/* Hàng ảnh trên */}
@@ -793,7 +774,7 @@ const HallofFame = () => {
                shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
         />
         {/* Nội dung đè lên slider + overlay */}
-        <div className="relative z-10 w-full h-full flex flex-row items-center justify-between px-[400px] text-center text-white">
+        <div className="relative z-10 w-full h-full flex flex-row items-center justify-between 2xl:px-[200px] px-[120px] text-center text-white">
           <div className="flex flex-col text-left">
             <h3 className="shimmer-text text-[32px] font-bold mb-4">
               Khám phá
@@ -801,7 +782,7 @@ const HallofFame = () => {
             <img
               src="/halloffame/HOH-gold.png"
               alt="Hall of Honor"
-              className="shimmer-text w-[612px] mb-8"
+              className="shimmer-text 2xl:w-[612px] w-[500px] mb-8"
             />
           </div>
           <button

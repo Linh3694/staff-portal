@@ -63,7 +63,7 @@ const resources = {
         name: "Ms. Hoang Thi Minh",
         title: "Middle School Principal",
         message:
-          "Dear Wellspring Secondary Students,\n\n We always deeply appreciate and take pride in every effort and achievement you make. Scholarships and awards are not just recognition but also motivation for you to keep exploring, growing, and conquering new goals. Whether big or small, every accomplishment and experience is a valuable part of your journey to maturity. Let’s create unforgettable memories together and build a bright future ahead, WISers! We are committed to creating an energetic, loving, and creative educational environment where every student can reach their full potential."
+          "We always deeply appreciate and take pride in every effort and achievement you make. Scholarships and awards are not just recognition but also motivation for you to keep exploring, growing, and conquering new goals. Whether big or small, every accomplishment and experience is a valuable part of your journey to maturity. Let’s create unforgettable memories together and build a bright future ahead, WISers! We are committed to creating an energetic, loving, and creative educational environment where every student can reach their full potential."
       },
       principal3: {
         name: "Ms. Le Thuy Nga",
@@ -187,13 +187,13 @@ const resources = {
         name: "Cô Hoàng Thị Minh",
         title: "Hiệu trưởng khối Trung Học",
         message:
-          "Các con học sinh Trung học thân yêu,\n\nThầy, Cô và Nhà trường luôn trân trọng và tự hào về từng nỗ lực và thành tích mà các con đạt được. Học bổng và khen thưởng không chỉ là sự ghi nhận, mà còn là động lực để các con tiếp tục khám phá, phát triển bản thân và chinh phục những mục tiêu mới. Dù lớn hay nhỏ, mỗi thành tích hay trải nghiệm đều là một phần quan trọng trong hành trình trưởng thành. Hãy cùng nhau tạo nên những kỷ niệm đáng nhớ và xây dựng một tương lai rực rỡ nhé, các Wisers Trung học!"
+          "Thầy, Cô và Nhà trường luôn trân trọng và tự hào về từng nỗ lực và thành tích mà các con đạt được. Học bổng và khen thưởng không chỉ là sự ghi nhận, mà còn là động lực để các con tiếp tục khám phá, phát triển bản thân và chinh phục những mục tiêu mới. Dù lớn hay nhỏ, mỗi thành tích hay trải nghiệm đều là một phần quan trọng trong hành trình trưởng thành. Hãy cùng nhau tạo nên những kỷ niệm đáng nhớ và xây dựng một tương lai rực rỡ nhé, các Wisers Trung học!"
       },
       principal3: {
         name: "Cô Lê Thuý Ngà ",
         title: "Hiệu trưởng khối Tiểu Học",
         message:
-          "Các con Tiểu học thân yêu,\n\n Cô rất ấm lòng khi mỗi ngày tới trường thấy các con hạnh phúc, biết yêu thương, ngoan ngoãn và trưởng thành! Tất cả những điều đó cần được Thầy Cô ghi nhận và khen thưởng giúp định hướng con đường phát triển, truyền cảm hứng phát huy mạnh mẽ, rực rỡ hơn những điều tốt đẹp mà các con đang hướng tới! Mỗi sự ghi nhận của Thầy Cô chắc chắn sẽ là những định hướng, những lời chỉ bảo giá trị mà các con yêu thích, luôn mong muốn nhận được. Thầy Cô sẽ luôn sát sao để ghi nhận, khen thưởng kịp thời, khách quan và toàn diện nhất trao đến các con. Cô chúc và mong tất cả các con sẽ luôn được ghi nhận, vinh danh -  luôn là niềm tự hào của Thầy Cô, Cha Mẹ!"
+          "Cô rất ấm lòng khi mỗi ngày tới trường thấy các con hạnh phúc, biết yêu thương, ngoan ngoãn và trưởng thành! Tất cả những điều đó cần được Thầy Cô ghi nhận và khen thưởng giúp định hướng con đường phát triển, truyền cảm hứng phát huy mạnh mẽ, rực rỡ hơn những điều tốt đẹp mà các con đang hướng tới! Mỗi sự ghi nhận của Thầy Cô chắc chắn sẽ là những định hướng, những lời chỉ bảo giá trị mà các con yêu thích, luôn mong muốn nhận được. Thầy Cô sẽ luôn sát sao để ghi nhận, khen thưởng kịp thời, khách quan và toàn diện nhất trao đến các con. Cô chúc và mong tất cả các con sẽ luôn được ghi nhận, vinh danh -  luôn là niềm tự hào của Thầy Cô, Cha Mẹ!"
       },
       "starStudents": [
         {
