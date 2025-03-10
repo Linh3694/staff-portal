@@ -529,17 +529,24 @@ const LaptopProductCard = ({
       .then((response) => {
         toast.success("Tải lên thành công!");
 
-        setLocalLaptop((prevLaptop) => ({
-          ...prevLaptop,
-          assignmentHistory: response.data.laptop.assignmentHistory,
-        }));
+        // (A) Ghi đè localLaptop = laptop từ server
+        setLocalLaptop(response.data.laptop);
 
-        setCurrentHolder((prevHolder) => ({
-          ...prevHolder,
-          document: response.data.laptop.assignmentHistory.find(
-            (h) => h.user === currentHolder.user._id
-          )?.document,
+        // (B) Tìm document tương ứng user
+        const foundHistory = response.data.laptop.assignmentHistory.find(
+          (h) => {
+            return (
+              h.user?.toString() === currentHolder.user._id ||
+              h.user?._id?.toString() === currentHolder.user._id
+            );
+          }
+        );
+        // (C) Gán document
+        setCurrentHolder((prev) => ({
+          ...prev,
+          document: foundHistory?.document || "",
         }));
+        onUpdateLaptop(response.data.laptop);
       })
       .catch((error) => {
         console.error("❌ Lỗi khi tải lên file:", error);
@@ -756,7 +763,6 @@ const LaptopProductCard = ({
     (a, b) => new Date(b.date) - new Date(a.date)
   );
 
-  //////////////////////////////////
   // Cập nhật hàm tính trạng thái bảo trì
   const calculateMaintenanceStatus = (lastInspectionDate, documentUrl) => {
     if (!lastInspectionDate)
@@ -786,7 +792,6 @@ const LaptopProductCard = ({
       toast.error("Không có file biên bản được tải lên!");
       return;
     }
-    // Giả sử BASE_URL chứa domain của API hoặc server file
     const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
     window.open(fileUrl, "_blank"); // Mở file trong tab mới
   };
@@ -936,38 +941,46 @@ const LaptopProductCard = ({
     fetchAllUsers();
   }, []);
 
-  // 8) Ưu tiên lấy dữ liệu từ mảng assigned; nếu không có thì fallback sang assignmentHistory
   useEffect(() => {
-    if (laptopData?.assigned && laptopData.assigned.length > 0) {
-      // Use the latest assigned user as currentHolder
+    // 1) Tìm record đang mở (chưa endDate) trong assignmentHistory
+    const openRecord = laptopData?.assignmentHistory?.find(
+      (hist) => !hist.endDate
+    );
+
+    if (openRecord) {
+      // Đã có record đang mở => Lấy user + document từ record này
+      setCurrentHolder({
+        user: {
+          _id:
+            openRecord.user?._id?.toString?.() || openRecord.user?.toString?.(),
+          fullname:
+            openRecord.userName ||
+            openRecord.user?.fullname ||
+            "Không xác định",
+          jobTitle: openRecord.jobTitle || openRecord.user?.jobTitle || "",
+          department: openRecord.user?.department || "",
+          avatarUrl: openRecord.user?.avatarUrl || "",
+        },
+        // Ghi lại document
+        document: openRecord.document || "",
+      });
+    } else if (laptopData?.assigned?.length > 0) {
+      // 2) Nếu không có record đang mở mà vẫn còn assigned => fallback cũ
       const latestAssigned =
         laptopData.assigned[laptopData.assigned.length - 1];
       setCurrentHolder({
         user: {
-          _id: latestAssigned.value, // Gán sang _id
-          fullname: latestAssigned.label || "N/A", // label -> fullname
+          _id: latestAssigned.value,
+          fullname: latestAssigned.label || "N/A",
           jobTitle: latestAssigned.jobTitle || "",
           email: latestAssigned.email || "",
           avatarUrl: latestAssigned.avatarUrl || "",
           department: latestAssigned.department || "",
         },
+        document: "", // assigned không có document
       });
-    } else if (laptopData?.assignmentHistory?.length > 0) {
-      const holder = laptopData.assignmentHistory.find(
-        (history) => !history.endDate
-      );
-      setCurrentHolder(
-        holder || {
-          user: {
-            fullname: "Chưa bàn giao",
-            jobTitle: "",
-            avatarUrl: "",
-            email: "",
-            department: "",
-          },
-        }
-      );
     } else {
+      // 3) Nếu không có assigned và không có record đang mở
       setCurrentHolder({
         user: {
           fullname: "Chưa bàn giao",
@@ -976,6 +989,7 @@ const LaptopProductCard = ({
           email: "",
           department: "",
         },
+        document: "",
       });
     }
   }, [laptopData]);
@@ -991,9 +1005,14 @@ const LaptopProductCard = ({
         if (localStatus !== "PendingDocumentation") {
           setLocalStatus("PendingDocumentation");
         }
+      } else {
+        // Trường hợp đã có file biên bản, chuyển sang Active
+        if (localStatus !== "Active") {
+          setLocalStatus("Active");
+        }
       }
     }
-  }, [currentHolder]);
+  }, [currentHolder, localStatus]);
 
   // 10) Mỗi khi localLaptop thay đổi, load danh sách activity (repairs, updates)
   useEffect(() => {

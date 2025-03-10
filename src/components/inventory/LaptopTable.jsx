@@ -1432,7 +1432,6 @@ const LaptopTable = () => {
                   </div>
                 </div>
 
-                {/* Cấu hình */}
                 <div
                   className="border rounded-lg p-4 mb-4 relative"
                   style={{

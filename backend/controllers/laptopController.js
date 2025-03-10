@@ -534,6 +534,14 @@ exports.searchLaptops = async (req, res) => {
   }
 };
 
+const sanitizeFileName = (originalName) => {
+  // Ví dụ function remove dấu + thay space -> '_'
+  let temp = originalName.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // bỏ dấu
+  temp = temp.replace(/\s+/g, "_"); // chuyển dấu cách -> _
+  // Loại bỏ ký tự đặc biệt... v.v. tuỳ ý
+  return temp;
+};
+
 exports.uploadHandoverReport = async (req, res) => {
   console.log("📤 Dữ liệu nhận được từ frontend:", req.body);
   try {
@@ -545,8 +553,17 @@ exports.uploadHandoverReport = async (req, res) => {
 
     console.log("✅ Trong Controller - username nhận được:", username);
 
-    const filePath = req.file.path;
-    console.log("✅ Đường dẫn file đã lưu:", filePath);
+     const originalFileName = path.basename(req.file.path); 
+    // => "BBBG-Nguyễn Hải Linh-2025-03-10.pdf"
+
+    // sanitize
+    const sanitizedName = sanitizeFileName(originalFileName);
+    // => "BBBG-Nguyen_Hai_Linh-2025-03-10.pdf"
+
+    // Đổi tên file trên ổ cứng 
+    const oldPath = path.join(__dirname, "../uploads/Handovers", originalFileName);
+    const newPath = path.join(__dirname, "../uploads/Handovers", sanitizedName);
+    fs.renameSync(oldPath, newPath);
 
     const laptop = await Laptop.findById(laptopId);
     if (!laptop) {
@@ -567,13 +584,13 @@ exports.uploadHandoverReport = async (req, res) => {
       laptop.assignmentHistory.push({
         user: new mongoose.Types.ObjectId(userId),
         startDate: new Date(),
-        document: filePath,
+        document: originalFileName,
       });
 
       currentAssignment = laptop.assignmentHistory[laptop.assignmentHistory.length - 1];
     } else {
       console.log("🔄 Cập nhật lịch sử bàn giao hiện tại.");
-      currentAssignment.document = filePath;
+      currentAssignment.document = sanitizedName;
     }
 
     laptop.status = "Active";
