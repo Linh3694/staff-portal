@@ -13,6 +13,7 @@ const {
   getHandoverReport,
   getLaptopById,      // ✅ Thêm hàm mới từ controller
   updateLaptopSpecs,  
+  fixOldData
 } = require("../controllers/laptopController");
 const Laptop = require("../models/Laptop"); // Import model
 const validateToken = require("../middleware/validateToken");
@@ -33,6 +34,7 @@ router.post("/:id/revoke", revokeLaptop);
 router.put("/:id/status", updateLaptopStatus);
 router.get("/:id", getLaptopById);
 router.put("/:id/specs", updateLaptopSpecs);
+router.post("/fix-laptops", fixOldData);
 
 
 module.exports = router;

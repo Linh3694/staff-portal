@@ -301,6 +301,8 @@ const LaptopTable = () => {
   // Gọi API “bàn giao” (POST /laptops/:id/assign)
   // ----------------------------------------------------
   const handleAssignLaptop = async (laptopId, newUserId, notes) => {
+    console.log("Dữ liệu gửi lên:", laptopId, newUserId, notes);
+
     try {
       const token = localStorage.getItem("authToken");
       const currentUser = JSON.parse(localStorage.getItem("currentUser"));
@@ -348,6 +350,7 @@ const LaptopTable = () => {
       }
 
       return data; // Trả về dữ liệu đã cập nhật
+      console.log("Dữ liệu trả về từ API:", data);
     } catch (error) {
       console.error("Error in handleAssignLaptop:", error);
       throw error; // Throw lại lỗi để xử lý ở `LaptopProductCard.jsx`
@@ -2020,56 +2023,6 @@ const LaptopTable = () => {
                         />
                       </div>
                     )}
-                  </div>
-                  <div>
-                    {/* <div>
-                          <label className="block mt-3 text-gray-600 font-medium mb-2">Nơi sử dụng</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            placeholder="Nhập tên phòng"
-                            value={editingLaptop.room?.label || ""}
-                            onChange={(e) => {
-                              const query = e.target.value.toLowerCase();
-
-                              // Lọc danh sách rooms phù hợp
-                              const filtered = rooms.filter((room) =>
-                                room.label.toLowerCase().includes(query)
-                              );
-
-                              setFilteredRooms(filtered);
-                              setShowRoomSuggestions(true);
-
-                              // Tạm thời gắn giá trị nhập vào room
-                              setEditingLaptop({
-                                ...editingLaptop,
-                                room: { label: e.target.value, value: null },
-                              });
-                            }}
-                            onBlur={() => setTimeout(() => setShowRoomSuggestions(false), 200)}
-                          />
-                            {showRoomSuggestions && filteredRooms.length > 0 && (
-                              <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
-                              {filteredRooms.map((room) => (
-                                <li
-                                  key={room.value}
-                                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                                  onClick={() => {
-                                    setEditingLaptop({
-                                      ...editingLaptop,
-                                      room,
-                                    });
-                                    setShowRoomSuggestions(false);
-                                  }}
-                                >
-                                  <span className="font-bold">{room.label}</span>
-                                  <br />
-                                  <span className="italic text-gray-500">{room.location}</span>
-                                </li>
-                              ))}
-                            </ul>
-                            )}
-                        </div> */}
                   </div>
                 </div>
 

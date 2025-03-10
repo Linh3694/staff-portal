@@ -39,7 +39,6 @@ const LaptopProductCard = ({
   fetchLaptopDetails,
   onUpdateLaptop,
 }) => {
-  console.log("📌 Dữ liệu laptopData nhận được Product:", laptopData);
   const [activeTab, setActiveTab] = useState("repairs");
   const [repairs, setRepairs] = useState([]); // Quản lý danh sách sửa chữa cục bộ
   // Dữ liệu tạm để thêm/sửa repair/update
@@ -110,37 +109,6 @@ const LaptopProductCard = ({
   const [lastInspection, setLastInspection] = useState(null); // Dữ liệu kiểm tra mới nhất
   const [loading, setLoading] = useState(false); // Trạng thái tải dữ liệu
 
-  useEffect(() => {
-    const fetchInspectionData = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `${API_URL}/inspects/laptop/${laptopData._id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-            },
-          }
-        );
-        const data = await response.json();
-        console.log(data);
-        if (response.ok) {
-          setLastInspection(data.data);
-          console.log("Dữ liệu kiểm tra:", data.data);
-        } else {
-          console.error("Lỗi khi lấy dữ liệu kiểm tra:", data.message);
-          setLastInspection(null);
-        }
-      } catch (error) {
-        console.error("Lỗi kết nối khi lấy dữ liệu kiểm tra:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInspectionData();
-  }, [laptopData._id, refreshKey]);
-
   const fetchActivities = async (entityType, entityId) => {
     const response = await axios.get(
       `${API_URL}/activities/${entityType}/${entityId}`
@@ -167,168 +135,14 @@ const LaptopProductCard = ({
     return response.data;
   };
 
-  useEffect(() => {
-    setRefreshKey((prev) => prev + 1); // Tăng giá trị mỗi lần localLaptop thay đổi
-  }, [localLaptop]);
-
-  useEffect(() => {
-    if (localLaptop?.room) {
-      const detailedRoom = rooms.find(
-        (room) => room.value === localLaptop.room._id
-      );
-      setLocalRoom(detailedRoom || localLaptop.room);
-    } else {
-      setLocalRoom(null); // Nếu không có room
-    }
-  }, [localLaptop, rooms, showRoomEditModal, refreshKey]); // Thêm `showRoomEditModal` vào dependency
-
-  useEffect(() => {
-    if (laptopData?.repairs) {
-      setRepairs(laptopData.repairs); // Chỉ đồng bộ khi thực sự cần thiết
-      setLocalStatus(laptopData.status);
-    }
-  }, [laptopData]); // Chỉ chạy khi `laptopData` thay đổi
-
-  useEffect(() => {
-    if (laptopData) {
-      setLocalLaptop(laptopData); // Tránh gọi `setState` khi không cần thiết
-      setLocalStatus(laptopData.status);
-    }
-  }, [laptopData]); // Chỉ phụ thuộc vào `laptopData`
-
-  useEffect(() => {
-    if (localStatus) {
-      fetchLaptopDetails(localLaptop?._id);
-    }
-  }, [localStatus]);
-
-  useEffect(() => {
-    if (laptopData?._id) {
-      fetchLaptopDetails(laptopData._id);
-    }
-  }, [laptopData?._id]); // Chỉ phụ thuộc vào `_id`
-
-  useEffect(() => {
-    const fetchAllUsers = async () => {
-      try {
-        const res = await fetch(`${API_URL}/users`);
-        if (!res.ok) throw new Error("Failed to fetch users");
-        const data = await res.json();
-        console.log("Fetched users:", data); // Debug dữ liệu
-        setAllUsers(data); // Lưu danh sách người dùng
-      } catch (err) {
-        console.error("Error fetching users:", err);
-      }
-    };
-    fetchAllUsers();
-  }, []);
-
-  useEffect(() => {
-    if (laptopData?.assignmentHistory?.length > 0) {
-      const holder = laptopData.assignmentHistory.find(
-        (history) => !history.endDate
-      );
-      setCurrentHolder(
-        holder || {
-          user: {
-            fullname: "Chưa bàn giao",
-            jobTitle: "",
-            avatarUrl: "", // Đảm bảo avatarUrl luôn có giá trị mặc định
-            email: "",
-            department: "",
-          },
-        }
-      );
-    } else {
-      setCurrentHolder({
-        user: {
-          fullname: "Chưa bàn giao",
-          jobTitle: "",
-          avatarUrl: "", // Đảm bảo avatarUrl luôn có giá trị mặc định
-          email: "",
-          department: "",
-        },
-      });
-    }
-  }, [laptopData]);
-
-  useEffect(() => {
-    setLocalLaptop(laptopData); // Đồng bộ dữ liệu khi laptopData thay đổi
-    setLocalStatus(laptopData.status); // Đồng bộ trạng thái
-  }, [laptopData]);
-
-  const handleSelectUser = (user) => {
-    setSelectedUser(user);
-    setSearchText("");
-    setSearchResults([]);
-  };
-  useEffect(() => {
-    const loadActivities = async () => {
-      if (!localLaptop?._id) {
-        console.error("Laptop ID không hợp lệ:", localLaptop?._id);
-        toast.error("Không tìm thấy thông tin thiết bị.");
-        return;
-      }
-
-      try {
-        const activities = await fetchActivities("laptop", localLaptop._id); // Gọi API với đúng entityType và entityId
-        const repairList = activities.filter(
-          (activity) => activity.type === "repair"
-        );
-        const updateList = activities.filter(
-          (activity) => activity.type === "update"
-        );
-
-        setRepairs(repairList);
-        setUpdates(updateList);
-      } catch (error) {
-        console.error("Lỗi khi lấy dữ liệu hoạt động:", error);
-        toast.error("Không thể tải lịch sử hoạt động!");
-      }
-    };
-
-    loadActivities();
-  }, [localLaptop]);
-
-  useEffect(() => {
-    if (revokeReasons.includes("Máy hỏng")) {
-      setLocalStatus("Broken");
-    } else {
-      setLocalStatus("Standby");
-    }
-  }, [revokeReasons]);
-
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        const token = localStorage.getItem("authToken");
-        const response = await axios.get(`${API_URL}/rooms`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log("Rooms fetched:", response.data.rooms);
-        setRooms(response.data.rooms || []);
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách phòng:", error);
-        toast.error("Không thể tải danh sách phòng!");
-      }
-    };
-    fetchRooms();
-  }, []);
-
   // Xác nhận “bàn giao”
   const handleConfirmAssign = async () => {
     if (!selectedUser || !notes.trim()) {
       toast.error("Vui lòng nhập thông tin hợp lệ trước khi bàn giao!");
       return;
     }
-    console.log("Bắt đầu bàn giao với dữ liệu:", {
-      laptopId: laptopData._id,
-      selectedUser,
-      notes,
-    });
     try {
       const response = await onAssign(laptopData._id, selectedUser, notes);
-      console.log("API response:", response);
       if (!response || !response._id) {
         throw new Error("API không trả về dữ liệu hợp lệ.");
       }
@@ -415,8 +229,6 @@ const LaptopProductCard = ({
     setSearchResults(formattedResults);
   };
 
-  // Ví dụ: status === "Active" => hiển thị nút Thu hồi
-  //        status === "Standby" => hiển thị nút Bàn giao
   const handleRevokeClick = () => {
     setShowRevokeModal(true);
   };
@@ -1034,6 +846,207 @@ const LaptopProductCard = ({
     lastInspection?.documentUrl
   );
 
+  const handleSelectUser = (user) => {
+    setSelectedUser(user);
+    setSearchText(user.fullname); // hoặc user.label
+    setSearchResults([]); // ẩn gợi ý sau khi chọn
+  };
+
+  // -----------------------------------------------------
+  // 1) Lấy dữ liệu kiểm tra (Inspection) mỗi khi thay đổi ID laptop hoặc refreshKey
+  useEffect(() => {
+    const fetchInspectionData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `${API_URL}/inspects/laptop/${laptopData._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+          }
+        );
+        const data = await response.json();
+        if (response.ok) {
+          setLastInspection(data.data);
+        } else {
+          setLastInspection(null);
+        }
+      } catch (error) {
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInspectionData();
+  }, [laptopData._id, refreshKey]);
+
+  // 2) Mỗi khi localLaptop thay đổi, ta tăng refreshKey để ép các dữ liệu con reload
+  useEffect(() => {
+    setRefreshKey((prev) => prev + 1);
+  }, [localLaptop]);
+
+  // 3) Đồng bộ localRoom khi localLaptop thay đổi (dùng để hiển thị đúng phòng)
+  useEffect(() => {
+    if (localLaptop?.room) {
+      const detailedRoom = rooms.find(
+        (room) => room.value === localLaptop.room._id
+      );
+      setLocalRoom(detailedRoom || localLaptop.room);
+    } else {
+      setLocalRoom(null); // Nếu không có room
+    }
+  }, [localLaptop, rooms, showRoomEditModal, refreshKey]);
+
+  // 4) Nếu laptopData có repairs mới, đồng bộ chúng và cập nhật localStatus
+  useEffect(() => {
+    if (laptopData?.repairs) {
+      setRepairs(laptopData.repairs);
+      setLocalStatus(laptopData.status);
+    }
+  }, [laptopData]);
+
+  // 5) Mỗi khi laptopData thay đổi, gán nó vào localLaptop & đồng bộ localStatus
+  useEffect(() => {
+    if (laptopData) {
+      setLocalLaptop(laptopData);
+      setLocalStatus(laptopData.status);
+    }
+  }, [laptopData]);
+
+  // 6) Gọi lại API để lấy chi tiết laptop khi _id thay đổi (lúc mở modal, chọn laptop khác, v.v.)
+  useEffect(() => {
+    if (laptopData?._id) {
+      fetchLaptopDetails(laptopData._id);
+    }
+  }, [laptopData?._id]);
+
+  // 7) Lấy danh sách tất cả người dùng để phục vụ tính năng gợi ý bàn giao
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      try {
+        const res = await fetch(`${API_URL}/users`);
+        if (!res.ok) throw new Error("Failed to fetch users");
+        const data = await res.json();
+        setAllUsers(data); // Lưu danh sách người dùng
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      }
+    };
+    fetchAllUsers();
+  }, []);
+
+  // 8) Ưu tiên lấy dữ liệu từ mảng assigned; nếu không có thì fallback sang assignmentHistory
+  useEffect(() => {
+    if (laptopData?.assigned && laptopData.assigned.length > 0) {
+      // Use the latest assigned user as currentHolder
+      const latestAssigned =
+        laptopData.assigned[laptopData.assigned.length - 1];
+      setCurrentHolder({
+        user: {
+          _id: latestAssigned.value, // Gán sang _id
+          fullname: latestAssigned.label || "N/A", // label -> fullname
+          jobTitle: latestAssigned.jobTitle || "",
+          email: latestAssigned.email || "",
+          avatarUrl: latestAssigned.avatarUrl || "",
+          department: latestAssigned.department || "",
+        },
+      });
+    } else if (laptopData?.assignmentHistory?.length > 0) {
+      const holder = laptopData.assignmentHistory.find(
+        (history) => !history.endDate
+      );
+      setCurrentHolder(
+        holder || {
+          user: {
+            fullname: "Chưa bàn giao",
+            jobTitle: "",
+            avatarUrl: "",
+            email: "",
+            department: "",
+          },
+        }
+      );
+    } else {
+      setCurrentHolder({
+        user: {
+          fullname: "Chưa bàn giao",
+          jobTitle: "",
+          avatarUrl: "",
+          email: "",
+          department: "",
+        },
+      });
+    }
+  }, [laptopData]);
+
+  // 9) Nếu currentHolder không có biên bản (document), chuyển localStatus về PendingDocumentation
+  useEffect(() => {
+    if (
+      currentHolder &&
+      currentHolder.user &&
+      currentHolder.user.fullname !== "Chưa bàn giao"
+    ) {
+      if (!currentHolder.document) {
+        if (localStatus !== "PendingDocumentation") {
+          setLocalStatus("PendingDocumentation");
+        }
+      }
+    }
+  }, [currentHolder]);
+
+  // 10) Mỗi khi localLaptop thay đổi, load danh sách activity (repairs, updates)
+  useEffect(() => {
+    const loadActivities = async () => {
+      if (!localLaptop?._id) {
+        console.error("Laptop ID không hợp lệ:", localLaptop?._id);
+        toast.error("Không tìm thấy thông tin thiết bị.");
+        return;
+      }
+      try {
+        const activities = await fetchActivities("laptop", localLaptop._id);
+        const repairList = activities.filter(
+          (activity) => activity.type === "repair"
+        );
+        const updateList = activities.filter(
+          (activity) => activity.type === "update"
+        );
+
+        setRepairs(repairList);
+        setUpdates(updateList);
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu hoạt động:", error);
+        toast.error("Không thể tải lịch sử hoạt động!");
+      }
+    };
+    loadActivities();
+  }, [localLaptop]);
+
+  // 11) Nếu người dùng chọn “Máy hỏng” trong lý do thu hồi, chuyển sang Broken, ngược lại Standby
+  useEffect(() => {
+    if (revokeReasons.includes("Máy hỏng")) {
+      setLocalStatus("Broken");
+    } else {
+      setLocalStatus("Standby");
+    }
+  }, [revokeReasons]);
+
+  // 12) Lấy danh sách phòng (rooms) ngay khi mở card lần đầu
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const response = await axios.get(`${API_URL}/rooms`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setRooms(response.data.rooms || []);
+      } catch (error) {
+        console.error("Lỗi khi tải danh sách phòng:", error);
+        toast.error("Không thể tải danh sách phòng!");
+      }
+    };
+    fetchRooms();
+  }, []);
   // -----------------------------------------------------
   return (
     <div className="max-w-full mx-auto bg-white p-6 rounded-xl shadow-lg">
@@ -1829,6 +1842,7 @@ const LaptopProductCard = ({
                     </div>
                   </div>
                 </div>
+
                 {/* Block hiển thị thông tin bảo trì bảo dưỡng */}
                 <h3 className="text-sm font-semibold mt-4 mb-2">
                   Thông tin bảo trì bảo dưỡng

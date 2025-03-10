@@ -51,52 +51,79 @@ exports.createLaptop = async (req, res) => {
   try {
     console.log("Request Body:", req.body);
 
-    const { name, manufacturer, serial, assigned, status, specs, type, room, reason } = req.body;
+    const { 
+      name, 
+      manufacturer, 
+      serial, 
+      assigned, 
+      status, 
+      specs, 
+      type, 
+      room, 
+      reason 
+    } = req.body;
     const userId = req.body.userId || req.headers["user-id"];
 
     if (!name || !serial) {
-      return res.status(400).json({ message: "Thiếu thông tin bắt buộc!" });
+      return res.status(400).json({ message: "Thiếu thông tin bắt buộc (name, serial)!" });
     }
 
     if (!specs || typeof specs !== "object") {
       return res.status(400).json({ message: "Thông tin specs không hợp lệ!" });
     }
 
-    // Kiểm tra `serial` trùng lặp
+    // Kiểm tra serial trùng
     const existingLaptop = await Laptop.findOne({ serial });
     if (existingLaptop) {
-      return res.status(400).json({ message: `Serial "${serial}" đã tồn tại trong hệ thống.` });
+      return res.status(400).json({
+        message: `Serial "${serial}" đã tồn tại trong hệ thống.`,
+      });
     }
 
-    // Kiểm tra `assigned` không hợp lệ
+    // Kiểm tra assigned
     if (assigned && !Array.isArray(assigned)) {
-      return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
+      return res
+        .status(400)
+        .json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
 
-    // Kiểm tra `room` nếu có
+    // Kiểm tra room nếu có
     if (room && !mongoose.Types.ObjectId.isValid(room)) {
       return res.status(400).json({ message: "Room ID không hợp lệ!" });
     }
 
+    // Kiểm tra reason nếu status = Broken
     if (status === "Broken" && !reason) {
-      return res.status(400).json({ message: "Lý do báo hỏng là bắt buộc khi trạng thái là 'Broken'!" });
+      return res
+        .status(400)
+        .json({ message: "Lý do báo hỏng là bắt buộc khi trạng thái là 'Broken'!" });
     }
 
-    // Kiểm tra `room` nếu có
-    if (room && !mongoose.Types.ObjectId.isValid(room)) {
-      return res.status(400).json({ message: "Room ID không hợp lệ!" });
+    // Nếu status không hợp lệ, gán mặc định "Standby"
+    let validStatus = status;
+    if (!["Active", "Standby", "Broken", "PendingDocumentation"].includes(status)) {
+      validStatus = "Standby";
     }
 
-    if (status && !["Active", "Standby", "Broken", "PendingDocumentation"].includes(status)) {
-      return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+    // *** ĐIỂM THÊM MỚI *** 
+    // Nếu đã có assigned mà status vẫn = Standby => ép về PendingDocumentation
+    if (assigned && assigned.length > 0 && validStatus === "Standby") {
+      validStatus = "PendingDocumentation";
     }
-    // Kiểm tra `status` và thiết lập giá trị mặc định
 
+    const laptop = new Laptop({
+      name,
+      manufacturer,
+      serial,
+      assigned,
+      specs,
+      type,
+      room,
+      reason: validStatus === "Broken" ? reason : undefined,
+      status: validStatus,
+    });
 
-    const laptop = new Laptop({ name, manufacturer, serial, assigned, specs, status, type, room, reason: status === "Broken" ? reason : undefined, });
-    
     await laptop.save();
-   
     res.status(201).json(laptop);
   } catch (error) {
     console.error("Error creating laptop:", error.message);
@@ -107,23 +134,69 @@ exports.createLaptop = async (req, res) => {
 exports.updateLaptop = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, manufacturer, serial, assigned, status, releaseYear, specs, type, room, reason } = req.body;
+    const {
+      name,
+      manufacturer,
+      serial,
+      assigned,
+      status,
+      releaseYear,
+      specs,
+      type,
+      room,
+      reason,
+    } = req.body;
 
-    // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
+    // Kiểm tra assigned
     if (assigned && !Array.isArray(assigned)) {
-      return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
+      return res
+        .status(400)
+        .json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
 
-    // Kiểm tra `room` nếu có
+    // Kiểm tra room nếu có
     if (room && !mongoose.Types.ObjectId.isValid(room)) {
       return res.status(400).json({ message: "Room ID không hợp lệ!" });
     }
 
-    const laptop = await Laptop.findByIdAndUpdate(
-      id,
-      { name, manufacturer, serial, assigned, status, releaseYear, specs, type, room, reason: status === "Broken" ? reason : undefined, },
-      { new: true } // Trả về tài liệu đã cập nhật
-    );
+    // Nếu status gửi lên không hợp lệ => giữ nguyên laptop cũ (tránh set bậy)
+    let validStatus = status;
+    if (!["Active", "Standby", "Broken", "PendingDocumentation"].includes(status)) {
+      // Tìm laptop cũ để lấy lại status
+      const oldLaptop = await Laptop.findById(id).lean();
+      if (!oldLaptop) {
+        return res.status(404).json({ message: "Không tìm thấy laptop." });
+      }
+      validStatus = oldLaptop.status;
+    }
+
+    // Nếu state = Broken => cần reason
+    if (validStatus === "Broken" && !reason) {
+      return res.status(400).json({
+        message: "Lý do báo hỏng là bắt buộc khi trạng thái là 'Broken'!",
+      });
+    }
+
+    // *** ĐIỂM THÊM MỚI ***
+    // Nếu đã có assigned mà validStatus vẫn = Standby => ép về PendingDocumentation
+    if (assigned && assigned.length > 0 && validStatus === "Standby") {
+      validStatus = "PendingDocumentation";
+    }
+
+    const updatedData = {
+      name,
+      manufacturer,
+      serial,
+      assigned,
+      status: validStatus,
+      releaseYear,
+      specs,
+      type,
+      room,
+      reason: validStatus === "Broken" ? reason : undefined,
+    };
+
+    const laptop = await Laptop.findByIdAndUpdate(id, updatedData, { new: true });
 
     if (!laptop) {
       return res.status(404).json({ message: "Không tìm thấy laptop" });
@@ -132,7 +205,9 @@ exports.updateLaptop = async (req, res) => {
     res.json(laptop);
   } catch (error) {
     console.error("Error updating laptop:", error.message);
-    res.status(400).json({ message: "Error updating laptop", error: error.message });
+    res
+      .status(400)
+      .json({ message: "Error updating laptop", error: error.message });
   }
 };
 
@@ -146,43 +221,55 @@ exports.deleteLaptop = async (req, res) => {
   }
 };
 
+// Thêm / Sửa ở laptopController.js
 exports.bulkUploadLaptops = async (req, res) => {
   try {
     const { laptops } = req.body;
     console.log("Laptops:", laptops);
     if (!laptops || !Array.isArray(laptops) || laptops.length === 0) {
-      return res.status(400).json({ message: "Không có dữ liệu hợp lệ để tải lên!" });
+      return res
+        .status(400)
+        .json({ message: "Không có dữ liệu hợp lệ để tải lên!" });
     }
+
     const errors = [];
     const validLaptops = [];
 
     for (const laptop of laptops) {
       try {
-        // Kiểm tra `room` và xử lý giá trị không hợp lệ
-        // Thiết lập giá trị mặc định nếu thiếu
-        laptop.room = laptop.room && mongoose.Types.ObjectId.isValid(laptop.room) ? laptop.room : null;
-        laptop.status = ["Active", "Standby", "Broken", "PendingDocumentation"].includes(laptop.status)
-          ? laptop.status
-          : "Standby";
-        // Kiểm tra `status` và thiết lập giá trị mặc định
-        if (!["Active", "Standby", "Broken", "PendingDocumentation"].includes(laptop.status)) {
-          console.warn(`Status không hợp lệ: ${laptop.status}. Thiết lập giá trị 'Standby'.`);
-          laptop.status = "Standby"; // Gán giá trị mặc định
+        // Kiểm tra room, gán null nếu không hợp lệ
+        laptop.room =
+          laptop.room && mongoose.Types.ObjectId.isValid(laptop.room)
+            ? laptop.room
+            : null;
+
+        // Kiểm tra status. Nếu không thuộc các trạng thái dưới => ép về Standby
+        if (
+          !["Active", "Standby", "Broken", "PendingDocumentation"].includes(
+            laptop.status
+          )
+        ) {
+          laptop.status = "Standby";
         }
-        // Xử lý `assigned`
+
+        // Kiểm tra assigned
         if (laptop.assigned && Array.isArray(laptop.assigned)) {
           const isId = mongoose.Types.ObjectId.isValid(laptop.assigned[0]);
           if (isId) {
-            // Nếu là ID, kiểm tra sự tồn tại
-            const validIds = await User.find({ _id: { $in: laptop.assigned } }).select("_id");
+            // Nếu assigned là mảng ID => kiểm tra user có tồn tại
+            const validIds = await User.find({
+              _id: { $in: laptop.assigned },
+            }).select("_id");
             if (validIds.length !== laptop.assigned.length) {
               throw new Error("Một số ID người dùng không tồn tại trong hệ thống.");
             }
           } else {
-            // Nếu là fullname, ánh xạ sang ID
+            // Nếu assigned là mảng fullname => convert sang ID
             const assignedIds = await Promise.all(
               laptop.assigned.map(async (fullname) => {
-                const user = await User.findOne({ fullname: fullname.trim() }).select("_id");
+                const user = await User.findOne({
+                  fullname: fullname.trim(),
+                }).select("_id");
                 if (!user) {
                   throw new Error(`Người dùng "${fullname}" không tồn tại trong hệ thống.`);
                 }
@@ -193,12 +280,21 @@ exports.bulkUploadLaptops = async (req, res) => {
           }
         }
 
+        // Nếu laptop.assigned có user => ép status sang PendingDocumentation nếu đang Standby
+        if (
+          laptop.assigned &&
+          laptop.assigned.length > 0 &&
+          laptop.status === "Standby"
+        ) {
+          laptop.status = "PendingDocumentation";
+        }
+
         // Kiểm tra room
         if (laptop.room && !mongoose.Types.ObjectId.isValid(laptop.room)) {
           throw new Error(`Room ID "${laptop.room}" không hợp lệ.`);
         }
 
-        // Kiểm tra thông tin laptop
+        // Kiểm tra name, serial
         if (!laptop.name || !laptop.serial) {
           errors.push({
             serial: laptop.serial || "Không xác định",
@@ -207,7 +303,7 @@ exports.bulkUploadLaptops = async (req, res) => {
           continue;
         }
 
-        // Kiểm tra trùng lặp serial
+        // Kiểm tra trùng serial
         const existingLaptop = await Laptop.findOne({ serial: laptop.serial });
         if (existingLaptop) {
           errors.push({
@@ -227,6 +323,7 @@ exports.bulkUploadLaptops = async (req, res) => {
       }
     }
 
+    // Nếu có laptop hợp lệ, ghi vào DB
     if (validLaptops.length > 0) {
       await Laptop.insertMany(validLaptops);
     }
@@ -238,31 +335,34 @@ exports.bulkUploadLaptops = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi khi thêm mới hàng loạt:", error.message);
-    res.status(500).json({ message: "Lỗi khi thêm mới hàng loạt", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Lỗi khi thêm mới hàng loạt", error: error.message });
   }
 };
 
 // controllers/laptopController.js
+// Thêm / Sửa ở laptopController.js
 exports.assignLaptop = async (req, res) => {
   try {
-    const { id } = req.params;         // laptopId
+    const { id } = req.params; // laptopId
     const { newUserId, notes } = req.body;
 
     const laptop = await Laptop.findById(id).populate("assigned");
     if (!laptop) {
       return res.status(404).json({ message: "Không tìm thấy laptop" });
     }
-    // Đảm bảo tất cả các bản ghi trước đó có `endDate`
+
+    // Đóng hết các assignmentHistory cũ
     laptop.assignmentHistory.forEach((entry) => {
       if (!entry.endDate) {
         entry.endDate = new Date();
       }
     });
-    // Lấy thông tin người thực hiện từ token
-    const currentUser = req.user; // Nếu bạn có middleware xác thực
-    console.log("Current User:", req.user);
 
-    // Đóng lịch sử sử dụng trước đó (nếu có)
+    const currentUser = req.user; // Lấy thông tin người đang đăng nhập (nếu có middleware auth)
+
+    // Nếu laptop đã có assigned => đóng bản ghi cũ
     if (laptop.assigned?.length > 0) {
       const oldUserId = laptop.assigned[0]._id;
       const lastHistory = laptop.assignmentHistory.find(
@@ -270,7 +370,7 @@ exports.assignLaptop = async (req, res) => {
       );
       if (lastHistory) {
         lastHistory.endDate = new Date();
-        lastHistory.revokedBy = currentUser._id; // Ghi lại người thu hồi
+        lastHistory.revokedBy = currentUser?._id || null; // Lưu người thu hồi
       }
     }
 
@@ -279,7 +379,6 @@ exports.assignLaptop = async (req, res) => {
     if (!newUser) {
       return res.status(404).json({ message: "Không tìm thấy user mới" });
     }
-    console.log(newUser);
 
     // Thêm record vào assignmentHistory
     laptop.assignmentHistory.push({
@@ -287,8 +386,8 @@ exports.assignLaptop = async (req, res) => {
       userName: newUser.fullname,
       startDate: new Date(),
       notes: notes || "",
-      assignedBy: currentUser.id,
-      jobTitle: newUser.jobTitle || "Không xác định", // Thêm jobTitle
+      assignedBy: currentUser?.id || null,
+      jobTitle: newUser.jobTitle || "Không xác định",
     });
 
     // Cập nhật currentHolder
@@ -302,17 +401,20 @@ exports.assignLaptop = async (req, res) => {
 
     // Cập nhật assigned
     laptop.assigned = [newUser._id];
-    laptop.status = "PendingDocumentation"; // tuỳ logic
+
+    // *** THIẾT LẬP TRẠNG THÁI *** 
+    // Mặc định khi bàn giao: PendingDocumentation (nếu chưa có biên bản)
+    laptop.status = "PendingDocumentation";
+
     await laptop.save();
 
-    // Populate thông tin người dùng
+    // Populate assignmentHistory.user để trả về thông tin chi tiết
     const populatedLaptop = await laptop.populate({
       path: "assignmentHistory.user",
       select: "fullname jobTitle avatarUrl department",
     });
-    
-    res.status(200).json(
-      populatedLaptop);
+
+    res.status(200).json(populatedLaptop);
   } catch (error) {
     console.error("Lỗi assignLaptop:", error);
     res.status(500).json({ message: "Lỗi server", error });
@@ -567,5 +669,120 @@ exports.updateLaptopSpecs = async (req, res) => {
   } catch (error) {
     console.error("Lỗi khi cập nhật specs:", error);
     res.status(500).json({ message: "Lỗi server" });
+  }
+};
+
+// Thêm hàm này trong laptopController.js
+exports.fixOldData = async (req, res) => {
+  try {
+    // Lấy tất cả laptop
+    const allLaptops = await Laptop.find()
+      .populate("assigned")
+      .populate("assignmentHistory.user");
+
+    let updatedCount = 0;
+
+    for (const laptop of allLaptops) {
+      let needSave = false;
+
+      // 1) Nếu laptop có assigned (≠ rỗng)
+      if (laptop.assigned && laptop.assigned.length > 0) {
+        // Lấy user cuối (nếu mảng assigned > 1, coi user cuối cùng là người đang giữ)
+        const lastUser = laptop.assigned[laptop.assigned.length - 1];
+
+        // Tìm trong assignmentHistory record chưa có endDate, ứng với lastUser
+        let openRecord = laptop.assignmentHistory.find(
+          (h) => !h.endDate && h.user?.toString() === lastUser._id.toString()
+        );
+
+        // Nếu chưa có record, tạo mới
+        if (!openRecord) {
+          laptop.assignmentHistory.forEach((h) => {
+            // Đóng các record cũ không có endDate (chặn xung đột)
+            if (!h.endDate) {
+              h.endDate = new Date();
+            }
+          });
+
+          openRecord = {
+            user: lastUser._id,
+            userName: lastUser.fullname,
+            startDate: new Date(), // thời điểm fix
+            document: "", // Chưa có biên bản
+          };
+          laptop.assignmentHistory.push(openRecord);
+          needSave = true;
+        }
+
+        // Xét xem record đó có document hay chưa
+        if (!openRecord.document) {
+          // Thiếu biên bản => “PendingDocumentation”
+          if (laptop.status !== "PendingDocumentation") {
+            laptop.status = "PendingDocumentation";
+            needSave = true;
+          }
+        } else {
+          // Có document => “Active”
+          if (laptop.status !== "Active") {
+            laptop.status = "Active";
+            needSave = true;
+          }
+        }
+
+        // Cập nhật currentHolder
+        if (
+          !laptop.currentHolder ||
+          laptop.currentHolder.id?.toString() !== lastUser._id.toString()
+        ) {
+          laptop.currentHolder = {
+            id: lastUser._id,
+            fullname: lastUser.fullname || "Không xác định",
+            jobTitle: lastUser.jobTitle || "",
+            department: lastUser.department || "",
+            avatarUrl: lastUser.avatarUrl || "",
+          };
+          needSave = true;
+        }
+      } else {
+        // 2) Nếu laptop không có assigned => về Standby
+        // Nhưng có thể còn record cũ chưa đóng => đóng hết
+        let openRecords = laptop.assignmentHistory.filter(
+          (h) => !h.endDate
+        );
+        if (openRecords.length > 0) {
+          for (let record of openRecords) {
+            record.endDate = new Date();
+          }
+          needSave = true;
+        }
+
+        // Nếu status != Standby, ta ép về Standby (tuỳ nghiệp vụ)
+        if (laptop.status !== "Standby") {
+          laptop.status = "Standby";
+          needSave = true;
+        }
+
+        // Xoá currentHolder
+        if (laptop.currentHolder) {
+          laptop.currentHolder = null;
+          needSave = true;
+        }
+      }
+
+      // 3) Lưu nếu có thay đổi
+      if (needSave) {
+        await laptop.save();
+        updatedCount++;
+      }
+    }
+
+    res.json({
+      message: "Hoàn thành chuẩn hoá dữ liệu cũ.",
+      totalLaptops: allLaptops.length,
+      updatedCount,
+    });
+  } catch (error) {
+    console.error("Lỗi fixOldData:", error);
+    res.status(500).json({ message: "Đã xảy ra lỗi khi chuẩn hoá.", error });
   }
 };

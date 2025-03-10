@@ -74,21 +74,6 @@ const Sidebar = ({
   // Danh sách menu: các menu lớn không có icon, các submenu có icon đi kèm.
   const menuItems = [
     {
-      title: "Social Hub",
-      subItems: [
-        {
-          label: "Newsfeeds",
-          icon: <FiRss size={16} />,
-          link: "/dashboard/newsfeeds",
-        },
-        {
-          label: "Chat",
-          icon: <FiMessageCircle size={16} />,
-          link: "/dashboard/chat",
-        },
-      ],
-    },
-    {
       title: "Workspace",
       allowedRoles: ["superadmin", "admin", "technical"],
       subItems: [
@@ -132,6 +117,12 @@ const Sidebar = ({
           icon: <FiBook size={16} />,
           link: "/dashboard/halloffame",
           allowedRoles: ["superadmin", "admin", "marcom"],
+        },
+        {
+          label: "Quản lý Bus",
+          icon: <FiBook size={16} />,
+          link: "/dashboard/bus-service",
+          allowedRoles: ["superadmin", "admin", "technical"],
         },
       ],
     },

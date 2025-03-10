@@ -19,28 +19,28 @@ import Profile from "../components/profile/Profile";
 import Sidebar from "../components/Sidebar";
 import DocumentTable from "../components/document/DocumentTable";
 import DocumentDashboard from "../components/document/DocumentDashboard";
-import NewsfeedPage from "./NewsfeedPage";
 import FlippageAdmin from "../components/flippage/flippage-admin";
 import RecruitmentAdmin from "../components/recruitment/recruitment-admin";
 import HallOfFameAdminPage from "../components/halloffame/HallOfFameAdminPage";
 import { API_URL, BASE_URL } from "../config";
-import ChatPage from "../components/chat/ChatPage";
-import ChatBot from "../components/AI Agent/chat";
 import DashboardInventory from "../components/inventory/dashboard";
+import BusRoutes from "../components/busService/BusRoutes";
+import BusTrips from "../components/busService/BusTrips";
+import BusVehicles from "../components/busService/BusVehicles";
+import BusDashboard from "../components/busService/BusDashboard";
 
 const urlToMenu = {
   devices: "Quản lý thiết bị",
   tickets: "Quản lý Tickets",
   documents: "Quản lý tài liệu",
-  newsfeeds: "Newsfeeds",
   flippageadmin: "Phần mềm lật trang",
-  chat: "Chat",
   profile: "Hồ sơ cá nhân",
   users: "Quản lý người dùng",
   students: "Quản lý học sinh",
   rooms: "Quản lý phòng học",
   recruitmentadmin: "Quản lý tuyển dụng",
   halloffame: "Quản lý vinh danh",
+  bus: "Quản lý Bus",
 };
 
 const Dashboard = () => {
@@ -81,6 +81,12 @@ const Dashboard = () => {
     ],
     "Quản lý Tickets": ["Ticket lists", "Teams", "Reports"],
     "Quản lý tài liệu": ["Tài liệu", "Báo cáo"],
+    "Quản lý Bus": [
+      "Giám sát",
+      "Danh danh tuyến",
+      "Danh sách xe",
+      "Danh sách lịch trình",
+    ],
     // Nếu có mục nào khác cần tab, bạn có thể thêm ở đây.
   };
 
@@ -253,8 +259,7 @@ const Dashboard = () => {
           // Truyền các props cần thiết
           />
         );
-      case "Newsfeeds":
-        return <NewsfeedPage currentUser={currentUser} />;
+
       case "Phần mềm lật trang":
         return <FlippageAdmin currentUser={currentUser} />;
       case "Tickets":
@@ -263,10 +268,12 @@ const Dashboard = () => {
         return <RecruitmentAdmin currentUser={currentUser} />;
       case "Quản lý vinh danh":
         return <HallOfFameAdminPage currentUser={currentUser} />;
-      case "Chat":
-        return <ChatPage currentUser={currentUser} />;
-      case "AI Agent":
-        return <ChatBot currentUser={currentUser} />;
+      case "Quản lý Bus":
+        if (activeTab === "Giám sát") return <BusDashboard />;
+        if (activeTab === "Danh danh tuyến") return <BusRoutes />;
+        if (activeTab === "Danh sách xe") return <BusVehicles />;
+        if (activeTab === "Danh sách lịch trình") return <BusTrips />;
+        break;
       case "Hồ sơ cá nhân":
         return (
           <div>

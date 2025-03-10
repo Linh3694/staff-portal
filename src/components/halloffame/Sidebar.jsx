@@ -1,3 +1,4 @@
+// Sidebar.jsx
 import React, { useEffect } from "react";
 import { FaAngleDown, FaAngleRight, FaArrowLeft } from "react-icons/fa6";
 import { useTranslation } from "react-i18next";
@@ -14,29 +15,37 @@ const Sidebar = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  // Danh sách ID các danh mục đã có giao diện (được xử lý trong switch).
+  const enabledCategoryIds = [
+    "67b5a7864c93fbb31475ad44", // Học sinh Danh dự
+    "67b5a81e4c93fbb31475ad4a", // Học bổng Tài năng
+    "67b5a98b4c93fbb31475ad56", // WISers Nỗ lực
+    "67b5a7c84c93fbb31475ad47", // Lớp Danh dự
+  ];
+
   const fixedCategories = [
     {
-      id: "67b5a81e4c93fbb31475ad4a",
+      id: "empty",
       nameKey: "scholarship_talent",
       default: "Học bổng Tài năng",
     },
     {
-      id: "67b5a87b4c93fbb31475ad4d",
+      id: "empty",
       nameKey: "top_graduates",
       default: "Thủ khoa Tốt nghiệp",
     },
     {
-      id: "67b5a8e54c93fbb31475ad50",
+      id: "empty",
       nameKey: "wiser_excellent",
       default: "WISers Ưu tú",
     },
     {
-      id: "67b5a92b4c93fbb31475ad53",
+      id: "empty",
       nameKey: "wiser_inspiration",
       default: "WISers Truyền cảm hứng",
     },
     {
-      id: "id_danh_du",
+      id: "",
       nameKey: "wiser_honor",
       default: "WISers Danh dự",
       subCategories: [
@@ -58,19 +67,19 @@ const Sidebar = ({
       default: "WISers Nỗ lực",
     },
     {
-      id: "id_thi_chuan_hoa",
+      id: "empty",
       nameKey: "standardized_test",
       default: "Thành tích các bài thi chuẩn hóa",
     },
     {
-      id: "id_giai_dau",
+      id: "empty",
       nameKey: "competition",
       default: "Thành tích trong các cuộc thi và giải đấu",
     },
   ];
 
-  // Khi load, nếu đang chọn subcategory, tự động mở dropdown của category cha
   useEffect(() => {
+    // Mở dropdown cha nếu đang chọn subcategory
     fixedCategories.forEach((cat) => {
       if (cat.subCategories?.some((sub) => sub.id === selectedCategoryId)) {
         setOpenDropdown(cat.id);
@@ -80,9 +89,9 @@ const Sidebar = ({
 
   return (
     <aside
-      className={`fixed top-12 md:top-0 left-0 z-40 flex h-full w-[300px] bg-white p-4 shadow-md transform transition-transform duration-300 overflow-y-auto
+      className={`fixed top-12 md:top-0 left-0 z-40 flex h-full w-full bg-white p-4 shadow-md transform transition-transform duration-300 overflow-y-auto
       ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} 
-      md:translate-x-0 md:relative md:flex md:w-[300px] md:h-[calc(100vh-80px)] md:shadow-none md:overflow-y-visible`}
+      lg:translate-x-0 lg:relative lg:flex lg:w-[300px] lg:h-[calc(100vh-80px)] lg:shadow-none lg:overflow-y-visible`}
     >
       <nav className="space-y-4 mt-10">
         <button
@@ -105,22 +114,41 @@ const Sidebar = ({
           const hasSubcategories =
             fixedCat.subCategories && fixedCat.subCategories.length > 0;
           const isOpen = openDropdown === fixedCat.id;
+
+          // Xác định xem category này có được hỗ trợ không
+          // (nếu `fixedCat.id` nằm trong enabledCategoryIds => có giao diện)
+          const isCatEnabled = enabledCategoryIds.includes(fixedCat.id);
+
           return (
             <div key={fixedCat.id} className="w-full">
+              {/* Danh mục cha */}
               <div
-                className={`flex items-center justify-between text-[18px] p-3 rounded-lg transition ${
-                  selectedCategoryId === fixedCat.id
-                    ? "bg-[#F05023] font-bold text-white"
-                    : "hover:bg-gray-50 text-[#757575]"
-                }`}
+                className={`
+                  flex items-center justify-between text-[18px] p-3 rounded-lg transition
+                  ${
+                    // Nếu là danh mục được chọn và được hỗ trợ => highlight
+                    selectedCategoryId === fixedCat.id && isCatEnabled
+                      ? "bg-[#F05023] font-bold text-white"
+                      : "text-[#757575] text-lg font-semibold"
+                  }
+                  ${
+                    // Nếu là danh mục được hỗ trợ => hover/cursor-pointer
+                    isCatEnabled
+                      ? "cursor-pointer"
+                      : "opacity-50 cursor-not-allowed"
+                  }
+                `}
                 onClick={() => {
+                  // Chỉ cho click nếu isCatEnabled = true
                   if (!hasSubcategories) {
-                    setSelectedCategoryId(fixedCat.id);
-                    // Nếu màn hình nhỏ, tự động đóng sidebar sau khi chọn danh mục
-                    if (window.innerWidth < 768) {
-                      closeSidebar && closeSidebar();
+                    if (isCatEnabled) {
+                      setSelectedCategoryId(fixedCat.id);
+                      if (window.innerWidth < 1024) {
+                        closeSidebar && closeSidebar();
+                      }
                     }
                   } else {
+                    // Bỏ qua kiểm tra isCatEnabled => dropdown luôn mở được nếu có subCategories
                     setOpenDropdown(
                       openDropdown === fixedCat.id ? null : fixedCat.id
                     );
@@ -134,27 +162,44 @@ const Sidebar = ({
                   </span>
                 )}
               </div>
+
+              {/* Tiểu mục (nếu có) */}
               {hasSubcategories && isOpen && (
                 <div className="pl-6 space-y-2 mt-3">
-                  {fixedCat.subCategories.map((sub) => (
-                    <div
-                      key={sub.id}
-                      onClick={() => {
-                        setSelectedCategoryId(sub.id);
-                        // Sau khi chọn subcategory, tự động đóng sidebar trên mobile
-                        if (window.innerWidth < 768) {
-                          closeSidebar && closeSidebar();
-                        }
-                      }}
-                      className={`cursor-pointer text-[18px] p-3 rounded-lg transition ${
-                        sub.id === selectedCategoryId
-                          ? "bg-[#F05023] text-white font-bold"
-                          : "hover:bg-gray-50 text-[#757575]"
-                      }`}
-                    >
-                      {t(sub.nameKey, sub.default)}
-                    </div>
-                  ))}
+                  {fixedCat.subCategories.map((sub) => {
+                    const isSubEnabled = enabledCategoryIds.includes(sub.id);
+                    return (
+                      <div
+                        key={sub.id}
+                        className={`
+                          text-[18px] p-3 rounded-lg transition
+                          ${
+                            // Highlight nếu sub được chọn & được hỗ trợ
+                            sub.id === selectedCategoryId && isSubEnabled
+                              ? "bg-[#F05023] text-white font-bold"
+                              : "text-[#757575] text-lg font-semibold"
+                          }
+                          ${
+                            // Nếu sub có giao diện => hover pointer
+                            isSubEnabled
+                              ? " cursor-pointer"
+                              : "opacity-50 cursor-not-allowed"
+                          }
+                        `}
+                        onClick={() => {
+                          // Chỉ click được nếu isSubEnabled = true
+                          if (isSubEnabled) {
+                            setSelectedCategoryId(sub.id);
+                            if (window.innerWidth < 1024) {
+                              closeSidebar && closeSidebar();
+                            }
+                          }
+                        }}
+                      >
+                        {t(sub.nameKey, sub.default)}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
