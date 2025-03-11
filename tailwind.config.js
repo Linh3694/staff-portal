@@ -59,6 +59,7 @@ module.exports = {
         "md": "768px",  // Tablet (iPad Mini, iPad Air)
         "lg": "1024px",  // Laptop 13 inch (MacBook Air, ThinkPad X1 Carbon)
         "xl": "1366px",  // Laptop 15.6 inch (Dell XPS 15, ThinkPad T15)
+        "xll": "1600px",  // Laptop 15.6 inch (Dell XPS 15, ThinkPad T15)
         "2xl": "1920px",  // Desktop 24 inch (iMac 24", Màn hình FullHD)
       },
     },

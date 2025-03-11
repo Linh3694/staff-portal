@@ -191,7 +191,7 @@ const StudentManagementModal = ({ trip, onClose, onSave, staffList = [] }) => {
                           onChange={(e) =>
                             handleStudentStatusChange(index, e.target.value)
                           }
-                          className="p-1 border rounded"
+                          className="px-10 border rounded"
                         >
                           <option value="pending">Pending</option>
                           <option value="present">Present</option>

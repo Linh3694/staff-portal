@@ -57,6 +57,7 @@ const HallofFame = () => {
   const section1Ref = useRef(null);
   const section2Ref = useRef(null);
   const carouselContainerRef = useRef(null); // Ref cho container carousel
+  const [containerWidth, setContainerWidth] = useState(0);
 
   // State cho carousel
   const [currentIndex, setCurrentIndex] = useState(1);
@@ -68,7 +69,7 @@ const HallofFame = () => {
   // State responsive cho kích thước slide
   const [itemWidth, setItemWidth] = useState(1280);
   const [itemHeight, setItemHeight] = useState(560);
-  const gap = 20; // khoảng cách giữa các slide
+  const gap = 20;
   const shift = currentIndex * (itemWidth + gap);
 
   const [topImages, setTopImages] = useState([]);
@@ -103,6 +104,13 @@ const HallofFame = () => {
     }
 
     fetchImages();
+  }, []);
+
+  useEffect(() => {
+    if (carouselContainerRef.current) {
+      // Lấy độ rộng container ngay khi render
+      setContainerWidth(carouselContainerRef.current.offsetWidth);
+    }
   }, []);
 
   useEffect(() => {
@@ -156,15 +164,14 @@ const HallofFame = () => {
         setItemHeight(400);
       } else if (width < 1024) {
         // Laptop 13" hoặc 14": 80% chiều rộng, chiều cao trung bình
-        setItemWidth(width * 0.8);
+        setItemWidth(width * 0.7);
         setItemHeight(400);
       } else if (width < 1600) {
         // Màn hình dưới 1600px: 85% chiều rộng, chiều cao lớn hơn
         setItemWidth(width * 0.65);
         setItemHeight(500);
       } else {
-        // Laptop lớn 15.6" và FullHD 24": sử dụng kích thước cố định hoặc tỷ lệ cố định
-        setItemWidth(1333);
+        setItemWidth(1280);
         setItemHeight(560);
       }
     };
@@ -429,7 +436,7 @@ const HallofFame = () => {
       >
         {/* Tiêu đề */}
         <div className="relative w-full text-center mb-10 z-10">
-          <h2 className="section2-title xl:text-[32px] text-xl font-semibold text-[#002147] uppercase  tracking-wide">
+          <h2 className="section2-title xl:text-[32px] text-[30px] text-xl font-semibold text-[#002147] uppercase tracking-wide">
             {t("principalMessageHeader", "Thông điệp của Hiệu trưởng")}
           </h2>
         </div>
@@ -449,7 +456,9 @@ const HallofFame = () => {
                 : "transition-transform duration-500 ease-in-out"
             }`}
             style={{
-              transform: `translateX(calc(50% - ${shift + itemWidth / 2}px))`,
+              transform: `translateX(calc(50% - ${
+                shift + itemWidth / 2.15
+              }px))`,
             }}
             onTransitionEnd={handleTransitionEnd}
           >
@@ -460,10 +469,10 @@ const HallofFame = () => {
                 <div
                   key={index}
                   style={{ width: itemWidth, height: itemHeight }}
-                  className={`carousel-slide flex-shrink-0 rounded-[20px] px-10 py-12 transition-all duration-500 ease-in-out overflow-hidden ${
+                  className={`carousel-slide flex-shrink-0 rounded-[20px] lg:px-10 lg:py-12  px-7 py-8 transition-all duration-500 ease-in-out overflow-hidden ${
                     isActive
-                      ? "bg-[#f8f8f8] scale-100 opacity-100"
-                      : "bg-[#D9D9D9] scale-75 opacity-90"
+                      ? "bg-[#f8f8f8] backdrop-blur-none scale-100 opacity-100"
+                      : "bg-[#000000] backdrop-blur-3xl scale-75 opacity-10"
                   }`}
                 >
                   <div className="flex flex-row h-full items-start">
@@ -481,32 +490,32 @@ const HallofFame = () => {
                     <img
                       src={principal.image}
                       alt={principal.name}
-                      className="w-auto 2xl:h-[500px] h-[560px] absolute -bottom-[50px] 2xl:right-10 right-10 object-contain pointer-events-none"
+                      className="w-auto xll:max-h-[100%] md:max-h-[90%] max-h-[80%]  absolute -bottom-[50px] xl:right-5 xll:right-20 right-3 object-contain pointer-events-none"
                     />
                     {/* Cột text */}
-                    <div className="2xl:w-[730px] w-[600px] flex flex-col items-start z-10">
+                    <div className="w-[50%] md:w-[65%] xl:w-[70%] max-w-[730px] flex flex-col items-start z-10">
                       <div>
-                        <div className="my-3">
+                        <div className="lg:my-3">
                           <p
                             style={{ whiteSpace: "pre-line" }}
-                            className="text-[#002855] 2xl:text-xl text-lg text-semibold leading-relaxed"
+                            className="text-[#002855] xl:text-lg lg:text-md md:text-sm sm:text-[12px] text-[10px] text-semibold leading-relaxed"
                           >
                             {principal.message}
                           </p>
                         </div>
                         {principal.quote && (
-                          <blockquote className="italic text-[#002855] 2xl:text-xl text-lg text-semibold leading-relaxed">
+                          <blockquote className="italic text-[#002855] xl:text-lg lg:text-md md:text-sm sm:text-[12px] text-[10px] text-semibold leading-relaxed">
                             “{principal.quote.text}”
-                            <footer className="mt-2 text-right text-[#002855] 2xl:text-lg text-md text-semibold leading-relaxed">
+                            <footer className="mt-2 mr-[10%] xll:mr-0 text-right text-[#002855] xl:text-lg lg:text-md md:text-sm sm:text-[12px] text-semibold leading-relaxed">
                               - {principal.quote.author}
                             </footer>
                           </blockquote>
                         )}
-                        <div>
-                          <p className="text-[#002147] font-bold text-lg">
+                        <div className="mt-5">
+                          <p className="text-[#002147] font-bold xl:text-lg lg:text-sm md:text-[12px] text-[10px] ">
                             {principal.name}
                           </p>
-                          <p className="text-[#757575] font-bold text-lg">
+                          <p className="text-[#757575] font-bold xl:text-lg lg:text-sm md:text-[12px] text-[10px] ">
                             {principal.title}
                           </p>
                           {/* Nút chuyển slide */}
@@ -613,17 +622,17 @@ const HallofFame = () => {
 
                     {/* Overlay gradient chứa text */}
                     <div
-                      className="2xl:w-[420px] w-[420px] px-4 py-12 absolute bottom-0 transition-all duration-500 rounded-b-lg"
+                      className="2xl:w-[420px] w-[420px] px-4 py-28 absolute bottom-0 transition-all duration-500 rounded-b-lg"
                       style={{
                         background:
                           "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",
                       }}
                     >
-                      <p className="absolute bottom-14 text-md font-semibold text-[#F9D16F]">
-                        {student.year[i18n.language]}
-                      </p>
-                      <p className="absolute bottom-4 2xl:text-3xl text-2xl uppercase font-bold text-[#F9D16F]">
+                      <p className="absolute bottom-10 2xl:text-3xl text-2xl uppercase font-bold text-[#F9D16F]">
                         {student.name[i18n.language]}
+                      </p>
+                      <p className="absolute bottom-4 text-md font-semibold text-[#F9D16F]">
+                        {student.year[i18n.language]}
                       </p>
                     </div>
 
@@ -637,17 +646,19 @@ const HallofFame = () => {
                           opacity: isActive ? 1 : 0,
                         }}
                       >
-                        <p className="text-lg font-semibold text-[#F9D16F]">
-                          {student.year[i18n.language]}
-                        </p>
-                        <h3 className="text-2xl font-bold text-[#F9D16F]">
-                          {student.name[i18n.language]}
-                        </h3>
-                        <p className="text-white text-[14px] mt-4">
+                        <p className="text-white text-[14px]">
+                          "
                           {i18n.language === "vi"
                             ? student.quoteVi
                             : student.quoteEn}
+                          "
                         </p>
+
+                        <div style={{ whiteSpace: "pre-line" }}>
+                          <p className="text-md font-semibold text-[#F9D16F]">
+                            {student.archivement[i18n.language]}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </li>
