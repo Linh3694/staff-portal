@@ -727,11 +727,9 @@ const ClassHonorContent = ({ categoryId }) => {
                     ? modalClass.note
                     : modalClass.noteEng) && (
                     <p className=" text-white  my-auto text-justify lg:text-left text-[13px] md:text-[15px]">
-                      “
                       {i18n.language === "vi"
                         ? modalClass.note
                         : modalClass.noteEng}
-                      ”
                     </p>
                   )}
                 </div>

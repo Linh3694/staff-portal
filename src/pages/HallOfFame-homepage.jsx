@@ -114,7 +114,7 @@ const HallofFame = () => {
       autoScroll: {
         speed: 0.5,
       },
-      gap: "1.5rem", // Hoặc 20, 30px, v.v.
+      gap: "40px", // Hoặc 20, 30px, v.v.
 
       breakpoints: {
         1024: {
@@ -481,7 +481,7 @@ const HallofFame = () => {
                     <img
                       src={principal.image}
                       alt={principal.name}
-                      className="w-auto 2xl:h-[500px] h-[450px] absolute -bottom-[50px] 2xl:right-10 right-0 object-contain pointer-events-none"
+                      className="w-auto 2xl:h-[500px] h-[560px] absolute -bottom-[50px] 2xl:right-10 right-10 object-contain pointer-events-none"
                     />
                     {/* Cột text */}
                     <div className="2xl:w-[730px] w-[600px] flex flex-col items-start z-10">
@@ -575,14 +575,13 @@ const HallofFame = () => {
                       transition-all 
                       duration-500
                       overflow-hidden
-
-                      ${isActive ? "w-[720px]" : "w-[360px]"}
+                      ${isActive ? "w-[840px]" : "w-[420px]"}
                     `}
                     onClick={() => handleClickStudent(index)}
                     key={index}
                   >
                     {/* Ảnh học sinh */}
-                    <div className="relative 2xl:w-[360px] w-[280px] h-[360px]">
+                    <div className="relative 2xl:w-[420px] w-[420px] h-[420px]">
                       <img
                         src={student.image}
                         alt={student.name[i18n.language]}
@@ -592,7 +591,7 @@ const HallofFame = () => {
 
                     {/* Frame Avatar */}
                     {!isActive && (
-                      <div className="absolute inset-0 2xl:w-[360px] w-[280px] h-[360px] pointer-events-none z-50">
+                      <div className="absolute inset-0 2xl:w-[420px] w-[420px] h-[420px] pointer-events-none z-50">
                         <img
                           src="/halloffame/frameavatar.png"
                           alt="Avatar Frame"
@@ -603,7 +602,7 @@ const HallofFame = () => {
 
                     {/* Frame Quote */}
                     {isActive && (
-                      <div className="absolute inset-0 2xl:w-[720px] w-[560px] h-full pointer-events-none z-50 flex items-stretch">
+                      <div className="absolute inset-0 2xl:w-[840px] w-[840px] h-full pointer-events-none z-50 flex items-stretch">
                         <img
                           src="/halloffame/framequote.png"
                           alt="Quote Frame"
@@ -614,7 +613,7 @@ const HallofFame = () => {
 
                     {/* Overlay gradient chứa text */}
                     <div
-                      className="2xl:w-[360px] w-[280px] px-4 py-12 absolute bottom-0 transition-all duration-500 rounded-b-lg"
+                      className="2xl:w-[420px] w-[420px] px-4 py-12 absolute bottom-0 transition-all duration-500 rounded-b-lg"
                       style={{
                         background:
                           "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",
@@ -634,7 +633,7 @@ const HallofFame = () => {
                         className="p-6 rounded-xl flex flex-col justify-center transition-all duration-500 ease-in-out"
                         style={{
                           // Khi chưa active => maxWidth = 0 => ẩn. Khi active => hiển thị đầy đủ
-                          maxWidth: isActive ? "360px" : "0px",
+                          maxWidth: isActive ? "420px" : "0px",
                           opacity: isActive ? 1 : 0,
                         }}
                       >
@@ -644,7 +643,7 @@ const HallofFame = () => {
                         <h3 className="text-2xl font-bold text-[#F9D16F]">
                           {student.name[i18n.language]}
                         </h3>
-                        <p className="text-white text-[12px] mt-4">
+                        <p className="text-white text-[14px] mt-4">
                           {i18n.language === "vi"
                             ? student.quoteVi
                             : student.quoteEn}
@@ -659,57 +658,26 @@ const HallofFame = () => {
         </div>
       </section>
       {/* Section: Dấu ấn danh vọng */}
-      <section className=" bg-white relative w-full flex flex-col items-center justify-center p-20 overflow-hidden">
+      <section className=" bg-white relative w-full flex flex-col items-center justify-center p-40 overflow-hidden">
         {/* Ảnh nền chìm */}
         <div
-          className="w-[1075px] h-[1075px] absolute -right-44 bottom-[50px] bg-no-repeat bg-contain"
+          className="w-[1075px] h-[1075px] absolute -right-44 -bottom-[200px] bg-no-repeat bg-contain"
           style={{ backgroundImage: "url('/halloffame/WS-opacity-20.png')" }}
         />
 
         {/* Tiêu đề */}
-        <h2 className="text-[32px] font-bold text-[#002147] uppercase mb-12">
+        <h2 className="text-[32px] font-bold text-[#002147] uppercase ">
           {t("hallmark_of_fame", "Dấu ấn danh vọng")}
+        </h2>
+        <h2 className="text-[32px] font-bold text-[#002147] uppercase mb-12">
+          {t("hallmark_of_fame__02", "Tôn vinh thành tựu - Lan toả cảm xúc")}
         </h2>
 
         {/* Video chính */}
         <div className="relative flex flex-row w-full items-center justify-center mb-10">
           <iframe
-            className="w-[880px] h-[495px] lg:h-[560px] shadow-lg rounded-lg"
+            className="w-[1280px] h-[720px] lg:h-[560px] shadow-lg rounded-lg"
             src="https://www.youtube.com/embed/abc123"
-            title="YouTube video player"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
-          <div className="flex flex-col self-start px-8">
-            <p className="text-left my-5 text-[#002147] font-semibold uppercase text-[24px]">
-              {t("achievement", "THÀNH TÍCH")}
-            </p>
-            <p className="max-w-[385px] text-left text-[20px] text-[#757575]">
-              {t(
-                "achievement_description",
-                "Mô tả về thành tích đại loại là viết dài dài tầm này là vừa"
-              )}
-            </p>
-          </div>
-        </div>
-
-        {/* Video thứ hai */}
-        <div className="relative flex flex-row items-center justify-center w-full">
-          <div className="flex flex-col self-start px-8">
-            <p className="text-right my-5 text-[#002147] font-semibold uppercase text-[24px]">
-              {t("achievement", "THÀNH TÍCH")}
-            </p>
-            <p className="text-right max-w-[385px] text-[20px] text-[#757575]">
-              {t(
-                "achievement_description",
-                "Mô tả về thành tích đại loại là viết dài dài tầm này là vừa"
-              )}
-            </p>
-          </div>
-          <iframe
-            className="w-[880px] h-[495px] lg:h-[560px] shadow-lg rounded-lg"
-            src="https://www.youtube.com/embed/def456"
             title="YouTube video player"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

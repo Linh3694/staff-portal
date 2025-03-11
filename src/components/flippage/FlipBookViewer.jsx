@@ -44,8 +44,6 @@ function FlipBookViewer({
       const marginFactor = 0.9;
       const scaleX = (clientWidth * marginFactor) / desiredWidth;
       const scaleY = (clientHeight * marginFactor) / desiredHeight;
-
-      // Điều chỉnh zoom dựa trên devicePixelRatio nếu cần
       const newZoom = Math.min(scaleX, scaleY);
       setZoom(newZoom);
     }
@@ -127,7 +125,7 @@ function FlipBookViewer({
           position: "relative",
           width: containerWidth,
           height: pageHeight,
-          maxWidth: "100%", // Chiếm 90% bề ngang
+          maxWidth: "100%",
           maxHeight: "calc(100% - 50px)",
           margin: "0 auto",
           transform: `scale(${zoom})`,

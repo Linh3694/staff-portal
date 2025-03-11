@@ -619,7 +619,7 @@ const StudentHonorContent = ({ categoryId }) => {
                         return (
                           <div
                             key={idx}
-                            className="lg:h-[375px] h-[250px] border rounded-lg p-3 shadow-sm bg-[#E6EEF6] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                            className="lg:h-[375px] h-[250px] border rounded-lg p-3 shadow-sm bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                             onClick={() => handleOpenModal(record, student)}
                           >
                             {student.photo?.photoUrl ? (
@@ -633,10 +633,10 @@ const StudentHonorContent = ({ categoryId }) => {
                                 {t("noPhoto", "Chưa có ảnh")}
                               </div>
                             )}
-                            <div className="text-[#F05023] lg:text-[20px] text-[15px] font-bold text-center">
+                            <div className="text-[#f9d16f] lg:text-[20px] text-[15px] font-bold text-center">
                               {student.student?.name}
                             </div>
-                            <div className="lg:text-sm text-xs font-semibold">
+                            <div className="lg:text-sm text-xs font-semibold text-white">
                               {t("classLabel", "Lớp")}{" "}
                               {student.currentClass?.name ||
                                 student.currentClass?.className ||
@@ -714,11 +714,9 @@ const StudentHonorContent = ({ categoryId }) => {
                     ? modalStudent.note
                     : modalStudent.noteEng) && (
                     <p className=" text-white my-auto text-justify lg:text-left text-[14px] md:text-[16px]">
-                      “
                       {i18n.language === "vi"
                         ? modalStudent.note
                         : modalStudent.noteEng}
-                      ”
                     </p>
                   )}
                 </div>

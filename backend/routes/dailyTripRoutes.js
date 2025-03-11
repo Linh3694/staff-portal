@@ -14,4 +14,9 @@ router.put("/:id", dailyTripController.updateDailyTrip);
 // Xóa daily trip log
 router.delete("/:id", dailyTripController.deleteDailyTrip);
 
+router.put('/:dailyTripId/students/:studentId/attendance', dailyTripController.updateStudentAttendance);
+
+
+router.get('/find-student/:studentId', dailyTripController.findStudentBusInfo);
+
 module.exports = router;

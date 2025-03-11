@@ -19,6 +19,7 @@ const resources = {
       "classLabel": "Class",
       "schoolYearLabel": "Label",
       "hallmark_of_fame": "HALLMARK OF HONOR",
+      "hallmark_of_fame_02": "HALLMARK OF HONOR",
       "achievement_description": "The Hall of Honor is a place to recognize and honor the achievements of students and classes at Wellspring Hanoi. The achievements are divided into categories such as Class Honor, Student Honor, Top Graduates, Scholarship Talent, WISers Excellent, WISers Inspiration, WISers Honor, WISers Effort, Standardized Test Achievements, and Competition & Tournament Achievements.",
       "noClass": "Not updated",
       "achievement": "Achievement",
