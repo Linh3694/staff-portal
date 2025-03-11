@@ -38,6 +38,10 @@ const enrollmentRoutes = require("./routes/studentClassEnrollmentRoutes");
 const photoRoutes = require("./routes/photoRoutes");
 const awardRecordRoutes = require("./routes/awardRecordRoutes");
 const awardCategoryRoutes = require("./routes/awardCategoryRoutes");
+const routeRoutes = require("./routes/routeRoutes");
+const vehicleRoutes = require("./routes/vehicleRoutes");
+const tripRoutes = require("./routes/tripRoutes");
+const dailyTripRoutes = require("./routes/dailyTripRoutes");
 
 const app = express();
 
@@ -112,6 +116,11 @@ app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/photos", photoRoutes);
 app.use("/api/award-records", awardRecordRoutes); 
 app.use("/api/award-categories", awardCategoryRoutes);
+app.use("/api/routes", routeRoutes);
+app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/trips", tripRoutes);
+app.use("/api/daily-trips", dailyTripRoutes);
+
 
 // Route trả về danh sách file trong thư mục /uploads/Students
 app.get("/uploads/Students", (req, res) => {
