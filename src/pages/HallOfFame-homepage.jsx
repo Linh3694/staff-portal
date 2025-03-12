@@ -345,28 +345,25 @@ const HallofFame = () => {
         className="fixed-section relative w-full min-h-screen overflow-hidden flex items-center justify-center rounded-t-3xl"
       >
         <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          webkit-playsinline
           className="hidden lg:flex absolute top-0 left-0 w-full h-full md:object-cover object-contain"
-        >
-          <source src="/halloffame/banner.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <video
+          src="/halloffame/banner.mp4"
           autoPlay
-          loop
           muted
+          loop
           playsInline
-          webkit-playsinline
+          preload="auto"
+        />
+        <video
           className="lg:hidden absolute top-0 left-0 w-full h-full md:object-cover object-cover"
-        >
-          <source src="/halloffame/banner_mobile.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div className="absolute bottom-[10%] left-1/2 transform -translate-x-1/2 z-20 block md:hidden">
+          src="/halloffame/banner_mobile.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+        <p>Video không tải được.</p>
+        <div className="absolute bottom-[15%] left-1/2 transform -translate-x-1/2 z-20 block md:hidden">
           <button
             onClick={() => navigate("/hall-of-honor/detail")}
             className="w-[250px] px-10 py-2 bg-[#F9D16F] rounded-full font-semibold transition-colors"
