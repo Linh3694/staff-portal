@@ -7,8 +7,14 @@ import StudentHonorContent from "../components/halloffame/StudentHonorContent";
 import ClassHonorContent from "../components/halloffame/ClassHonorContent";
 import ScholarShipContent from "../components/halloffame/ScholarShipContent";
 import { FaArrowUp, FaArrowDown, FaBars } from "react-icons/fa";
+import { useSearchParams } from "react-router-dom";
 
 function HallOfFamePublicPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const recordIdParam = searchParams.get("recordId");
+  const studentIdParam = searchParams.get("studentId");
+  const classIdParam = searchParams.get("classId");
+
   // --- i18n, Header logic ---
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -48,19 +54,47 @@ function HallOfFamePublicPage() {
     switch (selectedCategoryId) {
       //// Học sinh danh dự
       case "67b5a7864c93fbb31475ad44":
-        return <StudentHonorContent categoryId={selectedCategoryId} />;
+        return (
+          <StudentHonorContent
+            categoryId={selectedCategoryId}
+            recordIdParam={recordIdParam}
+            studentIdParam={studentIdParam}
+            setSearchParams={setSearchParams}
+          />
+        );
 
       //// Học bổng tài năng
       case "67b5a81e4c93fbb31475ad4a":
-        return <ScholarShipContent categoryId={selectedCategoryId} />;
+        return (
+          <ScholarShipContent
+            categoryId={selectedCategoryId}
+            recordIdParam={recordIdParam}
+            studentIdParam={studentIdParam}
+            setSearchParams={setSearchParams}
+          />
+        );
 
       //// Học sinh nỗ lực
       case "67b5a98b4c93fbb31475ad56":
-        return <StudentHonorContent categoryId={selectedCategoryId} />;
+        return (
+          <StudentHonorContent
+            categoryId={selectedCategoryId}
+            recordIdParam={recordIdParam}
+            studentIdParam={studentIdParam}
+            setSearchParams={setSearchParams}
+          />
+        );
 
       //// Lớp danh dự
       case "67b5a7c84c93fbb31475ad47":
-        return <ClassHonorContent categoryId={selectedCategoryId} />;
+        return (
+          <ClassHonorContent
+            categoryId={selectedCategoryId}
+            recordIdParam={recordIdParam}
+            studentIdParam={studentIdParam}
+            setSearchParams={setSearchParams}
+          />
+        );
       // TODO: thêm các case khác nếu có các component riêng cho danh mục khác.
       default:
         return (

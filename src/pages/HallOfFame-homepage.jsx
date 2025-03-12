@@ -320,7 +320,7 @@ const HallofFame = () => {
         <div className="flex flex-row gap-10 items-center">
           <img
             src="/halloffame/HJ-white.png"
-            className="h-12 hidden lg:block"
+            className="h-12 hidden md:block"
             alt="Happy Journey"
           />
           <button
@@ -362,7 +362,6 @@ const HallofFame = () => {
           playsInline
           preload="auto"
         />
-        <p>Video không tải được.</p>
         <div className="absolute bottom-[15%] left-1/2 transform -translate-x-1/2 z-20 block md:hidden">
           <button
             onClick={() => navigate("/hall-of-honor/detail")}
@@ -503,7 +502,7 @@ const HallofFame = () => {
         </div>
 
         {/* Slider Splide */}
-        <div className="splide w-full max-w-[1900px]">
+        <div className="splide w-full ">
           <div className="splide__track">
             <ul className="splide__list">
               {starStudents.map((student, index) => {
@@ -517,13 +516,17 @@ const HallofFame = () => {
                       transition-all 
                       duration-500
                       overflow-hidden
-                      ${isActive ? "w-[840px]" : "w-[420px]"}
+                      ${
+                        isActive
+                          ? "lg:w-[840px] w-[840px]"
+                          : "lg:w-[420px] w-[420px]"
+                      }
                     `}
                     onClick={() => handleClickStudent(index)}
                     key={index}
                   >
                     {/* Ảnh học sinh */}
-                    <div className="relative 2xl:w-[420px] w-[420px] h-[420px]">
+                    <div className="relative lg:h-[420px] lg:w-[420px] w-[200px] h-[250px] ">
                       <img
                         src={student.image}
                         alt={student.name[i18n.language]}
@@ -533,7 +536,7 @@ const HallofFame = () => {
 
                     {/* Frame Avatar */}
                     {!isActive && (
-                      <div className="absolute inset-0 2xl:w-[420px] w-[420px] h-[420px] pointer-events-none z-50">
+                      <div className="absolute inset-0 lg:w-[420px] lg:h-[420px] w-[200px] h-[250px]  pointer-events-none z-50">
                         <img
                           src="/halloffame/frameavatar.png"
                           alt="Avatar Frame"
@@ -544,7 +547,7 @@ const HallofFame = () => {
 
                     {/* Frame Quote */}
                     {isActive && (
-                      <div className="absolute inset-0 2xl:w-[840px] w-[840px] h-full pointer-events-none z-50 flex items-stretch">
+                      <div className="absolute inset-0 lg:w-[840px] w-[500px] h-full pointer-events-none z-50 flex items-stretch">
                         <img
                           src="/halloffame/framequote.png"
                           alt="Quote Frame"
@@ -555,16 +558,16 @@ const HallofFame = () => {
 
                     {/* Overlay gradient chứa text */}
                     <div
-                      className="2xl:w-[420px] w-[420px] px-4 py-28 absolute bottom-0 transition-all duration-500 rounded-b-lg"
+                      className="lg:w-[420px] w-[200px] px-4 lg:py-28 py-20 absolute bottom-0 transition-all duration-500 rounded-b-lg"
                       style={{
                         background:
                           "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",
                       }}
                     >
-                      <p className="absolute bottom-10 2xl:text-3xl text-2xl uppercase font-bold text-[#F9D16F]">
+                      <p className="absolute bottom-10 lg:text-3xl text-base uppercase font-bold text-[#F9D16F]">
                         {student.name[i18n.language]}
                       </p>
-                      <p className="absolute bottom-4 text-md font-semibold text-[#F9D16F]">
+                      <p className="absolute bottom-4 lg:text-base text-xs font-semibold text-[#F9D16F]">
                         {student.year[i18n.language]}
                       </p>
                     </div>
@@ -572,15 +575,14 @@ const HallofFame = () => {
                     {/* Hộp giới thiệu mở bên cạnh */}
                     {isActive && (
                       <div
-                        className="p-6 rounded-xl flex flex-col  transition-all duration-500 ease-in-out"
-                        style={{
-                          // Khi chưa active => maxWidth = 0 => ẩn. Khi active => hiển thị đầy đủ
-                          maxWidth: isActive ? "420px" : "0px",
-                          opacity: isActive ? 1 : 0,
-                        }}
+                        className={`${
+                          isActive
+                            ? "max-w-[250px] md:max-w-[420px] opacity-100"
+                            : "max-w-0 opacity-0"
+                        } transition-all duration-300 rounde-xl p-6`}
                       >
                         <div style={{ whiteSpace: "pre-line" }}>
-                          <p className="2xl:text-xl text-2xl uppercase font-bold text-[#F9D16F] mb-2">
+                          <p className="lg:text-xl text-base uppercase font-bold text-[#F9D16F] mb-2">
                             {student.name[i18n.language]}
                           </p>
                           <p className="text-sm font-semibold text-[#F9D16F]">
@@ -590,7 +592,7 @@ const HallofFame = () => {
                         <div className="my-5">
                           <img src={`/halloffame/vector.png`} alt="Cover" />
                         </div>
-                        <p className="text-white text-[14px]">
+                        <p className="text-white md:text-[14px]">
                           "
                           {i18n.language === "vi"
                             ? student.quoteVi

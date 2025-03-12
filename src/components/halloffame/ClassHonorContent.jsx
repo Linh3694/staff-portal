@@ -9,7 +9,12 @@ import { useTranslation } from "react-i18next";
  * Component hiển thị danh hiệu dành cho LỚP (thay vì học sinh).
  * Dữ liệu đọc từ AwardRecord, trong đó ta dùng mảng awardClasses thay cho students.
  */
-const ClassHonorContent = ({ categoryId }) => {
+const ClassHonorContent = ({
+  categoryId,
+  recordIdParam,
+  classIdParam,
+  setSearchParams,
+}) => {
   const { t, i18n } = useTranslation();
 
   // --- States cho dữ liệu API ---
@@ -48,6 +53,22 @@ const ClassHonorContent = ({ categoryId }) => {
     fetchSchoolYears();
     fetchClassPhotos();
   }, []);
+
+  // 1) Tự động mở modal nếu URL có
+  useEffect(() => {
+    if (!recordIdParam || !classIdParam || !records.length) return;
+    const foundRecord = records.find((r) => r._id === recordIdParam);
+    if (!foundRecord) return;
+
+    const foundClass = foundRecord.awardClasses.find(
+      (c) => c.classInfo?._id === classIdParam
+    );
+    if (!foundClass) return;
+
+    setModalRecord(foundRecord);
+    setModalClass(foundClass);
+    setShowModal(true);
+  }, [recordIdParam, classIdParam, records]);
 
   const fetchCategories = async () => {
     try {
@@ -398,12 +419,21 @@ const ClassHonorContent = ({ categoryId }) => {
     setModalRecord(record);
     setModalClass(cls);
     setShowModal(true);
+    if (setSearchParams) {
+      setSearchParams({
+        recordId: record._id,
+        classId: cls.classInfo?._id,
+      });
+    }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setModalRecord(null);
     setModalClass(null);
+    if (setSearchParams) {
+      setSearchParams({});
+    }
   };
 
   const findSchoolYearLabel = (syId) => {

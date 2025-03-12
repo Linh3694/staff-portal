@@ -6,7 +6,12 @@ import { FaSearch } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import { ShimmerTitle } from "shimmer-effects-react";
 
-const StudentHonorContent = ({ categoryId }) => {
+const StudentHonorContent = ({
+  categoryId,
+  recordIdParam,
+  studentIdParam,
+  setSearchParams,
+}) => {
   const { t, i18n } = useTranslation();
 
   // --- States cho dữ liệu API ---
@@ -41,6 +46,29 @@ const StudentHonorContent = ({ categoryId }) => {
     fetchRecords();
     fetchSchoolYears();
   }, []);
+
+  useEffect(() => {
+    if (!recordIdParam || !studentIdParam || !records.length) return;
+
+    // Tìm record
+    const foundRecord = records.find((r) => r._id === recordIdParam);
+    if (!foundRecord) return;
+
+    // Tìm student
+    let foundStudent = null;
+    for (const stu of foundRecord.students) {
+      if (stu.student?._id === studentIdParam) {
+        foundStudent = stu;
+        break;
+      }
+    }
+    if (!foundStudent) return;
+
+    // Nếu tìm thấy -> mở modal
+    setModalRecord(foundRecord);
+    setModalStudent(foundStudent);
+    setShowModal(true);
+  }, [recordIdParam, studentIdParam, records]);
 
   const fetchCategories = async () => {
     try {
@@ -379,6 +407,13 @@ const StudentHonorContent = ({ categoryId }) => {
     setModalRecord(record);
     setModalStudent(student);
     setShowModal(true);
+    // Cập nhật URL
+    if (setSearchParams) {
+      setSearchParams({
+        recordId: record._id,
+        studentId: student.student?._id,
+      });
+    }
   };
 
   // Hàm đóng modal
@@ -386,6 +421,10 @@ const StudentHonorContent = ({ categoryId }) => {
     setShowModal(false);
     setModalRecord(null);
     setModalStudent(null);
+    if (setSearchParams) {
+      // Xóa hết param
+      setSearchParams({});
+    }
   };
 
   // Hàm phụ: trả về text cho danh hiệu (VD: "Học sinh Danh dự - Tháng 8")
