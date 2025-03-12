@@ -12,6 +12,7 @@ const resources = {
       "semester": "Semester",
       "month": "Month",
       "language": "Language",
+      "discover": "Discover",
       "back_home": "Back to HomePage",
       "studenthonor": "Distinguished Student",
       "student_feedback": "Student Testimonials",
@@ -82,8 +83,8 @@ const resources = {
             "vi": "Cựu học sinh khóa 2023-2024",
             "en": "Alumni of 2023-2024"
           },
-          "quoteVi": "Với mình, giá trị tiền tệ của học bổng hàng năm Wellspring trao cho con chỉ là một phần của lí do con luôn đăng ký mỗi năm. Con luôn trân trọng sự công nhận của nhà trường đối với những cố gắng, thành tích và cống hiến của mình đối với nhà trường. Điều này đã luôn tạo cho con động lực để tiếp tục nỗ lực hơn nữa. Ở Wellspring, mỗi học sinh là một cá nhân với những tài năng và cống hiến riêng - những tâm hồn rực rỡ đầy sắc màu, và quỹ học bổng tài năng Wellspring đã luôn tồn tại để ghi nhận và động viên các WISers. Lời khuyên của con dành cho các WISers mong muốn ứng tuyển là hãy tìm một thứ bạn đam mê và thấy ý nghĩa, hãy theo đuổi hết mình và cống hiến, và bạn sẽ thành công.",
-          "quoteEn": "For me, the monetary value of the Wellspring Talent Scholarship was always only one side of why I applied again and again every year. I always saw the scholarship as the school’s recognition of my efforts, achievements, and contributions to the Wellspring community. This recognition gave me the motivation to continue giving my all and always strive for better. At Wellspring, each student has their own talents and contribution – the soul with beautifully unique shades. For my juniors who are pursuing a scholarship, my only advice is to find something you are passionate about, and put your all in it, and you will be successful.",
+          "quoteVi": "Ở Wellspring, mỗi học sinh là một cá nhân với những tài năng và cống hiến riêng - những tâm hồn rực rỡ đầy sắc màu, và quỹ học bổng tài năng Wellspring đã luôn tồn tại để ghi nhận và động viên các WISers. Với các WISers mong muốn ứng tuyển học bổng tài năng, hãy tìm một thứ bạn đam mê và thấy ý nghĩa, hãy theo đuổi hết mình và cống hiến, và bạn sẽ thành công.",
+          "quoteEn": "At Wellspring, each student has their own talents and contribution – the soul with beautifully unique shades. For my juniors who are pursuing a scholarship, my only advice is to find something you are passionate about, and put your all in it, and you will be successful.",
           "archivement": {
             "vi": "Học bổng Tài năng (50%-100%) trong 07 năm học liên tiếp (kể từ năm học 2017-2018). \n\nSinh viên ngành Sociology, Rutgers University–New Brunswick (New Jersey), Hoa Kỳ",
             "en": "50%-100% Talent Scholarship for 07 school year (2017-2024). \n\nCurrently a Sociology student at Rutgers University–New Brunswick (New Jersey, USA)"
@@ -116,8 +117,8 @@ const resources = {
             "vi": "Học sinh lớp 12ADN3",
             "en": "Student of Class 12ADN3"
           },
-          "quoteVi": "Con đã tham gia bốn kỳ thi học bổng của Wellspring – một chương trình ý nghĩa giúp con rèn luyện tư duy logic, sáng tạo và khám phá bản thân. Mỗi năm, nhà trường mang đến những chủ đề và hình thức thi mới. Con ấn tượng nhất với phần thi video cá nhân về 'hạnh phúc' - năm 2024, nơi con thể hiện dấu ấn riêng qua cách kể chuyện sáng tạo, chia sẻ niềm vui từ tiết học, hoạt động ngoại khóa và khoảnh khắc bên bạn bè. Con khuyên các bạn ứng tuyển hãy tự tin, sáng tạo và thể hiện rõ cá tính của mình.",
-          "quoteEn": "I have participated in four Wellspring scholarship competitions—an inspiring program that has helped me develop logical thinking, creativity, and self-discovery. Each year, the school introduces new themes and testing formats. In 2024, I was most impressed by the individual video competition on 'happiness', where I expressed my unique perspective through creative storytelling, sharing the joy of engaging lessons, extracurricular activities, and moments with friends. My advice for future applicants is to be confident, think outside the box, and showcase their individuality.",
+          "quoteVi": "Con đã tham gia bốn kỳ thi học bổng của Wellspring – một chương trình ý nghĩa giúp con rèn luyện tư duy logic, sáng tạo và khám phá bản thân. Mỗi năm, nhà trường mang đến những chủ đề và hình thức thi mới. Con ấn tượng nhất với phần thi video cá nhân về 'hạnh phúc' - năm 2024, nơi con thể hiện dấu ấn riêng qua cách kể chuyện sáng tạo, chia sẻ niềm vui từ tiết học, hoạt động ngoại khóa và khoảnh khắc bên bạn bè.",
+          "quoteEn": "I have participated in four Wellspring Talent Scholarship competitions—an incredible program that has sharpened my logical thinking, creativity, and self-discovery. Each year, the school introduces fresh themes and formats, keeping the experience exciting. The 2024 competition left the biggest impression on me, especially the individual video challenge on 'happiness'. It was my chance to showcase my unique storytelling style and share the joy I found in classes, extracurricular activities, and moments with friends.",
           "archivement": {
             "vi": "Học bổng Tài năng (25%-50%) trong 03 năm học liên tiếp (kể từ năm học 2022-2023)",
             "en": "25%-50% Talent Scholarship for 03 school years (from 2022 to 2025)"
@@ -150,8 +151,8 @@ const resources = {
             "vi": "Học sinh lớp 9AD",
             "en": "Student of Class 9AD"
           },
-          "quoteVi": "Trong suốt quá trình học tại Wellspring, chương trình học, hoạt động ngoại khóa, cuộc thi và học bổng đã là nguồn động lực lớn giúp con không ngừng phát triển, và con rất biết ơn vì điều đó. Bài học quan trọng nhất mà con rút ra từ hành trình của mình là hãy luôn giữ vững niềm tin rằng mình có thể chinh phục mọi thử thách. Chúc các bạn học sinh luôn tích cực tham gia các hoạt động ngoại khóa, luôn trau dồi kỹ năng, giữ một tinh thần tích cực và sáng tạo không ngừng.",
-          "quoteEn": "Throughout my time at Wellspring, the curriculum, extracurricular activities, competitions, and scholarships have been a great source of motivation, helping me continuously grow, and I am truly grateful for that. The most important lesson I have learned from my journey is to always believe that I can overcome any challenge. I encourage you all to actively participate in extracurricular activities, continuously develop your skills, maintain a positive mindset, and always be creative.",
+          "quoteVi": "Trong suốt quá trình học tại Wellspring, chương trình học, hoạt động ngoại khóa, cuộc thi và học bổng đã là nguồn động lực lớn giúp con không ngừng phát triển, và con rất biết ơn vì điều đó. Bài học quan trọng nhất mà con rút ra từ hành trình của mình là hãy luôn giữ vững niềm tin rằng mình có thể chinh phục mọi thử thách.",
+          "quoteEn": "Throughout my time at Wellspring, the academic programs, extracurricular activities, competitions, and scholarships have been a huge motivation, helping me grow continuously. The most important lesson I've learned is to always believe in myself and my ability to overcome any challenge.",
           "archivement": {
             "vi": "Học bổng Tài năng 50% (năm học 2024-2025)",
             "en": "The 50% Talent Scholarship (SY 2024-2025)"
@@ -184,8 +185,8 @@ const resources = {
             "vi": "Học sinh lớp 5A6",
             "en": "Student of Class 5A6"
           },
-          "quoteVi": "Trong thời gian học ở trường Wellspring, con cảm thấy vui, thú vị, phù hợp với độ tuổi của con. Con được trải nghiệm rất nhiều kiến thức, kĩ năng bổ ích thông qua các tiết học như: Toán, thể thao, khoa học. Con luôn cảm ơn bố mẹ đã tạo điều kiện cho con học tập tại một ngôi trường tốt như Wellspring. Để đạt được học bổng thì con đặt lên hàng đầu sự chỉn chu trong làm bài; trả lời, thuyết trình lưu loát và sáng tạo không ngừng. Ngoài ra, bố mẹ là người giúp đỡ cho con, làm thầy cô hoặc ban giám khảo để con tập luyện thuyết trình. Từ đó, con trở nên tự tin, mạnh mẽ hơn khi khó khăn.",
-          "quoteEn": "During my time studying at Wellspring School, I felt happy, engaged, and well-suited to my age. I gained a lot of valuable knowledge and skills through subjects like Math, Sports, and Science. I am always grateful to my parents for providing me with the opportunity to study at such a great school like Wellspring. In order to achieve the scholarship, I prioritize meticulousness in my work; I strive to respond, present fluently, and continuously think creatively. Additionally, my parents are the ones who support me, acting as teachers or judges to help me practice presenting. As a result, I have become more confident and resilient when faced with challenges.",
+          "quoteVi": "Trong thời gian học ở trường Wellspring, con cảm thấy vui; chương trình học thú vị, phù hợp với độ tuổi của con. Con được trải nghiệm rất nhiều kiến thức, kĩ năng bổ ích thông qua các tiết học như: Toán, thể thao, khoa học. Con luôn cảm ơn bố mẹ đã tạo điều kiện cho con học tập tại một ngôi trường tốt như Wellspring.",
+          "quoteEn": "Studying at Wellspring has been an exciting and fulfilling experience for me. The engaging curriculum, tailored to my age, has made learning enjoyable. Subjects like Math, Sports, and Science have given me valuable knowledge and skills. I am always grateful to my parents for giving me the opportunity to study at such a great school.",
           "archivement": {
             "vi": "Học bổng Tài năng 50% (năm học 2024-2025)",
             "en": "The 50% Talent Scholarship (SY 2024-2025)"
@@ -205,6 +206,7 @@ const resources = {
       "semester": "Học kì",
       "month": "Tháng",
       "language": "Ngôn ngữ",
+      "discover": "Khám phá",
       "back_home": "Quay lại trang chủ",
       "studenthonor": "Học sinh tiêu biểu",
       "student_feedback": "CẢM NHẬN CỦA HỌC SINH",   
@@ -273,11 +275,11 @@ const resources = {
             "vi": "Cựu học sinh khóa 2023-2024",
             "en": "Alumni of 2023-2024"
           },
-          "quoteVi": "Với mình, giá trị tiền tệ của học bổng hàng năm Wellspring trao cho con chỉ là một phần của lí do con luôn đăng ký mỗi năm. Con luôn trân trọng sự công nhận của nhà trường đối với những cố gắng, thành tích và cống hiến của mình đối với nhà trường. Điều này đã luôn tạo cho con động lực để tiếp tục nỗ lực hơn nữa. Ở Wellspring, mỗi học sinh là một cá nhân với những tài năng và cống hiến riêng - những tâm hồn rực rỡ đầy sắc màu, và quỹ học bổng tài năng Wellspring đã luôn tồn tại để ghi nhận và động viên các WISers. Lời khuyên của con dành cho các WISers mong muốn ứng tuyển là hãy tìm một thứ bạn đam mê và thấy ý nghĩa, hãy theo đuổi hết mình và cống hiến, và bạn sẽ thành công.",
-          "quoteEn": "For me, the monetary value of the Wellspring Talent Scholarship was always only one side of why I applied again and again every year. I always saw the scholarship as the school’s recognition of my efforts, achievements, and contributions to the Wellspring community. This recognition gave me the motivation to continue giving my all and always strive for better. At Wellspring, each student has their own talents and contribution – the soul with beautifully unique shades. For my juniors who are pursuing a scholarship, my only advice is to find something you are passionate about, and put your all in it, and you will be successful.",
+          "quoteVi": "Ở Wellspring, mỗi học sinh là một cá nhân với những tài năng và cống hiến riêng - những tâm hồn rực rỡ đầy sắc màu, và quỹ học bổng tài năng Wellspring đã luôn tồn tại để ghi nhận và động viên các WISers. Với các WISers mong muốn ứng tuyển học bổng tài năng, hãy tìm một thứ bạn đam mê và thấy ý nghĩa, hãy theo đuổi hết mình và cống hiến, và bạn sẽ thành công.",
+          "quoteEn": "At Wellspring, each student has their own talents and contribution – the soul with beautifully unique shades. For my juniors who are pursuing a scholarship, my only advice is to find something you are passionate about, and put your all in it, and you will be successful.",
           "archivement": {
-            "vi": "Học bổng Tài năng (50%-100%) trong 07 năm học liên tiếp (kể từ năm học 2017-2018). \nSinh viên ngành Sociology, Rutgers University–New Brunswick (New Jersey), Hoa Kỳ",
-            "en": "50%-100% Talent Scholarship for 07 school year (2017-2024). \nCurrently a Sociology student at Rutgers University–New Brunswick (New Jersey, USA)"
+            "vi": "Học bổng Tài năng (50%-100%) trong 07 năm học liên tiếp (kể từ năm học 2017-2018). \n\nSinh viên ngành Sociology, Rutgers University–New Brunswick (New Jersey), Hoa Kỳ",
+            "en": "50%-100% Talent Scholarship for 07 school year (2017-2024). \n\nCurrently a Sociology student at Rutgers University–New Brunswick (New Jersey, USA)"
           },
           "image": "/halloffame/student1.jpg",        
         },
@@ -307,8 +309,8 @@ const resources = {
             "vi": "Học sinh lớp 12ADN3",
             "en": "Student of Class 12ADN3"
           },
-          "quoteVi": "Con đã tham gia bốn kỳ thi học bổng của Wellspring – một chương trình ý nghĩa giúp con rèn luyện tư duy logic, sáng tạo và khám phá bản thân. Mỗi năm, nhà trường mang đến những chủ đề và hình thức thi mới. Con ấn tượng nhất với phần thi video cá nhân về 'hạnh phúc' - năm 2024, nơi con thể hiện dấu ấn riêng qua cách kể chuyện sáng tạo, chia sẻ niềm vui từ tiết học, hoạt động ngoại khóa và khoảnh khắc bên bạn bè. Con khuyên các bạn ứng tuyển hãy tự tin, sáng tạo và thể hiện rõ cá tính của mình.",
-          "quoteEn": "I have participated in four Wellspring scholarship competitions—an inspiring program that has helped me develop logical thinking, creativity, and self-discovery. Each year, the school introduces new themes and testing formats. In 2024, I was most impressed by the individual video competition on 'happiness', where I expressed my unique perspective through creative storytelling, sharing the joy of engaging lessons, extracurricular activities, and moments with friends. My advice for future applicants is to be confident, think outside the box, and showcase their individuality.",
+          "quoteVi": "Con đã tham gia bốn kỳ thi học bổng của Wellspring – một chương trình ý nghĩa giúp con rèn luyện tư duy logic, sáng tạo và khám phá bản thân. Mỗi năm, nhà trường mang đến những chủ đề và hình thức thi mới. Con ấn tượng nhất với phần thi video cá nhân về 'hạnh phúc' - năm 2024, nơi con thể hiện dấu ấn riêng qua cách kể chuyện sáng tạo, chia sẻ niềm vui từ tiết học, hoạt động ngoại khóa và khoảnh khắc bên bạn bè.",
+          "quoteEn": "I have participated in four Wellspring Talent Scholarship competitions—an incredible program that has sharpened my logical thinking, creativity, and self-discovery. Each year, the school introduces fresh themes and formats, keeping the experience exciting. The 2024 competition left the biggest impression on me, especially the individual video challenge on 'happiness'. It was my chance to showcase my unique storytelling style and share the joy I found in classes, extracurricular activities, and moments with friends.",
           "archivement": {
             "vi": "Học bổng Tài năng (25%-50%) trong 03 năm học liên tiếp (kể từ năm học 2022-2023)",
             "en": "25%-50% Talent Scholarship for 03 school years (from 2022 to 2025)"
@@ -328,7 +330,7 @@ const resources = {
           "quoteEn": "I am incredibly proud of myself and deeply grateful to my parents. At first, I didn’t set high expectations, but when I saw the results, I was truly surprised and overjoyed. This has given me even more motivation to keep striving and conquer new milestones in the future.",
           "archivement": {
             "vi": "FCE 186/190, học sinh danh dự HKI",
-            "en": "Achieved 186/190 on the FCE Exam \nHonor Student of the Semester"
+            "en": "Achieved 186/190 on the FCE Exam \n\nHonor Student of the Semester"
           },
           "image": "/halloffame/student6.jpg",
         },
@@ -341,8 +343,8 @@ const resources = {
             "vi": "Học sinh lớp 9AD",
             "en": "Student of Class 9AD"
           },
-          "quoteVi": "Trong suốt quá trình học tại Wellspring, chương trình học, hoạt động ngoại khóa, cuộc thi và học bổng đã là nguồn động lực lớn giúp con không ngừng phát triển, và con rất biết ơn vì điều đó. Bài học quan trọng nhất mà con rút ra từ hành trình của mình là hãy luôn giữ vững niềm tin rằng mình có thể chinh phục mọi thử thách. Chúc các bạn học sinh luôn tích cực tham gia các hoạt động ngoại khóa, luôn trau dồi kỹ năng, giữ một tinh thần tích cực và sáng tạo không ngừng.",
-          "quoteEn": "Throughout my time at Wellspring, the curriculum, extracurricular activities, competitions, and scholarships have been a great source of motivation, helping me continuously grow, and I am truly grateful for that. The most important lesson I have learned from my journey is to always believe that I can overcome any challenge. I encourage you all to actively participate in extracurricular activities, continuously develop your skills, maintain a positive mindset, and always be creative.",
+          "quoteVi": "Trong suốt quá trình học tại Wellspring, chương trình học, hoạt động ngoại khóa, cuộc thi và học bổng đã là nguồn động lực lớn giúp con không ngừng phát triển, và con rất biết ơn vì điều đó. Bài học quan trọng nhất mà con rút ra từ hành trình của mình là hãy luôn giữ vững niềm tin rằng mình có thể chinh phục mọi thử thách.",
+          "quoteEn": "Throughout my time at Wellspring, the academic programs, extracurricular activities, competitions, and scholarships have been a huge motivation, helping me grow continuously. The most important lesson I've learned is to always believe in myself and my ability to overcome any challenge.",
           "archivement": {
             "vi": "Học bổng Tài năng 50% (năm học 2024-2025)",
             "en": "The 50% Talent Scholarship (SY 2024-2025)"
@@ -375,8 +377,8 @@ const resources = {
             "vi": "Học sinh lớp 5A6",
             "en": "Student of Class 5A6"
           },
-          "quoteVi": "Trong thời gian học ở trường Wellspring, con cảm thấy vui, thú vị, phù hợp với độ tuổi của con. Con được trải nghiệm rất nhiều kiến thức, kĩ năng bổ ích thông qua các tiết học như: Toán, thể thao, khoa học. Con luôn cảm ơn bố mẹ đã tạo điều kiện cho con học tập tại một ngôi trường tốt như Wellspring. Để đạt được học bổng thì con đặt lên hàng đầu sự chỉn chu trong làm bài; trả lời, thuyết trình lưu loát và sáng tạo không ngừng. Ngoài ra, bố mẹ là người giúp đỡ cho con, làm thầy cô hoặc ban giám khảo để con tập luyện thuyết trình. Từ đó, con trở nên tự tin, mạnh mẽ hơn khi khó khăn.",
-          "quoteEn": "During my time studying at Wellspring School, I felt happy, engaged, and well-suited to my age. I gained a lot of valuable knowledge and skills through subjects like Math, Sports, and Science. I am always grateful to my parents for providing me with the opportunity to study at such a great school like Wellspring. In order to achieve the scholarship, I prioritize meticulousness in my work; I strive to respond, present fluently, and continuously think creatively. Additionally, my parents are the ones who support me, acting as teachers or judges to help me practice presenting. As a result, I have become more confident and resilient when faced with challenges.",
+          "quoteVi": "Trong thời gian học ở trường Wellspring, con cảm thấy vui; chương trình học thú vị, phù hợp với độ tuổi của con. Con được trải nghiệm rất nhiều kiến thức, kĩ năng bổ ích thông qua các tiết học như: Toán, thể thao, khoa học. Con luôn cảm ơn bố mẹ đã tạo điều kiện cho con học tập tại một ngôi trường tốt như Wellspring.",
+          "quoteEn": "Studying at Wellspring has been an exciting and fulfilling experience for me. The engaging curriculum, tailored to my age, has made learning enjoyable. Subjects like Math, Sports, and Science have given me valuable knowledge and skills. I am always grateful to my parents for giving me the opportunity to study at such a great school.",
           "archivement": {
             "vi": "Học bổng Tài năng 50% (năm học 2024-2025)",
             "en": "The 50% Talent Scholarship (SY 2024-2025)"

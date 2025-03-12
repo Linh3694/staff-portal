@@ -431,7 +431,17 @@ const ClassHonorContent = ({ categoryId }) => {
     }
     return label;
   };
+  // Lấy text từ DB (hoặc i18n)
+  const rawText =
+    i18n.language === "vi"
+      ? currentCategory.name || t("award", "Danh hiệu")
+      : currentCategory.nameEng || t("award", "Award");
 
+  // Nếu DB lưu nhầm thành \\n, bạn có thể replace:
+  const normalizedText = rawText.replace(/\\n/g, "\n");
+
+  // Tách thành mảng theo ký tự xuống dòng
+  const lines = normalizedText.split("\n");
   // --------------------------------------------------
   // 7) Giao diện
   // --------------------------------------------------
@@ -439,11 +449,21 @@ const ClassHonorContent = ({ categoryId }) => {
     <div className="lg:p-6 px-3 lg:min-w-[960px] w-full mx-auto mt-[40px] overflow-y-auto">
       {/* Tiêu đề, mô tả và ảnh cover */}
       <div>
-        <h2 className="text-[40px] text-[#F05023] text-center font-bold mb-2">
-          {i18n.language === "vi"
-            ? currentCategory.name || t("award", "Danh hiệu")
-            : currentCategory.nameEng || t("award", "Award")}
-        </h2>
+        <div className="flex flex-col shimmer-text-title text-center items-center justify-center uppercase leading-tight">
+          {lines.map((line, idx) => {
+            const textSize =
+              idx === 0
+                ? "text-[60px] font-[Metropolis]"
+                : "text-[70px] font-black font-[Metropolis]";
+
+            return (
+              <div key={idx} className={textSize}>
+                {line}
+              </div>
+            );
+          })}
+          <img src={`/halloffame/vector.png`} alt="Cover" />
+        </div>
         <div className="lg:w-[900px] w-full mx-auto text-left mt-4 mb-4">
           <p className="mb-4 text-[#002855] text-justify font-semibold md:text-[18px] text-[15px]">
             {i18n.language === "vi"

@@ -1,8 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@font-face {
+  font-family: 'Metropolis';
+  src: url('./assets/fonts/VLMetropolis-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
 
 
 body {
@@ -178,9 +186,9 @@ code {
 .shimmer-text {
     background: linear-gradient(
     45deg,
-    #F9D16F 0%,
-    #FFFFFF 40%,
-    #F9D16F 100%
+    #e6c265 40%,
+    #FFFFFF 80%,
+    #e6c265 100%
   );
   background-size: 200% 100%;
   
@@ -189,8 +197,9 @@ code {
   -webkit-text-fill-color: transparent;
 
   /* Animation quét từ phải sang trái (hoặc ngược lại) */
-  animation: goldShimmer 2s linear infinite;
+  animation: goldShimmer 3s linear infinite;
 }
+
 
 @keyframes goldShimmer {
   0% {
@@ -266,6 +275,31 @@ code {
   }
 }
 
+.shimmer-text-title {
+  background: linear-gradient(45deg,
+    #f9d16f 0%,
+    #db9a38 28%,
+    #fff1d5 62%,
+    #f9d16f 100%);
+  background-size: 200% 100%;
+
+  /* Cắt gradient theo chữ */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* Animation quét từ phải sang trái */
+  animation: blueShimmer 5s linear infinite;
+}
+
+@keyframes blueShimmer {
+  0% {
+    background-position: 200% center;
+  }
+
+  100% {
+        background-position: -200% center;
+  }
+}
 .fixed-section {
   position: fixed;
   top: 0;

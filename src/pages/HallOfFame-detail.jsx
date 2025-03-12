@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import i18n from "../i18n";
 import Sidebar from "../components/halloffame/Sidebar";
 import StudentHonorContent from "../components/halloffame/StudentHonorContent";
@@ -9,6 +10,7 @@ import { FaArrowUp, FaArrowDown, FaBars } from "react-icons/fa";
 
 function HallOfFamePublicPage() {
   // --- i18n, Header logic ---
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const toggleLanguage = () => {
     const newLanguage = i18n.language === "vi" ? "en" : "vi";
@@ -79,16 +81,20 @@ function HallOfFamePublicPage() {
           <FaBars size={24} />
         </button>
         <div className="flex flex-row gap-10 items-center">
-          <img
-            src="/halloffame/HOH-white.png"
-            className="h-12"
-            alt="Wellspring Logo"
-          />
-          <img
-            src="/halloffame/WS-white.png"
-            className="h-16"
-            alt="Wellspring Logo"
-          />
+          <button onClick={() => navigate("/hall-of-honor")}>
+            <img
+              src="/halloffame/HOH-white.png"
+              className="h-12"
+              alt="Wellspring Logo"
+            />
+          </button>
+          <a href="https://wellspring.edu.vn">
+            <img
+              src="/halloffame/WS-white.png"
+              className="h-16"
+              alt="Wellspring Logo"
+            />
+          </a>
         </div>
         <div className="flex flex-row gap-10 items-center">
           <img
