@@ -349,6 +349,7 @@ const HallofFame = () => {
           loop
           muted
           playsInline
+          webkit-playsinline
           className="hidden lg:flex absolute top-0 left-0 w-full h-full md:object-cover object-contain"
         >
           <source src="/halloffame/banner.mp4" type="video/mp4" />
@@ -359,6 +360,7 @@ const HallofFame = () => {
           loop
           muted
           playsInline
+          webkit-playsinline
           className="lg:hidden absolute top-0 left-0 w-full h-full md:object-cover object-cover"
         >
           <source src="/halloffame/banner_mobile.mp4" type="video/mp4" />
