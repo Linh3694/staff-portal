@@ -442,25 +442,31 @@ const ClassHonorContent = ({
     return syDoc?.code || syDoc?.name || "";
   };
 
-  // (Tuỳ nhu cầu) Hàm này trả về text hiển thị cho danh hiệu
-  const getSubAwardLabel = (rec) => {
-    if (!rec?.subAward) return "";
-    const { type, month, semester, schoolYear } = rec.subAward;
-    let label = currentCategory.name || "Danh hiệu";
-    if (type === "year") {
-      // Tìm code SY
-      const syDoc = schoolYears.find(
-        (sy) => String(sy._id) === String(schoolYear)
-      );
-      const syCode = syDoc?.code || "";
-      label += ` - Năm học ${syCode}`;
+  // Hàm phụ: trả về text cho danh hiệu (VD: "Học sinh Danh dự - Tháng 8")
+  const getSubAwardLabel = (record) => {
+    if (!record?.subAward) return "";
+    const { type, month, semester, schoolYear } = record.subAward;
+    const categoryName = t(`category_${categoryId}`, t("award", "Danh hiệu"));
+    const schoolYearLabel = findSchoolYearLabel(schoolYear);
+
+    if (type === "month") {
+      return `${categoryName} - ${t("month", "Tháng")} ${month || "?"} - ${t(
+        "schoolYear",
+        "Năm học"
+      )} ${schoolYearLabel}`;
     } else if (type === "semester") {
-      label += ` - Học kì ${semester}`;
-    } else if (type === "month") {
-      label += ` - Tháng ${month}`;
+      return `${categoryName} - ${t("semester", "Học kì")} ${
+        semester || "?"
+      } - ${t("schoolYear", "Năm học")} ${schoolYearLabel}`;
+    } else if (type === "year") {
+      return `${categoryName} - ${t(
+        "schoolYear",
+        "Năm học"
+      )} ${schoolYearLabel}`;
     }
-    return label;
+    return categoryName;
   };
+
   // Lấy text từ DB (hoặc i18n)
   const rawText =
     i18n.language === "vi"
@@ -619,21 +625,21 @@ const ClassHonorContent = ({
               return (
                 <div
                   key={idx}
-                  className="w-full border rounded-lg p-3 shadow-sm bg-[#E6EEF6] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                  className="border rounded-2xl p-5 shadow-sm bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                   onClick={() => handleOpenModalClass(record, cls)}
                 >
                   {classPhotos[cls.classInfo?._id] ? (
                     <img
                       src={`${BASE_URL}/${classPhotos[cls.classInfo?._id]}`}
                       alt={`Ảnh lớp ${cls.classInfo?.className}`}
-                      className="mt-2 w-full px-10 lg:px-0 h-[156px] object-cover rounded-lg"
+                      className="mt-2 w-full object-contain rounded-2xl"
                     />
                   ) : (
-                    <div className="text-xs italic text-gray-400">
+                    <div className="text-xs italic text-[#f9d16f]">
                       Chưa có ảnh
                     </div>
                   )}
-                  <div className="text-[#F05023] text-[20px] font-bold mt-2">
+                  <div className="text-[#f9d16f] text-[20px] font-bold">
                     {t("classLabel", "Lớp")} {cls.classInfo?.className}
                   </div>
                 </div>
@@ -690,7 +696,7 @@ const ClassHonorContent = ({
                         return (
                           <div
                             key={idx}
-                            className="border rounded-2xl p-3 shadow-sm bg-[#E6EEF6] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                            className="border rounded-2xl shadow-sm p-5 bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                             onClick={() => handleOpenModalClass(record, cls)}
                           >
                             {classPhotos[cls.classInfo?._id] ? (
@@ -702,11 +708,11 @@ const ClassHonorContent = ({
                                 className="mt-2 w-full object-contain rounded-2xl"
                               />
                             ) : (
-                              <div className="text-xs italic text-gray-400">
+                              <div className="text-xs italic text-[#f9d16f]">
                                 Chưa có ảnh
                               </div>
                             )}
-                            <div className="text-[#F05023] text-[20px] font-bold mt-2">
+                            <div className="text-[#f9d16f] text-[20px] font-bold">
                               {t("classLabel", "Lớp")}{" "}
                               {cls.classInfo?.className}
                             </div>
@@ -761,10 +767,6 @@ const ClassHonorContent = ({
                 <h2 className="w-full lg:text-[24px] md:text-[20px] text-[16px] font-bold text-[#F9D16F] mb-2">
                   {t("classLabel", "Lớp")} {modalClass.classInfo?.className}
                 </h2>
-                <span className="w-full text-[#F9D16F] md:text-[16px] text-[14px] font-semibold">
-                  {t("schoolYearLabel", "Khóa")}{" "}
-                  {findSchoolYearLabel(modalRecord.subAward?.schoolYear)}
-                </span>
 
                 <hr className="w-full border-t border-gray-100 my-2 lg:my-4" />
 
@@ -787,10 +789,10 @@ const ClassHonorContent = ({
             </div>
 
             {/* Nút đóng */}
-            <div className="flex w-full mx-auto my-2 items-center justify-center">
+            <div className="flex w-full mx-auto items-center justify-center pt-5">
               <button
                 onClick={handleCloseModal}
-                className="bg-[#F9D16F] lg:px-4 px-2 lg:py-2 py-1 rounded-md text-[#002855] text-[14px] lg:text-[16px] font-semibold hover:bg-gray-400"
+                className="bg-[#F9D16F] lg:px-16 px-2 lg:py-1 py-1 rounded-md text-[#002855] text-[13px] lg:text-[16px] font-semibold hover:bg-gray-400"
               >
                 {t("close", "Đóng")}
               </button>

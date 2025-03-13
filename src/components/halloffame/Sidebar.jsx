@@ -89,9 +89,9 @@ const Sidebar = ({
 
   return (
     <aside
-      className={`fixed top-12 md:top-0 left-0 z-40 flex h-full w-full bg-white p-4 shadow-md transform transition-transform duration-300 overflow-y-auto
+      className={`fixed top-12 md:top-0 left-0 z-40 flex h-full w-full md:w-[350px] lg:w-[400px] bg-white p-4 shadow-md transform transition-transform duration-300 overflow-y-auto
       ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} 
-      lg:translate-x-0 lg:relative lg:flex lg:w-[300px] lg:h-[calc(100vh-80px)] lg:shadow-none lg:overflow-y-visible`}
+      xl:translate-x-0 xl:relative xl:flex xl:w-[300px] xl:h-[calc(100vh-80px)] xl:shadow-none xl:overflow-y-visible`}
     >
       <nav className="space-y-4 mt-10">
         <button

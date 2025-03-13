@@ -4,7 +4,6 @@ import { API_URL, BASE_URL } from "../../config";
 import { FaAngleDown, FaAngleRight } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
-import { ShimmerTitle } from "shimmer-effects-react";
 
 const StudentHonorContent = ({
   categoryId,
@@ -24,8 +23,6 @@ const StudentHonorContent = ({
   const [selectedSchoolYearId, setSelectedSchoolYearId] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
-  const [selectedGradeRange, setSelectedGradeRange] = useState("");
-  const [selectedClass, setSelectedClass] = useState("");
   const [searchName, setSearchName] = useState("");
   const [openLevel, setOpenLevel] = useState(null);
 
@@ -734,7 +731,7 @@ const StudentHonorContent = ({
             {/* Bố cục chia làm 2 phần: Ảnh bên trái - Thông tin bên phải */}
             <div className="flex flex-col lg:flex-row lg:space-x-6 space-y-6 lg:space-y-0 ">
               {/* Khung ảnh với nền lệch */}
-              <div className="relative flex-shrink-0 px-[20px] lg:px-0">
+              <div className="relative flex-shrink-0 px-[25px] lg:px-0">
                 {modalStudent.photo?.photoUrl ? (
                   <img
                     src={`${BASE_URL}/${modalStudent.photo.photoUrl}`}
@@ -768,7 +765,7 @@ const StudentHonorContent = ({
                 </div>
 
                 {/* Danh hiệu */}
-                <p className=" w-full mb-2 font-semibold text-white text-[13px] md:text-[15px] lg:text-[18px]">
+                <p className="w-full mb-2 font-semibold text-white text-[13px] md:text-[15px] lg:text-[18px]">
                   {getSubAwardLabel(modalRecord)}
                 </p>
                 <div className="border-b-2 pb-4">
@@ -776,7 +773,7 @@ const StudentHonorContent = ({
                   {(i18n.language === "vi"
                     ? modalStudent.note
                     : modalStudent.noteEng) && (
-                    <p className=" text-white my-auto text-justify lg:text-left text-[14px] md:text-[16px]">
+                    <p className=" text-white my-auto text-justify lg:text-left text-[13px] md:text-[16px]">
                       {i18n.language === "vi"
                         ? modalStudent.note
                         : modalStudent.noteEng}
@@ -787,7 +784,7 @@ const StudentHonorContent = ({
             </div>
 
             {/* Nút đóng */}
-            <div className="flex w-full mx-auto items-center justify-center pt-10">
+            <div className="flex w-full mx-auto items-center justify-center pt-5">
               <button
                 onClick={handleCloseModal}
                 className="bg-[#F9D16F] lg:px-16 px-2 lg:py-1 py-1 rounded-md text-[#002855] text-[13px] lg:text-[16px] font-semibold hover:bg-gray-400"

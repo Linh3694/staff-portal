@@ -107,14 +107,14 @@ function HallOfFamePublicPage() {
 
   return (
     <div className="h-screen w-full">
-      <header className="fixed top-0 left-0 w-full h-[80px] bg-[#002855] text-white flex items-center lg:shadow-none justify-between lg:px-20 px-6 shadow-md z-50">
+      <header className="fixed top-0 left-0 w-full h-[80px] bg-[#002855] text-white flex items-center lg:shadow-none justify-between xl:px-20 px-6 shadow-md z-50">
         <button
-          className="lg:hidden mr-4"
+          className="xl:hidden mr-4"
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         >
           <FaBars size={24} />
         </button>
-        <div className="flex flex-row gap-10 items-center">
+        <div className="flex flex-row gap-7 items-center">
           <button onClick={() => navigate("/hall-of-honor")}>
             <img
               src="/halloffame/HOH-white.png"
@@ -133,7 +133,7 @@ function HallOfFamePublicPage() {
         <div className="flex flex-row gap-10 items-center">
           <img
             src="/halloffame/HJ-white.png"
-            className="h-12 hidden lg:block"
+            className="h-12 hidden xl:block"
             alt="Happy Journey"
           />
           <button
