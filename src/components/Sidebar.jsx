@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
-  FiRss,
-  FiMessageCircle,
   FiUser,
   FiChevronLeft,
   FiChevronRight,
@@ -19,7 +17,7 @@ import {
   AccordionContent,
 } from "../components/ui/accordion";
 import { cn } from "../lib/utils";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   FaChevronRight,
   FaArrowRightFromBracket,
