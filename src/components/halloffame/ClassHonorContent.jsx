@@ -512,7 +512,7 @@ const ClassHonorContent = ({
           </p>
         </div>
         {currentCategory.coverImage && (
-          <div className="relative mb-4 mt-8 w-[1410px] max-h-[470px]">
+          <div className="relative mb-4 mt-8 w-full lg:w-[1410px] max-h-[470px]">
             {/* Lớp dưới cùng: ảnh coverImage */}
             <img
               src={`${BASE_URL}/${currentCategory.coverImage}`}
@@ -637,7 +637,7 @@ const ClassHonorContent = ({
           />
           <button
             onClick={() => console.log("Searching:", searchName)}
-            className="absolute right-[-40px] w-[36px] h-[36px] bg-[#002855] rounded-full flex items-center justify-center hover:bg-[#001F3F] transition"
+            className="hidden absolute right-[-40px] w-[36px] h-[36px] bg-[#002855] rounded-full lg:flex items-center justify-center hover:bg-[#001F3F] transition"
           >
             <FaSearch className="text-white text-[18px]" />
           </button>
@@ -657,7 +657,7 @@ const ClassHonorContent = ({
               return (
                 <div
                   key={idx}
-                  className="border  rounded-2xl p-5 shadow-sm bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                  className="border  rounded-2xl p-5 shadow-sm bg-gradient-to-b from-[#03171c] to-[#182b55] rounded-[20px] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                   onClick={() => handleOpenModalClass(record, cls)}
                 >
                   {classPhotos[cls.classInfo?._id] ? (
@@ -728,7 +728,7 @@ const ClassHonorContent = ({
                         return (
                           <div
                             key={idx}
-                            className="border rounded-2xl shadow-sm p-5 bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                            className="border rounded-[20px] shadow-sm p-5 bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                             onClick={() => handleOpenModalClass(record, cls)}
                           >
                             {classPhotos[cls.classInfo?._id] ? (

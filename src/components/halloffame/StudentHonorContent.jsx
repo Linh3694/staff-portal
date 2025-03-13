@@ -614,7 +614,7 @@ const StudentHonorContent = ({
           </select>
         )}
 
-        <div className="relative flex items-center">
+        <div className="relative flex items-center justify-items-center">
           <input
             type="text"
             placeholder={t("searchNamePlaceholder", "Tìm kiếm tên")}
@@ -624,7 +624,7 @@ const StudentHonorContent = ({
           />
           <button
             onClick={() => console.log("Searching:", searchName)} // Thay bằng logic tìm kiếm của bạn
-            className="absolute right-[-40px] w-[36px] h-[36px] bg-[#002855] rounded-full flex items-center justify-center hover:bg-[#001F3F] transition"
+            className="hidden absolute right-[-40px] w-[36px] h-[36px] bg-[#002855] rounded-full lg:flex items-center justify-center hover:bg-[#001F3F] transition"
           >
             <FaSearch className="text-white text-[18px]" />
           </button>
@@ -633,7 +633,7 @@ const StudentHonorContent = ({
 
       {searchName.trim() ? (
         // Render kết quả tìm kiếm flat (tất cả kết quả không nhóm)
-        <div className="grid xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-x-[8px] gap-y-[8px] lg:gap-x-[30px] lg:gap-y-[35px]">
+        <div className="grid justify-items-center xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-x-[8px] gap-y-[8px] lg:gap-x-[30px] lg:gap-y-[35px]">
           {filteredSearchRecords
             .flatMap((record) =>
               record.students.map((student) => ({ record, student }))
@@ -714,7 +714,7 @@ const StudentHonorContent = ({
                         return (
                           <div
                             key={idx}
-                            className="lg:h-[400px] lg:w-[258px] w-[180px] h-[270px] border rounded-[20px] shadow-sm py-[20px] px-[25px] bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                            className="lg:h-[400px] lg:w-[258px] w-[180px] h-[270px] border rounded-[20px] shadow-sm lg:py-[20px] lg:px-[25px] px-[15px] py-[15px] bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                             onClick={() => handleOpenModal(record, student)}
                           >
                             {student.photo?.photoUrl ? (
@@ -728,13 +728,13 @@ const StudentHonorContent = ({
                                 {t("noPhoto", "Chưa có ảnh")}
                               </div>
                             )}
-                            <div className="h-[20px] w-[208px] lg:text-[16px] text-xs pt-[13px] pb-[15px] font-semibold text-white py-2 text-center">
+                            <div className="h-[20px] w-[208px] lg:text-[16px] text-xs lg:pt-[13px] lg:pb-[15px] pt-[8px] pb-[10px] font-semibold text-white py-2 text-center">
                               {t("classLabel", "Lớp")}{" "}
                               {student.currentClass?.name ||
                                 student.currentClass?.className ||
                                 t("noClass", "Chưa cập nhật lớp")}
                             </div>
-                            <div className="h-[60px] w-[208px] text-[#f9d16f] shimmer-text lg:text-[18px] text-[14px] font-bold text-center">
+                            <div className="h-[60px] lg:w-[208px] w-[150px] text-[#f9d16f] shimmer-text lg:text-[18px] text-[14px] font-bold text-center">
                               {student.student?.name}
                             </div>
                           </div>
