@@ -152,7 +152,7 @@ function HallOfFamePublicPage() {
           </button>
         </div>
       </header>
-      <div className="flex md:px-10 pt-[60px]">
+      <div className="flex md:px-14 pt-[60px]">
         <Sidebar
           selectedCategoryId={selectedCategoryId}
           setSelectedCategoryId={setSelectedCategoryId}
@@ -162,7 +162,7 @@ function HallOfFamePublicPage() {
           closeSidebar={() => setIsSidebarOpen(false)}
         />
 
-        <div className="flex-1">{renderMainContent()}</div>
+        <div className="flex-1 pl-16">{renderMainContent()}</div>
 
         {/* 2 nút Lên/Xuống ở góc phải */}
         <div className="hidden md:flex fixed bottom-10 right-3 flex-col space-y-5 z-50">

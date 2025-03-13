@@ -45,7 +45,7 @@ const Sidebar = ({
       default: "WISers Truyền cảm hứng",
     },
     {
-      id: "",
+      id: "empty",
       nameKey: "wiser_honor",
       default: "WISers Danh dự",
       subCategories: [
@@ -91,7 +91,7 @@ const Sidebar = ({
     <aside
       className={`fixed top-12 md:top-0 left-0 z-40 flex h-full w-full md:w-[350px] lg:w-[400px] bg-white p-4 shadow-md transform transition-transform duration-300 overflow-y-auto
       ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} 
-      xl:translate-x-0 xl:relative xl:flex xl:w-[300px] xl:h-[calc(100vh-80px)] xl:shadow-none xl:overflow-y-visible`}
+      xl:translate-x-0 xl:relative xl:flex xl:w-[270px] xl:h-[calc(100vh-80px)] xl:shadow-none xl:overflow-y-visible`}
     >
       <nav className="space-y-4 mt-10">
         <button
@@ -115,8 +115,6 @@ const Sidebar = ({
             fixedCat.subCategories && fixedCat.subCategories.length > 0;
           const isOpen = openDropdown === fixedCat.id;
 
-          // Xác định xem category này có được hỗ trợ không
-          // (nếu `fixedCat.id` nằm trong enabledCategoryIds => có giao diện)
           const isCatEnabled = enabledCategoryIds.includes(fixedCat.id);
 
           return (
@@ -124,12 +122,12 @@ const Sidebar = ({
               {/* Danh mục cha */}
               <div
                 className={`
-                  flex items-center justify-between text-[18px] p-3 rounded-lg transition
+                  flex items-center justify-between p-3 text-[18px] rounded-lg transition
                   ${
                     // Nếu là danh mục được chọn và được hỗ trợ => highlight
                     selectedCategoryId === fixedCat.id && isCatEnabled
                       ? "bg-[#F05023] font-bold text-white"
-                      : "text-[#757575] text-lg font-semibold"
+                      : "text-[#757575] font-semibold"
                   }
                   ${
                     // Nếu là danh mục được hỗ trợ => hover/cursor-pointer

@@ -447,19 +447,16 @@ const HallofFame = () => {
       >
         {/* Tiêu đề Section 3 */}
         <div className="text-center mb-12">
-          <p className="text-[24px] font-medium text-[#F9D16F]">
-            {t("studenthonor")}
-          </p>
-          <div className="flex justify-center my-4">
-            <img
-              src="/halloffame/vector.png"
-              alt="Divider"
-              className="w-[200px] md:w-[300px] h-auto"
-            />
-          </div>
           <h2 className="text-[36px] md:text-4xl font-bold text-[#F9D16F] uppercase">
             {t("student_feedback")}
           </h2>
+          <div className="flex justify-center my-5">
+            <img
+              src="/halloffame/vector.png"
+              alt="Divider"
+              className="w-[200px] md:w-[500px] h-auto"
+            />
+          </div>
         </div>
 
         {/* Slider Splide */}
@@ -487,7 +484,7 @@ const HallofFame = () => {
                     key={index}
                   >
                     {/* Ảnh học sinh */}
-                    <div className="relative lg:h-[420px] lg:w-[420px] w-[200px] h-[250px] ">
+                    <div className="relative lg:h-[420px] lg:w-[420px] w-[200px] h-[250px] cursor-pointer ">
                       <img
                         src={student.image}
                         alt={student.name[i18n.language]}
@@ -519,7 +516,7 @@ const HallofFame = () => {
 
                     {/* Overlay gradient chứa text */}
                     <div
-                      className="lg:w-[420px] w-[200px] px-4 lg:py-28 py-20 absolute bottom-0 transition-all duration-500 rounded-b-lg"
+                      className="lg:w-[420px] w-[200px] px-4 lg:py-28 py-20 absolute bottom-0 transition-all duration-500 rounded-b-lg cursor-pointer"
                       style={{
                         background:
                           "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",

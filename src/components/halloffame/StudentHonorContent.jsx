@@ -500,7 +500,7 @@ const StudentHonorContent = ({
             <img
               src={`${BASE_URL}/${currentCategory.coverImage}`}
               alt="Cover"
-              className="max-h-[470px] w-full h-auto object-cover"
+              className="max-h-[470px] w-[1410px] h-auto object-cover"
             />
           </div>
         )}
@@ -625,14 +625,14 @@ const StudentHonorContent = ({
                       {t("noPhoto", "Chưa có ảnh")}
                     </div>
                   )}
-                  <div className="text-[#f9d16f] shimmer-text text-[20px] font-bold text-center items-center justify-center w-full break-words">
-                    {student.student?.name}
-                  </div>
-                  <div className="text-sm font-semibold text-white">
+                  <div className="lg:text-sm text-xs font-semibold text-white">
                     {t("classLabel", "Lớp")}{" "}
                     {student.currentClass?.name ||
                       student.currentClass?.className ||
                       t("noClass", "Chưa cập nhật lớp")}
+                  </div>
+                  <div className="h-[60px] text-[#f9d16f] shimmer-text lg:text-[18px] text-[15px] font-bold text-center">
+                    {student.student?.name}
                   </div>
                 </div>
               );
@@ -654,7 +654,10 @@ const StudentHonorContent = ({
             });
           });
           return (
-            <div key={level.id} className="border-b border-gray-200 pb-4">
+            <div
+              key={level.id}
+              className="w-[1410px] border-b border-gray-200 pb-4"
+            >
               <div
                 className="flex justify-between items-center cursor-pointer py-4 text-[#002855] text-[22px] font-semibold"
                 onClick={() =>
@@ -667,40 +670,40 @@ const StudentHonorContent = ({
                 </span>
               </div>
               {openLevel === level.id && (
-                <div className="px-[4px] rounded-lg">
+                <div className="rounded-lg">
                   {studentCards.length === 0 ? (
                     <div className="text-gray-500 italic">
                       {t("noMatchingRecords", "Không có record nào phù hợp...")}
                     </div>
                   ) : (
-                    <div className="grid xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
+                    <div className="grid mx-auto xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
                       {studentCards.map((item, idx) => {
                         const { record, student } = item;
                         return (
                           <div
                             key={idx}
-                            className="lg:h-[375px] h-[250px] border rounded-lg p-3 shadow-sm bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                            className="lg:h-[400px] w-[258px] h-[270px] border rounded-lg shadow-sm py-[20px] px-[25px] bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                             onClick={() => handleOpenModal(record, student)}
                           >
                             {student.photo?.photoUrl ? (
                               <img
                                 src={`${BASE_URL}/${student.photo.photoUrl}`}
                                 alt="Student"
-                                className="lg:h-[260px] h-[160px] lg:w-[208px] w-[208px] object-cover object-top mt-2 rounded-lg"
+                                className="lg:h-[260px] lg:w-[208px] w-[208px] h-[160px] object-cover object-top rounded-lg"
                               />
                             ) : (
                               <div className="text-xs italic text-gray-400">
                                 {t("noPhoto", "Chưa có ảnh")}
                               </div>
                             )}
-                            <div className="text-[#f9d16f] shimmer-text lg:text-[20px] text-[15px] font-bold text-center">
-                              {student.student?.name}
-                            </div>
-                            <div className="lg:text-sm text-xs font-semibold text-white">
+                            <div className="h-[20px] w-[208px] lg:text-[16px] text-xs pt-[13px] pb-[15px] font-semibold text-white py-2 text-center">
                               {t("classLabel", "Lớp")}{" "}
                               {student.currentClass?.name ||
                                 student.currentClass?.className ||
                                 t("noClass", "Chưa cập nhật lớp")}
+                            </div>
+                            <div className="h-[60px] w-[208px] text-[#f9d16f] shimmer-text lg:text-[18px] text-[14px] font-bold text-center">
+                              {student.student?.name}
                             </div>
                           </div>
                         );
