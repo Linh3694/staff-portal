@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import axios from "axios";
-import { UPLOAD_URL } from "../config.js";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
@@ -70,28 +68,14 @@ const HallofFame = () => {
     });
   };
   useEffect(() => {
-    async function fetchImages() {
-      try {
-        const { data } = await axios.get(`${UPLOAD_URL}/Students`);
-        if (Array.isArray(data)) {
-          const filtered = data.filter((file) => file.startsWith("WS"));
-          shuffleArray(filtered);
-          const selected = filtered.slice(0, 20);
-          setTopImages(selected.slice(0, 10));
-          setBottomImages(selected.slice(10, 20));
+    const localImages = Array.from(
+      { length: 20 },
+      (_, i) => `/halloffame/students/student${i + 1}.webp`
+    );
 
-          // Preload images ngay sau khi set state
-          preloadImages([
-            "/halloffame/WS-opacity-20.png",
-            ...selected.map((img) => `${UPLOAD_URL}/Students/${img}`),
-          ]);
-        }
-      } catch (err) {
-        console.error("Error fetching images:", err);
-      }
-    }
-
-    fetchImages();
+    setTopImages(localImages.slice(0, 10));
+    setBottomImages(localImages.slice(10, 20));
+    preloadImages(localImages);
   }, []);
 
   useEffect(() => {
@@ -121,19 +105,6 @@ const HallofFame = () => {
 
     return () => splide.destroy();
   }, []);
-
-  // Hàm trộn mảng
-  function shuffleArray(arr) {
-    let currentIndex = arr.length;
-    while (currentIndex !== 0) {
-      const randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
-      [arr[currentIndex], arr[randomIndex]] = [
-        arr[randomIndex],
-        arr[currentIndex],
-      ];
-    }
-  }
 
   // Tính toán kích thước slide dựa trên window.innerWidth
   useEffect(() => {
@@ -249,16 +220,6 @@ const HallofFame = () => {
   // ======================
   // Section 3: Carousel cho StarStudents (vòng lặp vô hạn)
   // ======================
-  // Tạo mảng mở rộng để tạo vòng lặp vô hạn: clone phần tử cuối và đầu
-  const extendedStars = [
-    starStudents[starStudents.length - 1],
-    ...starStudents,
-    starStudents[0],
-  ];
-
-  const cardWidth = 360; // kích thước 1 thẻ
-
-  // Thẻ ở giữa (vị trí index = 2 của extendedStars) là thẻ active ban đầu
   const [starCurrentSlide, setStarCurrentSlide] = useState(2);
   // Lưu chỉ số (real index) của thẻ đang mở hộp giới thiệu; null nếu không mở
   const [starQuoteIndex, setStarQuoteIndex] = useState(null);
@@ -646,7 +607,7 @@ const HallofFame = () => {
               {topImages.map((img, index) => (
                 <img
                   key={`top-${index}`}
-                  src={`${UPLOAD_URL}/Students/${img}`}
+                  src={img}
                   alt="student"
                   className="h-52 w-56 object-cover rounded-2xl mx-4"
                 />
@@ -655,7 +616,7 @@ const HallofFame = () => {
               {topImages.map((img, index) => (
                 <img
                   key={`top2-${index}`}
-                  src={`${UPLOAD_URL}/Students/${img}`}
+                  src={img}
                   alt="student"
                   className="h-52 w-56 object-cover rounded-2xl mx-4"
                 />
@@ -669,7 +630,7 @@ const HallofFame = () => {
               {bottomImages.map((img, index) => (
                 <img
                   key={`bottom-${index}`}
-                  src={`${UPLOAD_URL}/Students/${img}`}
+                  src={img}
                   alt="student"
                   className="h-52 w-56 object-cover rounded-2xl mx-4"
                 />
@@ -677,7 +638,7 @@ const HallofFame = () => {
               {bottomImages.map((img, index) => (
                 <img
                   key={`bottom2-${index}`}
-                  src={`${UPLOAD_URL}/Students/${img}`}
+                  src={img}
                   alt="student"
                   className="h-52 w-56 object-cover rounded-2xl mx-4"
                 />
