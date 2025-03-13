@@ -476,9 +476,13 @@ const StudentHonorContent = ({
         <div className="flex flex-col shimmer-text-title text-center items-center justify-center uppercase leading-tight">
           {lines.map((line, idx) => {
             const textSize =
-              idx === 0
-                ? "text-[60px] font-[Metropolis]"
-                : "text-[70px] font-black font-[Metropolis]";
+              i18n.language === "vi"
+                ? idx === 0
+                  ? "text-[50px] font-[Metropolis]"
+                  : "text-[70px] font-black font-[Metropolis]"
+                : idx === 0
+                ? "text-[70px] font-black font-[Metropolis]"
+                : "text-[50px] font-[Metropolis]";
 
             return (
               <div key={idx} className={textSize}>
@@ -511,10 +515,16 @@ const StudentHonorContent = ({
             />
             {/* Lớp trên cùng: text ở góc trên bên phải căn giữa theo chiều dọc */}
             <div className="absolute top-0 right-0 h-full flex items-center justify-center pr-4">
-              <p className="text-[#f9d16f] text-right mr-5 mt-12 leading-tight ">
+              <p className="text-[#f9d16f] text-right mr-8 mt-12 leading-tight ">
                 {lines.map((line, idx) => {
                   const textSize =
-                    idx === 0 ? "text-[60px]" : "text-[80px] font-bold";
+                    i18n.language === "vi"
+                      ? idx === 0
+                        ? "text-[52px] "
+                        : "text-[70px] font-extrabold"
+                      : idx === 0
+                      ? "text-[70px] font-extrabold"
+                      : "text-[52px] ";
 
                   return (
                     <div key={idx} className={textSize}>

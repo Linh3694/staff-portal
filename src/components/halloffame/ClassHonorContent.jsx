@@ -488,9 +488,13 @@ const ClassHonorContent = ({
         <div className="flex flex-col shimmer-text-title text-center items-center justify-center uppercase leading-tight">
           {lines.map((line, idx) => {
             const textSize =
-              idx === 0
-                ? "text-[60px] font-[Metropolis]"
-                : "text-[70px] font-black font-[Metropolis]";
+              i18n.language === "vi"
+                ? idx === 0
+                  ? "text-[50px] font-[Metropolis]"
+                  : "text-[70px] font-black font-[Metropolis]"
+                : idx === 0
+                ? "text-[70px] font-black font-[Metropolis]"
+                : "text-[50px] font-[Metropolis]";
 
             return (
               <div key={idx} className={textSize}>
@@ -508,12 +512,40 @@ const ClassHonorContent = ({
           </p>
         </div>
         {currentCategory.coverImage && (
-          <div className="mb-4 mt-8">
+          <div className="relative mb-4 mt-8 w-[1410px] max-h-[470px]">
+            {/* Lớp dưới cùng: ảnh coverImage */}
             <img
               src={`${BASE_URL}/${currentCategory.coverImage}`}
               alt="Cover"
-              className="max-h-[470px] w-full h-auto object-cover"
+              className="w-full h-auto object-cover"
             />
+            {/* Lớp giữa: khung frame-cover.png đè lên */}
+            <img
+              src="/halloffame/frame-cover.png"
+              alt="Frame Cover"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            />
+            {/* Lớp trên cùng: text ở góc trên bên phải căn giữa theo chiều dọc */}
+            <div className="absolute top-0 right-0 h-full flex items-center justify-center pr-4">
+              <p className="text-[#f9d16f] text-right mr-5 mt-12 leading-tight ">
+                {lines.map((line, idx) => {
+                  const textSize =
+                    i18n.language === "vi"
+                      ? idx === 0
+                        ? "text-[52px] "
+                        : "text-[70px] font-extrabold"
+                      : idx === 0
+                      ? "text-[70px] font-extrabold"
+                      : "text-[52px] ";
+
+                  return (
+                    <div key={idx} className={textSize}>
+                      {line}
+                    </div>
+                  );
+                })}
+              </p>
+            </div>
           </div>
         )}
       </div>
