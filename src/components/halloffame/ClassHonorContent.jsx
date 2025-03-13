@@ -532,11 +532,11 @@ const ClassHonorContent = ({
                   const textSize =
                     i18n.language === "vi"
                       ? idx === 0
-                        ? "text-[52px] "
-                        : "text-[70px] font-extrabold"
+                        ? "lg:text-[52px] text-[18px]"
+                        : "lg:text-[70px] text-[20px] font-extrabold"
                       : idx === 0
-                      ? "text-[70px] font-extrabold"
-                      : "text-[52px] ";
+                      ? "lg:text-[70px] text-[20px] font-extrabold"
+                      : "lg:text-[52px] text-[18px] ";
 
                   return (
                     <div key={idx} className={textSize}>

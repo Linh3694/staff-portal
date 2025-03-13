@@ -500,7 +500,7 @@ const StudentHonorContent = ({
           </p>
         </div>
         {currentCategory.coverImage && (
-          <div className="relative mb-4 mt-8 w-[1410px] max-h-[470px]">
+          <div className="relative mb-4 mt-8 w-full lg:w-[1410px] max-h-[470px]">
             {/* Lớp dưới cùng: ảnh coverImage */}
             <img
               src={`${BASE_URL}/${currentCategory.coverImage}`}
@@ -515,16 +515,16 @@ const StudentHonorContent = ({
             />
             {/* Lớp trên cùng: text ở góc trên bên phải căn giữa theo chiều dọc */}
             <div className="absolute top-0 right-0 h-full flex items-center justify-center pr-4">
-              <p className="text-[#f9d16f] text-right mr-8 mt-12 leading-tight ">
+              <p className="text-[#f9d16f] text-right lg:mr-8 lg:mt-12 leading-tight ">
                 {lines.map((line, idx) => {
                   const textSize =
                     i18n.language === "vi"
                       ? idx === 0
-                        ? "text-[52px] "
-                        : "text-[70px] font-extrabold"
+                        ? "lg:text-[52px] text-[18px]"
+                        : "lg:text-[70px] text-[20px] font-extrabold"
                       : idx === 0
-                      ? "text-[70px] font-extrabold"
-                      : "text-[52px] ";
+                      ? "lg:text-[70px] text-[20px] font-extrabold"
+                      : "lg:text-[52px] text-[18px] ";
 
                   return (
                     <div key={idx} className={textSize}>
@@ -633,7 +633,7 @@ const StudentHonorContent = ({
 
       {searchName.trim() ? (
         // Render kết quả tìm kiếm flat (tất cả kết quả không nhóm)
-        <div className="grid xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
+        <div className="grid xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-x-[8px] gap-y-[8px] lg:gap-x-[30px] lg:gap-y-[35px]">
           {filteredSearchRecords
             .flatMap((record) =>
               record.students.map((student) => ({ record, student }))
@@ -650,14 +650,14 @@ const StudentHonorContent = ({
                     <img
                       src={`${BASE_URL}/${student.photo.photoUrl}`}
                       alt="Student"
-                      className="lg:h-[260px] h-[160px] lg:w-[208px] w-[208px] object-cover object-top mt-2"
+                      className="lg:h-[260px] lg:w-[208px] h-[160px] w-[208px] object-cover object-top mt-2"
                     />
                   ) : (
                     <div className="text-xs italic text-[#f9d16f]">
                       {t("noPhoto", "Chưa có ảnh")}
                     </div>
                   )}
-                  <div className="lg:text-sm text-xs font-semibold text-white">
+                  <div className="h-[20px] w-[208px] lg:text-sm text-xs font-semibold text-white">
                     {t("classLabel", "Lớp")}{" "}
                     {student.currentClass?.name ||
                       student.currentClass?.className ||
@@ -688,10 +688,10 @@ const StudentHonorContent = ({
           return (
             <div
               key={level.id}
-              className="w-[1410px] border-b border-gray-200 pb-4"
+              className="w-full lg:w-[1410px] border-b border-gray-200 pb-4"
             >
               <div
-                className="flex justify-between items-center cursor-pointer py-4 text-[#002855] text-[22px] font-semibold"
+                className="w-full flex justify-between items-center cursor-pointer py-4 text-[#002855] text-[22px] font-semibold"
                 onClick={() =>
                   setOpenLevel(openLevel === level.id ? null : level.id)
                 }
@@ -708,13 +708,13 @@ const StudentHonorContent = ({
                       {t("noMatchingRecords", "Không có record nào phù hợp...")}
                     </div>
                   ) : (
-                    <div className="grid xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-x-[30px] gap-y-[35px]">
+                    <div className="w-full grid justify-items-center xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-x-[8px] gap-y-[20px] lg:gap-x-[30px] lg:gap-y-[35px]">
                       {studentCards.map((item, idx) => {
                         const { record, student } = item;
                         return (
                           <div
                             key={idx}
-                            className="lg:h-[400px] w-[258px] h-[270px] border rounded-[20px] shadow-sm py-[20px] px-[25px] bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                            className="lg:h-[400px] lg:w-[258px] w-[180px] h-[270px] border rounded-[20px] shadow-sm py-[20px] px-[25px] bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                             onClick={() => handleOpenModal(record, student)}
                           >
                             {student.photo?.photoUrl ? (
@@ -819,7 +819,7 @@ const StudentHonorContent = ({
             </div>
 
             {/* Nút đóng */}
-            <div className="flex w-full mx-auto items-center justify-center">
+            <div className="flex w-full mx-auto items-center justify-center mt-4">
               <button
                 onClick={handleCloseModal}
                 className="bg-[#F9D16F] lg:px-16 px-2 lg:py-1 py-1 rounded-md text-[#002855] text-[13px] lg:text-[16px] font-semibold hover:bg-gray-400"
