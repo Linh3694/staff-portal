@@ -323,7 +323,7 @@ const HallofFame = () => {
           playsInline
           preload="auto"
         />
-        <div className="absolute bottom-[15%] left-1/2 transform -translate-x-1/2 z-20 block md:hidden">
+        <div className="absolute bottom-[15%] left-1/2 transform -translate-x-1/2 z-20 block lg:hidden">
           <button
             onClick={() => navigate("/hall-of-honor/detail")}
             className="w-[250px] px-10 py-2 bg-[#F9D16F] rounded-full font-semibold transition-colors"
@@ -338,7 +338,7 @@ const HallofFame = () => {
       {/* Section 2: Carousel */}
       <section
         ref={section2Ref}
-        className="hidden md:flex bg-white relative w-full flex-col items-center justify-center overflow-hidden h-screen mt-[100vh]"
+        className="hidden lg:flex bg-white relative w-full flex-col items-center justify-center overflow-hidden h-screen mt-[100vh]"
       >
         {/* Tiêu đề */}
         <div className="relative w-full text-center mb-10 z-10">
@@ -442,7 +442,7 @@ const HallofFame = () => {
       </section>
 
       <section
-        className="hidden md:flex relative w-full h-[720px] flex-col items-center justify-center bg-cover bg-center overflow-hidden"
+        className="hidden lg:flex relative w-full h-[720px] flex-col items-center justify-center bg-cover bg-center overflow-hidden"
         style={{ backgroundImage: "url(/halloffame/section3.png)" }}
       >
         {/* Tiêu đề Section 3 */}
@@ -570,7 +570,7 @@ const HallofFame = () => {
         </div>
       </section>
       {/* Section: Dấu ấn danh vọng */}
-      <section className="hidden md:flex bg-white relative w-full flex-col items-center justify-center p-40 overflow-hidden">
+      <section className="hidden lg:flex bg-white relative w-full flex-col items-center justify-center p-40 overflow-hidden">
         {/* Ảnh nền chìm */}
         <div
           className="w-[1075px] h-[1075px] absolute -right-44 -bottom-[200px] bg-no-repeat bg-contain"
@@ -598,7 +598,8 @@ const HallofFame = () => {
         </div>
       </section>
       {/* Section slider */}
-      <section className="hidden md:flex bg-white relative w-full h-[570px] overflow-hidden">
+
+      <section className="hidden lg:flex bg-white relative w-full h-[570px] overflow-hidden">
         {/* Slider 2 hàng, full width */}
         <div className="absolute top-0 left-0 w-full h-full my-20">
           {/* Hàng ảnh trên */}
@@ -662,14 +663,14 @@ const HallofFame = () => {
             <img
               src="/halloffame/HOH-gold.png"
               alt="Hall of Honor"
-              className="shimmer-text 2xl:w-[612px] w-[500px] mb-8"
+              className="shimmer-text 2xl:w-[550px] xl:w-[400px] w-[300px] mb-8"
             />
           </div>
           <button
             onClick={() => navigate("/hall-of-honor/detail")}
-            className="w-[433px] mt-2 px-16 py-2 bg-[#F9D16F] rounded-full font-semibold transition-colors"
+            className="xl:w-[433px] w-[300px] mt-2 xl:px-16 px-10 py-2 bg-[#F9D16F] rounded-full font-semibold transition-colors"
           >
-            <h3 className="shimmer-text-2 text-[24px] font-bold">
+            <h3 className="shimmer-text-2 xl:text-[24px] text-[20px] font-bold">
               Xem Bảng Vinh Danh
             </h3>
           </button>
