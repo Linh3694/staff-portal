@@ -582,7 +582,7 @@ const HallofFame = () => {
           {t("hallmark_of_fame", "Dấu ấn danh vọng")}
         </h2>
         <h2 className="text-[32px] font-bold text-[#002147] uppercase mb-12">
-          {t("hallmark_of_fame__02", "Tôn vinh thành tựu - Lan toả cảm xúc")}
+          {t("hallmark_of_fame_02", "Tôn vinh thành tựu - Lan toả cảm xúc")}
         </h2>
 
         {/* Video chính */}

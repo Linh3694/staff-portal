@@ -625,7 +625,7 @@ const ClassHonorContent = ({
               return (
                 <div
                   key={idx}
-                  className="border rounded-2xl p-5 shadow-sm bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                  className="border  rounded-2xl p-5 shadow-sm bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                   onClick={() => handleOpenModalClass(record, cls)}
                 >
                   {classPhotos[cls.classInfo?._id] ? (
@@ -639,7 +639,7 @@ const ClassHonorContent = ({
                       Chưa có ảnh
                     </div>
                   )}
-                  <div className="text-[#f9d16f] text-[20px] font-bold">
+                  <div className="text-[#f9d16f] shimmer-text text-[20px] font-bold">
                     {t("classLabel", "Lớp")} {cls.classInfo?.className}
                   </div>
                 </div>
@@ -712,7 +712,7 @@ const ClassHonorContent = ({
                                 Chưa có ảnh
                               </div>
                             )}
-                            <div className="text-[#f9d16f] text-[20px] font-bold">
+                            <div className="text-[#f9d16f] shimmer-text text-[20px] font-bold">
                               {t("classLabel", "Lớp")}{" "}
                               {cls.classInfo?.className}
                             </div>

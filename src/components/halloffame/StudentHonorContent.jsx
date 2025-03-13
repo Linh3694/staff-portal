@@ -611,7 +611,7 @@ const StudentHonorContent = ({
               return (
                 <div
                   key={idx}
-                  className="border rounded-lg p-3 shadow-sm bg-[#E6EEF6] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                  className="border rounded-lg p-3 shadow-sm bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                   onClick={() => handleOpenModal(record, student)}
                 >
                   {student.photo?.photoUrl ? (
@@ -621,14 +621,14 @@ const StudentHonorContent = ({
                       className="lg:h-[260px] h-[160px] lg:w-[208px] w-[208px] object-cover object-top mt-2"
                     />
                   ) : (
-                    <div className="text-xs italic text-gray-400">
+                    <div className="text-xs italic text-[#f9d16f]">
                       {t("noPhoto", "Chưa có ảnh")}
                     </div>
                   )}
-                  <div className="text-[#F05023] text-[20px] font-bold text-center items-center justify-center w-full break-words">
+                  <div className="text-[#f9d16f] shimmer-text text-[20px] font-bold text-center items-center justify-center w-full break-words">
                     {student.student?.name}
                   </div>
-                  <div className="text-sm font-semibold">
+                  <div className="text-sm font-semibold text-white">
                     {t("classLabel", "Lớp")}{" "}
                     {student.currentClass?.name ||
                       student.currentClass?.className ||
@@ -693,7 +693,7 @@ const StudentHonorContent = ({
                                 {t("noPhoto", "Chưa có ảnh")}
                               </div>
                             )}
-                            <div className="text-[#f9d16f] lg:text-[20px] text-[15px] font-bold text-center">
+                            <div className="text-[#f9d16f] shimmer-text lg:text-[20px] text-[15px] font-bold text-center">
                               {student.student?.name}
                             </div>
                             <div className="lg:text-sm text-xs font-semibold text-white">
