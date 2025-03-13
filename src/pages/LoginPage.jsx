@@ -10,7 +10,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen w-full overflow-hidden bg-[#EDEDED] ">
-      <div className="absolute md:top-4 xs:top-0 md:left-20 xs:left-3 flex flex-col items-start">
+      <div className="absolute top-0  md:top-4 md:left-20 flex flex-col items-start">
         {/* Logo */}
         <div className="flex items-center justify-between md:gap-5 gap-24 animate-slide-down">
           <img
@@ -25,52 +25,49 @@ const LoginPage = () => {
           />
         </div>
 
-        {/* Tiêu đề 360° WISers */}
-        <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold md:mt-16 xs:mt-5 ">
-          <span className="font-normal" style={{ color: "#2B6478" }}>
-            360°
-          </span>{" "}
-          <span style={{ color: "#F05023" }}>W</span>
-          <span style={{ color: "#F5AA1E" }}>I</span>
-          <span style={{ color: "#009483" }}>S</span>
-          <span style={{ color: "#2B6478" }}>ers</span>
-        </h1>
+        <div className="flex flex-col items-center justify-center text-center lg:text-left lg:items-start w-full">
+          <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold md:mt-16 xs:mt-5 ">
+            <span className="font-normal" style={{ color: "#2B6478" }}>
+              360°
+            </span>{" "}
+            <span style={{ color: "#F05023" }}>W</span>
+            <span style={{ color: "#F5AA1E" }}>I</span>
+            <span style={{ color: "#009483" }}>S</span>
+            <span style={{ color: "#2B6478" }}>ers</span>
+          </h1>
 
-        {/* Slogan Warm heart... */}
-        <div className="text-lg xl:text-xl 2xl:text-2xl text-[#002855] font-medium mt-6">
-          <span className="mr-2">Warm heart</span> |
-          <span className="mx-2">Innovation minds</span> |
-          <span className="ml-2">Sharing</span>
+          {/* Slogan Warm heart... */}
+          <div className="text-lg xl:text-xl 2xl:text-2xl text-[#002855] font-medium mt-6">
+            <span className="mr-2">Warm heart</span> |
+            <span className="mx-2">Innovation minds</span> |
+            <span className="ml-2">Sharing</span>
+          </div>
+
+          {/* Câu slogan bên dưới */}
+          <p className="text-[#002855] text-lg xl:text-xl 2xl:text-2xl font-light mt-10">
+            Đồng hành cùng nhà giáo, thắp sáng niềm say mê công việc! ✨
+          </p>
         </div>
-
-        {/* Câu slogan bên dưới */}
-        <p className="text-[#002855] text-lg xl:text-xl 2xl:text-2xl font-light mt-10">
-          Đồng hành cùng nhà giáo, thắp sáng niềm say mê công việc! ✨
-        </p>
       </div>
 
-      <div className="absolute md:top-24 xs:bottom-28 md:right-28">
+      <div className="absolute bottom-72 md:bottom-20 md:right-0 lg:right-0 lg:bottom-20 xl:-right-20 2xl:right-28">
         <img
           src="/login/building.svg"
           alt="Building"
-          className="w-[800px] xl:w-[1100px] 2xl:w-[1385px]"
+          className="w-[800px] lg:w-[1200px] xl:w-[1300px] 2xl:w-[1385px]"
         />
       </div>
-      <div className="xl:w-[400px] w-[300px] fixed xl:bottom-16 bottom-8 left-1/2 transform -translate-x-1/2 animate-slide-up">
+      <div className="xl:w-[400px] w-[300px] fixed md:bottom-20 bottom-44 left-1/2 transform -translate-x-1/2 animate-slide-up">
         {/* Nút đăng nhập với Microsoft */}
         <button
           onClick={handleMicrosoftLogin}
           className="w-full bg-[#002147] text-white py-3 font-bold rounded-full mb-4 hover:bg-[#1a3a5e] transition-all flex items-center justify-center gap-2"
         >
-          <img
-            src="/login/microsoft.svg"
-            alt="Microsoft"
-            className="w-5 h-5 "
-          />
+          <img src="/login/microsoft.svg" alt="Microsoft" className="w-5 h-5" />
           Đăng nhập với Microsoft
         </button>
       </div>
-      <footer className="absolute md:bottom-4 bottom-0 md:left-20 left-4 md:text-sm text-xs  text-gray-600">
+      <footer className="absolute bottom-36 left-8 md:bottom-4 md:left-20 md:text-sm text-[10px] text-gray-600 items-center ">
         © Copyright 2025 Wellspring International Bilingual Schools. All Rights
         Reserved.
       </footer>
