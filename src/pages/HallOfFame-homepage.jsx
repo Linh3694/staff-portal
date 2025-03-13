@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import Splide from "@splidejs/splide";
@@ -421,17 +422,17 @@ const HallofFame = () => {
                   <>
                     {/* Nút chuyển slide bên trái - nằm ngoài card */}
                     <button
-                      className="hidden md:block absolute top-1/2 md:left-[2%] lg:left-[5%] transform -translate-y-1/2 bg-[#F05023] text-white rounded-full p-2"
+                      className="hidden md:block absolute top-1/2 md:left-[2%] lg:left-[5%] transform -translate-y-1/2 bg-[#e5e5e5] rounded-full p-2"
                       onClick={() => swiperRef.current.slidePrev()}
                     >
-                      <FaArrowLeft className="xll:w-6 h-auto w-4" />{" "}
+                      <FaChevronLeft className="xll:w-6 h-auto w-4" />{" "}
                     </button>
                     {/* Nút chuyển slide bên phải - nằm ngoài card */}
                     <button
-                      className="hidden md:block absolute top-1/2  md:right-[2%] lg:right-[5%] transform -translate-y-1/2 bg-[#F05023] text-white rounded-full p-2"
+                      className="hidden md:block absolute top-1/2  md:right-[2%] lg:right-[5%] transform -translate-y-1/2 bg-[#e5e5e5] rounded-full p-2"
                       onClick={() => swiperRef.current.slideNext()}
                     >
-                      <FaArrowRight className="xll:w-6 h-auto w-4" />{" "}
+                      <FaChevronRight className="xll:w-6 h-auto w-4" />{" "}
                     </button>
                   </>
                 )}

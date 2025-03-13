@@ -469,7 +469,7 @@ const StudentHonorContent = ({
   const lines = normalizedText.split("\n");
 
   return (
-    <div className="lg:p-6 px-3 lg:min-w-[960px] w-full mx-auto mt-[40px] overflow-y-auto">
+    <div className="lg:p-6 px-3 mb-10 lg:min-w-[960px] w-full mx-auto mt-[40px] overflow-y-auto">
       {/* Tiêu đề, mô tả và ảnh cover */}
 
       <div>
@@ -496,12 +496,34 @@ const StudentHonorContent = ({
           </p>
         </div>
         {currentCategory.coverImage && (
-          <div className="mb-4 mt-8">
+          <div className="relative mb-4 mt-8 w-[1410px] max-h-[470px]">
+            {/* Lớp dưới cùng: ảnh coverImage */}
             <img
               src={`${BASE_URL}/${currentCategory.coverImage}`}
               alt="Cover"
-              className="max-h-[470px] w-[1410px] h-auto object-cover"
+              className="w-full h-auto object-cover"
             />
+            {/* Lớp giữa: khung frame-cover.png đè lên */}
+            <img
+              src="/halloffame/frame-cover.png"
+              alt="Frame Cover"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            />
+            {/* Lớp trên cùng: text ở góc trên bên phải căn giữa theo chiều dọc */}
+            <div className="absolute top-0 right-0 h-full flex items-center justify-center pr-4">
+              <p className="text-[#f9d16f] text-right mr-5 mt-12 leading-tight ">
+                {lines.map((line, idx) => {
+                  const textSize =
+                    idx === 0 ? "text-[60px]" : "text-[80px] font-bold";
+
+                  return (
+                    <div key={idx} className={textSize}>
+                      {line}
+                    </div>
+                  );
+                })}
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -776,7 +798,7 @@ const StudentHonorContent = ({
                   {(i18n.language === "vi"
                     ? modalStudent.note
                     : modalStudent.noteEng) && (
-                    <p className=" text-white my-auto text-justify lg:text-left text-[13px] md:text-[16px]">
+                    <p className=" text-white my-auto text-justify text-[13px] md:text-[16px]">
                       {i18n.language === "vi"
                         ? modalStudent.note
                         : modalStudent.noteEng}

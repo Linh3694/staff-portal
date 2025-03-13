@@ -778,7 +778,7 @@ const ClassHonorContent = ({
                   {(i18n.language === "vi"
                     ? modalClass.note
                     : modalClass.noteEng) && (
-                    <p className=" text-white  my-auto text-justify lg:text-left text-[13px] md:text-[15px]">
+                    <p className=" text-white my-auto text-justify text-[13px] md:text-[15px]">
                       {i18n.language === "vi"
                         ? modalClass.note
                         : modalClass.noteEng}
