@@ -752,7 +752,7 @@ const StudentHonorContent = ({
       {showModal && modalStudent && modalRecord && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
           <div
-            className="lg:w-[980px] md:w-[80%] w-[95%] h-auto rounded-lg lg:py-20 lg:px-20 py-5 relative shadow-lg"
+            className="lg:w-[980px] md:w-[80%] w-[95%] h-auto rounded-[20px] lg:py-20 lg:px-20 py-5 relative shadow-lg"
             style={{
               backgroundImage: `url(${
                 window.innerWidth >= 1024
@@ -771,7 +771,7 @@ const StudentHonorContent = ({
                   <img
                     src={`${BASE_URL}/${modalStudent.photo.photoUrl}`}
                     alt="Student"
-                    className="relative z-10 lg:w-[281px] lg:h-[352px] w-full h-[320px] items-center object-cover object-top rounded-lg shadow-md "
+                    className="relative z-10 lg:w-[281px] lg:h-[352px] w-full h-[320px] items-center object-cover object-top rounded-[15px] shadow-md "
                   />
                 ) : (
                   <div className="relative z-10 lg:w-[322px] lg:h-[428px] w-[150px] h-[200px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
