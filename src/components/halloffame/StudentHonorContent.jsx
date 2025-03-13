@@ -670,26 +670,26 @@ const StudentHonorContent = ({
                 </span>
               </div>
               {openLevel === level.id && (
-                <div className="rounded-lg">
+                <div className="">
                   {studentCards.length === 0 ? (
                     <div className="text-gray-500 italic">
                       {t("noMatchingRecords", "Không có record nào phù hợp...")}
                     </div>
                   ) : (
-                    <div className="grid mx-auto xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
+                    <div className="grid xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-x-[30px] gap-y-[35px]">
                       {studentCards.map((item, idx) => {
                         const { record, student } = item;
                         return (
                           <div
                             key={idx}
-                            className="lg:h-[400px] w-[258px] h-[270px] border rounded-lg shadow-sm py-[20px] px-[25px] bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                            className="lg:h-[400px] w-[258px] h-[270px] border rounded-[20px] shadow-sm py-[20px] px-[25px] bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                             onClick={() => handleOpenModal(record, student)}
                           >
                             {student.photo?.photoUrl ? (
                               <img
                                 src={`${BASE_URL}/${student.photo.photoUrl}`}
                                 alt="Student"
-                                className="lg:h-[260px] lg:w-[208px] w-[208px] h-[160px] object-cover object-top rounded-lg"
+                                className="lg:h-[260px] lg:w-[208px] w-[208px] h-[160px] object-cover object-top rounded-[15px]"
                               />
                             ) : (
                               <div className="text-xs italic text-gray-400">
@@ -787,7 +787,7 @@ const StudentHonorContent = ({
             </div>
 
             {/* Nút đóng */}
-            <div className="flex w-full mx-auto items-center justify-center pt-5">
+            <div className="flex w-full mx-auto items-center justify-center">
               <button
                 onClick={handleCloseModal}
                 className="bg-[#F9D16F] lg:px-16 px-2 lg:py-1 py-1 rounded-md text-[#002855] text-[13px] lg:text-[16px] font-semibold hover:bg-gray-400"
