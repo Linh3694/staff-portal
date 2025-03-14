@@ -191,17 +191,7 @@ const HallofFame = () => {
         speed: 0.5,
       },
       gap: "40px", // Hoặc 20, 30px, v.v.
-
-      breakpoints: {
-        1024: {
-          autoWidth: false,
-          perPage: 3,
-        },
-        640: {
-          autoWidth: false,
-          perPage: 2,
-        },
-      },
+      pagination: false, // Tắt dấu chấm phân trang
     });
 
     splide.mount({ AutoScroll });
@@ -466,16 +456,6 @@ const HallofFame = () => {
           playsInline
           preload="auto"
         />
-        {/* <div className="absolute bottom-[15%] left-1/2 transform -translate-x-1/2 z-20 block lg:hidden">
-          <button
-            onClick={() => navigate("/hall-of-honor/detail")}
-            className="w-[250px] px-10 py-2 bg-[#F9D16F] rounded-full font-semibold transition-colors"
-          >
-            <h3 className="shimmer-text-2 text-[20px] font-bold">
-              {t("discover", "Khám phá")}
-            </h3>
-          </button>
-        </div> */}
       </section>
       <section
         ref={section2Ref}
@@ -718,7 +698,6 @@ const HallofFame = () => {
           </div>
         </section>
       ) : (
-        // Desktop: Giữ nguyên code Splide hiện tại
         <section
           className="flex relative w-full h-[720px] flex-col items-center justify-center bg-cover bg-center overflow-hidden"
           style={{ backgroundImage: "url(/halloffame/section3.png)" }}
@@ -803,7 +782,7 @@ const HallofFame = () => {
                         <div
                           className={`${
                             isActive
-                              ? "max-w-[250px] md:max-w-[420px] opacity-100"
+                              ? "max-w-[250px] lg:max-w-[420px] opacity-100"
                               : "max-w-0 opacity-0"
                           } transition-all duration-300 rounde-xl p-6`}
                         >
@@ -838,7 +817,7 @@ const HallofFame = () => {
       {isMobileView && selectedStudent && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
           <div
-            className="lg:w-[980px] md:w-[80%] w-[95%] h-auto rounded-[20px] lg:py-20 lg:px-20 py-5 relative shadow-lg"
+            className="md:w-[80%] w-[95%] rounded-[20px] py-5 relative shadow-lg"
             style={{
               backgroundImage: `url(${
                 window.innerWidth >= 1024
@@ -850,17 +829,17 @@ const HallofFame = () => {
             }}
           >
             {/* Bố cục chia làm 2 phần: Ảnh bên trái - Thông tin bên phải */}
-            <div className="flex flex-col lg:flex-row lg:space-x-6 space-y-6 lg:space-y-0">
+            <div className="flex flex-col space-y-6 ">
               {/* Khung ảnh với nền lệch */}
-              <div className="relative flex-shrink-0 px-[25px] lg:px-0">
+              <div className="w-full relative flex-shrink-0 px-[25px] lg:px-0">
                 {selectedStudent.image ? (
                   <img
                     src={selectedStudent.image}
                     alt="Student"
-                    className="relative z-10 lg:w-[281px] lg:h-[352px] w-full h-[320px] items-center object-cover object-top rounded-[15px] shadow-md"
+                    className="relative z-10 w-full h-[300px] md:h-[500px] items-center object-cover object-top  rounded-[15px] shadow-md"
                   />
                 ) : (
-                  <div className="relative z-10 lg:w-[281px] lg:h-[352px] w-[150px] h-[200px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
+                  <div className="relative z-10  w-[150px] h-[200px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
                     <span className="text-xs text-gray-400">
                       {t("noPhoto", "Chưa có ảnh")}
                     </span>
@@ -869,7 +848,7 @@ const HallofFame = () => {
               </div>
 
               {/* Phần thông tin học sinh */}
-              <div className="flex flex-col items-start justify-start lg:px-[10px] px-[20px]">
+              <div className="flex flex-col items-start justify-start px-[20px]">
                 <div className="lg:w-[500px] w-full flex flex-col">
                   <h2 className="lg:text-[24px] text-[16px] font-bold text-[#F9D16F]">
                     {selectedStudent.name?.[i18n.language] ||
@@ -878,7 +857,7 @@ const HallofFame = () => {
                   </h2>
                   <div className="flex justify-start gap-6 mt-1 text-[#F9D16F] text-[14px]">
                     {selectedStudent.archivement?.[i18n.language] && (
-                      <p className="w-full mb-2 font-semibold text-[#F9D16F] text-[13px] md:text-[15px] lg:text-[18px]">
+                      <p className="w-full mb-2 font-semibold text-[#F9D16F] text-[13px] md:text-[15px]">
                         {selectedStudent.archivement[i18n.language]}
                       </p>
                     )}
