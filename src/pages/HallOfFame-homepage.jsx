@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
@@ -21,6 +20,65 @@ const HallofFame = () => {
   const toggleLanguage = () => {
     const newLanguage = i18n.language === "vi" ? "en" : "vi";
     i18n.changeLanguage(newLanguage);
+  };
+  // 1. Thêm state mới ngay sau các state đã có (ví dụ, sau const [quoteIndex, setQuoteIndex] = useState(null);)
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const handleResize = () => setIsMobileView(window.innerWidth < 1024);
+      handleResize();
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  }, []);
+  const ReadMoreText = ({ text }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const toggleExpanded = () => setIsExpanded(!isExpanded);
+
+    // Determine if the viewport is mobile (< md)
+    const [isMobile, setIsMobile] = useState(() => {
+      if (typeof window !== "undefined") {
+        return window.innerWidth < 768;
+      }
+      return false;
+    });
+
+    useEffect(() => {
+      const handleResize = () => setIsMobile(window.innerWidth < 1024);
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    // Apply threshold only on mobile; on desktop, show full text
+    const threshold = isMobile ? 470 : Infinity;
+    const shouldTruncate = text.length > threshold;
+    const displayText =
+      isExpanded || !shouldTruncate
+        ? text
+        : text.substring(0, threshold) + "...";
+
+    return (
+      <div>
+        <p
+          style={{ whiteSpace: "pre-line" }}
+          className="text-[#002855] xl:text-lg lg:text-base md:text-sm text-[14px] text-semibold leading-relaxed"
+        >
+          {displayText}
+        </p>
+        {shouldTruncate && (
+          <button
+            onClick={toggleExpanded}
+            className="text-[#002147] font-bold text-xs mt-2 md:hidden"
+          >
+            {isExpanded
+              ? t("readLess", "Rút gọn")
+              : t("readMore", "Xem đầy đủ")}
+          </button>
+        )}
+      </div>
+    );
   };
 
   const principals = [
@@ -137,11 +195,11 @@ const HallofFame = () => {
       breakpoints: {
         1024: {
           autoWidth: false,
-          perPage: 2,
+          perPage: 3,
         },
         640: {
           autoWidth: false,
-          perPage: 1,
+          perPage: 2,
         },
       },
     });
@@ -151,6 +209,46 @@ const HallofFame = () => {
     return () => splide.destroy();
   }, []);
 
+  useEffect(() => {
+    if (isMobileView) {
+      const splideTop = new Splide("#splide-mobile-top", {
+        type: "loop",
+        drag: "free",
+        autoWidth: true,
+        focus: "center",
+        autoScroll: {
+          speed: 0.5,
+        },
+        gap: "16px",
+        direction: "ltr",
+        arrows: false, // Tắt mũi tên 2 bên
+        pagination: false, // Tắt dấu chấm phân trang
+      });
+      splideTop.mount({ AutoScroll });
+
+      const splideBottom = new Splide("#splide-mobile-bottom", {
+        type: "loop",
+        drag: "free",
+        autoWidth: true,
+        focus: "center",
+        autoScroll: {
+          speed: 0.5,
+        },
+        gap: "16px",
+        // Cho hàng dưới chạy ngược chiều
+        direction: "rtl",
+        arrows: false, // Tắt mũi tên 2 bên
+        pagination: false, // Tắt dấu chấm phân trang
+      });
+      splideBottom.mount({ AutoScroll });
+
+      return () => {
+        splideTop.destroy();
+        splideBottom.destroy();
+      };
+    }
+  }, [isMobileView]);
+
   // Tính toán kích thước slide dựa trên window.innerWidth
   useEffect(() => {
     const handleResize = () => {
@@ -158,7 +256,7 @@ const HallofFame = () => {
       if (width < 640) {
         // Mobile: 90% chiều rộng, chiều cao nhỏ hơn
         setItemWidth(width * 0.9);
-        setItemHeight(300);
+        setItemHeight(450);
       } else if (width < 1024) {
         // Laptop 13" hoặc 14": 80% chiều rộng, chiều cao trung bình
         setItemWidth(width * 0.85);
@@ -368,7 +466,7 @@ const HallofFame = () => {
           playsInline
           preload="auto"
         />
-        <div className="absolute bottom-[15%] left-1/2 transform -translate-x-1/2 z-20 block lg:hidden">
+        {/* <div className="absolute bottom-[15%] left-1/2 transform -translate-x-1/2 z-20 block lg:hidden">
           <button
             onClick={() => navigate("/hall-of-honor/detail")}
             className="w-[250px] px-10 py-2 bg-[#F9D16F] rounded-full font-semibold transition-colors"
@@ -377,17 +475,15 @@ const HallofFame = () => {
               {t("discover", "Khám phá")}
             </h3>
           </button>
-        </div>
+        </div> */}
       </section>
-
-      {/* Section 2: Carousel */}
       <section
         ref={section2Ref}
-        className="hidden lg:flex bg-white relative w-full flex-col items-center justify-center overflow-hidden h-screen mt-[100vh]"
+        className="flex bg-white relative w-full flex-col items-center justify-center overflow-hidden h-screen mt-[100vh]"
       >
         {/* Tiêu đề */}
         <div className="relative w-full text-center mb-10 z-10">
-          <h2 className="section2-title xl:text-[32px] text-[30px] text-xl font-semibold text-[#002147] uppercase tracking-wide">
+          <h2 className="section2-title xl:text-[32px] text-[24px] font-semibold text-[#002147] uppercase tracking-wide">
             {t("principalMessageHeader", "Thông điệp của Hiệu trưởng")}
           </h2>
         </div>
@@ -408,55 +504,67 @@ const HallofFame = () => {
               <SwiperSlide key={index} className="flex justify-center relative">
                 <div
                   style={{ width: itemWidth, height: itemHeight }}
-                  className={`carousel-slide flex-shrink-0 rounded-[20px] lg:px-10 lg:py-12 px-7 py-5 transition-all duration-500 ease-in-out overflow-hidden ${
+                  className={`carousel-slide flex-shrink-0 rounded-[20px] lg:px-10 lg:py-12 px-7 py-7 transition-all duration-500 ease-in-out overflow-hidden ${
                     isActive
                       ? "bg-[#f8f8f8] backdrop-blur-none scale-100 opacity-100"
                       : "bg-[#000000] backdrop-blur-3xl scale-75 opacity-10"
                   }`}
                 >
-                  <div className="flex flex-row h-full items-start">
+                  <div className="flex flex-row h-auto items-start">
                     {/* Ảnh nền chìm phía sau */}
                     <img
                       src="/halloffame/vector-section2.png"
                       alt="vector-section2"
-                      className="absolute xll:-right-12 xll:w-[1000px] xll:-bottom-24 lg:w-[900px] xl:-right-28 xl:-bottom-24 lg:-right-36 lg:-bottom-20 md:w-[800px] md:-bottom-24 md:-right-32 w-[700px] -bottom-8 -right-16 h-auto object-cover pointer-events-none opacity-30"
+                      className="hidden md:block absolute xll:-right-12 xll:w-[1000px] xll:-bottom-24 lg:w-[900px] xl:-right-28 xl:-bottom-24 lg:-right-36 lg:-bottom-20 md:w-[800px] md:-bottom-24 md:-right-32 w-[700px] -bottom-8 -right-16 h-auto object-cover pointer-events-none opacity-30"
                     />
                     <img
                       src="/halloffame/ngon-duoc.png"
                       alt="ngon-duoc"
-                      className="w-auto h-[400px] absolute -bottom-[170px] left-5 md:h-[700px] md:-bottom-[400px] pointer-events-none opacity-20 xll:h-[900px] lg:h-[800px] lg:-bottom-[400px] lg:left-10 xl:left-32"
+                      className="w-auto h-[700px] absolute -bottom-[300px] md:h-[700px] md:-bottom-[400px] pointer-events-none opacity-20 xll:h-[900px] lg:h-[800px] lg:-bottom-[400px] lg:left-10 xl:left-32"
                     />
                     <img
                       src={principal.image}
                       alt={principal.name}
-                      className="w-auto xll:max-h-[100%] md:max-h-[90%] max-h-[70%] absolute bottom-0 md:-bottom-[50px] xl:right-15 xll:right-20 md:right-12 right-5 object-contain pointer-events-none"
+                      className="hidden md:block w-auto xll:max-h-[100%] md:max-h-[90%] max-h-[60%] absolute bottom-0 md:-bottom-[50px] xl:right-15 xll:right-20 md:right-12 right-5 object-contain pointer-events-none"
                     />
                     {/* Cột text */}
-                    <div className="w-[60%] md:w-[60%] xl:w-[70%] max-w-[730px] flex flex-col items-start z-10">
+                    <div className="w-full md:w-[60%] xl:w-[70%] max-w-[730px] flex flex-col items-center md:items-start text-left  z-10">
                       <div>
                         <div className="lg:my-3">
-                          <p
-                            style={{ whiteSpace: "pre-line" }}
-                            className="text-[#002855] xl:text-lg lg:text-base md:text-sm sm:text-[12px] text-[10px] text-semibold leading-relaxed"
-                          >
-                            {principal.message}
-                          </p>
+                          <ReadMoreText text={principal.message} />
                         </div>
                         {principal.quote && (
-                          <blockquote className="italic text-[#002855] xl:text-lg lg:text-base md:text-sm sm:text-[14px] text-[10px] text-semibold leading-relaxed">
+                          <blockquote className="italic text-[#002855] xl:text-lg lg:text-base md:text-sm text-[14px] text-semibold leading-relaxed">
                             “{principal.quote.text}”
-                            <footer className="mt-2 mr-[10%] xll:mr-0 text-right text-[#002855] xl:text-lg lg:text-md md:text-sm sm:text-[12px] text-semibold leading-relaxed">
+                            <footer className="mt-2 md:mr-[10%] xll:mr-0 text-right text-[#002855] xl:text-lg lg:text-md md:text-sm text-[14px] text-semibold leading-relaxed">
                               - {principal.quote.author}
                             </footer>
                           </blockquote>
                         )}
-                        <div className="md:mt-5 mt-1">
-                          <p className="text-[#002147] font-bold xl:text-lg lg:text-base md:text-sm sm:text-[12px] text-[10px]">
-                            {principal.name}
-                          </p>
-                          <p className="text-[#757575] font-bold xl:text-lg lg:text-base md:text-sm sm:text-[12px] text-[10px]">
-                            {principal.title}
-                          </p>
+                        <div className="mt-8 md:hidden flex flex-row items-center gap-3">
+                          <img
+                            src={principal.image}
+                            alt={principal.name}
+                            className="lg:hidden w-20 h-20 rounded-full object-cover object-top  border-2 border-[#e5e5e5]"
+                          />
+                          <div className="flex flex-col">
+                            <p className="text-[#002147] font-bold xl:text-lg lg:text-base md:text-sm  text-[14px]">
+                              {principal.name}
+                            </p>
+                            <p className="text-[#757575] font-bold xl:text-lg lg:text-base md:text-sm  text-[14px]">
+                              {principal.title}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="md:mt-5 mt-5 md:flex hidden">
+                          <div className="flex flex-col">
+                            <p className="text-[#002147] font-bold xl:text-lg lg:text-base md:text-sm  text-[13px]">
+                              {principal.name}
+                            </p>
+                            <p className="text-[#757575] font-bold xl:text-lg lg:text-base md:text-sm  text-[13px]">
+                              {principal.title}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -486,151 +594,346 @@ const HallofFame = () => {
         </Swiper>
       </section>
 
-      <section
-        className="hidden lg:flex relative w-full h-[720px] flex-col items-center justify-center bg-cover bg-center overflow-hidden"
-        style={{ backgroundImage: "url(/halloffame/section3.png)" }}
-      >
-        {/* Tiêu đề Section 3 */}
-        <div className="text-center mb-12">
-          <h2 className="text-[36px] md:text-4xl font-bold text-[#F9D16F] uppercase">
-            {t("student_feedback")}
-          </h2>
-          <div className="flex justify-center my-5">
-            <img
-              src="/halloffame/vector.png"
-              alt="Divider"
-              className="w-[200px] md:w-[500px] h-auto"
-            />
+      {isMobileView ? (
+        <section
+          className="flex relative w-full h-screen flex-col items-center justify-center bg-cover bg-center overflow-hidden "
+          style={{ backgroundImage: "url(/halloffame/section3.png)" }}
+        >
+          {/* Tiêu đề Section 3 */}
+          <div className="text-center mb-12">
+            <h2 className="text-[28px] md:text-4xl font-bold text-[#F9D16F] uppercase">
+              {t("student_feedback")}
+            </h2>
+            <div className="flex justify-center my-5">
+              <img
+                src="/halloffame/vector.png"
+                alt="Divider"
+                className="w-[500px] md:w-[500px] h-auto"
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Slider Splide */}
-        <div className="splide w-full ">
-          <div className="splide__track">
-            <ul className="splide__list">
-              {starStudents.map((student, index) => {
-                const isActive = index === quoteIndex; // Kiểm tra nếu học sinh được chọn
-                return (
-                  <li
-                    className={`
-                      splide__slide 
-                      relative 
-                      flex 
-                      transition-all 
-                      duration-500
-                      overflow-hidden
-                      ${
-                        isActive
-                          ? "lg:w-[840px] w-[840px]"
-                          : "lg:w-[420px] w-[420px]"
-                      }
-                    `}
-                    onClick={() => handleClickStudent(index)}
-                    key={index}
-                  >
-                    {/* Ảnh học sinh */}
-                    <div className="relative lg:h-[420px] lg:w-[420px] w-[200px] h-[250px] cursor-pointer ">
-                      <img
-                        src={student.image}
-                        alt={student.name[i18n.language]}
-                        className="absolute inset-0 w-full h-full object-cover object-top rounded-xl transition-all duration-500"
-                      />
-                    </div>
-
-                    {/* Frame Avatar */}
-                    {!isActive && (
-                      <div className="absolute inset-0 lg:w-[420px] lg:h-[420px] w-[200px] h-[250px]  pointer-events-none z-50">
+          {/* Splide hàng trên */}
+          <div id="splide-mobile-top" className="splide w-full mb-6">
+            <div className="splide__track">
+              <ul className="splide__list">
+                {(() => {
+                  // Chia mảng starStudents làm 2
+                  const half = Math.ceil(starStudents.length / 2);
+                  const topStudents = starStudents.slice(0, half);
+                  return topStudents.map((student, index) => (
+                    <li
+                      className="splide__slide relative flex transition-all duration-500 overflow-hidden w-auto cursor-pointer"
+                      key={`top-${index}`}
+                      onClick={() => setSelectedStudent(student)}
+                    >
+                      {/* Ảnh học sinh */}
+                      <div className="relative w-[220px] h-[250px]">
+                        <img
+                          src={student.image}
+                          alt={student.name[i18n.language]}
+                          className="absolute inset-0 w-full h-full object-cover object-top rounded-xl"
+                        />
+                      </div>
+                      {/* Frame Avatar */}
+                      <div className="absolute inset-0 pointer-events-none z-50">
                         <img
                           src="/halloffame/frameavatar.png"
                           alt="Avatar Frame"
                           className="w-full h-full object-cover"
                         />
                       </div>
-                    )}
+                      {/* Overlay gradient chứa text */}
+                      <div
+                        className="w-[220px] px-4 py-4 absolute bottom-0 transition-all duration-500 rounded-b-lg"
+                        style={{
+                          background:
+                            "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",
+                        }}
+                      >
+                        <p className="text-base uppercase font-bold text-[#F9D16F]">
+                          {student.name[i18n.language]}
+                        </p>
+                        <p className="text-xs font-semibold text-[#F9D16F]">
+                          {student.year[i18n.language]}
+                        </p>
+                      </div>
+                    </li>
+                  ));
+                })()}
+              </ul>
+            </div>
+          </div>
 
-                    {/* Frame Quote */}
-                    {isActive && (
-                      <div className="absolute inset-0 lg:w-[840px] w-[500px] h-full pointer-events-none z-50 flex items-stretch">
+          {/* Splide hàng dưới (đảo mảng + direction=rtl) */}
+          <div id="splide-mobile-bottom" className="splide w-full">
+            <div className="splide__track">
+              <ul className="splide__list">
+                {(() => {
+                  const half = Math.ceil(starStudents.length / 2);
+                  // bottomStudents = phần sau + reverse() nếu bạn muốn
+                  const bottomStudents = starStudents.slice(half);
+                  return bottomStudents.map((student, index) => (
+                    <li
+                      className="splide__slide relative flex transition-all duration-500 overflow-hidden w-auto cursor-pointer"
+                      key={`bottom-${index}`}
+                      onClick={() => setSelectedStudent(student)}
+                    >
+                      {/* Ảnh học sinh */}
+                      <div className="relative w-[220px] h-[250px]">
                         <img
-                          src="/halloffame/framequote.png"
-                          alt="Quote Frame"
+                          src={student.image}
+                          alt={student.name[i18n.language]}
+                          className="absolute inset-0 w-full h-full object-cover object-top rounded-xl"
+                        />
+                      </div>
+                      {/* Frame Avatar */}
+                      <div className="absolute inset-0 pointer-events-none z-50">
+                        <img
+                          src="/halloffame/frameavatar.png"
+                          alt="Avatar Frame"
                           className="w-full h-full object-cover"
                         />
                       </div>
-                    )}
-
-                    {/* Overlay gradient chứa text */}
-                    <div
-                      className="lg:w-[420px] w-[200px] px-4 lg:py-28 py-20 absolute bottom-0 transition-all duration-500 rounded-b-lg cursor-pointer"
-                      style={{
-                        background:
-                          "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",
-                      }}
-                    >
-                      <p className="absolute bottom-10 lg:text-3xl text-base uppercase font-bold text-[#F9D16F]">
-                        {student.name[i18n.language]}
-                      </p>
-                      <p className="absolute bottom-4 lg:text-base text-xs font-semibold text-[#F9D16F]">
-                        {student.year[i18n.language]}
-                      </p>
-                    </div>
-
-                    {/* Hộp giới thiệu mở bên cạnh */}
-                    {isActive && (
+                      {/* Overlay gradient chứa text */}
                       <div
-                        className={`${
-                          isActive
-                            ? "max-w-[250px] md:max-w-[420px] opacity-100"
-                            : "max-w-0 opacity-0"
-                        } transition-all duration-300 rounde-xl p-6`}
+                        className="w-[220px] px-4 py-4 absolute bottom-0 transition-all duration-500 rounded-b-lg"
+                        style={{
+                          background:
+                            "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",
+                        }}
                       >
-                        <div style={{ whiteSpace: "pre-line" }}>
-                          <p className="lg:text-xl text-base uppercase font-bold text-[#F9D16F] mb-2">
-                            {student.name[i18n.language]}
-                          </p>
-                          <p className="text-sm font-semibold text-[#F9D16F]">
-                            {student.archivement[i18n.language]}
-                          </p>
-                        </div>
-                        <div className="my-5">
-                          <img src={`/halloffame/vector.png`} alt="Cover" />
-                        </div>
-                        <p className="text-white md:text-[14px]">
-                          "
-                          {i18n.language === "vi"
-                            ? student.quoteVi
-                            : student.quoteEn}
-                          "
+                        <p className="text-base uppercase font-bold text-[#F9D16F]">
+                          {student.name[i18n.language]}
+                        </p>
+                        <p className="text-xs font-semibold text-[#F9D16F]">
+                          {student.year[i18n.language]}
                         </p>
                       </div>
+                    </li>
+                  ));
+                })()}
+              </ul>
+            </div>
+          </div>
+        </section>
+      ) : (
+        // Desktop: Giữ nguyên code Splide hiện tại
+        <section
+          className="flex relative w-full h-[720px] flex-col items-center justify-center bg-cover bg-center overflow-hidden"
+          style={{ backgroundImage: "url(/halloffame/section3.png)" }}
+        >
+          {/* Tiêu đề Section 3 */}
+          <div className="text-center mb-12">
+            <h2 className="text-[36px] md:text-4xl font-bold text-[#F9D16F] uppercase">
+              {t("student_feedback")}
+            </h2>
+            <div className="flex justify-center my-5">
+              <img
+                src="/halloffame/vector.png"
+                alt="Divider"
+                className="w-[200px] md:w-[500px] h-auto"
+              />
+            </div>
+          </div>
+          {/* Slider Splide */}
+          <div className="splide w-full">
+            <div className="splide__track">
+              <ul className="splide__list">
+                {starStudents.map((student, index) => {
+                  const isActive = index === quoteIndex;
+                  return (
+                    <li
+                      className={`
+                  splide__slide 
+                  relative 
+                  flex 
+                  transition-all 
+                  duration-500
+                  overflow-hidden
+                  ${
+                    isActive
+                      ? "lg:w-[840px] w-[840px]"
+                      : "lg:w-[420px] w-[420px]"
+                  }
+                `}
+                      onClick={() => handleClickStudent(index)}
+                      key={index}
+                    >
+                      <div className="relative lg:h-[420px] lg:w-[420px] w-[200px] h-[250px] cursor-pointer">
+                        <img
+                          src={student.image}
+                          alt={student.name[i18n.language]}
+                          className="absolute inset-0 w-full h-full object-cover object-top rounded-xl transition-all duration-500"
+                        />
+                      </div>
+                      {!isActive && (
+                        <div className="absolute inset-0 lg:w-[420px] lg:h-[420px] w-[200px] h-[250px] pointer-events-none z-50">
+                          <img
+                            src="/halloffame/frameavatar.png"
+                            alt="Avatar Frame"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      {isActive && (
+                        <div className="absolute inset-0 lg:w-[840px] w-[500px] h-full pointer-events-none z-50 flex items-stretch">
+                          <img
+                            src="/halloffame/framequote.png"
+                            alt="Quote Frame"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div
+                        className="lg:w-[420px] w-[200px] px-4 lg:py-28 py-20 absolute bottom-0 transition-all duration-500 rounded-b-lg cursor-pointer"
+                        style={{
+                          background:
+                            "linear-gradient(to top, rgba(10, 40, 80, 1) 0%, rgba(30, 60, 120, 0) 100%)",
+                        }}
+                      >
+                        <p className="absolute bottom-10 lg:text-3xl text-base uppercase font-bold text-[#F9D16F]">
+                          {student.name[i18n.language]}
+                        </p>
+                        <p className="absolute bottom-4 lg:text-base text-xs font-semibold text-[#F9D16F]">
+                          {student.year[i18n.language]}
+                        </p>
+                      </div>
+                      {isActive && (
+                        <div
+                          className={`${
+                            isActive
+                              ? "max-w-[250px] md:max-w-[420px] opacity-100"
+                              : "max-w-0 opacity-0"
+                          } transition-all duration-300 rounde-xl p-6`}
+                        >
+                          <div style={{ whiteSpace: "pre-line" }}>
+                            <p className="lg:text-xl text-base uppercase font-bold text-[#F9D16F] mb-2">
+                              {student.name[i18n.language]}
+                            </p>
+                            <p className="text-sm font-semibold text-[#F9D16F]">
+                              {student.archivement[i18n.language]}
+                            </p>
+                          </div>
+                          <div className="my-5">
+                            <img src={`/halloffame/vector.png`} alt="Cover" />
+                          </div>
+                          <p className="text-white md:text-[14px]">
+                            "
+                            {i18n.language === "vi"
+                              ? student.quoteVi
+                              : student.quoteEn}
+                            "
+                          </p>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </section>
+      )}
+      {isMobileView && selectedStudent && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div
+            className="lg:w-[980px] md:w-[80%] w-[95%] h-auto rounded-[20px] lg:py-20 lg:px-20 py-5 relative shadow-lg"
+            style={{
+              backgroundImage: `url(${
+                window.innerWidth >= 1024
+                  ? "/halloffame/studentcard-desktop.png"
+                  : "/halloffame/studentcard-mobile.png"
+              })`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          >
+            {/* Bố cục chia làm 2 phần: Ảnh bên trái - Thông tin bên phải */}
+            <div className="flex flex-col lg:flex-row lg:space-x-6 space-y-6 lg:space-y-0">
+              {/* Khung ảnh với nền lệch */}
+              <div className="relative flex-shrink-0 px-[25px] lg:px-0">
+                {selectedStudent.image ? (
+                  <img
+                    src={selectedStudent.image}
+                    alt="Student"
+                    className="relative z-10 lg:w-[281px] lg:h-[352px] w-full h-[320px] items-center object-cover object-top rounded-[15px] shadow-md"
+                  />
+                ) : (
+                  <div className="relative z-10 lg:w-[281px] lg:h-[352px] w-[150px] h-[200px] bg-gray-200 flex items-center justify-center rounded-lg shadow-md">
+                    <span className="text-xs text-gray-400">
+                      {t("noPhoto", "Chưa có ảnh")}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Phần thông tin học sinh */}
+              <div className="flex flex-col items-start justify-start lg:px-[10px] px-[20px]">
+                <div className="lg:w-[500px] w-full flex flex-col">
+                  <h2 className="lg:text-[24px] text-[16px] font-bold text-[#F9D16F]">
+                    {selectedStudent.name?.[i18n.language] ||
+                      selectedStudent.name ||
+                      "Unknown"}
+                  </h2>
+                  <div className="flex justify-start gap-6 mt-1 text-[#F9D16F] text-[14px]">
+                    {selectedStudent.archivement?.[i18n.language] && (
+                      <p className="w-full mb-2 font-semibold text-[#F9D16F] text-[13px] md:text-[15px] lg:text-[18px]">
+                        {selectedStudent.archivement[i18n.language]}
+                      </p>
                     )}
-                  </li>
-                );
-              })}
-            </ul>
+                  </div>
+                  <hr className="border-t border-gray-100 my-3 w-full" />
+                </div>
+
+                <div className="border-b-2 pb-4">
+                  {/* Nội dung trích dẫn (quoteVi, quoteEn) */}
+                  {selectedStudent.quoteVi || selectedStudent.quoteEn ? (
+                    <p className="text-white my-auto text-justify text-[13px] md:text-[16px]">
+                      {i18n.language === "vi"
+                        ? selectedStudent.quoteVi
+                        : selectedStudent.quoteEn}
+                    </p>
+                  ) : (
+                    ""
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Nút đóng */}
+            <div className="flex w-full mx-auto items-center justify-center mt-4">
+              <button
+                onClick={() => setSelectedStudent(null)}
+                className="bg-[#F9D16F] lg:px-16 px-2 lg:py-1 py-1 rounded-md text-[#002855] text-[13px] lg:text-[16px] font-semibold hover:bg-gray-400"
+              >
+                {t("close", "Đóng")}
+              </button>
+            </div>
           </div>
         </div>
-      </section>
+      )}
+
       {/* Section: Dấu ấn danh vọng */}
-      <section className="hidden lg:flex bg-white relative w-full flex-col items-center justify-center p-40 overflow-hidden">
+      <section className="flex bg-white relative w-full flex-col items-center justify-center lg:p-40 p-10 overflow-hidden">
         {/* Ảnh nền chìm */}
         <div
-          className="w-[1075px] h-[1075px] absolute -right-44 -bottom-[200px] bg-no-repeat bg-contain"
+          className="lg:w-[1075px] w-[500px] lg:h-[1075px] h-[500px] absolute -right-44 -bottom-[200px] bg-no-repeat bg-contain"
           style={{ backgroundImage: "url('/halloffame/WS-opacity-20.png')" }}
         />
 
         {/* Tiêu đề */}
-        <h2 className="text-[32px] font-bold text-[#002147] uppercase ">
+        <h2 className="lg:text-[32px] text-[20px] font-bold text-[#002147] uppercase ">
           {t("hallmark_of_fame", "Dấu ấn danh vọng")}
         </h2>
-        <h2 className="text-[32px] font-bold text-[#002147] uppercase mb-12">
+        <h2 className="lg:text-[32px] text-[16px] text-[#002147] uppercase mb-12">
           {t("hallmark_of_fame_02", "Tôn vinh thành tựu - Lan toả cảm xúc")}
         </h2>
 
         {/* Video chính */}
         <div className="relative flex flex-row w-full items-center justify-center mb-10">
           <iframe
-            className="w-[1280px] h-[720px] lg:h-[560px] shadow-lg rounded-lg"
+            className="lg:w-[1280px] w-[900px] h-[500px] lg:h-[720px] shadow-lg rounded-lg"
             src="https://www.youtube.com/embed/abc123"
             title="YouTube video player"
             frameBorder="0"
@@ -639,9 +942,9 @@ const HallofFame = () => {
           ></iframe>
         </div>
       </section>
-      {/* Section slider */}
 
-      <section className="hidden lg:flex bg-white relative w-full h-[570px] overflow-hidden">
+      {/* Section slider */}
+      <section className="flex bg-white relative w-full h-[570px] overflow-hidden">
         {/* Slider 2 hàng, full width */}
         <div className="absolute top-0 left-0 w-full h-full my-20">
           {/* Hàng ảnh trên */}
@@ -697,7 +1000,29 @@ const HallofFame = () => {
                shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
         />
         {/* Nội dung đè lên slider + overlay */}
-        <div className="relative z-10 w-full h-full flex flex-row items-center justify-between 2xl:px-[200px] px-[120px] text-center text-white">
+        {/*   Mobile */}
+        <div className="lg:hidden relative z-10 w-full h-full flex flex-row items-center justify-between 2xl:px-[200px] md:px-[120px] text-center text-white">
+          <div className="w-full flex flex-col items-center justify-center">
+            <h3 className="shimmer-text text-[32px] font-bold mb-4">
+              Khám phá
+            </h3>
+            <img
+              src="/halloffame/HOH-gold.png"
+              alt="Hall of Honor"
+              className="shimmer-text 2xl:w-[550px] xl:w-[400px] w-[300px] mb-8"
+            />
+            <button
+              onClick={() => navigate("/hall-of-honor/detail")}
+              className="xl:w-[433px] w-[300px] mt-10 xl:px-16 px-10 py-2 bg-[#F9D16F] rounded-full font-semibold transition-colors"
+            >
+              <h3 className="shimmer-text-2 xl:text-[24px] text-[20px] font-bold">
+                {t("view_hall_of_honor")}
+              </h3>
+            </button>
+          </div>
+        </div>
+        {/* Desktop */}
+        <div className="hidden lg:flex relative z-10 w-full h-full  flex-row items-center justify-between 2xl:px-[200px] md:px-[120px] text-center text-white">
           <div className="flex flex-col text-left">
             <h3 className="shimmer-text text-[32px] font-bold mb-4">
               Khám phá
@@ -726,13 +1051,13 @@ const HallofFame = () => {
           className="w-full object-cover"
         />
       </div>
-      {/* <div className="lg:hidden w-full">
+      <div className="lg:hidden w-full h-full">
         <img
           src="/halloffame/Footer_mobile.png"
           alt="Footer"
-          className="w-full"
+          className="w-full object-cover"
         />
-      </div> */}
+      </div>
     </>
   );
 };

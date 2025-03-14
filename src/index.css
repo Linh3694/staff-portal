@@ -243,12 +243,10 @@ code {
 
 .marquee-track {
   display: inline-flex;
-  white-space: nowrap; /* Để các ảnh không bị xuống dòng */
-  /* Tạo animation 20s, lặp vô hạn, linear (tốc độ đều), chạy từ trái -> phải */
+  white-space: nowrap;
   animation: marquee 20s linear infinite;
 }
 
-/* Tăng giảm 20s để điều chỉnh tốc độ (càng nhỏ chạy càng nhanh) */
 @layer utilities {
   @keyframes marquee {
     0%   { transform: translateX(0%); }
@@ -259,7 +257,6 @@ code {
   }
   }
 
-/* Added shimmer-text-2 class with blue shimmer effect */
 .shimmer-text-2 {
   background: linear-gradient(
     45deg,
@@ -317,7 +314,5 @@ code {
   left: 0;
   width: 100%;
   height: 100vh;
-  /* hoặc min-height: 100vh; */
   z-index: -1;
-  /* Đặt z-index thấp để nội dung bên dưới hiển thị lên trên */
 }
