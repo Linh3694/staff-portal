@@ -50,6 +50,7 @@ const resources = {
       "category_67b5a98b4c93fbb31475ad56": "Effort Award",
       "category_67b5a7c84c93fbb31475ad47": "Class Honor",
       "principalMessageHeader": "Principal's Message",
+      "view_hall_of_honor": "View Hall of Honor",
 
       principal1: {
         name: "Mr. Nguyen Vinh Son",
@@ -244,6 +245,8 @@ const resources = {
       "category_67b5a98b4c93fbb31475ad56": "Học sinh Nỗ lực",
       "category_67b5a7c84c93fbb31475ad47": "Lớp Danh dự",
       "principalMessageHeader": "Thông điệp từ Hiệu trưởng",
+      "view_hall_of_honor": "Xem Bảng Vinh Danh",
+      
       principal1: {
         name: "TS. Nguyễn Vĩnh Sơn",
         title: "Tổng Hiệu trưởng Wellspring Hanoi",

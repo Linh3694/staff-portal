@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import i18n from "../i18n";
@@ -14,6 +14,8 @@ function HallOfFamePublicPage() {
   const recordIdParam = searchParams.get("recordId");
   const studentIdParam = searchParams.get("studentId");
   const classIdParam = searchParams.get("classId");
+  const [showCategoryNameInHeader, setShowCategoryNameInHeader] =
+    useState(false);
 
   // --- i18n, Header logic ---
   const navigate = useNavigate();
@@ -29,6 +31,32 @@ function HallOfFamePublicPage() {
   );
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Giả sử bạn có hàm trả về tên danh mục dựa trên selectedCategoryId
+  const categoryTitleRef = useRef(null);
+  const getCategoryName = () => {
+    // Ví dụ: trả về tên dựa vào selectedCategoryId hoặc từ API / state
+    return selectedCategoryId === "67b5a7864c93fbb31475ad44"
+      ? t("student_honor", "Học sinh Danh dự")
+      : t("class_honor", "Lớp Danh dự");
+  };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Khi phần tiêu đề không còn hiển thị, set state để Header hiển thị tên danh mục
+        setShowCategoryNameInHeader(!entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+    if (categoryTitleRef.current) {
+      observer.observe(categoryTitleRef.current);
+    }
+    return () => {
+      if (categoryTitleRef.current) {
+        observer.unobserve(categoryTitleRef.current);
+      }
+    };
+  }, []);
 
   // Hàm cuộn lên đầu trang
   const scrollToTop = () => {
@@ -130,6 +158,11 @@ function HallOfFamePublicPage() {
             />
           </a>
         </div>
+        {showCategoryNameInHeader && (
+          <div className="ml-4 text-2xl shimmer-text uppercase font-bold">
+            {getCategoryName()}
+          </div>
+        )}
         <div className="flex flex-row gap-10 items-center">
           <img
             src="/halloffame/HJ-white.png"
@@ -162,7 +195,15 @@ function HallOfFamePublicPage() {
           closeSidebar={() => setIsSidebarOpen(false)}
         />
 
-        <div className="flex-1 lg:pl-16">{renderMainContent()}</div>
+        <div className="flex-1 lg:pl-16">
+          <div ref={categoryTitleRef} className="absolute py-4">
+            <h1 className="text-4xl font-bold text-white">
+              {getCategoryName()}
+            </h1>
+          </div>
+
+          {renderMainContent()}
+        </div>
 
         {/* 2 nút Lên/Xuống ở góc phải */}
         <div className="hidden md:flex fixed bottom-10 right-3 flex-col space-y-5 z-50">

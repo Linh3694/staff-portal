@@ -218,14 +218,25 @@ code {
     background-position: 0% center;
   }
 }
+/* Ban đầu, ẩn marquee bằng opacity và dịch chuyển xuống dưới 50px */
+.marquee-container.pre-init {
+  opacity: 0;
+  transform: translateY(50px);
+}
 
+/* Khi kích hoạt, chuyển sang hiển thị với hiệu ứng chuyển mượt */
+.marquee-container.active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
 /* Ví dụ trong App.css hoặc globals.css */
 .marquee-container {
   width: 100%;
   overflow: hidden;
-  /* Chiều cao tùy chỉnh, 
-     ở đây mình để h-auto để auto-fit theo ảnh, 
-     hoặc bạn có thể đặt fixed height. */
+  will-change: transform;
+  transform: translateZ(0);
+
   height: auto;
   margin: 1rem 0;
 }

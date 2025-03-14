@@ -71,7 +71,6 @@ const StudentHonorContent = ({
     try {
       const res = await axios.get(`${API_URL}/award-categories`);
       setCategories(res.data);
-      console.log(res.data);
     } catch (err) {
       console.error("Error fetching categories:", err);
     }
@@ -81,7 +80,6 @@ const StudentHonorContent = ({
     try {
       const res = await axios.get(`${API_URL}/award-records`);
       setRecords(res.data);
-      console.log(res.data);
     } catch (err) {
       console.error("Error fetching records:", err);
     }

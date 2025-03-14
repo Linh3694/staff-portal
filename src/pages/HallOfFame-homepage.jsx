@@ -62,21 +62,65 @@ const HallofFame = () => {
   const [topImages, setTopImages] = useState([]);
   const [bottomImages, setBottomImages] = useState([]);
   const starStudents = t("starStudents", { returnObjects: true });
+
   const preloadImages = (imageUrls) => {
     imageUrls.forEach((url) => {
       const img = new Image();
       img.src = url;
+      img.onload = () => console.log(`Image loaded: ${url}`); // Kiểm tra xem ảnh có được tải nhanh hay không
     });
   };
+  const marqueeRef = useRef(null);
+
   useEffect(() => {
-    const localImages = Array.from(
-      { length: 20 },
+    // Chỉ preload ảnh đầu tiên để cải thiện tốc độ load
+    const initialImages = Array.from(
+      { length: 5 }, // Chỉ load trước 5 ảnh đầu tiên
       (_, i) => `/halloffame/students/student${i + 1}.webp`
     );
 
-    setTopImages(localImages.slice(0, 10));
-    setBottomImages(localImages.slice(10, 20));
-    preloadImages(localImages);
+    setTopImages(initialImages);
+    setBottomImages(initialImages);
+    preloadImages(initialImages);
+
+    // Sau 2 giây, tải toàn bộ danh sách ảnh (tối ưu hiệu suất)
+    setTimeout(() => {
+      const fullImages = Array.from(
+        { length: 20 },
+        (_, i) => `/halloffame/students/student${i + 1}.webp`
+      );
+      setTopImages(fullImages.slice(0, 10));
+      setBottomImages(fullImages.slice(10, 20));
+    }, 2000);
+  }, []);
+
+  useEffect(() => {
+    // Lấy tất cả các phần tử marquee container có class 'pre-init'
+    const marqueeElements = document.querySelectorAll(
+      ".marquee-container.pre-init"
+    );
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("active");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.5 } // Điều chỉnh ngưỡng nếu cần
+    );
+
+    marqueeElements.forEach((element) => {
+      observer.observe(element);
+    });
+
+    return () => {
+      marqueeElements.forEach((element) => {
+        observer.unobserve(element);
+      });
+    };
   }, []);
 
   useEffect(() => {
@@ -601,7 +645,7 @@ const HallofFame = () => {
         {/* Slider 2 hàng, full width */}
         <div className="absolute top-0 left-0 w-full h-full my-20">
           {/* Hàng ảnh trên */}
-          <div className="marquee-container">
+          <div className="marquee-container pre-init" ref={marqueeRef}>
             <div className="marquee-track">
               {topImages.map((img, index) => (
                 <img
@@ -624,8 +668,8 @@ const HallofFame = () => {
           </div>
 
           {/* Hàng ảnh dưới - thêm offset để so le */}
-          <div className="marquee-container mt-4">
-            <div className="marquee-track transform translate-x-[50px]">
+          <div className="marquee-container pre-init" ref={marqueeRef}>
+            <div className="marquee-track">
               {bottomImages.map((img, index) => (
                 <img
                   key={`bottom-${index}`}
@@ -669,7 +713,7 @@ const HallofFame = () => {
             className="xl:w-[433px] w-[300px] mt-2 xl:px-16 px-10 py-2 bg-[#F9D16F] rounded-full font-semibold transition-colors"
           >
             <h3 className="shimmer-text-2 xl:text-[24px] text-[20px] font-bold">
-              Xem Bảng Vinh Danh
+              {t("view_hall_of_honor")}
             </h3>
           </button>
         </div>

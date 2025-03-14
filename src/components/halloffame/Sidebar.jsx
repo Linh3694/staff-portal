@@ -79,13 +79,13 @@ const Sidebar = ({
   ];
 
   useEffect(() => {
-    // Mở dropdown cha nếu đang chọn subcategory
+    // Chỉ khi component mount, kiểm tra nếu selectedCategoryId thuộc subCategories
     fixedCategories.forEach((cat) => {
       if (cat.subCategories?.some((sub) => sub.id === selectedCategoryId)) {
         setOpenDropdown(cat.id);
       }
     });
-  }, [selectedCategoryId, fixedCategories, setOpenDropdown]);
+  }, []); // Chạy chỉ một lần khi mount
 
   return (
     <aside
@@ -93,7 +93,7 @@ const Sidebar = ({
       ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} 
       xl:translate-x-0 xl:relative xl:flex xl:w-[270px] xl:h-[calc(100vh-80px)] xl:shadow-none xl:overflow-y-visible`}
     >
-      <nav className="space-y-4 mt-10">
+      <nav className="space-y-4 mt-10 overflow-y-auto">
         <button
           onClick={() => navigate("/hall-of-honor")}
           className="flex items-center gap-2 text-[#757575] hover:text-[#002855] mb-6"
@@ -113,31 +113,30 @@ const Sidebar = ({
         {fixedCategories.map((fixedCat) => {
           const hasSubcategories =
             fixedCat.subCategories && fixedCat.subCategories.length > 0;
+          // Nếu có subcategories, luôn enable; nếu không thì kiểm tra enabledCategoryIds
+          const isCatEnabled =
+            hasSubcategories || enabledCategoryIds.includes(fixedCat.id);
           const isOpen = openDropdown === fixedCat.id;
 
-          const isCatEnabled = enabledCategoryIds.includes(fixedCat.id);
+          // Áp dụng style khác cho các catalogue có subcategories
+          const containerStyle = hasSubcategories
+            ? "flex items-center justify-between p-3 text-[18px] rounded-lg transition text-[#757575] font-semibold cursor-pointer"
+            : `flex items-center justify-between p-3 text-[18px] rounded-lg transition ${
+                selectedCategoryId === fixedCat.id
+                  ? "bg-[#F05023] font-bold text-white"
+                  : "text-[#757575] font-semibold"
+              } ${
+                isCatEnabled
+                  ? "cursor-pointer"
+                  : "opacity-50 cursor-not-allowed"
+              }`;
 
           return (
             <div key={fixedCat.id} className="w-full">
               {/* Danh mục cha */}
               <div
-                className={`
-                  flex items-center justify-between p-3 text-[18px] rounded-lg transition
-                  ${
-                    // Nếu là danh mục được chọn và được hỗ trợ => highlight
-                    selectedCategoryId === fixedCat.id && isCatEnabled
-                      ? "bg-[#F05023] font-bold text-white"
-                      : "text-[#757575] font-semibold"
-                  }
-                  ${
-                    // Nếu là danh mục được hỗ trợ => hover/cursor-pointer
-                    isCatEnabled
-                      ? "cursor-pointer"
-                      : "opacity-50 cursor-not-allowed"
-                  }
-                `}
+                className={containerStyle}
                 onClick={() => {
-                  // Chỉ cho click nếu isCatEnabled = true
                   if (!hasSubcategories) {
                     if (isCatEnabled) {
                       setSelectedCategoryId(fixedCat.id);
@@ -146,7 +145,7 @@ const Sidebar = ({
                       }
                     }
                   } else {
-                    // Bỏ qua kiểm tra isCatEnabled => dropdown luôn mở được nếu có subCategories
+                    // Với catalogue có subcategories, chỉ toggle dropdown
                     setOpenDropdown(
                       openDropdown === fixedCat.id ? null : fixedCat.id
                     );
@@ -161,7 +160,7 @@ const Sidebar = ({
                 )}
               </div>
 
-              {/* Tiểu mục (nếu có) */}
+              {/* Tiểu mục nếu có */}
               {hasSubcategories && isOpen && (
                 <div className="pl-6 space-y-2 mt-3">
                   {fixedCat.subCategories.map((sub) => {
@@ -170,22 +169,19 @@ const Sidebar = ({
                       <div
                         key={sub.id}
                         className={`
-                          text-[18px] p-3 rounded-lg transition
-                          ${
-                            // Highlight nếu sub được chọn & được hỗ trợ
-                            sub.id === selectedCategoryId && isSubEnabled
-                              ? "bg-[#F05023] text-white font-bold"
-                              : "text-[#757575] text-lg font-semibold"
-                          }
-                          ${
-                            // Nếu sub có giao diện => hover pointer
-                            isSubEnabled
-                              ? " cursor-pointer"
-                              : "opacity-50 cursor-not-allowed"
-                          }
-                        `}
+                  text-[18px] p-3 rounded-lg transition
+                  ${
+                    sub.id === selectedCategoryId && isSubEnabled
+                      ? "bg-[#F05023] text-white font-bold"
+                      : "text-[#757575] text-lg font-semibold"
+                  }
+                  ${
+                    isSubEnabled
+                      ? "cursor-pointer"
+                      : "opacity-50 cursor-not-allowed"
+                  }
+                `}
                         onClick={() => {
-                          // Chỉ click được nếu isSubEnabled = true
                           if (isSubEnabled) {
                             setSelectedCategoryId(sub.id);
                             if (window.innerWidth < 1024) {
