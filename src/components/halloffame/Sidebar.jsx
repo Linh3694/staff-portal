@@ -93,7 +93,7 @@ const Sidebar = ({
       ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} 
       xl:translate-x-0 xl:relative xl:flex xl:w-[270px] xl:h-[calc(100vh-80px)] xl:shadow-none xl:overflow-y-visible`}
     >
-      <nav className="space-y-4 mt-10 overflow-y-auto">
+      <nav className="space-y-4 mt-10 ">
         <button
           onClick={() => navigate("/hall-of-honor")}
           className="flex items-center gap-2 text-[#757575] hover:text-[#002855] mb-6"

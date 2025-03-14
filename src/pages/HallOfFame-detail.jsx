@@ -158,11 +158,11 @@ function HallOfFamePublicPage() {
             />
           </a>
         </div>
-        {showCategoryNameInHeader && (
+        {/* {showCategoryNameInHeader && (
           <div className="ml-4 text-2xl shimmer-text uppercase font-bold">
             {getCategoryName()}
           </div>
-        )}
+        )} */}
         <div className="flex flex-row gap-10 items-center">
           <img
             src="/halloffame/HJ-white.png"
