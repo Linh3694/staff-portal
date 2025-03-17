@@ -367,7 +367,12 @@ const StudentHonorContent = ({
   // 5) Phân chia record theo cấp học (Tiểu học, THCS, THPT)
   // -----------------------------
   const educationLevels = [
-    { id: "primary", name: t("primary", "Tiểu học"), minClass: 1, maxClass: 5 },
+    {
+      id: "elementary",
+      name: t("elementary", "Tiểu học"),
+      minClass: 1,
+      maxClass: 5,
+    },
     { id: "secondary", name: t("secondary", "THCS"), minClass: 6, maxClass: 9 },
     {
       id: "highschool",
@@ -498,7 +503,7 @@ const StudentHonorContent = ({
           </p>
         </div>
         {currentCategory.coverImage && (
-          <div className="relative mb-4 mt-8 w-full lg:w-[1410px] max-h-[470px]">
+          <div className="relative mb-4 mt-8 w-full lg:w-[1410px] max-h-[470px] mx-auto">
             {/* Lớp dưới cùng: ảnh coverImage */}
             <img
               src={`${BASE_URL}/${currentCategory.coverImage}`}
@@ -630,7 +635,6 @@ const StudentHonorContent = ({
       </div>
 
       {searchName.trim() ? (
-        // Render kết quả tìm kiếm flat (tất cả kết quả không nhóm)
         <div className="grid justify-items-center xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-x-[8px] gap-y-[8px] lg:gap-x-[30px] lg:gap-y-[35px]">
           {filteredSearchRecords
             .flatMap((record) =>
@@ -641,27 +645,27 @@ const StudentHonorContent = ({
               return (
                 <div
                   key={idx}
-                  className="border rounded-lg p-3 shadow-sm bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                  className="lg:h-[400px] lg:w-[258px] w-[180px] h-[270px] border rounded-[20px] shadow-sm lg:py-[20px] lg:px-[25px] px-[15px] py-[15px] bg-gradient-to-b from-[#03171c] to-[#182b55] flex flex-col items-center justify-center space-y-2 cursor-pointer"
                   onClick={() => handleOpenModal(record, student)}
                 >
                   {student.photo?.photoUrl ? (
                     <img
                       src={`${BASE_URL}/${student.photo.photoUrl}`}
                       alt="Student"
-                      className="lg:h-[260px] lg:w-[208px] h-[160px] w-[208px] object-cover object-top mt-2"
+                      className="lg:h-[260px] lg:w-[208px] w-[208px] h-[160px] object-cover object-top rounded-[15px]"
                     />
                   ) : (
-                    <div className="text-xs italic text-[#f9d16f]">
+                    <div className="text-xs italic text-gray-400">
                       {t("noPhoto", "Chưa có ảnh")}
                     </div>
                   )}
-                  <div className="h-[20px] w-[208px] lg:text-sm text-xs font-semibold text-white">
+                  <div className="h-[20px] w-[208px] lg:text-[16px] text-xs lg:pt-[13px] lg:pb-[15px] pt-[8px] pb-[10px] font-semibold text-white py-2 text-center">
                     {t("classLabel", "Lớp")}{" "}
                     {student.currentClass?.name ||
                       student.currentClass?.className ||
                       t("noClass", "Chưa cập nhật lớp")}
                   </div>
-                  <div className="h-[60px] text-[#f9d16f] shimmer-text lg:text-[18px] text-[15px] font-bold text-center">
+                  <div className="h-[60px] lg:w-[208px] w-[150px] text-[#f9d16f] shimmer-text lg:text-[18px] text-[14px] font-bold text-center">
                     {student.student?.name}
                   </div>
                 </div>
@@ -686,7 +690,7 @@ const StudentHonorContent = ({
           return (
             <div
               key={level.id}
-              className="w-full lg:w-[1410px] border-b border-gray-200 pb-4"
+              className="w-full lg:w-[1410px] border-b border-gray-200 pb-4 mx-auto"
             >
               <div
                 className="w-full flex justify-between items-center cursor-pointer py-4 text-[#002855] text-[22px] font-semibold"
