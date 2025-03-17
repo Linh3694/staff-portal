@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { API_URL, BASE_URL } from "../../config";
 import { FaAngleDown, FaAngleRight } from "react-icons/fa6";
@@ -281,24 +281,25 @@ const StudentHonorContent = ({
     ),
   ].sort((a, b) => a - b);
 
-  const distinctMonths = [
-    ...new Set(
-      recordsCatTypeYear.map((r) => r.subAward?.month).filter(Boolean)
-    ),
-  ].sort((a, b) => a - b);
+  const distinctMonths = useMemo(() => {
+    return [
+      ...new Set(
+        recordsCatTypeYear.map((r) => r.subAward?.month).filter(Boolean)
+      ),
+    ].sort((a, b) => a - b);
+  }, [recordsCatTypeYear]);
 
   // Khi chuyển sang tab "month", nếu chưa chọn month thì tự động chọn option đầu tiên (nếu có)
   useEffect(() => {
     if (
       activeTab === "month" &&
       selectedSchoolYearId &&
-      !selectedMonth &&
-      distinctMonths.length > 0
+      distinctMonths.length > 0 &&
+      (!selectedMonth || !distinctMonths.includes(Number(selectedMonth)))
     ) {
-      setSelectedMonth(distinctMonths[0]);
+      setSelectedMonth(String(distinctMonths[0]));
     }
   }, [activeTab, selectedSchoolYearId, selectedMonth, distinctMonths]);
-
   // -----------------------------
   // 4) Lọc record theo các tiêu chí
   // -----------------------------
