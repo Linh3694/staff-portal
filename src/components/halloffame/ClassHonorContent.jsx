@@ -383,7 +383,12 @@ const ClassHonorContent = ({
   // 5) Phân chia record theo cấp học (nếu muốn)
   // --------------------------------------------------
   const educationLevels = [
-    { id: "primary", name: t("primary", "Tiểu học"), minClass: 1, maxClass: 5 },
+    {
+      id: "elementary",
+      name: t("elementary", "Tiểu học"),
+      minClass: 1,
+      maxClass: 5,
+    },
     { id: "secondary", name: t("secondary", "THCS"), minClass: 6, maxClass: 9 },
     {
       id: "highschool",
@@ -512,7 +517,7 @@ const ClassHonorContent = ({
           </p>
         </div>
         {currentCategory.coverImage && (
-          <div className="relative mb-4 mt-8 w-full lg:w-[1410px] max-h-[470px]">
+          <div className="relative mb-4 mt-8 w-full lg:w-[1410px] max-h-[470px] mx-auto">
             {/* Lớp dưới cùng: ảnh coverImage */}
             <img
               src={`${BASE_URL}/${currentCategory.coverImage}`}
@@ -703,7 +708,7 @@ const ClassHonorContent = ({
             return (
               <div
                 key={level.id}
-                className="w-full border-b border-gray-200 pb-4"
+                className="w-full border-b border-gray-200 pb-4 mx-auto"
               >
                 <div
                   className=" w-full flex justify-between items-center cursor-pointer py-4 text-[#002855] text-[22px] font-semibold"
