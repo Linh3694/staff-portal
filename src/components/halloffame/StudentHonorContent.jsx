@@ -287,6 +287,18 @@ const StudentHonorContent = ({
     ),
   ].sort((a, b) => a - b);
 
+  // Khi chuyển sang tab "month", nếu chưa chọn month thì tự động chọn option đầu tiên (nếu có)
+  useEffect(() => {
+    if (
+      activeTab === "month" &&
+      selectedSchoolYearId &&
+      !selectedMonth &&
+      distinctMonths.length > 0
+    ) {
+      setSelectedMonth(distinctMonths[0]);
+    }
+  }, [activeTab, selectedSchoolYearId, selectedMonth, distinctMonths]);
+
   // -----------------------------
   // 4) Lọc record theo các tiêu chí
   // -----------------------------
@@ -435,10 +447,33 @@ const StudentHonorContent = ({
     const schoolYearLabel = findSchoolYearLabel(schoolYear);
 
     if (type === "month") {
-      return `${categoryName} - ${t("month", "Tháng")} ${month || "?"} - ${t(
-        "schoolYear",
-        "Năm học"
-      )} ${schoolYearLabel}`;
+      if (i18n.language === "vi") {
+        return `${categoryName} - ${t("month", "Tháng")} ${month || "?"} - ${t(
+          "schoolYear",
+          "Năm học"
+        )} ${schoolYearLabel}`;
+      } else {
+        const m = Number(month);
+        const monthNames = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        const monthName = m >= 1 && m <= 12 ? monthNames[m - 1] : month;
+        return `${categoryName} - ${monthName} - ${t(
+          "schoolYear",
+          "School Year"
+        )} ${schoolYearLabel}`;
+      }
     } else if (type === "semester") {
       return `${categoryName} - ${t("semester", "Học kì")} ${
         semester || "?"
@@ -609,11 +644,32 @@ const StudentHonorContent = ({
             onChange={(e) => setSelectedMonth(e.target.value)}
           >
             <option value="">{t("selectMonth")}</option>
-            {distinctMonths.map((m) => (
-              <option key={m} value={m}>
-                {t("month")} {m}
-              </option>
-            ))}
+            {distinctMonths.map((m) => {
+              const mNum = Number(m);
+              const monthNames = [
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+              ];
+              return (
+                <option key={m} value={m}>
+                  {i18n.language === "vi"
+                    ? `${t("month")} ${m}`
+                    : mNum >= 1 && mNum <= 12
+                    ? monthNames[mNum - 1]
+                    : m}
+                </option>
+              );
+            })}
           </select>
         )}
 
