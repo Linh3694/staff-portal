@@ -390,8 +390,8 @@ const HallofFame = () => {
         <div className="flex flex-row gap-10 items-center">
           <button onClick={() => navigate("/hall-of-honor")}>
             <img
-              src="/halloffame/HOH-white.png"
-              className="h-12"
+              src="/halloffame/HOH-gold.png"
+              className="h-10"
               alt="Wellspring Logo"
             />
           </button>
