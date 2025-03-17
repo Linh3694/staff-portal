@@ -209,7 +209,7 @@ const HallofFame = () => {
         autoScroll: {
           speed: 0.5,
         },
-        gap: "16px",
+        gap: "20px",
         direction: "ltr",
         arrows: false, // Tắt mũi tên 2 bên
         pagination: false, // Tắt dấu chấm phân trang
@@ -224,7 +224,7 @@ const HallofFame = () => {
         autoScroll: {
           speed: 0.5,
         },
-        gap: "16px",
+        gap: "20px",
         // Cho hàng dưới chạy ngược chiều
         direction: "rtl",
         arrows: false, // Tắt mũi tên 2 bên
@@ -439,7 +439,7 @@ const HallofFame = () => {
         className="fixed-section relative w-full min-h-screen overflow-hidden flex items-center justify-center rounded-t-3xl"
       >
         <video
-          className="hidden lg:flex absolute top-0 left-0 w-full h-full md:object-cover object-contain"
+          className="hidden lg:flex absolute top-0 left-0 w-full h-full object-cover"
           src="/halloffame/banner.mp4"
           autoPlay
           muted
@@ -448,7 +448,7 @@ const HallofFame = () => {
           preload="auto"
         />
         <video
-          className="lg:hidden absolute top-0 left-0 w-full h-full md:object-cover object-cover"
+          className="lg:hidden absolute top-0 left-0 w-full h-full object-cover"
           src="/halloffame/banner_mobile.mp4"
           autoPlay
           muted

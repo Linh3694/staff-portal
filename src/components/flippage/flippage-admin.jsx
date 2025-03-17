@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { API_URL } from "../../config"; // import từ file config
+import { API_URL, BASE_URL } from "../../config"; // import từ file config
 import { FaUpload, FaXmark, FaPlus } from "react-icons/fa6";
 import ReactDOM from "react-dom";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
@@ -565,9 +565,9 @@ function FlippageAdmin({ currentUser }) {
                   </td>
                   <td className="border-white/0 py-3 pr-4 flex items-center gap-3">
                     <img
-                      src={file.uploader?.avatar || "/default-avatar.png"}
+                      src={`${BASE_URL}/uploads/Avatar/${file.uploader?.avatar}`}
                       alt="Avatar"
-                      className="w-8 h-8 rounded-full border object-cover"
+                      className="w-8 h-8 rounded-full border object-cover object-top"
                     />
                     <div>
                       <p className="text-sm font-bold text-navy-700">

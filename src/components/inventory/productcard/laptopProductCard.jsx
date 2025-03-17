@@ -177,9 +177,11 @@ const LaptopProductCard = ({
   };
 
   const handleCloseModal = () => {
-    setShowAssignModal(false);
-    setSelectedUser("");
-    setNotes("");
+    setShowAssignModal(false); // Đóng modal
+    setSelectedUser(""); // Xóa user đã chọn
+    setNotes(""); // Xóa ghi chú
+    setSearchText(""); // Xóa ô tìm kiếm
+    setSearchResults([]); // Xóa gợi ý tìm kiếm
   };
 
   const handleConfirmRecycle = async () => {
@@ -225,7 +227,7 @@ const LaptopProductCard = ({
     }
 
     const results = fuse.search(searchText);
-    const formattedResults = results.map((result) => result.item);
+    const formattedResults = results.map((result) => result.item).slice(0, 7); // Giới hạn 5 kết quả tốt nhất
     setSearchResults(formattedResults);
   };
 
@@ -1588,12 +1590,9 @@ const LaptopProductCard = ({
                               >
                                 <div className="flex items-center mb-2">
                                   <img
-                                    src={
-                                      hist.avatarUrl ||
-                                      "https://via.placeholder.com/150"
-                                    }
+                                    src={`${BASE_URL}/uploads/Avatar/${hist.avatarUrl}`}
                                     alt="Avatar"
-                                    className="w-10 h-10 rounded-full mr-3 object-cover"
+                                    className="w-10 h-10 rounded-full mr-3 object-cover object-top"
                                   />
                                   <div>
                                     <p className="font-semibold text-sm">
@@ -1719,7 +1718,7 @@ const LaptopProductCard = ({
                                       "https://via.placeholder.com/150"
                                     }
                                     alt="Avatar"
-                                    className="w-10 h-10 rounded-full mr-3 object-cover"
+                                    className="w-10 h-10 rounded-full mr-3 object-cover object-top"
                                   />
                                   <div>
                                     <p className="font-semibold text-sm">
@@ -1769,11 +1768,11 @@ const LaptopProductCard = ({
                         <img
                           src={
                             currentHolder?.user?.avatarUrl
-                              ? `${BASE_URL}${currentHolder?.user?.avatarUrl}`
+                              ? `${BASE_URL}/uploads/Avatar/${currentHolder?.user?.avatarUrl}`
                               : "/default-avatar.png"
                           }
                           alt="Avatar"
-                          className="w-16 h-16 rounded-full object-cover"
+                          className="w-16 h-16 rounded-full object-cover object-top object-top"
                         />
                         <div>
                           <p className="font-bold text-base">
@@ -2384,40 +2383,37 @@ const LaptopProductCard = ({
                       debouncedSearch(); // Gọi hàm tìm kiếm với debounce
                     }}
                   />
-                  {searchText.trim() && (
-                    <div className="absolute z-10 bg-white border rounded mt-1 max-h-48 w-full overflow-y-auto shadow-lg">
-                      {searchResults.length > 0 ? (
-                        <ul>
-                          {searchResults.map((user) => (
-                            <li
-                              key={user._id}
-                              className="p-2 hover:bg-gray-100 cursor-pointer"
-                              onClick={() => handleSelectUser(user)}
-                            >
-                              <p className="font-bold">{user.fullname}</p>
-                              <p className="text-sm italic text-gray-600">
-                                {user.email}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-500 p-2">
-                          Không tìm thấy kết quả nào!
-                        </p>
-                      )}
+                  {searchResults.length > 0 && searchText.trim() !== "" && (
+                    <div className="absolute w-full bg-white shadow-lg rounded-md">
+                      {searchResults.map((user) => (
+                        <div
+                          key={user._id}
+                          className="p-2 hover:bg-gray-100 cursor-pointer flex flex-row border-b-2"
+                          onClick={() => handleSelectUser(user)}
+                        >
+                          <img
+                            src={`${BASE_URL}/uploads/Avatar/${user.avatarUrl}`}
+                            className="w-10 h-10 rounded-full object-cover object-top"
+                          />
+                          <div className="flex flex-col ml-3">
+                            <span className="font-semibold text-sm">
+                              {user.fullname}
+                            </span>
+                            <span className="italic text-sm">
+                              {user.employeeCode}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
                 {selectedUser && (
                   <div className="mt-4 mb-4 bg-[#002147] text-white p-4 rounded-xl flex items-center space-x-4">
                     <img
-                      src={
-                        selectedUser.avatarUrl ||
-                        "https://via.placeholder.com/150"
-                      }
+                      src={`${BASE_URL}/uploads/Avatar/${selectedUser.avatarUrl}`}
                       alt={selectedUser.fullname}
-                      className="w-20 h-20 rounded-full object-cover"
+                      className="w-20 h-20 rounded-full object-cover object-top"
                     />
                     <div>
                       <p className="font-bold text-lg">

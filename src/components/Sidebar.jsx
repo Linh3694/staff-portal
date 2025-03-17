@@ -35,19 +35,13 @@ const Sidebar = ({
 }) => {
   const navigate = useNavigate();
 
-  // Mặc định sidebar được pinned (mở cố định)
   const [isPinned, setIsPinned] = useState(true);
-  // Trạng thái hover chỉ áp dụng khi không được pinned
   const [isHovered, setIsHovered] = useState(false);
-
-  // Nếu được pinned thì luôn mở, nếu không thì thu gọn khi không hover
   const effectiveCollapsed = isPinned ? false : !isHovered;
-
   const role = currentUser.role?.toLowerCase();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
 
-  // Effect lắng nghe click ngoài modal để đóng modal
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -69,7 +63,6 @@ const Sidebar = ({
     };
   }, [isProfileMenuOpen]);
 
-  // Danh sách menu: các menu lớn không có icon, các submenu có icon đi kèm.
   const menuItems = [
     {
       title: "Workspace",
@@ -357,7 +350,7 @@ const Sidebar = ({
               <img
                 src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
                 alt="Avatar"
-                className="w-10 h-10 rounded-full border border-gray-300 object-cover"
+                className="w-10 h-10 rounded-full border border-gray-300 object-cover object-top"
               />
               <div className="flex flex-col text-left">
                 <span className="text-sm font-bold">
@@ -415,7 +408,7 @@ const Sidebar = ({
               className="w-12 h-12 rounded-full border"
             >
               <img
-                src={currentUser.avatarUrl || "http://via.placeholder.com/150"}
+                src={currentUser.avatarUrl}
                 alt="Avatar"
                 className="w-full h-full rounded-full object-cover"
               />

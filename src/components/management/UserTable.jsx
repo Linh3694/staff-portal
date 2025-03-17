@@ -5,7 +5,7 @@ import { FiEdit, FiTrash2 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Profile from "../profile/Profile";
-import { API_URL } from "../../config"; // import từ file config
+import { API_URL, BASE_URL } from "../../config"; // import từ file config
 
 const UserTable = ({ handleSyncClients }) => {
   const [clients, setClients] = useState([]);
@@ -299,6 +299,46 @@ const UserTable = ({ handleSyncClients }) => {
     }
   };
 
+  const handleBulkAvatarUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một file ảnh!");
+      return;
+    }
+    console.log("Files to upload:", files);
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      formData.append("avatars", file, file.name);
+    }
+
+    // Cách kiểm tra nội dung formData:
+    for (let [key, value] of formData.entries()) {
+      console.log("FormData entry:", key, value);
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/users/bulk-avatar`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+
+      toast.success("Cập nhật avatar thành công!");
+      await fetchUsers();
+    } catch (error) {
+      console.error("Error bulk updating avatars:", error.message);
+      toast.error(`Lỗi khi cập nhật avatar: ${error.message}`);
+    }
+  };
+
   const handleExportToExcel = async () => {
     try {
       const enrichedClients = await Promise.all(
@@ -587,6 +627,20 @@ const UserTable = ({ handleSyncClients }) => {
               >
                 Edit Excel
               </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                id="bulk-avatar-upload"
+                onChange={handleBulkAvatarUpload}
+              />
+              <label
+                htmlFor="bulk-avatar-upload"
+                className="px-3 py-2 bg-[#009483] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#45A049] cursor-pointer transform transition-transform duration-300 hover:scale-105"
+              >
+                Cập nhật Avatar
+              </label>
             </div>
           </div>
 
@@ -655,17 +709,28 @@ const UserTable = ({ handleSyncClients }) => {
                     key={client.id}
                     className="border-b border-gray-200 hover:bg-gray-50"
                   >
-                    <td>
-                      <button
-                        className="font-bold text-navy-700 hover:text-navy-900"
-                        onClick={() => handleShowProfile(client._id)}
-                      >
-                        {client.fullname}
-                      </button>
-                      <br />
-                      <span className="text-gray-500 italic text-sm">
-                        {client.email || "Not Provided"}
-                      </span>
+                    <td className="flex items-center space-x-2 mt-2">
+                      <img
+                        src={
+                          client.avatarUrl
+                            ? `${BASE_URL}/uploads/Avatar/${client.avatarUrl}`
+                            : "/bigwell.png"
+                        }
+                        alt="Avatar"
+                        className="w-10 h-10 rounded-full border object-cover object-top"
+                      />
+                      <div>
+                        <button
+                          className="font-bold text-navy-700 hover:text-navy-900"
+                          onClick={() => handleShowProfile(client._id)}
+                        >
+                          {client.fullname}
+                        </button>
+                        <br />
+                        <span className="text-gray-500 italic text-sm">
+                          {client.email || "Not Provided"}
+                        </span>
+                      </div>
                     </td>
                     <td className="min-w-[150px] border-white/0 py-3 pr-4">
                       <p className="text-sm font-semibold text-navy-700">

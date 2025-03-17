@@ -245,7 +245,7 @@ exports.getAllPdfs = async (req, res) => {
               fullname: pdf.uploader.fullname,
               email: pdf.uploader.email,
               avatar: pdf.uploader.avatarUrl
-                ? `${req.protocol}://${req.get("host")}${pdf.uploader.avatarUrl}`
+                ? `${pdf.uploader.avatarUrl}`
                 : "",
             }
           : null,

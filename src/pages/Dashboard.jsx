@@ -129,7 +129,7 @@ const Dashboard = () => {
           fullname: data.fullname || "Không xác định",
           jobTitle: data.jobTitle || "Không xác định",
           avatarUrl: data.avatarUrl
-            ? `${BASE_URL}${data.avatarUrl}`
+            ? `${BASE_URL}/uploads/Avatar/${data.avatarUrl}`
             : "http://via.placeholder.com/150",
           email: data.email || "",
           department: data.department || "Không xác định",

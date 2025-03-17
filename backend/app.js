@@ -120,17 +120,6 @@ app.use("/api/trips", tripRoutes);
 app.use("/api/daily-trips", dailyTripRoutes);
 
 
-// Route trả về danh sách file trong thư mục /uploads/Students
-app.get("/uploads/Students", (req, res) => {
-  const studentsDir = path.join(__dirname, "uploads", "Students");
-  fs.readdir(studentsDir, (err, files) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(files);
-  });
-});
-
 // Khởi động server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

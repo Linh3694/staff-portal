@@ -88,40 +88,85 @@ exports.createUser = async (req, res) => {
 
 // Update User
 exports.updateUser = async (req, res) => {
-  console.log(req.body)
+  console.log("PUT /users/:id =>", req.params.id);
   try {
     const { id } = req.params;
-    const { fullname, email, department, jobTitle, role, status, password, employeeCode } = req.body;
-    const updates = { fullname, email, department, jobTitle, role, status, employeeCode };
-    if (employeeCode) {
-      updates.employeeCode = employeeCode;
-    }
-    
-    // Validate required fields
-    if (!fullname || !email) {
-      return res.status(400).json({ message: "Missing required information." });
-    }
+    const {
+      fullname,
+      disabled,
+      department,
+      jobTitle,
+      role,
+      employeeCode,
+      password,
+      newPassword,
+      email,
+      status,
+    } = req.body;
 
-      // Kiểm tra mã nhân viên đã tồn tại với người dùng khác
-    const existingUser = await User.findOne({ employeeCode, _id: { $ne: id } });
-      if (existingUser) {
-        return res.status(400).json({ message: "Mã nhân viên đã tồn tại với người dùng khác." });
-      }
-
-    // Hash new password if provided
-    if (password) {
-      updates.password = await bcrypt.hash(password, 10);
-    }
-
-    const user = await User.findByIdAndUpdate(id, updates, { new: true });
+    // Tìm user theo id
+    const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    res.status(200).json(user);
+    // Nếu gửi file avatar => cập nhật avatarUrl
+    if (req.file) {
+      // đường dẫn file do multer lưu
+      user.avatarUrl = `/uploads/Avatar/${req.file.filename}`;
+    }
+
+    // Cập nhật thông tin cơ bản
+    if (fullname) user.fullname = fullname;
+    if (email) user.email = email;
+    if (department) user.department = department;
+    if (jobTitle) user.jobTitle = jobTitle;
+    if (role) user.role = role;
+
+    // Kiểm tra trùng mã nhân viên (nếu truyền lên)
+    if (employeeCode) {
+      const existingUser = await User.findOne({
+        employeeCode,
+        _id: { $ne: id },
+      });
+      if (existingUser) {
+        return res
+          .status(400)
+          .json({ message: "Mã nhân viên đã tồn tại với người dùng khác." });
+      }
+      user.employeeCode = employeeCode;
+    }
+
+    // disabled: string => boolean
+    if (typeof disabled === "string") {
+      user.disabled = disabled === "true";
+    } else if (typeof disabled === "boolean") {
+      user.disabled = disabled;
+    }
+
+    // Nếu có newPassword => hash
+    if (newPassword) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+    } else if (password) {
+      // Trường hợp FE vẫn dùng field 'password'
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+    }
+
+    await user.save();
+    console.log("Đã cập nhật user thành công:", user.fullname);
+
+    // Ẩn password
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    return res.status(200).json(userObj);
   } catch (error) {
-    console.error("Error updating user:", error.message);
-    res.status(500).json({ message: "Server error." });
+    console.error("Error updating user:", error);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -164,5 +209,132 @@ exports.updateAttendance = async (req, res) => {
   } catch (error) {
     console.error("Error updating attendance:", error.message);
     return res.status(500).json({ message: "Lỗi máy chủ.", error: error.message });
+  }
+};
+
+// Thêm hàm này ở cuối file userController.js (hoặc vị trí thích hợp)
+exports.bulkAvatarUpload = async (req, res) => {
+  console.log("Files received:", req.files);
+  // Filter out files to only include those with fieldname "avatars"
+  req.files = req.files.filter(file => file.fieldname === "avatars");
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "Không có file nào được upload." });
+    }
+
+    let updatedCount = 0;
+
+    for (const file of req.files) {
+      // Lấy tên gốc khi upload
+      const originalName = file.originalname; // ví dụ: "Bùi Quỳnh Mai+_WT02GO.jpeg"
+
+      // Tách chuỗi bằng ký tự '_', phần cuối sẽ là mã nhân viên + extension
+      // "Bùi Quỳnh Mai+" / "WT02GO.jpeg"
+      const parts = originalName.split("_");
+      if (parts.length < 2) {
+        // Nếu không đúng format (không có dấu '_'), thì bỏ qua
+        continue;
+      }
+
+      // Lấy phần cuối cùng "WT02GO.jpeg"
+      const lastPart = parts[parts.length - 1];
+      // Tách tiếp để bỏ đuôi .jpeg
+      const employeeCode = lastPart.split(".")[0]; // "WT02GO"
+
+      if (!employeeCode) {
+        // Nếu không lấy được employeeCode thì bỏ qua
+        continue;
+      }
+
+      // Tìm user trong DB theo employeeCode
+      const user = await User.findOneAndUpdate(
+        { employeeCode: employeeCode },
+        { avatarUrl: file.filename }, // hoặc bạn muốn lưu cả đường dẫn: `'/uploads/Avatar/' + file.filename`
+        { new: true }
+      );
+
+      // Nếu update thành công, tăng biến đếm
+      if (user) {
+        updatedCount++;
+      }
+    }
+
+    return res.status(200).json({
+      message: "Bulk avatar upload thành công",
+      updated: updatedCount,
+    });
+  } catch (error) {
+    console.error("Error bulk uploading avatars:", error);
+    return res
+      .status(500)
+      .json({ message: "Lỗi khi upload avatar hàng loạt", error });
+  }
+};
+
+exports.bulkUpdateUsers = async (req, res) => {
+  try {
+    const { users } = req.body;
+    console.log("Dữ liệu nhận được từ frontend:", req.body);
+
+    if (!Array.isArray(users)) {
+      return res.status(400).json({
+        message: "Dữ liệu không hợp lệ: users phải là mảng",
+      });
+    }
+
+    // Lặp và cập nhật
+    const updatePromises = users.map(async (user) => {
+      if (!user.email) throw new Error("Email là bắt buộc");
+      return User.findOneAndUpdate(
+        { email: user.email },
+        { $set: user },
+        { new: true, upsert: false }
+      );
+    });
+
+    await Promise.all(updatePromises);
+    res.json({ message: "Cập nhật thành công!" });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật:", error.message);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+};
+
+exports.searchUsers = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query || query.trim() === "") {
+      return res.status(400).json({ message: "Query không hợp lệ." });
+    }
+
+    const condition = {
+      $or: [
+        { fullname: { $regex: query, $options: "i" } },
+        { email: { $regex: query, $options: "i" } },
+      ],
+    };
+
+    const users = await User.find(condition, "-password");
+    if (users.length === 0) {
+      return res.status(404).json({ message: "Không tìm thấy kết quả nào." });
+    }
+    res.json(users);
+  } catch (err) {
+    console.error("Error in search API:", err);
+    res.status(500).json({ message: "Lỗi server", error: err.message });
+  }
+};
+
+exports.getUserById = async (req, res) => {
+  try {
+    const userId = req.params.id === "me" ? req.user.id : req.params.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error("Error fetching user by ID:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };

@@ -7,7 +7,7 @@ import {
   MdVideocam,
   MdBuild,
 } from "react-icons/md";
-import { API_URL, BASE_URL } from "../../config";
+import { API_URL, BASE_URL, UPLOAD_URL } from "../../config";
 
 /**
  * Profile hiển thị thông tin user (theo userId),
@@ -64,7 +64,7 @@ const Profile = ({ userId, onBack }) => {
       setEditedUser({ ...data });
       if (data.avatarUrl) {
         // Nếu backend trả "/uploads/xxx", ta ghép BASE_URL
-        setAvatarUrl(`${BASE_URL}${data.avatarUrl}`);
+        setAvatarUrl(`${BASE_URL}/uploads/Avatar/${data.avatarUrl}`);
       }
     } catch (error) {
       console.error(error.message);
