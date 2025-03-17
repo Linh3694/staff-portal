@@ -10,6 +10,9 @@ import {
 
 const LaptopDashboardDetail = () => {
   const [laptops, setLaptops] = useState([]);
+  const [deviceFilter, setDeviceFilter] = useState("Laptop");
+  const [yearDeviceFilter, setYearDeviceFilter] = useState("Laptop");
+
   const [statusData, setStatusData] = useState(null);
   const [deptData, setDeptData] = useState([]);
   const [yearData, setYearData] = useState([]);
@@ -40,6 +43,18 @@ const LaptopDashboardDetail = () => {
   useEffect(() => {
     if (!laptops.length) return;
 
+    // Lọc danh sách dựa trên deviceFilter:
+    const filteredLaptops = laptops.filter((lap) => {
+      if (deviceFilter === "Laptop") {
+        // Nếu không có type hoặc type không phải "desktop"
+        return !lap.type || lap.type.toLowerCase() !== "desktop";
+      } else if (deviceFilter === "Desktop") {
+        return lap.type && lap.type.toLowerCase() === "desktop";
+      } else {
+        return true; // "All": không lọc
+      }
+    });
+
     // 1) Thống kê trạng thái
     const statusCount = {
       Active: 0,
@@ -47,7 +62,7 @@ const LaptopDashboardDetail = () => {
       Standby: 0,
       PendingDocumentation: 0,
     };
-    laptops.forEach((lap) => {
+    filteredLaptops.forEach((lap) => {
       if (statusCount[lap.status] !== undefined) {
         statusCount[lap.status]++;
       } else {
@@ -97,8 +112,18 @@ const LaptopDashboardDetail = () => {
     setDeptData(deptStats);
 
     // 3) Thống kê năm sản xuất
+    // Lọc danh sách laptops theo yearDeviceFilter
+    const filteredLaptopsForYear = laptops.filter((lap) => {
+      if (yearDeviceFilter === "Laptop") {
+        return !lap.type || lap.type.toLowerCase() !== "desktop";
+      } else if (yearDeviceFilter === "Desktop") {
+        return lap.type && lap.type.toLowerCase() === "desktop";
+      } else {
+        return true; // All
+      }
+    });
     const yearMap = {};
-    laptops.forEach((lap) => {
+    filteredLaptopsForYear.forEach((lap) => {
       const year = lap.releaseYear || "Không rõ";
       yearMap[year] = (yearMap[year] || 0) + 1;
     });
@@ -113,7 +138,7 @@ const LaptopDashboardDetail = () => {
       return { year, count, percent };
     });
     setYearData(yearStats);
-  }, [laptops]);
+  }, [laptops, deviceFilter, yearDeviceFilter]);
 
   return (
     <div>
@@ -122,15 +147,29 @@ const LaptopDashboardDetail = () => {
       {/* 1) Thẻ trạng thái + Donut Chart */}
       {statusData && (
         <div className="flex flex-row items-center justify-between p-6 mb-6 bg-[#002855] rounded-xl">
-          {/* Tiêu đề và mô tả khối */}
-          <div>
-            <h2 className="text-2xl font-bold text-[#e8e8e8]">Laptop</h2>
+          {/* Bộ lọc thay cho H2 tĩnh */}
+          <div className="flex flex-col">
+            <div className="flex space-x-2">
+              {["All", "Laptop", "Desktop"].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setDeviceFilter(type)}
+                  className={`px-4 py-2 rounded-full font-bold text-sm ${
+                    deviceFilter === type
+                      ? "bg-[#e8e8e8] text-[#002855]"
+                      : "bg-transparent text-[#e8e8e8] border border-[#e8e8e8]"
+                  }`}
+                >
+                  {type === "All" ? "Tất cả" : type}
+                </button>
+              ))}
+            </div>
             <p className="text-sm text-[#e8e8e8] mt-1">
               Thống kê số lượng thiết bị theo trạng thái
             </p>
           </div>
           {/* Dãy 4 thẻ trạng thái */}
-          <div className="mt-4 flex flex-wrap gap-4">
+          <div className="mt-4 flex flex-wrap gap-4 ">
             {statusData.labels.map((label, idx) => {
               const count = statusData.counts[idx] || 0;
               const total = statusData.total || 0;
@@ -142,10 +181,8 @@ const LaptopDashboardDetail = () => {
               let iconBg = "#E6FFFA"; // Màu nền tròn chứa icon
               if (label === "Đang sử dụng") {
                 icon = <FaCheck className="text-[#009483] text-xl" />;
-                // iconBg = "#ECFDF5"; // Có thể đổi nếu muốn
               } else if (label === "Hỏng") {
                 icon = <FaExclamation className="text-[#FF5733] text-xl" />;
-                // iconBg = "#FEE2E2";
               } else if (label === "Chờ cấp phát") {
                 icon = <FaClockRotateLeft className="text-[#ffdb86] text-xl" />;
               } else if (label === "Thiếu biên bản") {
@@ -157,7 +194,7 @@ const LaptopDashboardDetail = () => {
               return (
                 <div
                   key={idx}
-                  className="relative bg-white shadow-xl rounded-2xl p-4 w-[150px]"
+                  className="relative bg-white shadow-xl rounded-2xl p-4 w-[150px] transform transition-transform duration-300 hover:scale-105"
                 >
                   {/* Icon ở trên cùng */}
                   <div
@@ -166,7 +203,7 @@ const LaptopDashboardDetail = () => {
                   >
                     {icon}
                   </div>
-                  {/* Nội dung thẻ, đẩy xuống một chút để tránh icon chèn lên text */}
+                  {/* Nội dung thẻ */}
                   <div className="mt-6">
                     <h3 className="text-sm font-bold text-[#4B5563]">
                       {label}
@@ -175,7 +212,7 @@ const LaptopDashboardDetail = () => {
                       <p className="text-xl font-bold text-[#FF5733]">
                         {count}
                       </p>
-                      <span className="ml-2 text-lg  font-bold text-[#FF5733]">
+                      <span className="ml-2 text-lg font-bold text-[#FF5733]">
                         {percent}%
                       </span>
                     </div>
@@ -269,12 +306,22 @@ const LaptopDashboardDetail = () => {
 
         {/* 3) Bảng thống kê: Năm sản xuất */}
         <div className="rounded-2xl shadow-xl p-7 border border-gray-100">
-          <h3 className="text-xl font-bold mb-2">Năm sản xuất</h3>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-xl font-bold">Năm sản xuất</h3>
+            <select
+              value={yearDeviceFilter}
+              onChange={(e) => setYearDeviceFilter(e.target.value)}
+              className="px-5 py-1 border border-gray-300 rounded-2xl text-sm"
+            >
+              <option value="All">Tất cả</option>
+              <option value="Laptop">Laptop</option>
+              <option value="Desktop">Desktop</option>
+            </select>
+          </div>
           {yearData && yearData.length > 0 ? (
             <div>
-              <table className="w-full border-gray-200 rounded-2xl">
+              <table className="w-full rounded-2xl">
                 <thead>
-                  {" "}
                   <tr className="border-b border-gray-200">
                     <th className="px-4 py-2 text-start text-sm font-bold text-gray-500">
                       NĂM
@@ -323,7 +370,7 @@ const LaptopDashboardDetail = () => {
                       key={i}
                       onClick={() => setYearCurrentPage(i)}
                       className={`px-1 border border-gray-300 rounded ${
-                        currentPage === i
+                        yearCurrentPage === i
                           ? "bg-[#002855] text-white text-sm"
                           : "bg-white text-gray-700"
                       }`}
