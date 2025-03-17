@@ -1146,7 +1146,7 @@ const LaptopTable = () => {
       {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
       <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
         <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
-          <table className="w-full ">
+          <table className="w-full">
             <thead>
               <tr className="!border-px !border-gray-400">
                 <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">

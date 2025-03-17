@@ -1088,7 +1088,7 @@ const LaptopProductCard = ({
             )}
             {localStatus === "Standby" && (
               <>
-                <MdOutlineError className="text-[#EAA300] text-lg mr-2 gap-2 font-bold" />{" "}
+                <MdOutlineError className="text-[#ffdb86] text-lg mr-2 gap-2 font-bold" />{" "}
                 Chờ cấp phát
               </>
             )}
