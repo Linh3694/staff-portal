@@ -19,7 +19,7 @@ const LaptopDashboardDetail = () => {
   // Đầu file, bên trong component LaptopDashboardDetail, thêm state sau:
   const [currentPage, setCurrentPage] = useState(0);
   const [yearCurrentPage, setYearCurrentPage] = useState(0);
-  const rowsPerPage = 5;
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   // Gọi API thật để lấy danh sách laptops
   useEffect(() => {
@@ -279,24 +279,42 @@ const LaptopDashboardDetail = () => {
                     ))}
                 </tbody>
               </table>
-              {/* Điều hướng phân trang */}
-              <div className="mt-4 flex justify-end items-center space-x-2">
-                {Array.from(
-                  { length: Math.ceil(deptData.length / rowsPerPage) },
-                  (_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i)}
-                      className={`px-1 border border-gray-300 rounded ${
-                        currentPage === i
-                          ? "bg-[#002855] text-white text-sm"
-                          : "bg-white text-gray-700"
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  )
-                )}
+              <div className="flex flex-row gap-2 justify-end items-center mt-4">
+                {/* Phân trang cho bảng năm sản xuất */}
+                <div className="flex space-x-2">
+                  {Array.from(
+                    { length: Math.ceil(yearData.length / rowsPerPage) },
+                    (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setYearCurrentPage(i)}
+                        className={`px-1 border border-gray-300 rounded ${
+                          yearCurrentPage === i
+                            ? "bg-[#002855] text-white text-base"
+                            : "bg-white text-gray-700 text-sm"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    )
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setYearCurrentPage(0); // Reset về trang đầu tiên
+                    }}
+                    className="text-base border border-gray-300 rounded-lg"
+                  >
+                    {[5, 10, 20, 50].map((num) => (
+                      <option key={num} value={num}>
+                        {num}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           ) : (
@@ -361,24 +379,42 @@ const LaptopDashboardDetail = () => {
                     ))}
                 </tbody>
               </table>
-              {/* Phân trang cho bảng năm sản xuất */}
-              <div className="mt-4 flex justify-end items-center space-x-2">
-                {Array.from(
-                  { length: Math.ceil(yearData.length / rowsPerPage) },
-                  (_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setYearCurrentPage(i)}
-                      className={`px-1 border border-gray-300 rounded ${
-                        yearCurrentPage === i
-                          ? "bg-[#002855] text-white text-sm"
-                          : "bg-white text-gray-700"
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  )
-                )}
+              <div className="flex flex-row gap-2 justify-end items-center mt-4">
+                {/* Phân trang cho bảng năm sản xuất */}
+                <div className="flex space-x-2">
+                  {Array.from(
+                    { length: Math.ceil(yearData.length / rowsPerPage) },
+                    (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setYearCurrentPage(i)}
+                        className={`px-1 border border-gray-300 rounded ${
+                          yearCurrentPage === i
+                            ? "bg-[#002855] text-white text-base"
+                            : "bg-white text-gray-700 text-sm"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    )
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setYearCurrentPage(0); // Reset về trang đầu tiên
+                    }}
+                    className="text-base border border-gray-300 rounded-lg"
+                  >
+                    {[5, 10, 20, 50].map((num) => (
+                      <option key={num} value={num}>
+                        {num}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           ) : (
