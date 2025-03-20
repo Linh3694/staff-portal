@@ -5,6 +5,7 @@ const resources = {
   en: {
     translation: {  
       "category": "Category",
+      "hallhonor_description": "Hall of Honor is a space dedicated to recognizing and celebrating individuals and groups who have made outstanding achievements and significant contributions to the Wellspring community. It is not only a place to preserve the proud milestones and relentless efforts of WISers but also a source of inspiration, encouraging all Wellspring students to strive for excellence in academics and extracurricular activities.",
       "homepage": "Homepage",
       "hallhonor": "Hall of Honor",
       "award": "Award",
@@ -21,8 +22,8 @@ const resources = {
       "noPhoto": "No photo",
       "classLabel": "Class",
       "schoolYearLabel": "Label",
-      "hallmark_of_fame": "HALLMARK OF HONOR",
-      "hallmark_of_fame_02": "Honoring achievements - Spreading emotions",
+      "hallmark_of_fame": "HALL OF HONOR",
+      "hallmark_of_fame_02": "The place to honor the efforts and achievements of WISers.",
       "achievement_description": "The Hall of Honor is a place to recognize and honor the achievements of students and classes at Wellspring Hanoi. The achievements are divided into categories such as Class Honor, Student Honor, Top Graduates, Scholarship Talent, WISers Excellent, WISers Inspiration, WISers Honor, WISers Effort, Standardized Test Achievements, and Competition & Tournament Achievements.",
       "noClass": "Not updated",
       "achievement": "Achievement",
@@ -203,6 +204,7 @@ const resources = {
     translation: {
       "category": "Danh mục",
       "homepage": "Trang chủ",
+      "hallhonor_description": "Hall of Honor là không gian ghi nhận và tôn vinh những cá nhân, tập thể có thành tích xuất sắc và đóng góp quan trọng cho cộng đồng Wellspring. Đây không chỉ là nơi lưu giữ những dấu ấn đáng tự hào và hành trình nỗ lực không ngừng của các WISers, mà còn là nguồn cảm hứng mạnh mẽ, khích lệ tất cả học sinh Wellspring tiếp tục vươn lên, chinh phục những thành tựu trong học tập, nghệ thuật, thể thao và hoạt động ngoại khóa.",
       "hallhonor": "Bảng vinh danh",
       "award": "Danh hiệu",
       "schoolYear": "Năm học",
@@ -224,8 +226,8 @@ const resources = {
       "selectSchoolYear": "Chọn năm học",
       "selectSemester": "Chọn học kì",
       "selectMonth": "Chọn tháng",
-      "hallmark_of_fame": "Dấu ấn danh vọng",
-      "hallmark_of_fame_02": "Tôn vinh thành tựu - Lan toả cảm xúc",
+      "hallmark_of_fame": "HALL OF HONOR",
+      "hallmark_of_fame_02": "Nơi vinh danh những nỗ lực và thành tựu của các WISers",
       "searchNamePlaceholder": "Tìm kiếm tên",
       "schoolYearText": "Năm học",
       "noMatchingRecords": "Không có record nào phù hợp...",

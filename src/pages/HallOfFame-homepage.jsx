@@ -360,9 +360,7 @@ const HallofFame = () => {
   // Section 3: Carousel cho StarStudents (vòng lặp vô hạn)
   // ======================
   const [starCurrentSlide, setStarCurrentSlide] = useState(2);
-  // Lưu chỉ số (real index) của thẻ đang mở hộp giới thiệu; null nếu không mở
   const [starQuoteIndex, setStarQuoteIndex] = useState(null);
-
   const starContainerRef = useRef(null);
   const starAutoSlideRef = useRef(null);
   const starTransitionRef = useRef(null);
@@ -388,6 +386,88 @@ const HallofFame = () => {
       stopStarAutoSlide();
     };
   }, [starStudents]);
+
+  // Thêm state để theo dõi scroll
+  const [scrollPosition, setScrollPosition] = useState(0);
+
+  // Thêm useEffect để lắng nghe scroll event
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollPosition(window.scrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Tính toán scale và opacity dựa vào scroll position
+  // const videoScale = Math.max(0.5, 1 - scrollPosition / 1500); // Scale chậm hơn
+  const textOpacity = Math.min(1, (scrollPosition - 250) / 100); // Text hiện muộn hơn (từ 400px)
+  const textTransform = `translateY(${Math.max(
+    0,
+    50 - scrollPosition / 15
+  )}px)`; // Text di chuyển chậm hơn
+  // const borderRadius = Math.min(30, scrollPosition / 30); // Bo góc chậm hơn
+  // const videoTranslateY = Math.min(200, scrollPosition / 5); // Di chuyển video lên trên khi scroll
+
+  // Thêm state cho counting animation
+  const [counts, setCounts] = useState({
+    categories: 0,
+    students: 0,
+    classes: 0,
+  });
+
+  // Thêm state để kiểm soát khi nào bắt đầu counting
+  const [shouldStartCounting, setShouldStartCounting] = useState(false);
+
+  // Theo dõi thay đổi của textOpacity để trigger counting
+  useEffect(() => {
+    if (textOpacity >= 0.9 && !shouldStartCounting) {
+      setShouldStartCounting(true);
+    }
+  }, [textOpacity]);
+
+  // Điều chỉnh animation counting để chỉ bắt đầu khi shouldStartCounting = true
+  useEffect(() => {
+    if (!shouldStartCounting) return;
+
+    const targetCounts = {
+      categories: 11,
+      students: 200,
+      classes: 12,
+    };
+
+    const duration = 1000; // 2 giây
+    const steps = 60;
+    const interval = duration / steps;
+
+    const counters = {};
+
+    Object.keys(targetCounts).forEach((key) => {
+      const target = targetCounts[key];
+      const increment = target / steps;
+      let current = 0;
+
+      counters[key] = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+          current = target;
+          clearInterval(counters[key]);
+        }
+        setCounts((prev) => ({
+          ...prev,
+          [key]: Math.floor(current),
+        }));
+      }, interval);
+    });
+
+    return () => {
+      Object.values(counters).forEach((counter) => clearInterval(counter));
+    };
+  }, [shouldStartCounting]);
+
+  // Thêm state để kiểm soát việc play/pause video
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   return (
     <>
@@ -439,33 +519,93 @@ const HallofFame = () => {
           </button>
         </div>
       </header>
+
       {/* Section 1: Video Background */}
       <section
         ref={section1Ref}
-        className="fixed-section relative w-full min-h-screen overflow-hidden flex items-center justify-center rounded-t-3xl"
+        className=" top-0 w-full h-screen overflow-hidden flex items-center justify-center"
       >
-        <video
-          className="hidden lg:flex absolute top-0 left-0 w-full h-full object-cover"
-          src="/halloffame/banner.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-        />
-        <video
-          className="lg:hidden absolute top-0 left-0 w-full h-full object-cover"
-          src="/halloffame/banner_mobile.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-        />
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+          <video
+            className="hidden lg:flex absolute top-0 left-0 w-full h-full object-cover"
+            src="/halloffame/banner.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+          />
+          <video
+            className="lg:hidden absolute top-0 left-0 w-full h-full object-cover"
+            src="/halloffame/banner_mobile.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+          />
+        </div>
       </section>
+
+      {/* Section mới: Text và Thông số */}
+      <section
+        className="relative w-full py-20 xl:px-44 px-10"
+        style={{
+          backgroundImage: "url('/halloffame/section3.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div
+          className="container mx-auto px-4"
+          style={{
+            opacity: textOpacity,
+            transform: textTransform,
+            transition: "all 0.4s ease-out",
+          }}
+        >
+          <div className="flex flex-col lg:flex-row justify-between items-center gap-10">
+            {/* Text bên trái */}
+            <div className="w-full lg:w-1/2">
+              <p className="text-lg lg:text-xl font-semibold text-[#F9D16F] shimmer-text text-justify">
+                {t("hallhonor_description")}
+              </p>
+            </div>
+
+            {/* Thông số bên phải */}
+            <div className="w-full lg:w-1/2 flex flex-row xl:justify-end justify-center gap-8 md:gap-16">
+              <div className="text-center shimmer-text">
+                <div className="text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
+                  {counts.categories}
+                </div>
+                <div className="text-sm md:text-base font-semibold text-[#F9D16F]">
+                  Hạng mục
+                </div>
+              </div>
+              <div className="text-center shimmer-text">
+                <div className="text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
+                  {counts.students}
+                </div>
+                <div className="text-sm md:text-base font-semibold text-[#F9D16F]">
+                  Học sinh
+                </div>
+              </div>
+              <div className="text-center shimmer-text">
+                <div className="text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
+                  {counts.classes}
+                </div>
+                <div className="text-sm md:text-base font-semibold text-[#F9D16F]">
+                  Tập thể lớp
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section
         ref={section2Ref}
-        className="flex bg-white relative w-full flex-col items-center justify-center overflow-hidden h-screen mt-[100vh]"
+        className="flex bg-white relative w-full flex-col items-center justify-center overflow-hidden h-screen"
       >
         {/* Tiêu đề */}
         <div className="relative w-full text-center mb-10 z-10">
@@ -909,22 +1049,24 @@ const HallofFame = () => {
 
         {/* Tiêu đề */}
         <h2 className="lg:text-[32px] text-[20px] font-bold text-[#002147] uppercase ">
-          {t("hallmark_of_fame", "Dấu ấn danh vọng")}
+          {t("hallmark_of_fame")}
         </h2>
-        <h2 className="lg:text-[32px] text-[16px] text-[#002147] uppercase mb-12">
-          {t("hallmark_of_fame_02", "Tôn vinh thành tựu - Lan toả cảm xúc")}
+        <h2 className="lg:text-[28px] text-[16px] text-[#002147] uppercase mb-12">
+          {t("hallmark_of_fame_02")}
         </h2>
 
-        {/* Video chính */}
+        {/* Video Section */}
         <div className="relative flex flex-row w-full items-center justify-center mb-10">
-          <iframe
-            className="lg:w-[1280px] w-[900px] h-[500px] lg:h-[720px] shadow-lg rounded-lg"
-            src="https://www.youtube.com/embed/abc123"
-            title="YouTube video player"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
+          <div className="relative w-full max-w-[1280px] aspect-video">
+            <iframe
+              className="w-full h-full rounded-lg shadow-lg"
+              src="https://www.youtube.com/embed/EGg3VHb8gGE?rel=0&modestbranding=1&playsinline=1"
+              title="Wellspring Hall of Honor"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
         </div>
       </section>
 

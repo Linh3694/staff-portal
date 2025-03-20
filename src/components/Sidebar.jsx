@@ -22,7 +22,12 @@ import {
   FaChevronRight,
   FaArrowRightFromBracket,
   FaCircleUser,
+  FaMedal,
+  FaBus,
 } from "react-icons/fa6";
+import { FaUserGraduate, FaUserTie } from "react-icons/fa";
+import { IoDocuments } from "react-icons/io5";
+import { LuTicketSlash } from "react-icons/lu";
 
 const Sidebar = ({
   currentUser,
@@ -70,7 +75,7 @@ const Sidebar = ({
       subItems: [
         {
           label: "Tickets",
-          icon: <FiMonitor size={16} />,
+          icon: <LuTicketSlash size={16} />,
           link: "/dashboard/ticket",
         },
         {
@@ -93,25 +98,25 @@ const Sidebar = ({
         },
         {
           label: "Phần mềm lật trang",
-          icon: <FiBook size={16} />,
+          icon: <IoDocuments size={16} />,
           link: "/dashboard/flippageadmin",
           allowedRoles: ["superadmin", "admin", "marcom"],
         },
         {
           label: "Quản lý tuyển dụng",
-          icon: <FiBook size={16} />,
+          icon: <FaUserTie size={16} />,
           link: "/dashboard/recruitmentadmin",
           allowedRoles: ["superadmin", "admin", "hr"],
         },
         {
           label: "Quản lý vinh danh",
-          icon: <FiBook size={16} />,
+          icon: <FaUserGraduate size={16} />,
           link: "/dashboard/halloffame",
           allowedRoles: ["superadmin", "admin", "marcom"],
         },
         {
           label: "Quản lý Bus",
-          icon: <FiBook size={16} />,
+          icon: <FaBus size={16} />,
           link: "/dashboard/bus-service",
           allowedRoles: ["superadmin", "admin", "technical"],
         },
@@ -123,18 +128,18 @@ const Sidebar = ({
       subItems: [
         {
           label: "Tickets",
-          icon: <FiMonitor size={16} />,
+          icon: <LuTicketSlash size={16} />,
           link: "/dashboard/ticket",
         },
         {
           label: "Phần mềm lật trang",
-          icon: <FiBook size={16} />,
+          icon: <IoDocuments size={16} />,
           link: "/dashboard/flippageadmin",
           allowedRoles: ["superadmin", "admin", "marcom"],
         },
         {
           label: "Quản lý vinh danh",
-          icon: <FiBook size={16} />,
+          icon: <FaUserGraduate size={16} />,
           link: "/dashboard/halloffame",
           allowedRoles: ["superadmin", "admin", "marcom"],
         },
@@ -146,12 +151,12 @@ const Sidebar = ({
       subItems: [
         {
           label: "Tickets",
-          icon: <FiMonitor size={16} />,
+          icon: <LuTicketSlash size={16} />,
           link: "/dashboard/ticket",
         },
         {
           label: "Quản lý tuyển dụng",
-          icon: <FiBook size={16} />,
+          icon: <FaUserTie size={16} />,
           link: "/dashboard/recruitmentadmin",
           allowedRoles: ["superadmin", "admin", "hr"],
         },
