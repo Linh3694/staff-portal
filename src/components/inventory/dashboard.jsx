@@ -3,6 +3,10 @@ import { API_URL } from "../../config"; // import từ file config
 import Widget from "./Widget"; // Import component Widget
 import { MdComputer, MdTv, MdPrint, MdVideocam, MdBuild } from "react-icons/md";
 import LaptopDashboardDetail from "./LaptopDashboardDetail"; // (Mới thêm)
+import MonitorDashboardDetail from "./MonitorDashboardDetail"; // (Mới thêm)
+import PrinterDashboardDetail from "./PrinterDashboardDetail"; // (Mới thêm)
+import ProjectorDashboardDetail from "./ProjectorDashboardDetail"; // (Mới thêm)
+import ToolsDashboardDetail from "./ToolsDashboardDetail"; // (Mới thêm)
 
 const DashboardInventory = () => {
   const [deviceCounts, setDeviceCounts] = useState({
@@ -12,8 +16,8 @@ const DashboardInventory = () => {
     projectors: 0,
     tools: 0,
   });
-  // Thêm state điều khiển hiển thị modal và selectedDevice
-  const [showLaptopDetail, setShowLaptopDetail] = useState(false);
+  // Thêm state điều khiển hiển thị chi tiết thiết bị
+  const [selectedDevice, setSelectedDevice] = useState("Laptop");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,9 +58,6 @@ const DashboardInventory = () => {
             fetch(endpoint.url, { headers }).then((res) => res.json())
           )
         );
-
-        console.log("Fetched Data (parsed JSON):", responses); // Debug dữ liệu
-
         const updatedCounts = {};
         responses.forEach((data, index) => {
           const key = endpoints[index].dataKey;
@@ -79,36 +80,36 @@ const DashboardInventory = () => {
       name: "Laptop",
       count: deviceCounts.laptops,
       icon: <MdComputer />,
-      bgColor: "bg-white",
-      onClick: () => setShowLaptopDetail(true), // Khi click => mở modal laptops
+      bgColor: selectedDevice === "Laptop" ? "bg-gray-200" : "bg-white",
+      onClick: () => setSelectedDevice("Laptop"),
     },
     {
       name: "Monitor",
       count: deviceCounts.monitors,
       icon: <MdTv />,
-      bgColor: "bg-white",
-      onClick: () => {}, // Tuỳ chỉnh sau
+      bgColor: selectedDevice === "Monitor" ? "bg-gray-200" : "bg-white",
+      onClick: () => setSelectedDevice("Monitor"),
     },
     {
       name: "Printer",
       count: deviceCounts.printers,
       icon: <MdPrint />,
-      bgColor: "bg-white",
-      onClick: () => {},
+      bgColor: selectedDevice === "Printer" ? "bg-gray-200" : "bg-white",
+      onClick: () => setSelectedDevice("Printer"),
     },
     {
       name: "Projector",
       count: deviceCounts.projectors,
       icon: <MdVideocam />,
-      bgColor: "bg-white",
-      onClick: () => {},
+      bgColor: selectedDevice === "Projector" ? "bg-gray-200" : "bg-white",
+      onClick: () => setSelectedDevice("Projector"),
     },
     {
       name: "Tools",
       count: deviceCounts.tools,
       icon: <MdBuild />,
-      bgColor: "bg-white",
-      onClick: () => {},
+      bgColor: selectedDevice === "Tools" ? "bg-gray-200" : "bg-white",
+      onClick: () => setSelectedDevice("Tools"),
     },
   ];
 
@@ -128,12 +129,13 @@ const DashboardInventory = () => {
         ))}
       </div>
 
-      {/* Hiển thị chi tiết Laptop bên dưới */}
-      {showLaptopDetail && (
-        <div className="mt-6 p-8 rounded-2xl bg-white">
-          <LaptopDashboardDetail />
-        </div>
-      )}
+      <div className="mt-6 p-8 rounded-2xl bg-white">
+        {selectedDevice === "Laptop" && <LaptopDashboardDetail />}
+        {selectedDevice === "Monitor" && <MonitorDashboardDetail />}
+        {selectedDevice === "Printer" && <PrinterDashboardDetail />}
+        {selectedDevice === "Projector" && <ProjectorDashboardDetail />}
+        {selectedDevice === "Tools" && <ToolsDashboardDetail />}
+      </div>
     </div>
   );
 };

@@ -5,6 +5,7 @@ import {
   FiTrash2,
   FiPackage,
   FiRefreshCw,
+  FiGrid,
 } from "react-icons/fi";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
@@ -970,6 +971,57 @@ const PrinterProductCard = ({
       <div className="grid grid-cols-[180px,2fr,2fr] gap-4">
         {/* Block 1: Thông tin spec */}
         <div className="w-44 justify-evenly items-center">
+          {/* Type Block */}
+          <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
+            <div className="flex items-center space-x-3">
+              <FiGrid className="text-2xl text-[#FF5733]" />
+              <div>
+                <p className="text-xs text-theme-color-neutral-content">Loại</p>
+                {editField === "type" ? (
+                  <select
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="w-24 h-10 font-semibold text-xs focus:outline-none rounded bg-transparent"
+                  >
+                    <option value="Máy in Màu">Máy in Màu</option>
+                    <option value="Máy in Đen trắng">Máy in Đen trắng</option>
+                    <option value="Máy Scan">Máy Scan</option>
+                    <option value="Máy Photocopier">Máy Photocopier</option>
+                    <option value="Máy đa chức năng">Máy đa chức năng</option>
+                  </select>
+                ) : (
+                  <p className="font-semibold">{printerData.type || "N/A"}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              {editField === "type" ? (
+                <>
+                  <button onClick={() => handleSaveSpec("type", editValue)}>
+                    <MdCheckCircle
+                      className="text-[#009483] hover:scale-110 mt-5 ml-2"
+                      size={15}
+                    />
+                  </button>
+                  <button onClick={handleCancelEdit}>
+                    <MdCancel
+                      className="text-[#DC0909] hover:scale-110 mt-5"
+                      size={15}
+                    />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => handleEditSpec("type", printerData.type)}
+                >
+                  <FiEdit
+                    className="text-[#FF5733] hover:scale-110"
+                    size={15}
+                  />
+                </button>
+              )}
+            </div>
+          </div>
           {/* ip Block */}
           <div className="flex items-center justify-between bg-[#f8f8f8] p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
             <div className="flex items-center space-x-3">

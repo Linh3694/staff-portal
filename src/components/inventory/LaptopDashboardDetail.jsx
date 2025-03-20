@@ -360,17 +360,17 @@ const LaptopDashboardDetail = () => {
                     )
                     .map((item, index) => (
                       <tr key={index} className="border-b border-gray-200">
-                        <td className="px-4 py-2">
+                        <td className="px-4 py-3">
                           <p className="text-sm font-bold text-navy-700">
                             {item.year}
                           </p>
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-4 py-3">
                           <p className="text-sm font-bold text-navy-700">
                             {item.count}
                           </p>
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-4 py-3">
                           <p className="text-sm font-bold text-navy-700">
                             {item.percent}%
                           </p>

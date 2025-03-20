@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import { FaSearch } from "react-icons/fa";
@@ -8,7 +8,8 @@ import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import Dropdown from "../function/dropdown";
-import { API_URL, UPLOAD_URL, BASE_URL } from "../../config"; // import từ file config
+import { API_URL } from "../../config"; // import từ file config
+import _ from "lodash"; // hoặc import debounce trực tiếp: import { debounce } from 'lodash';
 
 const ProjectorTable = () => {
   const [data, setData] = useState([]); // State cho danh sách projectors
@@ -24,6 +25,12 @@ const ProjectorTable = () => {
     status: "Standby",
     reason: "",
     releaseYear: "",
+    specs: {
+      processor: "",
+      ram: "",
+      storage: "",
+      display: "",
+    },
   });
   const [editingProjector, setEditingProjector] = useState({
     name: "",
@@ -35,6 +42,12 @@ const ProjectorTable = () => {
     status: "Active",
     reason: "",
     releaseYear: "",
+    specs: {
+      processor: "",
+      ram: "",
+      storage: "",
+      display: "",
+    },
   });
   const [showEditModal, setShowEditModal] = useState(false);
   const [filteredUsers, setFilteredUsers] = useState([]); // Lưu danh sách gợi ý tạm thời
@@ -46,7 +59,6 @@ const ProjectorTable = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [parsedData, setParsedData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [selectedOption, setSelectedOption] = useState("Tất cả trạng thái");
   const [selectedDepartment, setSelectedDepartment] =
     useState("Tất cả phòng ban");
@@ -71,27 +83,49 @@ const ProjectorTable = () => {
     PendingDocumentation: "Đã bàn giao - Chưa có biên bản", // Thêm trạng thái mới
   };
 
+  const handleUpdateSpecs = (projectorId, updatedSpecs) => {
+    const token = localStorage.getItem("authToken");
+    return axios
+      .put(`${API_URL}/projectors/${projectorId}/specs`, updatedSpecs, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((response) => {
+        const updatedProjector = response.data;
+        if (
+          selectedProjector &&
+          selectedProjector._id === updatedProjector._id
+        ) {
+          setSelectedProjector(updatedProjector);
+        }
+        return updatedProjector;
+      })
+      .catch((error) => {
+        console.error("Lỗi cập nhật specs:", error);
+        throw error;
+      });
+  };
   const handleViewDetails = (projector) => {
     setSelectedProjector(projector); // Chỉ truyền dữ liệu xuống ProjectorProductCard
     setRefreshKey((prevKey) => prevKey + 1); // Tăng giá trị để ép render
     setShowDetailModal(true);
   };
-
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(`${API_URL}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (response.data && Array.isArray(response.data)) {
         setUsers(
           response.data.map((user) => ({
             value: user._id,
             label: user.fullname,
             title: user.jobTitle || "Không",
-            departmentName: user.department || "Unknown",
-            emailAddress: user.email,
+            department: user.department || "Chưa xác định",
+            email: user.email,
             avatarUrl: user.avatarUrl || "Không có",
           }))
         );
@@ -105,6 +139,7 @@ const ProjectorTable = () => {
     }
   };
 
+  // Hàm gọi API để lấy danh sách projectors
   const fetchProjectors = async () => {
     try {
       const token = localStorage.getItem("authToken");
@@ -128,7 +163,10 @@ const ProjectorTable = () => {
         assigned: projector.assigned.map((user) => ({
           value: user._id,
           label: user.fullname,
-          departmentName: user.department,
+          department: user.department || "Chưa xác định",
+          jobTitle: user.jobTitle,
+          email: user.email,
+          avatarUrl: user.avatarUrl,
         })),
       }));
 
@@ -139,8 +177,6 @@ const ProjectorTable = () => {
       setCurrentPage(1);
       // Hiển thị trước 30 items
       setData(projectors.slice(0, 30));
-
-      console.log("Fetched total projectors:", projectors.length);
     } catch (error) {
       console.error("Error fetching projectors:", error);
     }
@@ -180,12 +216,9 @@ const ProjectorTable = () => {
     // Lọc theo phòng ban
     if (filters.department && filters.department !== "Tất cả") {
       filtered = filtered.filter((item) =>
-        item.assigned.some((user) => user.departmentName === filters.department)
+        item.assigned.some((user) => user.department === filters.department)
       );
     }
-    console.log("Dữ liệu sau khi lọc:", filtered);
-
-    // Cập nhật dữ liệu state
     setFilteredData(filtered);
 
     const newTotalPages = Math.ceil(filtered.length / 30);
@@ -234,25 +267,6 @@ const ProjectorTable = () => {
       toast.error("Không thể tải danh sách phòng!");
     }
   };
-  // const renderLocation = (locationArray) => {
-  //   // Nếu room không tồn tại hoặc locationArray không hợp lệ
-  //   if (!locationArray || !Array.isArray(locationArray) || locationArray.length === 0) {
-  //     return "";
-  //   }
-
-  //   const locationString = locationArray[0];
-  //   const [building, floor] = locationString.split(", ");
-
-  //   if (!building && !floor) {
-  //     return "";
-  //   }
-
-  //   return `Tòa nhà: ${building} | Tầng: ${floor}`;
-  // };
-
-  // ----------------------------------------------------
-  // Gọi API “thu hồi” (POST /projectors/:id/revoke)
-  // ----------------------------------------------------
   const handleRevokeProjector = async (projectorId, reasons) => {
     try {
       const token = localStorage.getItem("authToken");
@@ -316,21 +330,16 @@ const ProjectorTable = () => {
         }
       );
 
-      console.log("Response from API:", response); // Debug toàn bộ response
-
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "API lỗi không xác định.");
       }
 
       const data = await response.json();
-      console.log("Parsed data:", data); // Debug dữ liệu đã parse
 
       if (!data || !data._id) {
         throw new Error("Dữ liệu trả về từ API không hợp lệ.");
       }
-
-      // Cập nhật state
       if (Array.isArray(data)) {
         setData(
           data.map((projector) => ({
@@ -361,15 +370,25 @@ const ProjectorTable = () => {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(`${API_URL}/projectors/${projectorId}`, {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000, // Giới hạn 3 giây
       });
 
-      // Cập nhật dữ liệu chi tiết
-      setSelectedProjector(response.data);
+      const rawProjector = response.data; // Dữ liệu gốc từ API
+      const mappedProjector = {
+        ...rawProjector,
+        assigned: rawProjector.assigned.map((user) => ({
+          value: user._id,
+          label: user.fullname,
+          department: user.department || "Chưa xác định",
+          jobTitle: user.jobTitle,
+          email: user.email,
+          avatarUrl: user.avatarUrl,
+        })),
+      };
 
-      console.log("Dữ liệu backend", response.data);
+      setSelectedProjector(mappedProjector);
     } catch (error) {
       console.error("Error fetching projector details:", error);
-      toast.error("Không thể tải thông tin projector!");
     }
   };
 
@@ -413,34 +432,6 @@ const ProjectorTable = () => {
     if (selectedProjector && selectedProjector._id === updatedProjector._id) {
       setSelectedProjector(newProjectorData);
     }
-  };
-
-  const handleUpdateSpecs = (projectorId, updatedSpecs) => {
-    console.log("Dữ liệu cập nhật specs:", updatedSpecs);
-    const token = localStorage.getItem("authToken");
-    return axios
-      .put(`${API_URL}/projectors/${projectorId}/specs`, updatedSpecs, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((response) => {
-        // Dữ liệu projector đã được cập nhật
-        const updatedProjector = response.data;
-        // Cập nhật state cục bộ (nếu đang giữ selectedProjector)
-        if (
-          selectedProjector &&
-          selectedProjector._id === updatedProjector._id
-        ) {
-          setSelectedProjector(updatedProjector);
-        }
-        return updatedProjector;
-      })
-      .catch((error) => {
-        console.error("Lỗi cập nhật specs:", error);
-        throw error;
-      });
   };
 
   const handleClone = async (projector) => {
@@ -545,10 +536,6 @@ const ProjectorTable = () => {
       }
       const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Assuming currentUser is stored in localStorage
       const userId = currentUser ? currentUser._id : null; // Retrieve the user's ID
-      console.log(
-        "Current User từ localStorage:",
-        localStorage.getItem("currentUser")
-      );
 
       if (!userId) {
         toast.error("User is not logged in. Please log in and try again.");
@@ -560,7 +547,13 @@ const ProjectorTable = () => {
         ...newProjector,
         releaseYear: newProjector.releaseYear || "",
         status: newProjector.status || "Standby",
-        type: newProjector.type || "Máy chiếu",
+        type: newProjector.type || "Projector",
+        specs: {
+          processor: newProjector.specs?.processor || "",
+          ram: newProjector.specs?.ram || "",
+          storage: newProjector.specs?.storage || "",
+          display: newProjector.specs?.display || "",
+        },
         assigned:
           newProjector.status === "Active"
             ? newProjector.assigned.map((user) => user.value)
@@ -585,19 +578,25 @@ const ProjectorTable = () => {
         setTotalPages(Math.ceil((filteredData.length + 1) / 30));
         setCurrentPage(1);
         fetchProjectors(); // Cập nhật lại danh sách
+
         toast.success("Thêm projector thành công!", {
           className: "toast-success",
           progressClassName: "Toastify__progress-bar",
         });
 
         // Cập nhật danh sách projectors và đóng modal
-        fetchProjectors();
         setShowAddModal(false);
         setNewProjector({
           name: "",
           manufacturer: "",
           serial: "",
           releaseYear: "",
+          specs: {
+            processor: "",
+            ram: "",
+            storage: "",
+            display: "",
+          },
           assigned: [],
           status: "Standby",
           room: "",
@@ -613,30 +612,23 @@ const ProjectorTable = () => {
     }
   };
 
-  const handleSearchChange = (e) => {
-    const query = e.target.value.toLowerCase();
-    setSearchTerm(query);
-
-    if (!query) {
-      // Người dùng xóa hết => Hiển thị all
+  // Hàm lọc dữ liệu theo searchTerm
+  const filterData = (query) => {
+    if (!query.trim()) {
       setFilteredData(originalData);
       setTotalPages(Math.ceil(originalData.length / 30));
       setData(originalData.slice(0, 30));
       setCurrentPage(1);
-      setSuggestions([]); // Xóa gợi ý
+      setSuggestions([]);
       return;
     }
-
-    // Nếu có từ khóa, lọc
     const filtered = originalData.filter((item) => {
-      // Gom nhiều trường để kiểm tra (name, manufacturer, serial, assigned user, room...)
       const assignedNames = Array.isArray(item.assigned)
-        ? item.assigned.map((u) => `${u.label} ${u.departmentName}`).join(" ")
+        ? item.assigned.map((u) => `${u.label} ${u.department}`).join(" ")
         : "";
       const roomInfo = item.room
         ? `${item.room.label} ${(item.room.location || []).join(" ")}`
         : "";
-
       const combinedText = [
         item.name,
         item.manufacturer,
@@ -646,18 +638,24 @@ const ProjectorTable = () => {
       ]
         .join(" ")
         .toLowerCase();
-
       return combinedText.includes(query);
     });
-
-    // Cập nhật filteredData
     setFilteredData(filtered);
     setTotalPages(Math.ceil(filtered.length / 30));
     setData(filtered.slice(0, 30));
     setCurrentPage(1);
-
-    // Sinh mảng suggestions (10 item gợi ý đầu tiên)
     setSuggestions(filtered.slice(0, 10));
+  };
+
+  // Sử dụng debounce để giảm số lần lọc
+  const debouncedFilterData = useCallback(_.debounce(filterData, 300), [
+    originalData,
+  ]);
+
+  const handleSearchChange = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchTerm(query);
+    debouncedFilterData(query);
   };
 
   const handleFileChange = (e) => {
@@ -686,8 +684,6 @@ const ProjectorTable = () => {
         const sheetName = workbook.SheetNames[0];
         const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-        console.log("Dữ liệu thô từ Excel:", sheetData);
-
         // Chuẩn hóa dữ liệu
         const normalizedData = sheetData
           .map((row, index) => {
@@ -700,6 +696,26 @@ const ProjectorTable = () => {
               );
               return null; // Bỏ qua nếu thiếu trường bắt buộc
             }
+
+            // Chuẩn hóa các trường không bắt buộc
+            const specs = {
+              processor:
+                typeof row["Bộ Xử Lý (processor)"] === "string"
+                  ? row["Bộ Xử Lý (processor)"].trim()
+                  : "",
+              ram:
+                typeof row["RAM (ram)"] === "string"
+                  ? row["RAM (ram)"].trim()
+                  : "",
+              storage:
+                typeof row["Bộ Nhớ (storage)"] === "string"
+                  ? row["Bộ Nhớ (storage)"].trim()
+                  : "",
+              display:
+                typeof row["Màn Hình (display)"] === "string"
+                  ? row["Màn Hình (display)"].trim()
+                  : "",
+            };
 
             const roomName =
               typeof row["Tên Phòng (Room Name)"] === "string"
@@ -747,7 +763,7 @@ const ProjectorTable = () => {
               type:
                 typeof row["Loại (type)"] === "string"
                   ? row["Loại (type)"].trim()
-                  : "Máy chiếu", // Mặc định là Projector
+                  : "Projector", // Mặc định là Projector
               manufacturer:
                 typeof row["Nhà Sản Xuất (manufacturer)"] === "string"
                   ? row["Nhà Sản Xuất (manufacturer)"].trim()
@@ -760,13 +776,12 @@ const ProjectorTable = () => {
                 typeof row["Trạng Thái (status)"] === "string"
                   ? row["Trạng Thái (status)"].trim()
                   : "Không xác định",
+              specs: specs,
               assigned: assignedIds,
               room: matchedRoom?.value || "", // Nếu không hợp lệ hoặc trống, để trống
             };
           })
           .filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
-
-        console.log("Dữ liệu chuẩn hóa:", normalizedData);
 
         if (normalizedData.length === 0) {
           toast.error("File Excel không chứa dữ liệu hợp lệ!", {
@@ -800,8 +815,6 @@ const ProjectorTable = () => {
     }
 
     try {
-      console.log("Dữ liệu gửi lên:", parsedData);
-
       const response = await axios.post(
         `${API_URL}/projectors/bulk-upload`,
         { projectors: parsedData },
@@ -879,7 +892,6 @@ const ProjectorTable = () => {
       setData(originalData.slice(0, 30)); // Chỉ hiển thị 30 items đầu tiên
       setCurrentPage(1); // Reset về trang 1
     }
-    console.log("Original Data updated:", originalData);
   }, [originalData]);
 
   // useEffect #3: Mỗi khi filteredData hoặc currentPage thay đổi => cắt 30 records hiển thị
@@ -887,7 +899,6 @@ const ProjectorTable = () => {
     const startIndex = (currentPage - 1) * 30;
     const paginatedData = filteredData.slice(startIndex, startIndex + 30);
     setData(paginatedData);
-    console.log("Filtered Data updated:", filteredData);
   }, [filteredData, currentPage]);
 
   // useEffect #4: Nếu đang mở detail (selectedProjector), thì tìm projector mới nhất trong data
@@ -900,11 +911,6 @@ const ProjectorTable = () => {
     }
   }, [data]);
   // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
-  useEffect(() => {
-    console.log("Original Data:", originalData);
-    console.log("Filtered Data:", filteredData);
-    console.log("Displayed Data:", data);
-  }, [originalData, filteredData, data]);
 
   return (
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -916,16 +922,10 @@ const ProjectorTable = () => {
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Tìm kiếm máy chiếu..."
-              className="pl-10 pr-4 py-2 rounded-md w-100 px-3"
+              placeholder="Tìm kiếm projector..."
+              className="pl-10 pr-4 py-2 rounded-md w-2/3"
               value={searchTerm}
               onChange={handleSearchChange}
-              // Thêm onFocus để hiện gợi ý khi focus (nếu muốn)
-              onFocus={() => {
-                if (searchTerm && suggestions.length > 0) {
-                  setSuggestions(suggestions);
-                }
-              }}
             />
 
             {/* Hiển thị suggestions (nếu có) */}
@@ -946,7 +946,7 @@ const ProjectorTable = () => {
               Thêm mới
             </button>
             <button
-              className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
+              className="px-3 py-2 bg-[#FF5733] text-white text-sm font-bold  rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
               onClick={() => setShowUploadModal(true)}
             >
               Upload
@@ -972,7 +972,6 @@ const ProjectorTable = () => {
                   onClick={() => {
                     setSelectedOption("Tất cả");
                     applyFilters({ status: "Tất cả" });
-                    setShowDropdown(false); // Đóng dropdown
                   }}
                 >
                   Tất cả trạng thái
@@ -994,7 +993,6 @@ const ProjectorTable = () => {
                     onClick={() => {
                       setSelectedOption(option.label);
                       applyFilters({ status: option.value });
-                      setShowDropdown(false); // Đóng dropdown
                     }}
                   >
                     {option.label}
@@ -1050,7 +1048,6 @@ const ProjectorTable = () => {
             }
             children={
               <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                {/* Tùy chọn "Tất cả phòng ban" */}
                 <button
                   key="all"
                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
@@ -1061,14 +1058,10 @@ const ProjectorTable = () => {
                 >
                   Tất cả phòng ban
                 </button>
-
-                {/* Lọc phòng ban từ cột Người sử dụng */}
                 {Array.from(
                   new Set(
-                    data.flatMap((item) =>
-                      item.assigned?.map(
-                        (user) => user.departmentName || "Unknown"
-                      )
+                    originalData.flatMap((item) =>
+                      item.assigned.map((user) => user.department)
                     )
                   )
                 ).map((department) => (
@@ -1095,36 +1088,31 @@ const ProjectorTable = () => {
               </button>
             }
             children={
-              <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
-                {/* Option "Tất cả nhà sản xuất" */}
+              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
                 <button
                   key="all"
                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                   onClick={() => {
                     setSelectedManufacturer("Tất cả");
                     applyFilters({ manufacturer: "Tất cả" });
-                    setShowDropdown(false); // Đóng dropdown
                   }}
                 >
                   Tất cả nhà sản xuất
                 </button>
-
-                {/* Các nhà sản xuất */}
-                {Array.from(new Set(data.map((item) => item.manufacturer))).map(
-                  (manufacturer) => (
-                    <button
-                      key={manufacturer}
-                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                      onClick={() => {
-                        setSelectedManufacturer(manufacturer);
-                        applyFilters({ manufacturer });
-                        setShowDropdown(false); // Đóng dropdown
-                      }}
-                    >
-                      {manufacturer}
-                    </button>
-                  )
-                )}
+                {Array.from(
+                  new Set(originalData.map((item) => item.manufacturer))
+                ).map((manufacturer) => (
+                  <button
+                    key={manufacturer}
+                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                    onClick={() => {
+                      setSelectedManufacturer(manufacturer);
+                      applyFilters({ manufacturer });
+                    }}
+                  >
+                    {manufacturer}
+                  </button>
+                ))}
               </div>
             }
           />
@@ -1137,22 +1125,20 @@ const ProjectorTable = () => {
               </button>
             }
             children={
-              <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
-                {/* Option "Tất cả năm sản xuất" */}
+              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
                 <button
                   key="all"
-                  className="text-left px-4 py-2 hover:bg-[gray-100] rounded-lg"
+                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                   onClick={() => {
                     setSelectedYear("Tất cả");
                     applyFilters({ releaseYear: "Tất cả" });
-                    setShowDropdown(false); // Đóng dropdown
                   }}
                 >
                   Tất cả năm sản xuất
                 </button>
-
-                {/* Các năm sản xuất */}
-                {Array.from(new Set(data.map((item) => item.releaseYear)))
+                {Array.from(
+                  new Set(originalData.map((item) => item.releaseYear))
+                )
                   .sort()
                   .map((year) => (
                     <button
@@ -1161,7 +1147,6 @@ const ProjectorTable = () => {
                       onClick={() => {
                         setSelectedYear(year);
                         applyFilters({ releaseYear: year });
-                        setShowDropdown(false); // Đóng dropdown
                       }}
                     >
                       {year}
@@ -1176,7 +1161,7 @@ const ProjectorTable = () => {
       {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
       <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
         <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
-          <table className="w-full ">
+          <table className="w-full">
             <thead>
               <tr className="!border-px !border-gray-400">
                 <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
@@ -1238,8 +1223,8 @@ const ProjectorTable = () => {
                         <div key={user.value || user._id}>
                           <p className="font-bold">{user.label}</p>
                           <span className="italic text-gray-400">
-                            {user.departmentName
-                              ? user.departmentName
+                            {user.department
+                              ? user.department
                               : "Không xác định"}
                           </span>
                         </div>
@@ -1473,6 +1458,113 @@ const ProjectorTable = () => {
                     </div>
                   </div>
                 </div>
+
+                <div
+                  className="border rounded-lg p-4 mb-4 relative"
+                  style={{
+                    position: "relative",
+                    padding: "16px",
+                    marginBottom: "30px",
+                  }}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-12px",
+                      left: "16px",
+                      backgroundColor: "#fff",
+                      padding: "0 8px",
+                      fontWeight: "bold",
+                      color: "#002147",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    Cấu hình
+                  </span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        Processor
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập bộ xử lý"
+                        value={newProjector.specs?.processor || ""}
+                        onChange={(e) =>
+                          setNewProjector({
+                            ...newProjector,
+                            specs: {
+                              ...newProjector.specs,
+                              processor: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        RAM
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập dung lượng RAM"
+                        value={newProjector.specs?.ram || ""}
+                        onChange={(e) =>
+                          setNewProjector({
+                            ...newProjector,
+                            specs: {
+                              ...newProjector.specs,
+                              ram: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        Bộ Nhớ
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập dung lượng Bộ nhớ"
+                        value={newProjector.specs?.storage || ""}
+                        onChange={(e) =>
+                          setNewProjector({
+                            ...newProjector,
+                            specs: {
+                              ...newProjector.specs,
+                              storage: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        Màn hình
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập kích thước màn hình"
+                        value={newProjector.specs?.display || ""}
+                        onChange={(e) =>
+                          setNewProjector({
+                            ...newProjector,
+                            specs: {
+                              ...newProjector.specs,
+                              display: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex justify-end space-x-4">
                   <button
                     type="button"
@@ -1605,8 +1697,6 @@ const ProjectorTable = () => {
                         : [],
                       room: editingProjector.room?.value || null, // Chỉ lấy ID phòng
                     };
-
-                    console.log("Payload gửi lên server:", payload);
 
                     await axios.put(
                       `${API_URL}/projectors/${editingProjector._id}`,
@@ -1742,6 +1832,113 @@ const ProjectorTable = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Cấu hình */}
+                <div
+                  className="border rounded-lg p-4 mb-4 relative"
+                  style={{
+                    position: "relative",
+                    padding: "16px",
+                    marginBottom: "30px",
+                  }}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-12px",
+                      left: "16px",
+                      backgroundColor: "#fff",
+                      padding: "0 8px",
+                      fontWeight: "bold",
+                      color: "#002147",
+                    }}
+                  >
+                    Cấu hình
+                  </span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        Processor
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập bộ xử lý"
+                        value={editingProjector.specs?.processor || ""}
+                        onChange={(e) =>
+                          setEditingProjector({
+                            ...editingProjector,
+                            specs: {
+                              ...editingProjector.specs,
+                              processor: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        RAM
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập dung lượng RAM"
+                        value={editingProjector.specs?.ram || ""}
+                        onChange={(e) =>
+                          setEditingProjector({
+                            ...editingProjector,
+                            specs: {
+                              ...editingProjector.specs,
+                              ram: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        Bộ Nhớ
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập dung lượng bộ nhớ"
+                        value={editingProjector.specs?.storage || ""}
+                        onChange={(e) =>
+                          setEditingProjector({
+                            ...editingProjector,
+                            specs: {
+                              ...editingProjector.specs,
+                              storage: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        Màn hình
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập kích thước màn hình"
+                        value={editingProjector.specs?.display || ""}
+                        onChange={(e) =>
+                          setEditingProjector({
+                            ...editingProjector,
+                            specs: {
+                              ...editingProjector.specs,
+                              display: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Trạng thái */}
                 <div
                   className="border rounded-lg p-4 mb-4 relative justify-between"
@@ -1859,56 +2056,6 @@ const ProjectorTable = () => {
                       </div>
                     )}
                   </div>
-                  <div>
-                    {/* <div>
-                          <label className="block mt-3 text-gray-600 font-medium mb-2">Nơi sử dụng</label>
-                          <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                            placeholder="Nhập tên phòng"
-                            value={editingProjector.room?.label || ""}
-                            onChange={(e) => {
-                              const query = e.target.value.toLowerCase();
-
-                              // Lọc danh sách rooms phù hợp
-                              const filtered = rooms.filter((room) =>
-                                room.label.toLowerCase().includes(query)
-                              );
-
-                              setFilteredRooms(filtered);
-                              setShowRoomSuggestions(true);
-
-                              // Tạm thời gắn giá trị nhập vào room
-                              setEditingProjector({
-                                ...editingProjector,
-                                room: { label: e.target.value, value: null },
-                              });
-                            }}
-                            onBlur={() => setTimeout(() => setShowRoomSuggestions(false), 200)}
-                          />
-                            {showRoomSuggestions && filteredRooms.length > 0 && (
-                              <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
-                              {filteredRooms.map((room) => (
-                                <li
-                                  key={room.value}
-                                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                                  onClick={() => {
-                                    setEditingProjector({
-                                      ...editingProjector,
-                                      room,
-                                    });
-                                    setShowRoomSuggestions(false);
-                                  }}
-                                >
-                                  <span className="font-bold">{room.label}</span>
-                                  <br />
-                                  <span className="italic text-gray-500">{room.location}</span>
-                                </li>
-                              ))}
-                            </ul>
-                            )}
-                        </div> */}
-                  </div>
                 </div>
 
                 <div className="flex justify-end space-x-4">
@@ -1990,9 +2137,10 @@ const ProjectorTable = () => {
                 key={refreshKey} // Force re-render khi refreshKey thay đổi
                 projectorData={{
                   ...selectedProjector,
-                  releaseYear: selectedProjector.releaseYear || "Không có",
+                  releaseYear: selectedProjector.releaseYear,
                 }}
                 setSelectedProjector={setSelectedProjector}
+                onUpdateSpecs={handleUpdateSpecs} // Bổ sung prop này
                 onCloseModal={() => {
                   setSelectedProjector(null); // Reset projector đã chọn
                   setShowDetailModal(false); // Đóng modal
@@ -2004,7 +2152,6 @@ const ProjectorTable = () => {
                 fetchProjectorDetails={fetchProjectorDetails}
                 onUpdateProjector={updateProjectorState}
                 onUpdateRoom={handleUpdateRoom}
-                onUpdateSpecs={handleUpdateSpecs} // Bổ sung prop này
                 refetchProjectors={fetchProjectors}
               />
             </div>

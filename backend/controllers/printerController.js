@@ -1,13 +1,15 @@
 const Printer = require("../models/Printer");
 const User = require("../models/Users");
-const Room = require("../models/Room")
+const Room = require("../models/Room");
 const mongoose = require("mongoose");
+const path = require("path");
+const fs = require("fs");
 
 // Lấy danh sách printer
 exports.getPrinters = async (req, res) => {
   try {
     const printers = await Printer.find()
-      .sort({ createdAt: -1 })  // sắp xếp giảm dần theo createdAt
+      .sort({ createdAt: -1 })
       .populate("assigned", "fullname jobTitle department avatarUrl")
       .populate("room", "name location status")
       .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl")
@@ -15,7 +17,6 @@ exports.getPrinters = async (req, res) => {
       .populate("assignmentHistory.revokedBy", "fullname email")
       .lean();
 
-    // Nếu vẫn muốn reshape (thêm field `location` dạng string), bạn làm như cũ:
     const populatedPrinters = printers.map((printer) => ({
       ...printer,
       room: printer.room
@@ -29,10 +30,7 @@ exports.getPrinters = async (req, res) => {
         : { name: "Không xác định", location: ["Không xác định"] },
     }));
 
-    // Trả về *toàn bộ* mà không kèm totalPages/currentPage
-    return res.status(200).json({
-      populatedPrinters,
-    });
+    return res.status(200).json({ populatedPrinters });
   } catch (error) {
     console.error("Error fetching printers:", error.message);
     return res.status(500).json({
@@ -42,57 +40,70 @@ exports.getPrinters = async (req, res) => {
   }
 };
 
+// Lấy thông tin chi tiết của 1 printer
+exports.getPrinterById = async (req, res) => {
+  const { id } = req.params;
+  console.log("Payload nhận được từ client:", req.body);
+  try {
+    const printer = await Printer.findById(id)
+      .populate("assigned", "fullname email jobTitle avatarUrl")
+      .populate("room", "name location status")
+      .populate("assignmentHistory.user", "fullname email jobTitle avatarUrl")
+      .populate("assignmentHistory.assignedBy", "fullname email jobTitle avatarUrl")
+      .populate("assignmentHistory.revokedBy", "fullname email jobTitle avatarUrl");
+
+    if (!printer) {
+      return res.status(404).json({ message: "Không tìm thấy printer" });
+    }
+    res.status(200).json(printer);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi máy chủ", error });
+  }
+};
+
 // Thêm mới printer
 exports.createPrinter = async (req, res) => {
   try {
     console.log("Request Body:", req.body);
-
     const { name, manufacturer, serial, assigned, status, specs, type, room, reason } = req.body;
     const userId = req.body.userId || req.headers["user-id"];
 
     if (!name || !serial) {
       return res.status(400).json({ message: "Thiếu thông tin bắt buộc!" });
     }
-
     if (!specs || typeof specs !== "object") {
       return res.status(400).json({ message: "Thông tin specs không hợp lệ!" });
     }
-
-     // Kiểm tra `serial` trùng lặp
-     const existingPrinter = await Printer.findOne({ serial });
-     if (existingPrinter) {
-       return res.status(400).json({ message: `Serial "${serial}" đã tồn tại trong hệ thống.` });
-     }
-
-    // Kiểm tra `assigned` không hợp lệ
+    const existingPrinter = await Printer.findOne({ serial });
+    if (existingPrinter) {
+      return res.status(400).json({ message: `Serial "${serial}" đã tồn tại trong hệ thống.` });
+    }
     if (assigned && !Array.isArray(assigned)) {
       return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
-
-    // Kiểm tra `room` nếu có
     if (room && !mongoose.Types.ObjectId.isValid(room)) {
       return res.status(400).json({ message: "Room ID không hợp lệ!" });
     }
-
     if (status === "Broken" && !reason) {
       return res.status(400).json({ message: "Lý do báo hỏng là bắt buộc khi trạng thái là 'Broken'!" });
     }
-
-    // Kiểm tra `room` nếu có
-    if (room && !mongoose.Types.ObjectId.isValid(room)) {
-      return res.status(400).json({ message: "Room ID không hợp lệ!" });
-    }
-
     if (status && !["Active", "Standby", "Broken", "PendingDocumentation"].includes(status)) {
       return res.status(400).json({ message: "Trạng thái không hợp lệ" });
     }
-    // Kiểm tra `status` và thiết lập giá trị mặc định
 
+    const printer = new Printer({
+      name,
+      manufacturer,
+      serial,
+      assigned,
+      specs,
+      status,
+      type,
+      room,
+      reason: status === "Broken" ? reason : undefined,
+    });
 
-    const printer = new Printer({ name, manufacturer, serial, assigned, specs, status, type, room, reason: status === "Broken" ? reason : undefined, });
-    
     await printer.save();
-     
     res.status(201).json(printer);
   } catch (error) {
     console.error("Error creating printer:", error.message);
@@ -100,31 +111,39 @@ exports.createPrinter = async (req, res) => {
   }
 };
 
+// Cập nhật printer
 exports.updatePrinter = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, manufacturer, serial, assigned, status, releaseYear, specs, type, room, reason } = req.body;
 
-    // Kiểm tra nếu `assigned` không phải là mảng hoặc có ID không hợp lệ
     if (assigned && !Array.isArray(assigned)) {
       return res.status(400).json({ message: "Assigned phải là mảng ID người sử dụng hợp lệ." });
     }
-
-    // Kiểm tra `room` nếu có
     if (room && !mongoose.Types.ObjectId.isValid(room)) {
       return res.status(400).json({ message: "Room ID không hợp lệ!" });
     }
 
     const printer = await Printer.findByIdAndUpdate(
       id,
-      { name, manufacturer, serial, assigned, status, releaseYear, specs, type, room, reason: status === "Broken" ? reason : undefined, },
-      { new: true } // Trả về tài liệu đã cập nhật
+      {
+        name,
+        manufacturer,
+        serial,
+        assigned,
+        status,
+        releaseYear,
+        specs,
+        type,
+        room,
+        reason: status === "Broken" ? reason : undefined,
+      },
+      { new: true }
     );
 
     if (!printer) {
       return res.status(404).json({ message: "Không tìm thấy printer" });
     }
-
     res.json(printer);
   } catch (error) {
     console.error("Error updating printer:", error.message);
@@ -142,6 +161,47 @@ exports.deletePrinter = async (req, res) => {
   }
 };
 
+// Cập nhật thông tin specs của printer
+exports.updatePrinterSpecs = async (req, res) => {
+  try {
+    console.log("Payload nhận được từ frontend:", req.body);
+    const { id } = req.params;
+    const { specs = {}, releaseYear, manufacturer, type } = req.body;
+
+    const currentPrinter = await Printer.findById(id);
+    if (!currentPrinter) {
+      return res.status(404).json({ message: "Printer không tồn tại." });
+    }
+
+    const cleanedSpecs = {
+      ip: specs.ip ?? currentPrinter.specs.ip,
+      ram: specs.ram ?? currentPrinter.specs.ram,
+      storage: specs.storage ?? currentPrinter.specs.storage,
+      display: specs.display ?? currentPrinter.specs.display,
+    };
+
+    const updates = {
+      specs: cleanedSpecs,
+      releaseYear: releaseYear ?? currentPrinter.releaseYear,
+      manufacturer: manufacturer ?? currentPrinter.manufacturer,
+      type: type ?? currentPrinter.type,
+    };
+
+    console.log("Payload để cập nhật (sau khi làm sạch):", updates);
+    const updatedPrinter = await Printer.findByIdAndUpdate(id, updates, { new: true });
+
+    if (!updatedPrinter) {
+      return res.status(404).json({ message: "Không thể cập nhật printer." });
+    }
+    console.log("Printer sau khi cập nhật:", updatedPrinter);
+    res.status(200).json(updatedPrinter);
+  } catch (error) {
+    console.error("Lỗi khi cập nhật specs:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
+
+// Tải lên hàng loạt printer
 exports.bulkUploadPrinters = async (req, res) => {
   try {
     const { printers } = req.body;
@@ -149,35 +209,29 @@ exports.bulkUploadPrinters = async (req, res) => {
     if (!printers || !Array.isArray(printers) || printers.length === 0) {
       return res.status(400).json({ message: "Không có dữ liệu hợp lệ để tải lên!" });
     }
-    
 
     const errors = [];
     const validPrinters = [];
 
     for (const printer of printers) {
       try {
-        // Kiểm tra `room` và xử lý giá trị không hợp lệ
-        // Thiết lập giá trị mặc định nếu thiếu
         printer.room = printer.room && mongoose.Types.ObjectId.isValid(printer.room) ? printer.room : null;
         printer.status = ["Active", "Standby", "Broken", "PendingDocumentation"].includes(printer.status)
           ? printer.status
           : "Standby";
-        // Kiểm tra `status` và thiết lập giá trị mặc định
+
         if (!["Active", "Standby", "Broken", "PendingDocumentation"].includes(printer.status)) {
           console.warn(`Status không hợp lệ: ${printer.status}. Thiết lập giá trị 'Standby'.`);
-          printer.status = "Standby"; // Gán giá trị mặc định
+          printer.status = "Standby";
         }
-        // Xử lý `assigned`
         if (printer.assigned && Array.isArray(printer.assigned)) {
           const isId = mongoose.Types.ObjectId.isValid(printer.assigned[0]);
           if (isId) {
-            // Nếu là ID, kiểm tra sự tồn tại
             const validIds = await User.find({ _id: { $in: printer.assigned } }).select("_id");
             if (validIds.length !== printer.assigned.length) {
               throw new Error("Một số ID người dùng không tồn tại trong hệ thống.");
             }
           } else {
-            // Nếu là fullname, ánh xạ sang ID
             const assignedIds = await Promise.all(
               printer.assigned.map(async (fullname) => {
                 const user = await User.findOne({ fullname: fullname.trim() }).select("_id");
@@ -190,13 +244,9 @@ exports.bulkUploadPrinters = async (req, res) => {
             printer.assigned = assignedIds;
           }
         }
-
-        // Kiểm tra room
         if (printer.room && !mongoose.Types.ObjectId.isValid(printer.room)) {
           throw new Error(`Room ID "${printer.room}" không hợp lệ.`);
         }
-
-        // Kiểm tra thông tin printer
         if (!printer.name || !printer.serial) {
           errors.push({
             serial: printer.serial || "Không xác định",
@@ -204,8 +254,6 @@ exports.bulkUploadPrinters = async (req, res) => {
           });
           continue;
         }
-
-        // Kiểm tra trùng lặp serial
         const existingPrinter = await Printer.findOne({ serial: printer.serial });
         if (existingPrinter) {
           errors.push({
@@ -215,7 +263,6 @@ exports.bulkUploadPrinters = async (req, res) => {
           });
           continue;
         }
-
         validPrinters.push(printer);
       } catch (error) {
         errors.push({
@@ -240,27 +287,27 @@ exports.bulkUploadPrinters = async (req, res) => {
   }
 };
 
-// controllers/printerController.js
+// Bàn giao printer
 exports.assignPrinter = async (req, res) => {
   try {
-    const { id } = req.params;         // printerId
+    const { id } = req.params; // printerId
     const { newUserId, notes } = req.body;
 
     const printer = await Printer.findById(id).populate("assigned");
     if (!printer) {
       return res.status(404).json({ message: "Không tìm thấy printer" });
     }
-    // Đảm bảo tất cả các bản ghi trước đó có `endDate`
+
+    // Đóng các bản ghi assignment trước đó
     printer.assignmentHistory.forEach((entry) => {
       if (!entry.endDate) {
         entry.endDate = new Date();
       }
     });
-    // Lấy thông tin người thực hiện từ token
-    const currentUser = req.user; // Nếu bạn có middleware xác thực
+
+    const currentUser = req.user;
     console.log("Current User:", req.user);
 
-    // Đóng lịch sử sử dụng trước đó (nếu có)
     if (printer.assigned?.length > 0) {
       const oldUserId = printer.assigned[0]._id;
       const lastHistory = printer.assignmentHistory.find(
@@ -268,28 +315,25 @@ exports.assignPrinter = async (req, res) => {
       );
       if (lastHistory) {
         lastHistory.endDate = new Date();
-        lastHistory.revokedBy = currentUser._id; // Ghi lại người thu hồi
+        lastHistory.revokedBy = currentUser._id;
       }
     }
 
-    // Tìm user mới
     const newUser = await User.findById(newUserId);
     if (!newUser) {
       return res.status(404).json({ message: "Không tìm thấy user mới" });
     }
     console.log(newUser);
 
-    // Thêm record vào assignmentHistory
     printer.assignmentHistory.push({
       user: newUser._id,
       userName: newUser.fullname,
       startDate: new Date(),
       notes: notes || "",
       assignedBy: currentUser.id,
-      jobTitle: newUser.jobTitle || "Không xác định", // Thêm jobTitle
+      jobTitle: newUser.jobTitle || "Không xác định",
     });
 
-    // Cập nhật currentHolder
     printer.currentHolder = {
       id: newUser._id,
       fullname: newUser.fullname,
@@ -298,26 +342,23 @@ exports.assignPrinter = async (req, res) => {
       avatarUrl: newUser.avatarUrl,
     };
 
-    // Cập nhật assigned
     printer.assigned = [newUser._id];
-    printer.status = "PendingDocumentation"; // tuỳ logic
+    printer.status = "PendingDocumentation";
     await printer.save();
 
-    // Populate thông tin người dùng
     const populatedPrinter = await printer.populate({
       path: "assignmentHistory.user",
       select: "fullname jobTitle avatarUrl",
     });
     
-    res.status(200).json(
-      populatedPrinter);
+    res.status(200).json(populatedPrinter);
   } catch (error) {
     console.error("Lỗi assignPrinter:", error);
     res.status(500).json({ message: "Lỗi server", error });
   }
 };
 
-// controllers/printerController.js
+// Thu hồi printer
 exports.revokePrinter = async (req, res) => {
   try {
     const { id } = req.params;
@@ -328,8 +369,7 @@ exports.revokePrinter = async (req, res) => {
       return res.status(404).json({ message: "Printer không tồn tại" });
     }
 
-    const currentUser = req.user; // Người thực hiện thu hồi
-
+    const currentUser = req.user;
     if (printer.assigned.length > 0) {
       const oldUserId = printer.assigned[0]._id;
       const lastHistory = printer.assignmentHistory.find(
@@ -337,11 +377,10 @@ exports.revokePrinter = async (req, res) => {
       );
       if (lastHistory) {
         lastHistory.endDate = new Date();
-        lastHistory.revokedBy = currentUser.id; // Ghi lại người thu hồi
-        lastHistory.revokedReason = reasons; // Ghi lý do thu hồi vào bản ghi hiện tại
+        lastHistory.revokedBy = currentUser.id;
+        lastHistory.revokedReason = reasons;
       }
     } else {
-      // Nếu không có bản ghi nào đang mở, thêm một bản ghi mới
       printer.assignmentHistory.push({
         revokedBy,
         revokedReason: reasons,
@@ -349,9 +388,8 @@ exports.revokePrinter = async (req, res) => {
       });
     }
 
-    // Cập nhật trạng thái thiết bị
-    printer.status = status || "Standby"; // Hoặc trạng thái bạn mong muốn
-    printer.currentHolder = null; // Xóa người đang giữ printer
+    printer.status = status || "Standby";
+    printer.currentHolder = null;
     printer.assigned = [];
     await printer.save();
 
@@ -362,39 +400,108 @@ exports.revokePrinter = async (req, res) => {
   }
 };
 
+// Cập nhật trạng thái printer
 exports.updatePrinterStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, brokenReason } = req.body;
 
-      if (!["Active", "Standby", "Broken", "PendingDocumentation"].includes(status)) {
-        return res.status(400).json({ message: "Trạng thái không hợp lệ" });
-      }
-      if (status === "Broken" && !brokenReason) {
-        return res.status(400).json({ error: "Lý do báo hỏng là bắt buộc!" });
-      }    
+    if (!["Active", "Standby", "Broken", "PendingDocumentation"].includes(status)) {
+      return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+    }
+    if (status === "Broken" && !brokenReason) {
+      return res.status(400).json({ error: "Lý do báo hỏng là bắt buộc!" });
+    }
 
-      try {
-        const printer = await Printer.findById(id);
-        if (!printer) {
-          return res.status(404).json({ message: "Không tìm thấy thiết bị" });
-        }
-    
-        // Lưu lý do báo hỏng vào `reason`
-        if (status === "Broken") {
-          printer.brokenReason = brokenReason || "Không xác định";
-        }
-    
-        printer.status = status;
-        await printer.save();
-    
-        res.status(200).json(printer);
-      } catch (error) {
-        console.error("Lỗi khi cập nhật trạng thái:", error);
-        res.status(500).json({ message: "Lỗi máy chủ", error });
-      }
+    const printer = await Printer.findById(id);
+    if (!printer) {
+      return res.status(404).json({ message: "Không tìm thấy thiết bị" });
+    }
+
+    if (status === "Broken") {
+      printer.brokenReason = brokenReason || "Không xác định";
+    }
+
+    printer.status = status;
+    await printer.save();
+
+    res.status(200).json(printer);
   } catch (error) {
     console.error("Lỗi updatePrinterStatus:", error);
     res.status(500).json({ message: "Lỗi server", error });
   }
+};
+
+exports.uploadHandoverReport = async (req, res) => {
+  console.log("📤 Dữ liệu nhận được từ frontend:", req.body);
+  try {
+    const { printerId, userId, username } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ message: "File không được tải lên." });
+    }
+    
+    console.log("✅ Trong Controller - username nhận được:", username);
+    
+    const filePath = req.file.path;
+    console.log("✅ Đường dẫn file đã lưu:", filePath);
+    
+    const printer = await Printer.findById(printerId);
+    if (!printer) {
+      return res.status(404).json({ message: "Không tìm thấy thiết bị." });
+    }
+    
+    console.log("✅ Tìm thấy printer:", printer);
+    
+    // Kiểm tra xem userId có hợp lệ không
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "userId không hợp lệ." });
+    }
+    
+    // Tìm lịch sử bàn giao với userId hợp lệ
+    let currentAssignment = printer.assignmentHistory.find(
+      (history) => 
+        history.user && 
+        history.user.toString() === userId && 
+        !history.endDate
+    );
+    
+    if (!currentAssignment) {
+      console.warn("⚠️ Không tìm thấy lịch sử bàn giao hợp lệ. Tạo bản ghi mới...");
+      printer.assignmentHistory.push({
+        user: mongoose.Types.ObjectId(userId),
+        startDate: new Date(),
+        document: filePath,
+      });
+      currentAssignment = printer.assignmentHistory[printer.assignmentHistory.length - 1];
+    } else {
+      console.log("🔄 Cập nhật lịch sử bàn giao hiện tại.");
+      currentAssignment.document = filePath;
+    }
+    
+    printer.status = "Active";
+    await printer.save();
+    
+    return res.status(200).json({
+      message: "Tải lên biên bản thành công!",
+      printer,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi tải lên biên bản:", error);
+    res.status(500).json({ message: "Đã xảy ra lỗi server." });
+  }
+};
+
+// Endpoint để trả file PDF
+exports.getHandoverReport = async (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(__dirname, "../uploads/Handovers", filename);
+
+  // Kiểm tra file có tồn tại không
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "Không tìm thấy file." });
+  }
+
+  // Gửi file PDF
+  res.sendFile(filePath);
 };

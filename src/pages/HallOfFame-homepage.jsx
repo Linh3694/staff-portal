@@ -24,7 +24,13 @@ const HallofFame = () => {
   // 1. Thêm state mới ngay sau các state đã có (ví dụ, sau const [quoteIndex, setQuoteIndex] = useState(null);)
   const [isMobileView, setIsMobileView] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-
+  useEffect(() => {
+    document.title = "Wellspring Hà Nội | Hall of Honor";
+    // Cleanup function để reset title khi unmount
+    return () => {
+      document.title = "Wellspring";
+    };
+  }, []);
   useEffect(() => {
     if (typeof window !== "undefined") {
       const handleResize = () => setIsMobileView(window.innerWidth < 1024);

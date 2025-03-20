@@ -335,8 +335,12 @@ const PrinterTable = () => {
         throw new Error("Dữ liệu trả về từ API không hợp lệ.");
       }
 
-      // Cập nhật state
-      if (Array.isArray(data)) {
+      if (!Array.isArray(data)) {
+        setData((prevData) =>
+          prevData.map((printer) => (printer._id === data._id ? data : printer))
+        );
+      } else {
+        // Nếu là mảng thì xử lý như trước
         setData(
           data.map((printer) => ({
             ...printer,

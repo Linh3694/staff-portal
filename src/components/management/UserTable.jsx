@@ -128,8 +128,6 @@ const UserTable = ({ handleSyncClients }) => {
       role: newUser.role || "user",
     };
 
-    console.log("Payload gửi lên:", payload); // Thêm log kiểm tra payload
-
     try {
       const response = await fetch(`${API_URL}/users`, {
         method: "POST",
@@ -168,8 +166,6 @@ const UserTable = ({ handleSyncClients }) => {
       if (!userResponse.ok)
         throw new Error("Không thể tải thông tin người dùng!");
       const userData = await userResponse.json();
-      console.log("User data:", userData);
-
       const assignedItemsResponse = await fetch(
         `${API_URL}/users/${userId}/assigned-items`,
         {
@@ -193,15 +189,9 @@ const UserTable = ({ handleSyncClients }) => {
       if (!ticketsResponse.ok)
         throw new Error("Không thể tải danh sách tickets!");
       const ticketsData = await ticketsResponse.json();
-      console.log("Tickets Data:", ticketsData);
-      console.log("User ID:", userId);
-      // Lọc tickets theo userId
-      // Lọc tickets theo người dùng dựa trên `creator._id`
       const userTickets = ticketsData.tickets.filter(
         (ticket) => ticket.creator?._id === userId
       );
-      console.log("User tickets:", userTickets);
-      console.log("Assigned items:", assignedItemsData);
       setAssignedItems(assignedItemsData);
       setSelectedUser({
         ...userData,
@@ -262,9 +252,6 @@ const UserTable = ({ handleSyncClients }) => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-      console.log("Dữ liệu từ file Excel:", jsonData);
-
       // Chuyển đổi dữ liệu Excel thành mảng
       const formattedData = jsonData.map((row) => ({
         email: row.email,
@@ -273,9 +260,6 @@ const UserTable = ({ handleSyncClients }) => {
         department: row.department || undefined,
         employeeCode: row.employeeCode || undefined,
       }));
-
-      console.log("Dữ liệu định dạng chuẩn:", formattedData);
-
       // Gửi toàn bộ dữ liệu dưới dạng mảng
       const response = await fetch(`${API_URL}/users/bulk-update`, {
         method: "PUT",
@@ -305,16 +289,10 @@ const UserTable = ({ handleSyncClients }) => {
       toast.error("Vui lòng chọn ít nhất một file ảnh!");
       return;
     }
-    console.log("Files to upload:", files);
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       formData.append("avatars", file, file.name);
-    }
-
-    // Cách kiểm tra nội dung formData:
-    for (let [key, value] of formData.entries()) {
-      console.log("FormData entry:", key, value);
     }
 
     try {
@@ -344,7 +322,6 @@ const UserTable = ({ handleSyncClients }) => {
       const enrichedClients = await Promise.all(
         clients.map(async (client) => {
           try {
-            console.log(`Đang lấy assigned items cho user: ${client.fullname}`);
             const response = await fetch(
               `${API_URL}/users/${client._id}/assigned-items`,
               {
@@ -353,7 +330,6 @@ const UserTable = ({ handleSyncClients }) => {
                 },
               }
             );
-            console.log("Response:", response);
             if (!response.ok) {
               console.warn(
                 `Không thể lấy assigned items cho user: ${client.fullname}`
@@ -481,7 +457,6 @@ const UserTable = ({ handleSyncClients }) => {
       toast.error("Không thể chỉnh sửa người dùng này.");
       return;
     }
-    console.log("User to edit:", user); // Debug giá trị user
     setSelectedUser(user);
     setIsModalOpen(true);
   };
@@ -544,8 +519,6 @@ const UserTable = ({ handleSyncClients }) => {
   };
 
   const handleAvatarUpload = async (file, userId) => {
-    console.log("Uploading avatar for user:", userId, "File:", file);
-
     const formData = new FormData();
     formData.append("avatar", file);
 
@@ -560,9 +533,6 @@ const UserTable = ({ handleSyncClients }) => {
         console.error("Server error:", errorText);
         throw new Error(errorText);
       }
-
-      const data = await response.json();
-      console.log("Avatar updated successfully:", data);
       toast.success("Avatar uploaded successfully!");
     } catch (error) {
       console.error("Error uploading avatar:", error.message);

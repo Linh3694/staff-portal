@@ -3,15 +3,30 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { API_URL, BASE_URL } from "../../config";
 import * as XLSX from "xlsx";
+import { FaPen, FaTrashCan } from "react-icons/fa6";
 
 function HallOfFameAdminPage() {
   const [activeTab, setActiveTab] = useState("categories");
+  const [showCreateModal, setShowCreateModal] = useState(false); // Thêm state mới
+  const [newCategoryName, setNewCategoryName] = useState(""); // Thêm state cho tên mới
+  const [newCategoryNameEng, setNewCategoryNameEng] = useState(""); // Thêm state cho tên tiếng Anh
+
+  // Thêm useEffect để thay đổi title
+  useEffect(() => {
+    document.title = "Quản lý Hall of Fame | Wellspring";
+    // Cleanup function để reset title khi unmount
+    return () => {
+      document.title = "Wellspring";
+    };
+  }, []);
 
   // --- Award Category State ---
   const [categories, setCategories] = useState([]);
   const [categoryFormData, setCategoryFormData] = useState({
     name: "",
+    nameEng: "",
     description: "",
+    descriptionEng: "",
     coverImage: "",
     baseAcademicYear: "",
     subAwards: [],
@@ -19,7 +34,9 @@ function HallOfFameAdminPage() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
-  // State cho kiểu tạo subAward
+  // Điều khiển từng bước cho SubAwards
+  const [subAwardStep, setSubAwardStep] = useState(1);
+  // Chọn kiểu sub award
   const [subAwardMode, setSubAwardMode] = useState({
     custom: false,
     schoolYear: false,
@@ -31,13 +48,12 @@ function HallOfFameAdminPage() {
   const [newCustomSubAwardSchoolYear, setNewCustomSubAwardSchoolYear] =
     useState("");
 
-  // --- Award Record State ---
+  // --- Award Record State (để tạo record ngay trong modal) ---
   const [records, setRecords] = useState([]);
+  // Form tạo record, sẽ dùng chung để tạo record cho category đang được edit
   const [recordFormData, setRecordFormData] = useState({
-    awardCategory: "",
-    awardClass: [], // Trường mới cho lớp học
     subAward: {},
-    students: [], // [{ student: "", note: "" }]
+    students: [],
     subAwardSelectedIndex: -1,
     reason: "",
   });
@@ -54,7 +70,48 @@ function HallOfFameAdminPage() {
   const [excelClasses, setExcelClasses] = useState([]);
   const [excelClassCount, setExcelClassCount] = useState(0);
 
-  // ----------------- USEEFFECT -----------------
+  const [selectedSubAward, setSelectedSubAward] = useState(null);
+  const [selectedSubAwardRecords, setSelectedSubAwardRecords] = useState([]);
+
+  // Thêm các state mới
+  const [searchInput, setSearchInput] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredStudents, setFilteredStudents] = useState([]);
+
+  // Thêm state mới để lưu học sinh đang chọn
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [tempNote, setTempNote] = useState("");
+  const [tempNoteEng, setTempNoteEng] = useState("");
+  const [tempClassNote, setTempClassNote] = useState("");
+  const [tempClassNoteEng, setTempClassNoteEng] = useState("");
+
+  // Thêm hàm xử lý tìm kiếm
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchInput(value);
+
+    if (value.trim() === "") {
+      setFilteredStudents([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const filtered = studentsList.filter(
+      (student) =>
+        student.studentCode.toLowerCase().includes(value.toLowerCase()) ||
+        student.name.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredStudents(filtered);
+    setShowSuggestions(true);
+  };
+
+  const handleSelectStudent = (student) => {
+    setSelectedStudent(student);
+    setSearchInput(student.studentCode); // Chỉ hiển thị mã học sinh
+    setFilteredStudents([]);
+    setShowSuggestions(false);
+  };
+
   useEffect(() => {
     fetchCategories();
     fetchRecords();
@@ -87,6 +144,7 @@ function HallOfFameAdminPage() {
   const fetchSchoolYears = async () => {
     try {
       const res = await axios.get(`${API_URL}/schoolyears`);
+      console.log("School Years:", res.data);
       setSchoolYears(res.data || []);
     } catch (error) {
       console.error("Error fetching school years:", error);
@@ -97,14 +155,12 @@ function HallOfFameAdminPage() {
     try {
       const res = await axios.get(`${API_URL}/students`);
       setStudentsList(res.data || []);
-      console.log(res.data);
     } catch (error) {
       console.error("Error fetching students:", error);
       setStudentsList([]);
     }
   };
 
-  // Hàm fetch classes
   const fetchClasses = async () => {
     try {
       const res = await axios.get(`${API_URL}/classes`);
@@ -115,32 +171,55 @@ function HallOfFameAdminPage() {
     }
   };
 
-  // ----------------- CATEGORY UPLOAD -----------------
+  // ----------------- CATEGORY UPLOAD (Ảnh) -----------------
   const handleCoverImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const formData = new FormData();
     formData.append("file", file);
+
     try {
-      const res = await axios.post(
+      // Upload ảnh
+      const uploadRes = await axios.post(
         `${API_URL}/award-categories/upload`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
         }
       );
+
+      // Cập nhật state local
       setCategoryFormData({
         ...categoryFormData,
-        coverImage: res.data.filePath,
+        coverImage: uploadRes.data.filePath,
       });
+
+      // Nếu đang edit category thì update luôn vào DB
+      if (editingCategory) {
+        await axios.put(`${API_URL}/award-categories/${editingCategory}`, {
+          ...categoryFormData,
+          coverImage: uploadRes.data.filePath,
+        });
+
+        // Refresh lại danh sách để cập nhật UI
+        await fetchCategories();
+      }
+
+      alert("Cập nhật ảnh thành công!");
     } catch (error) {
       console.error("Error uploading file:", error);
+      alert("Cập nhật ảnh thất bại!");
     }
   };
 
   // ----------------- SUBMIT CATEGORY -----------------
   const handleCategorySubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+
+    // Gom subAwards
     const computedSubAwards = [];
 
     // SubAward custom
@@ -232,23 +311,20 @@ function HallOfFameAdminPage() {
         );
         alert("Cập nhật loại vinh danh thành công!");
       } else {
-        await axios.post(`${API_URL}/award-categories`, dataToSend);
+        const resp = await axios.post(
+          `${API_URL}/award-categories`,
+          dataToSend
+        );
         alert("Tạo mới loại vinh danh thành công!");
+
+        // Nếu vừa tạo mới, lưu ID này vào editingCategory để có thể thao tác thêm record
+        if (resp && resp.data && resp.data._id) {
+          setEditingCategory(resp.data._id);
+        }
       }
-      // Reset
-      setCategoryFormData({
-        name: "",
-        nameEng: "",
-        description: "",
-        descriptionEng: "",
-        coverImage: "",
-        baseAcademicYear: "",
-        subAwards: [],
-      });
-      setSubAwardMode({ custom: false, schoolYear: false });
-      setCustomSubAwards([]);
-      setSelectedSchoolYears([]);
-      setEditingCategory(null);
+
+      // Reset step (nếu muốn quay lại step 1) hoặc tùy logic
+      setSubAwardStep(1);
       fetchCategories();
     } catch (error) {
       console.error("Error in category submit:", error);
@@ -257,8 +333,9 @@ function HallOfFameAdminPage() {
 
   const handleCategoryEdit = (cat) => {
     setEditingCategory(cat._id);
+    setShowCategoryModal(true);
 
-    // Xác định các loại Sub Awards có trong category
+    // Xác định các loại Sub Awards trong category
     const hasCustomSubAwards = cat.subAwards.some(
       (sub) => sub.type === "custom"
     );
@@ -269,27 +346,26 @@ function HallOfFameAdminPage() {
 
     setCategoryFormData({
       name: cat.name,
-      nameEng: cat.nameEng,
-      description: cat.description,
-      descriptionEng: cat.descriptionEng,
-      coverImage: cat.coverImage,
+      nameEng: cat.nameEng || "",
+      description: cat.description || "",
+      descriptionEng: cat.descriptionEng || "",
+      coverImage: cat.coverImage || "",
       baseAcademicYear: cat.baseAcademicYear || "",
-      subAwards: cat.subAwards || [], // Lưu Sub Awards để hiển thị đúng
+      subAwards: cat.subAwards || [],
     });
 
-    // Cập nhật trạng thái của checkbox Sub Awards
     setSubAwardMode({
       custom: hasCustomSubAwards,
       schoolYear: hasSchoolYearSubAwards,
     });
 
-    // Lưu danh sách Custom SubAwards riêng biệt
+    // Lưu danh sách Custom SubAwards
     const existingCustomSubs = cat.subAwards.filter(
       (sub) => sub.type === "custom"
     );
     setCustomSubAwards(existingCustomSubs);
 
-    // Lưu danh sách School Years nếu có
+    // Lưu danh sách School Years
     const existingSchoolYears = [
       ...new Set(
         cat.subAwards
@@ -298,6 +374,14 @@ function HallOfFameAdminPage() {
       ),
     ];
     setSelectedSchoolYears(existingSchoolYears);
+
+    // Reset form tạo record
+    setRecordFormData({
+      subAward: {},
+      students: [],
+      subAwardSelectedIndex: -1,
+      reason: "",
+    });
   };
 
   const handleCategoryDelete = async (id) => {
@@ -311,8 +395,7 @@ function HallOfFameAdminPage() {
     }
   };
 
-  // ----------------- BULK STUDENTS -----------------
-  // Hàm xử lý khi người dùng upload file Excel
+  // ----------------- EXCEL UPLOAD (Students & Classes) -----------------
   const handleExcelUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -320,7 +403,6 @@ function HallOfFameAdminPage() {
     const reader = new FileReader();
     reader.onload = (evt) => {
       const binaryStr = evt.target.result;
-      // Đọc file Excel
       const workbook = XLSX.read(binaryStr, { type: "binary" });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
@@ -331,7 +413,6 @@ function HallOfFameAdminPage() {
         return;
       }
 
-      // rows[0] = header => Bắt đầu từ i=1
       const newStudents = [];
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -341,9 +422,8 @@ function HallOfFameAdminPage() {
         const note = row[1] ? row[1].toString().trim() : "";
         const noteEng = row[2] ? row[2].toString().trim() : "";
 
-        if (!code) continue; // Bỏ qua dòng trống
+        if (!code) continue;
 
-        // Tìm student
         const foundStudent = studentsList.find(
           (s) => s.studentCode.toLowerCase() === code.toLowerCase()
         );
@@ -355,7 +435,6 @@ function HallOfFameAdminPage() {
         newStudents.push({ student: foundStudent._id, note, noteEng });
       }
 
-      // Lưu vào state, hiển thị số lượng
       setExcelStudents(newStudents);
       setExcelRecordCount(newStudents.length);
     };
@@ -370,7 +449,6 @@ function HallOfFameAdminPage() {
     const reader = new FileReader();
     reader.onload = (evt) => {
       const binaryStr = evt.target.result;
-      // Đọc file Excel
       const workbook = XLSX.read(binaryStr, { type: "binary" });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
@@ -381,7 +459,6 @@ function HallOfFameAdminPage() {
         return;
       }
 
-      // rows[0] là header, duyệt từ dòng 1 trở đi
       const newClasses = [];
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -393,7 +470,6 @@ function HallOfFameAdminPage() {
 
         if (!className) continue;
 
-        // Tìm lớp dựa vào tên lớp trong classesList
         const foundClass = classesList.find(
           (cl) => cl.className.toLowerCase() === className.toLowerCase()
         );
@@ -411,30 +487,16 @@ function HallOfFameAdminPage() {
 
     reader.readAsBinaryString(file);
   };
-  // ----------------- RECORD FORM -----------------
-  // Khi chọn AwardCategory
-  const handleAwardCategoryChange = (e) => {
-    setRecordFormData({
-      ...recordFormData,
-      awardCategory: e.target.value,
-      subAward: {},
-      subAwardSelectedIndex: -1,
-    });
-  };
 
-  // Khi user chọn 1 option subAward
+  // ----------------- RECORD FORM (Trong Modal) -----------------
   const handleRecordSubAwardChange = (indexString) => {
     const idx = parseInt(indexString, 10);
-
-    // Sử dụng dạng callback để luôn lấy "prev" state mới nhất
     setRecordFormData((prev) => {
       const selectedCategory = categories.find(
-        (cat) => cat._id === prev.awardCategory
+        (cat) => cat._id === editingCategory
       );
 
       let newSubAward = {};
-
-      // Nếu idx hợp lệ => gán subAward
       if (
         selectedCategory &&
         selectedCategory.subAwards &&
@@ -442,11 +504,6 @@ function HallOfFameAdminPage() {
         idx < selectedCategory.subAwards.length
       ) {
         newSubAward = selectedCategory.subAwards[idx];
-      }
-
-      // Kiểm tra subAward có `type` hay không (để debug)
-      if (!newSubAward.type) {
-        console.warn("SubAward thiếu type => AwardRecord có thể bị lỗi!");
       }
 
       return {
@@ -459,11 +516,10 @@ function HallOfFameAdminPage() {
 
   const handleRecordSubmit = async (e) => {
     e.preventDefault();
-
-    // Gộp dữ liệu học sinh thủ công và từ Excel
+    // Gộp danh sách học sinh
     const finalStudents = [...recordFormData.students, ...excelStudents];
 
-    // Xử lý lớp nhập tay
+    // Gộp danh sách lớp
     const classNames = classInput
       .split(",")
       .map((c) => c.trim())
@@ -474,23 +530,20 @@ function HallOfFameAdminPage() {
         (cl) => cl.className.toLowerCase() === cname.toLowerCase()
       );
       if (foundCls) {
-        // Nếu nhập tay thì giả sử note và noteEng là rỗng
         manualClasses.push({ class: foundCls._id, note: "", noteEng: "" });
       } else {
         console.warn(`Không tìm thấy lớp: ${cname}`);
       }
     }
 
-    // Kết hợp dữ liệu lớp từ nhập tay và file Excel
     const classRecords = [...manualClasses, ...excelClasses];
 
-    // Kiểm tra có ít nhất 1 học sinh hoặc 1 lớp
     if (finalStudents.length === 0 && classRecords.length === 0) {
       alert("Vui lòng thêm ít nhất 1 học sinh hoặc 1 lớp");
       return;
     }
 
-    // Kiểm tra dữ liệu học sinh (như trước)
+    // Kiểm tra ghi chú của từng học sinh
     for (let i = 0; i < finalStudents.length; i++) {
       const stu = finalStudents[i];
       if (!stu.student) {
@@ -503,31 +556,54 @@ function HallOfFameAdminPage() {
       }
     }
 
-    // Gửi payload – có thể đổi field name thành classRecords (với cấu trúc gồm { class, note, noteEng })
+    // Đảm bảo subAward có đầy đủ thông tin
+    const selectedCategory = categories.find(
+      (cat) => cat._id === editingCategory
+    );
+    const subAward = selectedCategory?.subAwards?.find(
+      (sa) =>
+        sa.label === recordFormData.subAward?.label &&
+        sa.type === recordFormData.subAward?.type &&
+        String(sa.schoolYear) === String(recordFormData.subAward?.schoolYear)
+    );
+
+    if (!subAward) {
+      alert("Vui lòng chọn loại vinh danh");
+      return;
+    }
+
     const dataToSend = {
-      ...recordFormData,
-      awardClasses: classRecords, // sử dụng key đúng theo schema
+      awardCategory: editingCategory,
+      subAward: {
+        ...subAward,
+        label: subAward.label,
+        type: subAward.type || "custom", // Đảm bảo luôn có type
+        schoolYear: subAward.schoolYear,
+        semester: subAward.semester,
+        month: subAward.month,
+        awardCount: subAward.awardCount || 0,
+      },
+      reason: recordFormData.reason,
+      awardClasses: classRecords,
       students: finalStudents,
     };
 
-    // Xoá các field không cần thiết
-    delete dataToSend.subAwardSelectedIndex;
-
     try {
       if (!editingRecord) {
+        // Tạo mới record
         await axios.post(`${API_URL}/award-records`, dataToSend);
         alert("Tạo mới record thành công!");
       } else {
+        // Cập nhật record
         await axios.put(
           `${API_URL}/award-records/${editingRecord}`,
           dataToSend
         );
         alert("Cập nhật record thành công!");
+        setEditingRecord(null);
       }
-
       // Reset form
       setRecordFormData({
-        awardCategory: "",
         subAward: {},
         students: [],
         subAwardSelectedIndex: -1,
@@ -538,28 +614,33 @@ function HallOfFameAdminPage() {
       setClassInput("");
       setExcelClasses([]);
       setExcelClassCount(0);
-      setEditingRecord(null);
-      fetchRecords();
+
+      // Gọi lại fetchRecordsBySubAward để cập nhật danh sách
+      await fetchRecordsBySubAward(selectedSubAward);
     } catch (error) {
       console.error("Error in record submit:", error);
+      alert("Lỗi: " + (error.response?.data?.error || error.message));
     }
   };
 
-  const handleRecordEdit = (record) => {
+  // Hàm để edit record từ tab records (ngoài modal)
+  const handleRecordEditOutside = (record) => {
+    // Khi user bấm Edit trong bảng records, ta cũng mở modal hiển thị 2 cột
+    if (record.awardCategory && record.awardCategory._id) {
+      // load category
+      handleCategoryEdit(record.awardCategory);
+    }
     setEditingRecord(record._id);
 
-    // Tìm category
+    // Tìm index subAward
     const selectedCategory = categories.find(
       (cat) => cat._id === record.awardCategory?._id
     );
     let foundIndex = -1;
 
-    // Tìm index subAward khớp
     if (selectedCategory && selectedCategory.subAwards) {
       foundIndex = selectedCategory.subAwards.findIndex((sa) => {
-        // So sánh cứng: type, label, schoolYear, semester, month...
-        // Hoặc so sánh "JSON.stringify"
-        // Ở đây minh hoạ:
+        // So sánh cứng
         return (
           sa.label === record.subAward?.label &&
           sa.type === record.subAward?.type &&
@@ -571,7 +652,6 @@ function HallOfFameAdminPage() {
     }
 
     setRecordFormData({
-      awardCategory: record.awardCategory?._id || "",
       subAward: record.subAward || {},
       students: record.students || [],
       subAwardSelectedIndex: foundIndex,
@@ -590,7 +670,7 @@ function HallOfFameAdminPage() {
     }
   };
 
-  // ----------------- STUDENT TABLE -----------------
+  // ----------------- STUDENT TABLE (Trong Record Form) -----------------
   const handleStudentChange = (index, field, value) => {
     const updated = [...recordFormData.students];
     updated[index] = { ...updated[index], [field]: value };
@@ -608,60 +688,334 @@ function HallOfFameAdminPage() {
     const updated = recordFormData.students.filter((_, i) => i !== index);
     setRecordFormData({ ...recordFormData, students: updated });
   };
+
+  const fetchRecordsBySubAward = async (subAward) => {
+    if (!subAward || !editingCategory) return;
+
+    try {
+      const res = await axios.get(`${API_URL}/award-records`, {
+        params: {
+          awardCategory: editingCategory,
+          subAwardLabel: subAward.label,
+          subAwardType: subAward.type,
+          subAwardSchoolYear: subAward.schoolYear,
+          subAwardSemester: subAward.semester,
+          subAwardMonth: subAward.month,
+        },
+      });
+
+      // Lọc records theo sub-award được chọn và đảm bảo thông tin lớp được populate
+      const filteredRecords = res.data
+        .filter((record) => {
+          return (
+            record.subAward.label === subAward.label &&
+            record.subAward.type === subAward.type &&
+            String(record.subAward.schoolYear) ===
+              String(subAward.schoolYear) &&
+            (record.subAward.semester || 0) === (subAward.semester || 0) &&
+            (record.subAward.month || 0) === (subAward.month || 0)
+          );
+        })
+        .map((record) => {
+          // Nếu có awardClasses, populate thông tin lớp từ classesList
+          if (record.awardClasses && record.awardClasses.length > 0) {
+            return {
+              ...record,
+              awardClasses: record.awardClasses.map((awardClass) => ({
+                ...awardClass,
+                class:
+                  classesList.find((c) => c._id === awardClass.class) ||
+                  awardClass.class,
+              })),
+            };
+          }
+          return record;
+        });
+
+      setSelectedSubAwardRecords(filteredRecords);
+    } catch (error) {
+      console.error("Error fetching records by sub-award:", error);
+      setSelectedSubAwardRecords([]);
+    }
+  };
+
+  const handleSubAwardSelect = (subAward) => {
+    setSelectedSubAward(subAward);
+    setRecordFormData({ ...recordFormData, subAward });
+    fetchRecordsBySubAward(subAward);
+  };
+
+  const handleDeleteAllRecords = async () => {
+    if (
+      window.confirm("Bạn có chắc chắn muốn xóa tất cả dữ liệu vinh danh này?")
+    ) {
+      try {
+        // Xóa tất cả records của sub-award này
+        const deletePromises = selectedSubAwardRecords.map((record) =>
+          axios.delete(`${API_URL}/award-records/${record._id}`)
+        );
+        await Promise.all(deletePromises);
+
+        // Reset form data
+        setRecordFormData({
+          subAward: selectedSubAward, // Giữ lại selectedSubAward hiện tại
+          students: [],
+          subAwardSelectedIndex: -1,
+          reason: "",
+        });
+        setExcelStudents([]);
+        setExcelRecordCount(0);
+        setClassInput("");
+        setExcelClasses([]);
+        setExcelClassCount(0);
+
+        // Cập nhật lại danh sách
+        await fetchRecordsBySubAward(selectedSubAward);
+        alert("Đã xóa tất cả dữ liệu vinh danh!");
+      } catch (error) {
+        console.error("Error deleting records:", error);
+        alert("Xóa dữ liệu thất bại!");
+      }
+    }
+  };
+
+  // Thêm hàm xử lý khi ấn nút thêm mới
+  const handleAddNewRecord = async () => {
+    if (!selectedStudent) {
+      alert("Vui lòng chọn học sinh trước!");
+      return;
+    }
+
+    if (!tempNote.trim()) {
+      alert("Vui lòng nhập ghi chú!");
+      return;
+    }
+
+    try {
+      // Tạo record mới
+      const newRecord = {
+        awardCategory: editingCategory,
+        subAward: selectedSubAward,
+        students: [
+          {
+            student: selectedStudent._id,
+            note: tempNote,
+            noteEng: tempNoteEng,
+          },
+        ],
+      };
+
+      // Gọi API để lưu record
+      const res = await axios.post(`${API_URL}/award-records`, newRecord);
+
+      // Thêm record mới vào đầu danh sách
+      setSelectedSubAwardRecords((prevRecords) => [
+        {
+          ...res.data,
+          students: [
+            {
+              ...res.data.students[0],
+              student: selectedStudent,
+            },
+          ],
+        },
+        ...prevRecords,
+      ]);
+
+      // Reset các trường
+      setSelectedStudent(null);
+      setSearchInput("");
+      setTempNote("");
+      setTempNoteEng("");
+    } catch (error) {
+      console.error("Error creating record:", error);
+      alert("Thêm mới thất bại!");
+    }
+  };
+
+  const handleAddNewClassRecord = async () => {
+    if (!classInput || !selectedSubAward) {
+      alert("Vui lòng chọn lớp và loại vinh danh!");
+      return;
+    }
+
+    try {
+      const selectedClass = classesList.find((c) => c._id === classInput);
+      if (!selectedClass) {
+        alert("Không tìm thấy thông tin lớp!");
+        return;
+      }
+
+      // Tạo record mới với format đúng
+      const newRecord = {
+        awardCategory: editingCategory,
+        subAward: selectedSubAward,
+        awardClasses: [
+          {
+            class: classInput,
+            note: tempClassNote,
+            noteEng: tempClassNoteEng,
+          },
+        ],
+      };
+
+      const response = await axios.post(`${API_URL}/award-records`, newRecord);
+
+      // Thêm thông tin lớp vào response data để hiển thị
+      const recordWithClassInfo = {
+        ...response.data,
+        awardClasses: [
+          {
+            ...response.data.awardClasses[0],
+            class: selectedClass,
+          },
+        ],
+      };
+
+      setSelectedSubAwardRecords((prev) => [recordWithClassInfo, ...prev]);
+
+      // Reset form
+      setClassInput("");
+      setTempClassNote("");
+      setTempClassNoteEng("");
+    } catch (error) {
+      console.error("Error adding new class record:", error);
+      alert(
+        "Thêm mới thất bại! " + error.response?.data?.message || error.message
+      );
+    }
+  };
+
+  // Reset tất cả state khi đóng modal
+  const resetModalState = () => {
+    setShowCategoryModal(false);
+    setEditingCategory(null);
+    setRecordFormData({
+      subAward: {},
+      students: [],
+      subAwardSelectedIndex: -1,
+      reason: "",
+    });
+    setExcelStudents([]);
+    setExcelRecordCount(0);
+    setClassInput("");
+    setExcelClasses([]);
+    setExcelClassCount(0);
+    setSelectedSubAward(null);
+    setSelectedSubAwardRecords([]);
+    setTempNote("");
+    setTempNoteEng("");
+    setTempClassNote("");
+    setTempClassNoteEng("");
+    setSearchInput("");
+    setSelectedStudent(null);
+    setShowSuggestions(false);
+    setFilteredStudents([]);
+  };
+
+  // Thêm hàm xử lý tạo mới đơn giản
+  const handleQuickCreate = async () => {
+    if (!newCategoryName.trim()) {
+      alert("Vui lòng nhập tên vinh danh!");
+      return;
+    }
+
+    try {
+      const dataToSend = {
+        name: newCategoryName,
+        nameEng: newCategoryNameEng,
+        description: "",
+        descriptionEng: "",
+        coverImage: "",
+        baseAcademicYear: "",
+        subAwards: [],
+      };
+
+      await axios.post(`${API_URL}/award-categories`, dataToSend);
+      alert("Tạo mới loại vinh danh thành công!");
+      fetchCategories();
+      setShowCreateModal(false);
+      setNewCategoryName("");
+      setNewCategoryNameEng("");
+    } catch (error) {
+      console.error("Error creating category:", error);
+      alert("Tạo mới thất bại!");
+    }
+  };
+
   // ----------------- RENDER -----------------
   return (
     <div className="p-6">
-      <div className="mb-4 space-x-4">
-        <button
-          onClick={() => setActiveTab("categories")}
-          disabled={activeTab === "categories"}
-          className={`px-4 py-2 rounded ${
-            activeTab === "categories"
-              ? "bg-gray-400"
-              : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
-        >
-          Quản lý Loại Vinh Danh
-        </button>
-        <button
-          onClick={() => setActiveTab("records")}
-          disabled={activeTab === "records"}
-          className={`px-4 py-2 rounded ${
-            activeTab === "records"
-              ? "bg-gray-400"
-              : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
-        >
-          Quản lý Ghi nhận Vinh Danh
-        </button>
-      </div>
-
+      {/* Tab Quản lý Category */}
       {activeTab === "categories" && (
-        <div className="w-full rounded-2xl bg-white p-5 shadow-md mt-4">
+        <div className="w-full rounded-2xl bg-white p-8 shadow-md mt-4">
           <div className="w-full flex items-center justify-between">
-            <h1 className="text-2xl font-bold mb-4">Quản lý Hall of Fame</h1>
-            <button
-              onClick={() => {
-                setEditingCategory(null);
-                setCategoryFormData({
-                  name: "",
-                  description: "",
-                  coverImage: "",
-                  baseAcademicYear: "",
-                  subAwards: [],
-                });
-                setSubAwardMode({ custom: false, schoolYear: false });
-                setCustomSubAwards([]);
-                setSelectedSchoolYears([]);
-                setNewCustomSubAward("");
-                setNewCustomSubAwardSchoolYear("");
-                setShowCategoryModal(true);
-              }}
-              className="bg-[#002855] hover:bg-[#0d1d2f] text-white text-sm font-semibold px-3 py-1 rounded-lg mr-2"
-            >
-              Tạo mới
-            </button>
+            <h1 className="text-xl font-bold mb-4">Quản lý Hall of Fame</h1>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-[#002855] hover:bg-[#0d1d2f] text-white text-sm font-semibold px-3 py-1 rounded-lg"
+              >
+                Tạo mới
+              </button>
+            </div>
           </div>
+
+          {/* Modal tạo mới đơn giản */}
+          {showCreateModal && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h2 className="text-xl font-semibold mb-4">
+                  Tạo mới Loại Vinh Danh
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-medium mb-1">
+                      Tên vinh danh:
+                    </label>
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg p-2"
+                      placeholder="Nhập tên vinh danh..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium mb-1">
+                      Tên vinh danh (Tiếng Anh):
+                    </label>
+                    <input
+                      type="text"
+                      value={newCategoryNameEng}
+                      onChange={(e) => setNewCategoryNameEng(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg p-2"
+                      placeholder="Enter award name in English..."
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={() => {
+                        setShowCreateModal(false);
+                        setNewCategoryName("");
+                        setNewCategoryNameEng("");
+                      }}
+                      className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={handleQuickCreate}
+                      className="bg-[#002855] hover:bg-[#0d1d2f] text-white px-4 py-2 rounded-lg"
+                    >
+                      Tạo mới
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <table className="w-full">
             <thead>
               <tr className="!border-px !border-gray-400">
@@ -673,16 +1027,7 @@ function HallOfFameAdminPage() {
                     TÊN VINH DANH
                   </p>
                 </th>
-                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">MÔ TẢ</p>
-                </th>
-                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">ẢNH</p>
-                </th>
-                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">SUB AWARD</p>
-                </th>
-                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-end">
                   <p className="text-sm font-bold text-gray-500">HÀNH ĐỘNG</p>
                 </th>
               </tr>
@@ -690,49 +1035,21 @@ function HallOfFameAdminPage() {
             <tbody>
               {(categories || []).map((cat) => (
                 <tr key={cat._id} className="border-b border-gray-200">
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                  <td className="w-[350px] border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">{cat._id}</p>
                   </td>
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">
-                      {cat.name} || {cat.nameEng}
+                      {cat.name}
                     </p>
                   </td>
-                  <td className="max-w-[1000px] border-white/0 py-3 pr-4">
-                    <p className="text-sm font-bold text-navy-700 line-clamp-2">
-                      {cat.description} || {cat.descriptionEng}
-                    </p>
-                  </td>
+
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                    <p className="text-sm font-bold text-navy-700">
-                      {cat.coverImage && (
-                        <img
-                          src={`${BASE_URL}/${cat.coverImage}`}
-                          alt="Cover"
-                          className="h-12 object-cover"
-                        />
-                      )}
-                    </p>
-                  </td>
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                    <p className="text-sm font-bold text-navy-700 line-clamp-2">
-                      {cat.subAwards && cat.subAwards.length > 0
-                        ? cat.subAwards.map((sub, i) => (
-                            <span key={i}>
-                              {sub.type[0].toUpperCase()}:{sub.label}
-                              {i < cat.subAwards.length - 1 && ", "}
-                            </span>
-                          ))
-                        : "N/A"}
-                    </p>
-                  </td>
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                    <div className="text-sm font-semibold text-navy-700 space-x-2">
+                    <div className="text-sm font-semibold text-navy-700 space-x-2 text-end">
                       <button
                         className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded-lg"
                         onClick={() => {
                           handleCategoryEdit(cat);
-                          setShowCategoryModal(true);
                         }}
                       >
                         Edit
@@ -752,191 +1069,16 @@ function HallOfFameAdminPage() {
         </div>
       )}
 
-      {activeTab === "records" && (
-        <div className="border p-4">
-          <h2 className="text-xl font-semibold mb-2">
-            {editingRecord ? "Cập nhật Record" : "Tạo mới Record"}
-          </h2>
-          <form onSubmit={handleRecordSubmit} className="space-y-4">
-            <div>
-              <label className="block font-medium">Award Category:</label>
-              <select
-                className="border rounded p-1 w-full"
-                value={recordFormData.awardCategory}
-                onChange={handleAwardCategoryChange}
-              >
-                <option value="">--Chọn--</option>
-                {(categories || []).map((cat) => (
-                  <option key={cat._id} value={cat._id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {recordFormData.awardCategory && (
-              <div>
-                <label className="block font-medium">Chọn Sub Award:</label>
-                {(() => {
-                  // Tính selectedCategory trong scope này
-                  const selectedCategory = categories.find(
-                    (cat) => cat._id === recordFormData.awardCategory
-                  );
-                  return (
-                    <select
-                      className="border rounded p-1 w-full"
-                      value={
-                        recordFormData.subAwardSelectedIndex < 0
-                          ? ""
-                          : recordFormData.subAwardSelectedIndex
-                      }
-                      onChange={(e) =>
-                        handleRecordSubAwardChange(e.target.value)
-                      }
-                    >
-                      <option value="">--Chọn Sub Award--</option>
-                      {selectedCategory?.subAwards?.map((sa, index) => (
-                        <option key={index} value={index}>
-                          {sa.label} ...
-                        </option>
-                      ))}
-                    </select>
-                  );
-                })()}
-              </div>
-            )}
-            <div>
-              <h4 className="font-medium mb-1">Danh sách học sinh</h4>
-              <div>
-                <label className="block mb-1 font-medium">
-                  Upload file Excel (chỉ có Mã SV và Ghi chú):
-                </label>
-                <input
-                  type="file"
-                  accept=".xlsx, .xls"
-                  onChange={handleExcelUpload}
-                  className="border rounded p-1 mb-2"
-                />
-                {excelRecordCount > 0 && (
-                  <div className="text-sm text-green-600">
-                    Số lượng record từ Excel: {excelRecordCount}
-                  </div>
-                )}
-              </div>
-              <table className="min-w-full border text-sm">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="border px-2 py-1">Sinh viên</th>
-                    <th className="border px-2 py-1">Ghi chú</th>
-                    <th className="border px-2 py-1">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recordFormData.students.map((stu, index) => (
-                    <tr key={index}>
-                      <td className="border px-2 py-1">
-                        <select
-                          className="border rounded p-1 w-full"
-                          value={stu.student}
-                          onChange={(e) =>
-                            handleStudentChange(
-                              index,
-                              "student",
-                              e.target.value
-                            )
-                          }
-                        >
-                          <option value="">--Chọn sinh viên--</option>
-                          {(studentsList || []).map((s) => (
-                            <option key={s._id} value={s._id}>
-                              {s.studentCode} - {s.name}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="border px-2 py-1">
-                        <input
-                          className="border rounded p-1 w-full"
-                          type="text"
-                          placeholder="Nhập ghi chú..."
-                          value={stu.note}
-                          onChange={(e) =>
-                            handleStudentChange(index, "note", e.target.value)
-                          }
-                        />
-                      </td>
-                      <td className="border px-2 py-1">
-                        <button
-                          type="button"
-                          className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
-                          onClick={() => handleRemoveStudent(index)}
-                        >
-                          Xoá
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button
-                type="button"
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mt-2"
-                onClick={handleAddStudent}
-              >
-                Thêm Học Sinh
-              </button>
-            </div>
-            {/* Chọn Lớp (nếu vinh danh lớp) */}
-            <div>
-              <label className="block font-medium">
-                Upload file Excel cho lớp (Các cột: Tên lớp, Note, NoteEng):
-              </label>
-              <input
-                type="file"
-                accept=".xlsx, .xls"
-                onChange={handleExcelClassUpload}
-                className="border rounded p-1 mb-2"
-              />
-              {excelClassCount > 0 && (
-                <div className="text-sm text-green-600">
-                  Số lượng lớp từ Excel: {excelClassCount}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-medium">
-                Reason (ghi chú tổng):
-              </label>
-              <input
-                className="border rounded p-1 w-full"
-                type="text"
-                value={recordFormData.reason}
-                onChange={(e) =>
-                  setRecordFormData({
-                    ...recordFormData,
-                    reason: e.target.value,
-                  })
-                }
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-            >
-              {editingRecord ? "Cập nhật" : "Tạo mới"}
-            </button>
-          </form>
-        </div>
-      )}
-
+      {/* Tab Quản lý Records */}
       {activeTab === "records" && (
         <div className="mt-4">
+          {/* Bảng danh sách records */}
           <table className="min-w-full border text-sm">
             <thead className="bg-gray-100">
               <tr>
                 <th className="border px-2 py-1">ID</th>
                 <th className="border px-2 py-1">Sinh viên</th>
-                <th className="border px-2 py-1">Lớp</th> {/* Cột mới */}
+                <th className="border px-2 py-1">Lớp</th>
                 <th className="border px-2 py-1">Ảnh</th>
                 <th className="border px-2 py-1">Award Category</th>
                 <th className="border px-2 py-1">Sub Award</th>
@@ -984,7 +1126,7 @@ function HallOfFameAdminPage() {
                   <td className="border px-2 py-1 space-x-2">
                     <button
                       className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded"
-                      onClick={() => handleRecordEdit(r)}
+                      onClick={() => handleRecordEditOutside(r)}
                     >
                       Edit
                     </button>
@@ -1001,264 +1143,1425 @@ function HallOfFameAdminPage() {
           </table>
         </div>
       )}
+
+      {/* Modal Tạo/Sửa Category + Tạo Record */}
       {showCategoryModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-20">
-          <div className="bg-white p-6 rounded shadow-lg w-1/2 relative">
+          <div className="bg-white p-6 rounded shadow-lg w-11/12 relative flex gap-6">
             <button
-              onClick={() => setShowCategoryModal(false)}
+              onClick={resetModalState}
               className="absolute top-2 right-2 text-xl"
             >
               ×
             </button>
-            <h2 className="text-xl font-semibold mb-2">
-              {editingCategory
-                ? "Cập nhật Loại Vinh Danh"
-                : "Tạo mới Loại Vinh Danh"}
-            </h2>
-            <form onSubmit={handleCategorySubmit} className="space-y-4">
-              <div>
-                <label className="block font-medium">Tên Loại:</label>
-                <input
-                  className="border rounded w-full p-2"
-                  value={categoryFormData.name}
-                  onChange={(e) =>
-                    setCategoryFormData({
-                      ...categoryFormData,
-                      name: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block font-medium">Name:</label>
-                <input
-                  className="border rounded w-full p-2"
-                  value={categoryFormData.nameEng}
-                  onChange={(e) =>
-                    setCategoryFormData({
-                      ...categoryFormData,
-                      nameEng: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block font-medium">Mô tả:</label>
-                <textarea
-                  className="border rounded w-full p-2"
-                  value={categoryFormData.description}
-                  onChange={(e) =>
-                    setCategoryFormData({
-                      ...categoryFormData,
-                      description: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block font-medium">Description</label>
-                <textarea
-                  className="border rounded w-full p-2"
-                  value={categoryFormData.descriptionEng}
-                  onChange={(e) =>
-                    setCategoryFormData({
-                      ...categoryFormData,
-                      descriptionEng: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block font-medium">Ảnh Bìa:</label>
-                <input
-                  type="file"
-                  onChange={handleCoverImageChange}
-                  className="mb-2"
-                />
+
+            {/* Nửa bên trái: Thông tin Category + Step subAward */}
+            <div
+              className="w-1/2 border-r pr-4 overflow-y-auto"
+              style={{ maxHeight: "80vh" }}
+            >
+              <h2 className="text-xl font-semibold mb-2">
+                {editingCategory
+                  ? "Cập nhật Loại Vinh Danh"
+                  : "Tạo mới Loại Vinh Danh"}
+              </h2>
+              <div className="relative group mb-2">
                 {categoryFormData.coverImage && (
                   <div>
                     <img
                       src={`${BASE_URL}/${categoryFormData.coverImage}`}
                       alt="Cover"
-                      className="h-20 object-cover"
+                      className="w-full h-48 rounded-2xl object-cover cursor-pointer"
+                      onClick={() =>
+                        document.getElementById("coverImageUpload").click()
+                      }
                     />
                   </div>
                 )}
+                <input
+                  type="file"
+                  id="coverImageUpload"
+                  onChange={handleCoverImageChange}
+                  className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                />
               </div>
-              <div>
-                <h4 className="font-medium mb-1">Chọn kiểu Sub Award:</h4>
-                <label className="inline-flex items-center space-x-2 mr-4">
-                  <input
-                    type="checkbox"
-                    className="form-checkbox h-4 w-4 text-blue-600"
-                    checked={subAwardMode.custom}
-                    onChange={(e) =>
-                      setSubAwardMode({
-                        ...subAwardMode,
-                        custom: e.target.checked,
-                      })
-                    }
-                  />
-                  <span>Tuỳ chọn</span>
-                </label>
-                <label className="inline-flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    className="form-checkbox h-4 w-4 text-blue-600"
-                    checked={subAwardMode.schoolYear}
-                    onChange={(e) =>
-                      setSubAwardMode({
-                        ...subAwardMode,
-                        schoolYear: e.target.checked,
-                      })
-                    }
-                  />
-                  <span>Năm học</span>
-                </label>
-              </div>
-              {/* Sub Award: Custom */}
-              {subAwardMode.custom && (
-                <div className="border p-3 rounded">
-                  <label className="block font-medium mb-2">
-                    Thêm Sub Awards tùy chỉnh:
-                  </label>
-                  <div className="flex items-center space-x-2 mb-2">
+
+              {/* Form Category */}
+              <form onSubmit={handleCategorySubmit} className="space-y-4">
+                <div className="w-full flex flex-row gap-4 mb-2">
+                  <div className="w-full">
+                    <label className="block font-medium">Tên:</label>
                     <input
-                      type="text"
-                      className="border rounded p-1"
-                      value={newCustomSubAward}
-                      onChange={(e) => setNewCustomSubAward(e.target.value)}
-                      placeholder="Nhập label subAward..."
-                    />
-                    <select
-                      className="border rounded p-1"
-                      value={newCustomSubAwardSchoolYear}
+                      className="w-full border border-gray-200 rounded-2xl p-2 text-[#282828]"
+                      value={categoryFormData.name}
                       onChange={(e) =>
-                        setNewCustomSubAwardSchoolYear(e.target.value)
+                        setCategoryFormData({
+                          ...categoryFormData,
+                          name: e.target.value,
+                        })
                       }
-                    >
-                      <option value="">--Chọn School Year--</option>
-                      {(schoolYears || []).map((sy) => (
-                        <option key={sy._id} value={sy._id}>
-                          {sy.code || sy.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
-                      onClick={() => {
-                        if (
-                          newCustomSubAward.trim() !== "" &&
-                          newCustomSubAwardSchoolYear !== ""
-                        ) {
-                          setCustomSubAwards([
-                            ...customSubAwards,
-                            {
-                              type: "custom",
-                              label: newCustomSubAward,
-                              schoolYear: newCustomSubAwardSchoolYear,
-                              awardCount: 0,
-                            },
-                          ]);
-                          setNewCustomSubAward("");
-                          setNewCustomSubAwardSchoolYear("");
-                        } else {
-                          alert(
-                            "Vui lòng nhập label và chọn School Year cho subAward."
-                          );
-                        }
-                      }}
-                    >
-                      Thêm
-                    </button>
+                    />
                   </div>
-                  <ul className="list-disc pl-5">
-                    {customSubAwards.map((sub, index) => (
-                      <li key={index} className="mb-2">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="text"
-                            className="border rounded p-1 w-48"
-                            value={sub.label}
-                            onChange={(e) => {
-                              const updated = [...customSubAwards];
-                              updated[index].label = e.target.value;
-                              setCustomSubAwards(updated);
-                            }}
-                          />
-                          <select
-                            className="border rounded p-1"
-                            value={sub.schoolYear}
-                            onChange={(e) => {
-                              const updated = [...customSubAwards];
-                              updated[index].schoolYear = e.target.value;
-                              setCustomSubAwards(updated);
-                            }}
-                          >
-                            <option value="">--Chọn--</option>
-                            {(schoolYears || []).map((sy) => (
-                              <option key={sy._id} value={sy._id}>
-                                {sy.code || sy.name}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-                            onClick={() =>
-                              setCustomSubAwards(
-                                customSubAwards.filter((_, i) => i !== index)
-                              )
-                            }
-                          >
-                            Xoá
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="w-full">
+                    <label className="block font-medium">
+                      Tên (Tiếng Anh):
+                    </label>
+                    <input
+                      className="w-full border border-gray-200 rounded-2xl p-2 text-[#282828]"
+                      value={categoryFormData.nameEng}
+                      onChange={(e) =>
+                        setCategoryFormData({
+                          ...categoryFormData,
+                          nameEng: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
                 </div>
-              )}
-              {/* Sub Award: SchoolYear */}
-              {subAwardMode.schoolYear && (
-                <div className="border p-3 rounded">
-                  <label className="block font-medium mb-2">
-                    Chọn School Year:
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {schoolYears.map((sy) => (
-                      <label
-                        key={sy._id}
-                        className="flex items-center space-x-2"
-                      >
+                <div className="w-full flex flex-row gap-4 mb-2">
+                  <div className="w-full">
+                    <label className="block font-medium">Mô tả:</label>
+                    <textarea
+                      className="w-full h-36 border border-gray-200 rounded-2xl p-2 text-[#282828] overflow-hidden hover:overflow-auto"
+                      value={categoryFormData.description}
+                      onChange={(e) =>
+                        setCategoryFormData({
+                          ...categoryFormData,
+                          description: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="w-full">
+                    <label className="block font-medium">
+                      Mô tả (Tiếng Anh):
+                    </label>
+                    <textarea
+                      className="w-full h-36 border border-gray-200 rounded-2xl p-2 text-[#282828] overflow-hidden hover:overflow-auto"
+                      value={categoryFormData.descriptionEng}
+                      onChange={(e) =>
+                        setCategoryFormData({
+                          ...categoryFormData,
+                          descriptionEng: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Bước 1 và 2 gộp lại */}
+                <div className="border rounded-2xl p-4">
+                  <h4 className="font-medium mb-4">
+                    Bước 1: Chọn và thiết lập loại Vinh danh
+                  </h4>
+                  <div className="space-y-6">
+                    {/* Vinh danh tùy chọn */}
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
                         <input
                           type="checkbox"
-                          className="form-checkbox h-4 w-4 text-blue-600"
-                          value={sy._id}
-                          checked={selectedSchoolYears.includes(sy._id)}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setSelectedSchoolYears((prev) =>
-                              checked
-                                ? [...prev, sy._id]
-                                : prev.filter((id) => id !== sy._id)
-                            );
-                          }}
+                          className="form-checkbox h-4 w-4 text-[#002147] rounded-[4px]"
+                          checked={subAwardMode.custom}
+                          onChange={(e) =>
+                            setSubAwardMode({
+                              ...subAwardMode,
+                              custom: e.target.checked,
+                            })
+                          }
                         />
-                        <span>{sy.code || sy.name}</span>
-                      </label>
-                    ))}
+                        <span>
+                          Vinh danh tùy chọn <br />
+                          <span className="text-xs text-gray-500 italic">
+                            Chọn mode này khi bạn muốn tạo các loại vinh danh
+                            nhỏ hơn không có thời gian định kỳ năm, tháng, học
+                            kì.
+                          </span>
+                        </span>
+                      </div>
+                      {subAwardMode.custom && (
+                        <div className=" ml-6 space-y-3 border-l-2 border-gray-200 pl-4">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              className="w-48 border rounded-lg p-1.5 text-xs"
+                              value={newCustomSubAward}
+                              onChange={(e) =>
+                                setNewCustomSubAward(e.target.value)
+                              }
+                              placeholder="Nhập tên vinh danh"
+                            />
+                            <select
+                              className="border rounded-lg p-2 text-xs"
+                              value={newCustomSubAwardSchoolYear}
+                              onChange={(e) =>
+                                setNewCustomSubAwardSchoolYear(e.target.value)
+                              }
+                            >
+                              <option value="">--Chọn năm học--</option>
+                              {(schoolYears || []).map((sy) => (
+                                <option key={sy._id} value={sy._id}>
+                                  {sy.code || sy.name}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              className="bg-[#009483] text-white px-2 py-1 rounded-lg text-sm font-semibold"
+                              onClick={() => {
+                                if (
+                                  newCustomSubAward.trim() !== "" &&
+                                  newCustomSubAwardSchoolYear !== ""
+                                ) {
+                                  const newSubAward = {
+                                    type: "custom",
+                                    label: newCustomSubAward,
+                                    schoolYear: newCustomSubAwardSchoolYear,
+                                    awardCount: 0,
+                                  };
+                                  setCustomSubAwards([
+                                    ...customSubAwards,
+                                    newSubAward,
+                                  ]);
+
+                                  setCategoryFormData((prev) => ({
+                                    ...prev,
+                                    subAwards: [...prev.subAwards, newSubAward],
+                                  }));
+
+                                  setNewCustomSubAward("");
+                                  setNewCustomSubAwardSchoolYear("");
+                                } else {
+                                  alert(
+                                    "Vui lòng nhập label và chọn School Year cho subAward."
+                                  );
+                                }
+                              }}
+                            >
+                              +
+                            </button>
+                          </div>
+                          <ul className="list-disc pl-5 space-y-1">
+                            {customSubAwards.map((sub, index) => {
+                              const schoolYear = schoolYears.find(
+                                (sy) => sy._id === sub.schoolYear
+                              );
+                              return (
+                                <li key={index} className="text-sm">
+                                  {sub.label} (
+                                  {schoolYear
+                                    ? `Năm học ${schoolYear.code}`
+                                    : sub.schoolYear}
+                                  )
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Vinh danh định kỳ */}
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          className="form-checkbox h-4 w-4 text-[#002147] rounded-[4px]"
+                          checked={subAwardMode.schoolYear}
+                          onChange={(e) =>
+                            setSubAwardMode({
+                              ...subAwardMode,
+                              schoolYear: e.target.checked,
+                            })
+                          }
+                        />
+                        <span>
+                          Vinh danh định kì <br />
+                          <span className="text-xs text-gray-500 italic">
+                            Chọn mode này khi bạn muốn tạo các loại vinh danh có
+                            thời gian định kỳ năm, tháng, học kì.
+                          </span>
+                        </span>
+                      </div>
+                      {subAwardMode.schoolYear && (
+                        <div className="ml-6 space-y-3 border-l-2 border-gray-200 pl-4">
+                          <label className="text-sm">Chọn Năm học:</label>
+                          <div className="w-72 grid grid-cols-2 gap-2">
+                            {schoolYears.map((sy) => (
+                              <label
+                                key={sy._id}
+                                className="flex items-center space-x-2"
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="form-checkbox h-4 w-4 text-[#002147] rounded-[4px]"
+                                  value={sy._id}
+                                  checked={selectedSchoolYears.includes(sy._id)}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setSelectedSchoolYears((prev) => {
+                                      if (checked) {
+                                        return [...prev, sy._id];
+                                      } else {
+                                        return prev.filter(
+                                          (id) => id !== sy._id
+                                        );
+                                      }
+                                    });
+                                  }}
+                                />
+                                <span>{sy.code || sy.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        className="bg-[#009483] text-white px-3 py-1 rounded-lg text-sm"
+                        onClick={async () => {
+                          try {
+                            await handleCategorySubmit();
+                            alert("Đã lưu Category và Sub-Award thành công!");
+                            setSubAwardStep(3);
+                          } catch (error) {
+                            console.error(error);
+                            alert("Lưu Category thất bại!");
+                          }
+                        }}
+                      >
+                        Lưu Category
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 3: Xác nhận & Quản lý Sub Award */}
+                <div className="border rounded-2xl p-4">
+                  <h4 className="font-medium mb-4">
+                    Bước 2: Thêm học sinh và lớp
+                  </h4>
+                  {(() => {
+                    const cat = categories.find(
+                      (c) => c._id === editingCategory
+                    );
+                    if (!cat || !cat.subAwards || cat.subAwards.length === 0) {
+                      return (
+                        <p className="text-gray-500 italic">
+                          Không có Sub Award nào.
+                        </p>
+                      );
+                    }
+
+                    return (
+                      <div className="grid grid-cols-3 gap-4">
+                        {cat.subAwards.map((sub, idx) => (
+                          <div
+                            key={idx}
+                            className={`cursor-pointer p-2 rounded-xl border transition ${
+                              selectedSubAward &&
+                              selectedSubAward.label === sub.label &&
+                              selectedSubAward.type === sub.type &&
+                              String(selectedSubAward.schoolYear) ===
+                                String(sub.schoolYear)
+                                ? "bg-[#002855] text-white"
+                                : "hover:bg-gray-50"
+                            }`}
+                            onClick={() => handleSubAwardSelect(sub)}
+                          >
+                            <div className="font-medium ml-1">{sub.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </form>
+            </div>
+
+            {/* Nửa bên phải: Form Tạo Record */}
+            <div
+              className="w-1/2 pl-4 overflow-y-auto"
+              style={{ maxHeight: "80vh" }}
+            >
+              {/* Nếu chưa có editingCategory => disable form */}
+              {!editingCategory && (
+                <div className="text-red-500">
+                  Vui lòng tạo & lưu Category trước khi thêm Record.
+                </div>
+              )}
+
+              {/* Hiển thị thông tin Sub Award đang chọn */}
+              {selectedSubAward && (
+                <div className="mb-4">
+                  <div className="p-3 rounded-t">
+                    <div className="flex justify-end items-center">
+                      <div className="space-x-2">
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleExcelUpload}
+                          className="hidden"
+                          id="excel-students"
+                        />
+                        <label
+                          htmlFor="excel-students"
+                          className="bg-[#009483] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
+                        >
+                          Thêm học sinh
+                        </label>
+
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleExcelClassUpload}
+                          className="hidden"
+                          id="excel-classes"
+                        />
+                        <label
+                          htmlFor="excel-classes"
+                          className="bg-[#009483] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
+                        >
+                          Thêm lớp
+                        </label>
+
+                        {selectedSubAwardRecords.length > 0 && (
+                          <button
+                            onClick={handleDeleteAllRecords}
+                            className="bg-[#DC0909] text-white px-3 py-1 rounded text-sm"
+                          >
+                            Xóa tất cả dữ liệu
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Thêm các nút xác nhận và xóa */}
+                  <div className="mt-4 flex justify-end items-center space-x-4">
+                    {/* Hiển thị số lượng học sinh và lớp từ Excel */}
+                    {(excelRecordCount > 0 || excelClassCount > 0) && (
+                      <div className="flex items-center space-x-4">
+                        {excelRecordCount > 0 && (
+                          <div className="flex items-center space-x-2 bg-green-50 px-3 py-1.5 rounded-lg">
+                            <span className="text-sm font-medium text-green-700">
+                              Trong file có {excelRecordCount} học sinh
+                            </span>
+                            <button
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    "Bạn có chắc chắn muốn xóa file học sinh đã tải lên?"
+                                  )
+                                ) {
+                                  setExcelStudents([]);
+                                  setExcelRecordCount(0);
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                              title="Xóa file học sinh"
+                            >
+                              <FaTrashCan size={12} />
+                            </button>
+                          </div>
+                        )}
+                        {excelClassCount > 0 && (
+                          <div className="flex items-center space-x-2 bg-yellow-50 px-3 py-1.5 rounded-lg">
+                            <span className="text-sm font-medium text-yellow-700">
+                              Trong file có {excelClassCount} lớp
+                            </span>
+                            <button
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    "Bạn có chắc chắn muốn xóa file lớp đã tải lên?"
+                                  )
+                                ) {
+                                  setExcelClasses([]);
+                                  setExcelClassCount(0);
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                              title="Xóa file lớp"
+                            >
+                              <FaTrashCan size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div>
+                      {(excelRecordCount > 0 || excelClassCount > 0) && (
+                        <button
+                          onClick={handleRecordSubmit}
+                          className="bg-[#009483] hover:bg-[#008577] text-white px-4 py-1.5 rounded-lg text-sm font-medium flex items-center space-x-2 transition-colors"
+                        >
+                          <span>Xác nhận thêm</span>
+                          <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
+                            {excelRecordCount + excelClassCount} đối tượng
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bảng hiển thị dữ liệu */}
+                  <div className="rounded-b">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="!border-px !border-gray-400">
+                          <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                            <p className="text-sm font-bold text-gray-500 uppercase">
+                              Mã học sinh/ Lớp
+                            </p>
+                          </th>
+                          <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                            <p className="text-sm font-bold text-gray-500 uppercase">
+                              Ghi chú
+                            </p>
+                          </th>
+                          <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                            <p className="text-sm font-bold text-gray-500 uppercase">
+                              Ghi chú (EN)
+                            </p>
+                          </th>
+                          <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                            <p className="text-sm font-bold text-gray-500 uppercase">
+                              Hành động
+                            </p>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {/* Dòng thêm mới bằng tay */}
+                        {selectedSubAward && (
+                          <>
+                            {/* Phần thêm học sinh */}
+                            <tr className="border-b">
+                              <td className="py-3 pr-4">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={searchInput}
+                                    onChange={handleSearchChange}
+                                    onFocus={() => setShowSuggestions(true)}
+                                    onBlur={() =>
+                                      setTimeout(
+                                        () => setShowSuggestions(false),
+                                        200
+                                      )
+                                    }
+                                    placeholder="Nhập mã hoặc tên học sinh..."
+                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                  />
+                                  {showSuggestions &&
+                                    filteredStudents.length > 0 &&
+                                    !selectedStudent && (
+                                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                        {filteredStudents.map((student) => (
+                                          <div
+                                            key={student._id}
+                                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                            onClick={() =>
+                                              handleSelectStudent(student)
+                                            }
+                                          >
+                                            <div className="text-sm font-bold">
+                                              {student.studentCode} -{" "}
+                                              {student.name}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-sm text-gray-900">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={tempNote}
+                                    onChange={(e) =>
+                                      setTempNote(e.target.value)
+                                    }
+                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                    placeholder="Nhập ghi chú tiếng việt"
+                                    disabled={!selectedStudent}
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-sm text-gray-900">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={tempNoteEng}
+                                    onChange={(e) =>
+                                      setTempNoteEng(e.target.value)
+                                    }
+                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                    placeholder="Nhập ghi chú tiếng anh"
+                                    disabled={!selectedStudent}
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-sm text-gray-900">
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={handleAddNewRecord}
+                                    className="text-white bg-[#009483] hover:bg-[#008577] p-1 rounded-[8px]"
+                                    title="Thêm mới"
+                                    disabled={!selectedStudent}
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      className="h-5 w-5"
+                                      viewBox="0 0 20 20"
+                                      fill="currentColor"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </button>
+                                  {selectedStudent && (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedStudent(null);
+                                        setSearchInput("");
+                                        setTempNote("");
+                                        setTempNoteEng("");
+                                      }}
+                                      className="text-red-500 hover:text-red-600 p-1 rounded-[8px] hover:bg-red-50"
+                                      title="Hủy"
+                                    >
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-5 w-5"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+
+                            {/* Phần thêm lớp */}
+                            <tr className="border-b">
+                              <td className="py-3 pr-4">
+                                <div className="relative">
+                                  <select
+                                    value={classInput}
+                                    onChange={(e) =>
+                                      setClassInput(e.target.value)
+                                    }
+                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                  >
+                                    <option value="">Chọn lớp...</option>
+                                    {classesList.map((cls) => (
+                                      <option key={cls._id} value={cls._id}>
+                                        {cls.className}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-sm text-gray-900">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={tempClassNote}
+                                    onChange={(e) =>
+                                      setTempClassNote(e.target.value)
+                                    }
+                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                    placeholder="Nhập ghi chú tiếng việt"
+                                    disabled={!classInput}
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-sm text-gray-900">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={tempClassNoteEng}
+                                    onChange={(e) =>
+                                      setTempClassNoteEng(e.target.value)
+                                    }
+                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                    placeholder="Nhập ghi chú tiếng anh"
+                                    disabled={!classInput}
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-sm text-gray-900">
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={handleAddNewClassRecord}
+                                    className="text-white bg-[#009483] hover:bg-[#008577] p-1 rounded-[8px]"
+                                    title="Thêm mới"
+                                    disabled={!classInput}
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      className="h-5 w-5"
+                                      viewBox="0 0 20 20"
+                                      fill="currentColor"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </button>
+                                  {classInput && (
+                                    <button
+                                      onClick={() => {
+                                        setClassInput("");
+                                        setTempClassNote("");
+                                        setTempClassNoteEng("");
+                                      }}
+                                      className="text-red-500 hover:text-red-600 p-1 rounded-[8px] hover:bg-red-50"
+                                      title="Hủy"
+                                    >
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-5 w-5"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          </>
+                        )}
+
+                        {/* Hiển thị records đã lưu */}
+                        {selectedSubAwardRecords.map((record, recordIndex) => (
+                          <React.Fragment key={`record-${recordIndex}`}>
+                            {/* Hiển thị học sinh */}
+                            {record.students?.map((student, studentIndex) => (
+                              <tr
+                                key={`record-${recordIndex}-student-${studentIndex}`}
+                                className="border-b border-gray-200"
+                              >
+                                <td className="py-3 pr-4">
+                                  <input
+                                    type="text"
+                                    value={student.student?.studentCode || ""}
+                                    readOnly
+                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                  />
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900">
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      value={student.note || ""}
+                                      onChange={(e) => {
+                                        const updatedRecords = [
+                                          ...selectedSubAwardRecords,
+                                        ];
+                                        updatedRecords[recordIndex].students[
+                                          studentIndex
+                                        ].note = e.target.value;
+                                        setSelectedSubAwardRecords(
+                                          updatedRecords
+                                        );
+                                      }}
+                                      onFocus={(e) => {
+                                        e.target.style.display = "none";
+                                        e.target.nextElementSibling.style.display =
+                                          "block";
+                                        e.target.nextElementSibling.focus();
+                                      }}
+                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                    />
+                                    <textarea
+                                      value={student.note || ""}
+                                      onChange={(e) => {
+                                        const updatedRecords = [
+                                          ...selectedSubAwardRecords,
+                                        ];
+                                        updatedRecords[recordIndex].students[
+                                          studentIndex
+                                        ].note = e.target.value;
+                                        setSelectedSubAwardRecords(
+                                          updatedRecords
+                                        );
+                                      }}
+                                      onBlur={(e) => {
+                                        e.target.style.display = "none";
+                                        e.target.previousElementSibling.style.display =
+                                          "block";
+                                      }}
+                                      className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
+                                      rows="4"
+                                    />
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900">
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      value={student.noteEng || ""}
+                                      onChange={(e) => {
+                                        const updatedRecords = [
+                                          ...selectedSubAwardRecords,
+                                        ];
+                                        updatedRecords[recordIndex].students[
+                                          studentIndex
+                                        ].noteEng = e.target.value;
+                                        setSelectedSubAwardRecords(
+                                          updatedRecords
+                                        );
+                                      }}
+                                      onFocus={(e) => {
+                                        e.target.style.display = "none";
+                                        e.target.nextElementSibling.style.display =
+                                          "block";
+                                        e.target.nextElementSibling.focus();
+                                      }}
+                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                    />
+                                    <textarea
+                                      value={student.noteEng || ""}
+                                      onChange={(e) => {
+                                        const updatedRecords = [
+                                          ...selectedSubAwardRecords,
+                                        ];
+                                        updatedRecords[recordIndex].students[
+                                          studentIndex
+                                        ].noteEng = e.target.value;
+                                        setSelectedSubAwardRecords(
+                                          updatedRecords
+                                        );
+                                      }}
+                                      onBlur={(e) => {
+                                        e.target.style.display = "none";
+                                        e.target.previousElementSibling.style.display =
+                                          "block";
+                                      }}
+                                      className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
+                                      rows="4"
+                                    />
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900">
+                                  <div className="flex space-x-2">
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await axios.put(
+                                            `${API_URL}/award-records/${record._id}`,
+                                            record
+                                          );
+                                          alert("Cập nhật thành công!");
+                                        } catch (error) {
+                                          console.error(
+                                            "Error updating record:",
+                                            error
+                                          );
+                                          alert("Cập nhật thất bại!");
+                                        }
+                                      }}
+                                      className="text-[#002855] hover:text-[#002147] p-1 rounded-full hover:bg-blue-50"
+                                      title="Cập nhật"
+                                    >
+                                      <FaPen size={14} />
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        if (
+                                          window.confirm(
+                                            "Bạn có chắc chắn muốn xóa record này?"
+                                          )
+                                        ) {
+                                          try {
+                                            const updatedRecords = [
+                                              ...selectedSubAwardRecords,
+                                            ];
+                                            updatedRecords[
+                                              recordIndex
+                                            ].students = updatedRecords[
+                                              recordIndex
+                                            ].students.filter(
+                                              (_, idx) => idx !== studentIndex
+                                            );
+                                            await axios.put(
+                                              `${API_URL}/award-records/${record._id}`,
+                                              updatedRecords[recordIndex]
+                                            );
+                                            setSelectedSubAwardRecords(
+                                              updatedRecords
+                                            );
+                                            alert("Xóa thành công!");
+                                          } catch (error) {
+                                            console.error(
+                                              "Error deleting record:",
+                                              error
+                                            );
+                                            alert("Xóa thất bại!");
+                                          }
+                                        }
+                                      }}
+                                      className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                                      title="Xóa"
+                                    >
+                                      <FaTrashCan size={14} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+
+                            {/* Hiển thị lớp */}
+                            {record.awardClasses?.map(
+                              (awardClass, classIndex) => (
+                                <tr
+                                  key={`record-${recordIndex}-class-${classIndex}`}
+                                  className="border-b border-gray-200"
+                                >
+                                  <td className="py-3 pr-4">
+                                    <input
+                                      type="text"
+                                      value={awardClass.class?.className || ""}
+                                      readOnly
+                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2 text-sm text-gray-900">
+                                    <div className="relative">
+                                      <input
+                                        type="text"
+                                        value={awardClass.note || ""}
+                                        onChange={(e) => {
+                                          const updatedRecords = [
+                                            ...selectedSubAwardRecords,
+                                          ];
+                                          updatedRecords[
+                                            recordIndex
+                                          ].awardClasses[classIndex].note =
+                                            e.target.value;
+                                          setSelectedSubAwardRecords(
+                                            updatedRecords
+                                          );
+                                        }}
+                                        onFocus={(e) => {
+                                          e.target.style.display = "none";
+                                          e.target.nextElementSibling.style.display =
+                                            "block";
+                                          e.target.nextElementSibling.focus();
+                                        }}
+                                        className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                      />
+                                      <textarea
+                                        value={awardClass.note || ""}
+                                        onChange={(e) => {
+                                          const updatedRecords = [
+                                            ...selectedSubAwardRecords,
+                                          ];
+                                          updatedRecords[
+                                            recordIndex
+                                          ].awardClasses[classIndex].note =
+                                            e.target.value;
+                                          setSelectedSubAwardRecords(
+                                            updatedRecords
+                                          );
+                                        }}
+                                        onBlur={(e) => {
+                                          e.target.style.display = "none";
+                                          e.target.previousElementSibling.style.display =
+                                            "block";
+                                        }}
+                                        className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
+                                        rows="4"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2 text-sm text-gray-900">
+                                    <div className="relative">
+                                      <input
+                                        type="text"
+                                        value={awardClass.noteEng || ""}
+                                        onChange={(e) => {
+                                          const updatedRecords = [
+                                            ...selectedSubAwardRecords,
+                                          ];
+                                          updatedRecords[
+                                            recordIndex
+                                          ].awardClasses[classIndex].noteEng =
+                                            e.target.value;
+                                          setSelectedSubAwardRecords(
+                                            updatedRecords
+                                          );
+                                        }}
+                                        onFocus={(e) => {
+                                          e.target.style.display = "none";
+                                          e.target.nextElementSibling.style.display =
+                                            "block";
+                                          e.target.nextElementSibling.focus();
+                                        }}
+                                        className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                      />
+                                      <textarea
+                                        value={awardClass.noteEng || ""}
+                                        onChange={(e) => {
+                                          const updatedRecords = [
+                                            ...selectedSubAwardRecords,
+                                          ];
+                                          updatedRecords[
+                                            recordIndex
+                                          ].awardClasses[classIndex].noteEng =
+                                            e.target.value;
+                                          setSelectedSubAwardRecords(
+                                            updatedRecords
+                                          );
+                                        }}
+                                        onBlur={(e) => {
+                                          e.target.style.display = "none";
+                                          e.target.previousElementSibling.style.display =
+                                            "block";
+                                        }}
+                                        className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
+                                        rows="4"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2 text-sm text-gray-900">
+                                    <div className="flex space-x-2">
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            await axios.put(
+                                              `${API_URL}/award-records/${record._id}`,
+                                              record
+                                            );
+                                            alert("Cập nhật thành công!");
+                                          } catch (error) {
+                                            console.error(
+                                              "Error updating record:",
+                                              error
+                                            );
+                                            alert("Cập nhật thất bại!");
+                                          }
+                                        }}
+                                        className="text-[#002855] hover:text-[#002147] p-1 rounded-full hover:bg-blue-50"
+                                        title="Cập nhật"
+                                      >
+                                        <FaPen size={14} />
+                                      </button>
+                                      <button
+                                        onClick={async () => {
+                                          if (
+                                            window.confirm(
+                                              "Bạn có chắc chắn muốn xóa record này?"
+                                            )
+                                          ) {
+                                            try {
+                                              await axios.delete(
+                                                `${API_URL}/award-records/${record._id}`
+                                              );
+                                              setSelectedSubAwardRecords(
+                                                (prev) =>
+                                                  prev.filter(
+                                                    (r) => r._id !== record._id
+                                                  )
+                                              );
+                                              alert("Xóa thành công!");
+                                            } catch (error) {
+                                              console.error(
+                                                "Error deleting record:",
+                                                error
+                                              );
+                                              alert("Xóa thất bại!");
+                                            }
+                                          }
+                                        }}
+                                        className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                                        title="Xóa"
+                                      >
+                                        <FaTrashCan size={14} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            )}
+                          </React.Fragment>
+                        ))}
+
+                        {/* Hiển thị records đang thêm mới */}
+                        {recordFormData.students.map((student, index) => (
+                          <tr
+                            key={`new-student-${index}`}
+                            className="border-b border-gray-200"
+                          >
+                            <td className="py-3 pr-4">
+                              <select
+                                value={student.student || ""}
+                                onChange={(e) =>
+                                  handleStudentChange(
+                                    index,
+                                    "student",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full border rounded-lg p-2 text-sm"
+                              >
+                                <option value="">Chọn học sinh</option>
+                                {studentsList.map((s) => (
+                                  <option key={s._id} value={s._id}>
+                                    {s.studentCode} - {s.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={student.note || ""}
+                                  onChange={(e) =>
+                                    handleStudentChange(
+                                      index,
+                                      "note",
+                                      e.target.value
+                                    )
+                                  }
+                                  onFocus={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.nextElementSibling.style.display =
+                                      "block";
+                                    e.target.nextElementSibling.focus();
+                                  }}
+                                  className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                />
+                                <textarea
+                                  value={student.note || ""}
+                                  onChange={(e) =>
+                                    handleStudentChange(
+                                      index,
+                                      "note",
+                                      e.target.value
+                                    )
+                                  }
+                                  onBlur={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.previousElementSibling.style.display =
+                                      "block";
+                                  }}
+                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
+                                  rows="4"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={student.noteEng || ""}
+                                  onChange={(e) =>
+                                    handleStudentChange(
+                                      index,
+                                      "noteEng",
+                                      e.target.value
+                                    )
+                                  }
+                                  onFocus={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.nextElementSibling.style.display =
+                                      "block";
+                                    e.target.nextElementSibling.focus();
+                                  }}
+                                  className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                />
+                                <textarea
+                                  value={student.noteEng || ""}
+                                  onChange={(e) =>
+                                    handleStudentChange(
+                                      index,
+                                      "noteEng",
+                                      e.target.value
+                                    )
+                                  }
+                                  onBlur={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.previousElementSibling.style.display =
+                                      "block";
+                                  }}
+                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
+                                  rows="4"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              <button
+                                onClick={() => handleRemoveStudent(index)}
+                                className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                                title="Xóa"
+                              >
+                                <FaTrashCan size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Hiển thị học sinh từ Excel */}
+                        {excelStudents.map((student, index) => (
+                          <tr
+                            key={`excel-student-${index}`}
+                            className="border-b "
+                          >
+                            <td className="py-3 pr-4">
+                              <input
+                                type="text"
+                                value={
+                                  studentsList.find(
+                                    (s) => s._id === student.student
+                                  )?.studentCode || ""
+                                }
+                                readOnly
+                                className="border-none rounded-lg bg-transparent text-sm font-bold text-navy-700 w-full"
+                              />
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={student.note || ""}
+                                  onChange={(e) => {
+                                    const updatedStudents = [...excelStudents];
+                                    updatedStudents[index].note =
+                                      e.target.value;
+                                    setExcelStudents(updatedStudents);
+                                  }}
+                                  onFocus={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.nextElementSibling.style.display =
+                                      "block";
+                                    e.target.nextElementSibling.focus();
+                                  }}
+                                  className="border-none rounded-lg bg-transparent text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                />
+                                <textarea
+                                  value={student.note || ""}
+                                  onChange={(e) => {
+                                    const updatedStudents = [...excelStudents];
+                                    updatedStudents[index].note =
+                                      e.target.value;
+                                    setExcelStudents(updatedStudents);
+                                  }}
+                                  onBlur={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.previousElementSibling.style.display =
+                                      "block";
+                                  }}
+                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
+                                  rows="4"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={student.noteEng || ""}
+                                  onChange={(e) => {
+                                    const updatedStudents = [...excelStudents];
+                                    updatedStudents[index].noteEng =
+                                      e.target.value;
+                                    setExcelStudents(updatedStudents);
+                                  }}
+                                  onFocus={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.nextElementSibling.style.display =
+                                      "block";
+                                    e.target.nextElementSibling.focus();
+                                  }}
+                                  className="border-none rounded-lg bg-transparent text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                />
+                                <textarea
+                                  value={student.noteEng || ""}
+                                  onChange={(e) => {
+                                    const updatedStudents = [...excelStudents];
+                                    updatedStudents[index].noteEng =
+                                      e.target.value;
+                                    setExcelStudents(updatedStudents);
+                                  }}
+                                  onBlur={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.previousElementSibling.style.display =
+                                      "block";
+                                  }}
+                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
+                                  rows="4"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              <button
+                                onClick={() => {
+                                  const updatedStudents = excelStudents.filter(
+                                    (_, i) => i !== index
+                                  );
+                                  setExcelStudents(updatedStudents);
+                                  setExcelRecordCount(updatedStudents.length);
+                                }}
+                                className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                                title="Xóa"
+                              >
+                                <FaTrashCan size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Hiển thị lớp từ Excel */}
+                        {excelClasses.map((awardClass, index) => (
+                          <tr key={`excel-class-${index}`} className="border-b">
+                            <td className="py-3 pr-4">
+                              <input
+                                type="text"
+                                value={
+                                  classesList.find(
+                                    (c) => c._id === awardClass.class
+                                  )?.className || ""
+                                }
+                                readOnly
+                                className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                              />
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={awardClass.note || ""}
+                                  onChange={(e) => {
+                                    const updatedClasses = [...excelClasses];
+                                    updatedClasses[index].note = e.target.value;
+                                    setExcelClasses(updatedClasses);
+                                  }}
+                                  onFocus={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.nextElementSibling.style.display =
+                                      "block";
+                                    e.target.nextElementSibling.focus();
+                                  }}
+                                  className="border-none rounded-lg bg-gray-100  text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                />
+                                <textarea
+                                  value={awardClass.note || ""}
+                                  onChange={(e) => {
+                                    const updatedClasses = [...excelClasses];
+                                    updatedClasses[index].note = e.target.value;
+                                    setExcelClasses(updatedClasses);
+                                  }}
+                                  onBlur={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.previousElementSibling.style.display =
+                                      "block";
+                                  }}
+                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
+                                  rows="4"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={awardClass.noteEng || ""}
+                                  onChange={(e) => {
+                                    const updatedClasses = [...excelClasses];
+                                    updatedClasses[index].noteEng =
+                                      e.target.value;
+                                    setExcelClasses(updatedClasses);
+                                  }}
+                                  onFocus={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.nextElementSibling.style.display =
+                                      "block";
+                                    e.target.nextElementSibling.focus();
+                                  }}
+                                  className="border-none rounded-lg bg-gray-100  text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                />
+                                <textarea
+                                  value={awardClass.noteEng || ""}
+                                  onChange={(e) => {
+                                    const updatedClasses = [...excelClasses];
+                                    updatedClasses[index].noteEng =
+                                      e.target.value;
+                                    setExcelClasses(updatedClasses);
+                                  }}
+                                  onBlur={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.previousElementSibling.style.display =
+                                      "block";
+                                  }}
+                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
+                                  rows="4"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              <button
+                                onClick={() => {
+                                  const updatedClasses = excelClasses.filter(
+                                    (_, i) => i !== index
+                                  );
+                                  setExcelClasses(updatedClasses);
+                                  setExcelClassCount(updatedClasses.length);
+                                }}
+                                className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                                title="Xóa"
+                              >
+                                <FaTrashCan size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Hiển thị thông báo khi không có dữ liệu */}
+                        {selectedSubAwardRecords.length === 0 &&
+                          recordFormData.students.length === 0 &&
+                          excelStudents.length === 0 &&
+                          excelClasses.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan="4"
+                                className="text-center py-4 text-gray-500"
+                              >
+                                Chưa có dữ liệu. Vui lòng thêm học sinh hoặc
+                                lớp.
+                              </td>
+                            </tr>
+                          )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
-              <button
-                type="submit"
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-              >
-                {editingCategory ? "Cập nhật" : "Tạo mới"}
-              </button>{" "}
-            </form>
+            </div>
           </div>
         </div>
       )}

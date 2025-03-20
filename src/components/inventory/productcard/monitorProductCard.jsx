@@ -6,6 +6,12 @@ import {
   FiPackage,
   FiRefreshCw,
 } from "react-icons/fi";
+import {
+  IoLocationOutline,
+  IoBuildOutline,
+  IoBookOutline,
+  IoCloudUploadOutline,
+} from "react-icons/io5";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -17,8 +23,8 @@ import PizZip from "pizzip";
 import { saveAs } from "file-saver";
 import axios from "axios";
 import Dropdown from "../../function/dropdown";
-import { IoLocationOutline } from "react-icons/io5";
 import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
+import Inspect from "../inspect/inspect";
 
 const MonitorProductCard = ({
   monitorData,
@@ -95,6 +101,10 @@ const MonitorProductCard = ({
   const room = localMonitor.room || null; // Lấy thông tin phòng từ localMonitor
   const [showRecycleModal, setShowRecycleModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showInspectModal, setShowInspectModal] = useState(false);
+  const [lastInspection, setLastInspection] = useState(null); // Dữ liệu kiểm tra mới nhất
+  const [inspectHistory, setInspectHistory] = useState([]); // Lịch sử kiểm tra
+  const [loading, setLoading] = useState(false); // Trạng thái tải dữ liệu
 
   const fetchActivities = async (monitorId) => {
     try {
@@ -880,6 +890,93 @@ const MonitorProductCard = ({
     (a, b) => new Date(b.date) - new Date(a.date)
   );
   // -----------------------------------------------------
+  // Cập nhật hàm tính trạng thái bảo trì
+  const calculateMaintenanceStatus = (lastInspectionDate, documentUrl) => {
+    if (!lastInspectionDate)
+      return { status: "Chưa kiểm tra", color: "bg-gray-400" };
+    const monthsSinceLastInspection = dayjs().diff(
+      dayjs(lastInspectionDate),
+      "month"
+    );
+    if (monthsSinceLastInspection <= 6) {
+      if (documentUrl && documentUrl.toLowerCase().endsWith(".pdf")) {
+        return { status: "Đã kiểm tra", color: "bg-green-500 text-white" };
+      } else {
+        return {
+          status: "Đã kiểm tra, thiếu biên bản",
+          color: "bg-yellow-500 text-white",
+        };
+      }
+    } else if (monthsSinceLastInspection <= 12) {
+      return { status: "Cần kiểm tra", color: "bg-yellow-500 text-white" };
+    } else {
+      return { status: "Cần kiểm tra gấp", color: "bg-red-500 text-white" };
+    }
+  };
+
+  const handleViewReport = () => {
+    if (!lastInspection?.documentUrl) {
+      toast.error("Không có file biên bản được tải lên!");
+      return;
+    }
+    // Giả sử BASE_URL chứa domain của API hoặc server file
+    const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
+    window.open(fileUrl, "_blank"); // Mở file trong tab mới
+  };
+  const handleDownloadReport = () => {
+    if (!lastInspection?.documentUrl) {
+      toast.error("Không có biên bản kiểm tra để tải về!");
+      return;
+    }
+    const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
+    window.open(fileUrl, "_blank"); // Mở tab mới để tải xuống file
+  };
+
+  // Hàm xử lý upload file PDF biên bản đã được scan (sau khi in và ký)
+  const handleFileUploadInspect = (e) => {
+    const file = e.target?.files?.[0];
+    if (!file) {
+      toast.error("Không có tệp nào được chọn!");
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Chỉ chấp nhận tệp PDF!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("inspectId", lastInspection?._id); // Kiểm tra inspectId có giá trị hay không
+
+    axios
+      .post(`${API_URL}/inspects/uploadReport`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      })
+      .then((response) => {
+        toast.success("Tải lên biên bản thành công!");
+        // Cập nhật ngay lập tức dữ liệu kiểm tra
+        setLastInspection(response.data.data);
+
+        // Cập nhật UI ngay lập tức
+        setRefreshKey((prev) => prev + 1);
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi khi tải lên file:", error);
+        toast.error("Tải lên thất bại!");
+      });
+  };
+
+  // Trong block hiển thị thông tin bảo trì bảo dưỡng, chúng ta sử dụng calculateMaintenanceStatus
+  const statusData = calculateMaintenanceStatus(
+    lastInspection?.inspectionDate,
+    lastInspection?.documentUrl
+  );
+
+  // -----------------------------------------------------
   return (
     <div className="max-w-full mx-auto bg-white p-6 rounded-xl shadow-lg">
       {/* Hàng trên cùng */}
@@ -1462,6 +1559,84 @@ const MonitorProductCard = ({
                         {localRoom?.status || "Không xác định trạng thái"}
                       </span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Block hiển thị thông tin bảo trì bảo dưỡng */}
+                <h3 className="text-sm font-semibold mt-4 mb-2">
+                  Thông tin bảo trì bảo dưỡng
+                </h3>
+                <div className="bg-[#E4E9EF] p-4 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300">
+                  {loading ? (
+                    <p>Đang tải dữ liệu kiểm tra...</p>
+                  ) : lastInspection ? (
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2">
+                        <IoBuildOutline size={28} className="text-[#002147]" />
+                        <div>
+                          <p className="text-sm font-bold ml-2">
+                            Lần kiểm tra gần nhất:{" "}
+                            {dayjs(lastInspection.inspectionDate).format(
+                              "DD/MM/YYYY"
+                            )}
+                          </p>
+                          <p className="text-sm ml-2">
+                            Người kiểm tra:{" "}
+                            {lastInspection.inspectorName || "Không xác định"}
+                          </p>
+                        </div>
+                      </div>
+                      {lastInspection.documentUrl &&
+                        lastInspection.documentUrl
+                          .toLowerCase()
+                          .endsWith(".pdf") && (
+                          <button
+                            onClick={handleViewReport}
+                            className="px-2 py-1 text-[#002147] text-sm"
+                          >
+                            <IoBookOutline size={20} />
+                          </button>
+                        )}
+                      {statusData.status === "Đã kiểm tra, thiếu biên bản" && (
+                        <label className="px-2 py-1 text-[#002147] font-bold rounded text-xs cursor-pointer transform transition-transform duration-300 hover:scale-105">
+                          <IoCloudUploadOutline size={22} />
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            onChange={handleFileUploadInspect}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Chưa có lịch sử kiểm tra.
+                    </p>
+                  )}
+
+                  <hr className="my-4 border-gray-300" />
+
+                  <div className="flex gap-2 items-center">
+                    <h4 className="text-sm font-semibold">
+                      Trạng thái bảo trì:
+                    </h4>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${statusData.color}`}
+                    >
+                      {statusData.status}
+                    </span>
+
+                    {statusData.status === "Đã kiểm tra, thiếu biên bản" && (
+                      <>
+                        <button
+                          onClick={handleDownloadReport}
+                          className="px-2 py-1 text-white font-semibold text-sm rounded-lg shadow-2xl bg-[#002147] transform transition-transform duration-300 hover:scale-105"
+                        >
+                          In Biên bản
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2109,6 +2284,21 @@ const MonitorProductCard = ({
                 </div>
               </div>
             </div>
+          )}
+          {showInspectModal && (
+            <Inspect
+              monitorData={localMonitor}
+              user={currentHolder.user}
+              onClose={() => setShowInspectModal(false)}
+              inspectId={monitorData._id} // id là giá trị bạn có
+              onInspectionComplete={(inspectionData) => {
+                // Xử lý dữ liệu kiểm tra tại LaptopProductCard
+                setLocalMonitor((prev) => ({
+                  ...prev,
+                  lastInspection: inspectionData,
+                }));
+              }}
+            />
           )}
         </div>
       </div>

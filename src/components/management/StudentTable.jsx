@@ -353,7 +353,6 @@ const StudentManagement = () => {
     if (!res.ok) throw new Error("Failed to get photos");
     const data = await res.json();
     setPhotos(data);
-    console.log(data);
   };
   const createPhoto = async () => {
     // POST FormData => /api/photos

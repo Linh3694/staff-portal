@@ -120,9 +120,6 @@ const RoomTable = () => {
 
       const data = await response.json();
 
-      console.log("Dữ liệu phòng:", data.room); // Kiểm tra dữ liệu phòng
-      console.log("Danh sách thiết bị:", data.devices); // Kiểm tra danh sách thiết bị
-
       // Cập nhật state
       setSelectedRoom(data.room); // Đảm bảo room được gán đúng
       setSelectedRoomDevices(data.devices); // Cập nhật danh sách thiết bị
@@ -265,9 +262,6 @@ const RoomTable = () => {
           },
         ],
       };
-
-      console.log("Dữ liệu gửi cập nhật:", formattedRoom);
-
       const response = await fetch(`${API_URL}/rooms/${selectedRoom._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -854,12 +848,8 @@ const RoomTable = () => {
             <div onClick={(e) => e.stopPropagation()}>
               <LaptopProductCard
                 laptopData={selectedLaptopData}
-                onAddRepair={(newRepair) =>
-                  console.log("Thêm sửa chữa", newRepair)
-                }
-                onDeleteRepair={(laptopId, repairId) =>
-                  console.log("Xóa sửa chữa", laptopId, repairId)
-                }
+                onAddRepair={() => {}}
+                onDeleteRepair={() => {}}
                 onCloseModal={() => setIsLaptopModalOpen(false)}
                 fetchLaptopDetails={fetchLaptopDetails}
               />

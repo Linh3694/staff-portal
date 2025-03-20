@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { FiEdit, FiTrash2, FiPackage, FiRefreshCw } from "react-icons/fi";
+import {
+  FiEdit,
+  FiTrash2,
+  FiPackage,
+  FiRefreshCw,
+  FiArchive,
+} from "react-icons/fi";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -11,20 +17,22 @@ import PizZip from "pizzip";
 import { saveAs } from "file-saver";
 import axios from "axios";
 import Dropdown from "../../function/dropdown";
-import { IoLocationOutline } from "react-icons/io5";
-import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
+import {
+  IoLocationOutline,
+  IoBuildOutline,
+  IoBookOutline,
+  IoCloudUploadOutline,
+} from "react-icons/io5";
+import Inspect from "../inspect/inspect";
+import { API_URL, BASE_URL } from "../../../config"; // import từ file config
 
 const ToolProductCard = ({
   toolData,
   onCloseModal,
-  onUpdateSpecs,
   onRevoke,
   onAssign,
-  setSelectedTool,
   fetchToolDetails,
   onUpdateTool,
-  refetchTools,
-  onUpdateRoom,
 }) => {
   const [activeTab, setActiveTab] = useState("repairs");
   const [repairs, setRepairs] = useState([]); // Quản lý danh sách sửa chữa cục bộ
@@ -37,7 +45,7 @@ const ToolProductCard = ({
   });
   const [updates, setUpdates] = useState([]); // Danh sách cập nhật phần mềm
   const [setShowAddRepairModal] = useState(false); // Modal thêm sửa chữa
-  const [editField, setEditField] = useState(null); // Tên trường specs đang chỉnh sửa (processor, ram,...)
+  const [editField, setEditField] = useState(null);
   const [editValue, setEditValue] = useState(""); // Giá trị tạm thời khi chỉnh sửa
   const [isEditUpdateOpen, setIsEditUpdateOpen] = useState(false);
   const [editingUpdate, setEditingUpdate] = useState({
@@ -76,6 +84,9 @@ const ToolProductCard = ({
     user: {
       fullname: "Chưa bàn giao",
       jobTitle: "",
+      email: "",
+      avatarUrl: "",
+      department: "",
     },
   });
   const [otherReason, setOtherReason] = useState(""); // Lưu nội dung lý do khác
@@ -84,11 +95,13 @@ const ToolProductCard = ({
   const [brokenReason, setBrokenReason] = useState(""); // Lưu lý do hỏng
   const [localRoom, setLocalRoom] = useState(null); // State cho phòng hiện tại
   const [rooms, setRooms] = useState([]); // Khai báo state cho danh sách phòng
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false); // Quản lý trạng thái mở/đóng danh sách
   const [showRoomEditModal, setShowRoomEditModal] = useState(false); // State để hiển thị modal chỉnh sửa phòng
-  const room = localTool.room || null; // Lấy thông tin phòng từ localTool
   const [showRecycleModal, setShowRecycleModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showInspectModal, setShowInspectModal] = useState(false);
+  const [lastInspection, setLastInspection] = useState(null); // Dữ liệu kiểm tra mới nhất
+  const [loading, setLoading] = useState(false); // Trạng thái tải dữ liệu
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchActivities = async (entityType, entityId) => {
     const response = await axios.get(
@@ -116,191 +129,91 @@ const ToolProductCard = ({
     return response.data;
   };
 
-  useEffect(() => {
-    setRefreshKey((prev) => prev + 1); // Tăng giá trị mỗi lần localTool thay đổi
-  }, [localTool]);
-
-  useEffect(() => {
-    if (localTool?.room) {
-      const detailedRoom = rooms.find(
-        (room) => room.value === localTool.room._id
-      );
-      setLocalRoom(detailedRoom || localTool.room);
-    } else {
-      setLocalRoom(null); // Nếu không có room
-    }
-  }, [localTool, rooms, showRoomEditModal, refreshKey]); // Thêm `showRoomEditModal` vào dependency
-
-  useEffect(() => {
-    if (toolData?.repairs) {
-      setRepairs(toolData.repairs); // Chỉ đồng bộ khi thực sự cần thiết
-      setLocalStatus(toolData.status);
-    }
-  }, [toolData]); // Chỉ chạy khi `toolData` thay đổi
-
-  useEffect(() => {
-    if (toolData) {
-      setLocalTool(toolData); // Tránh gọi `setState` khi không cần thiết
-      setLocalStatus(toolData.status);
-    }
-  }, [toolData]); // Chỉ phụ thuộc vào `toolData`
-
-  useEffect(() => {
-    if (localStatus) {
-      fetchToolDetails(localTool?._id);
-    }
-  }, [localStatus]);
-
-  useEffect(() => {
-    if (toolData?._id) {
-      fetchToolDetails(toolData._id);
-    }
-  }, [toolData?._id]); // Chỉ phụ thuộc vào `_id`
-
-  useEffect(() => {
-    const fetchAllUsers = async () => {
-      try {
-        const res = await fetch(`${API_URL}/users`);
-        if (!res.ok) throw new Error("Failed to fetch users");
-        const data = await res.json();
-        setAllUsers(data); // Lưu danh sách người dùng
-      } catch (err) {
-        console.error("Error fetching users:", err);
-      }
-    };
-    fetchAllUsers();
-  }, []);
-
-  useEffect(() => {
-    if (toolData?.assignmentHistory?.length > 0) {
-      const holder = toolData.assignmentHistory.find(
-        (history) => !history.endDate
-      );
-      setCurrentHolder(
-        holder || {
-          user: {
-            fullname: "Chưa bàn giao",
-            jobTitle: "",
-          },
-        }
-      );
-    } else {
-      setCurrentHolder({
-        user: {
-          fullname: "Chưa bàn giao",
-          jobTitle: "",
-        },
-      });
-    }
-  }, [toolData]);
-
-  useEffect(() => {
-    setLocalTool(toolData); // Đồng bộ dữ liệu khi toolData thay đổi
-    setLocalStatus(toolData.status); // Đồng bộ trạng thái
-  }, [toolData]);
-
-  const handleSelectUser = (user) => {
-    setSelectedUser(user);
-    setSearchText("");
-    setSearchResults([]);
-  };
-  useEffect(() => {
-    const loadActivities = async () => {
-      if (!localTool?._id) {
-        console.error("Tool ID không hợp lệ:", localTool?._id);
-        toast.error("Không tìm thấy thông tin thiết bị.");
-        return;
-      }
-
-      try {
-        const activities = await fetchActivities("tool", localTool._id); // Gọi API với đúng entityType và entityId
-        const repairList = activities.filter(
-          (activity) => activity.type === "repair"
-        );
-        const updateList = activities.filter(
-          (activity) => activity.type === "update"
-        );
-
-        setRepairs(repairList);
-        setUpdates(updateList);
-      } catch (error) {
-        console.error("Lỗi khi lấy dữ liệu hoạt động:", error);
-        toast.error("Không thể tải lịch sử hoạt động!");
-      }
-    };
-
-    loadActivities();
-  }, [localTool]);
-
-  useEffect(() => {
-    if (revokeReasons.includes("Máy hỏng")) {
-      setLocalStatus("Broken");
-    } else {
-      setLocalStatus("Standby");
-    }
-  }, [revokeReasons]);
-
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        const token = localStorage.getItem("authToken");
-        const response = await axios.get(`${API_URL}/rooms`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setRooms(response.data.rooms || []);
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách phòng:", error);
-        toast.error("Không thể tải danh sách phòng!");
-      }
-    };
-    fetchRooms();
-  }, []);
-
-  // Xác nhận “bàn giao”
   const handleConfirmAssign = async () => {
     if (!selectedUser || !notes.trim()) {
       toast.error("Vui lòng nhập thông tin hợp lệ trước khi bàn giao!");
       return;
     }
-    try {
-      const response = await onAssign(toolData._id, selectedUser, notes);
-      if (!response || !response._id) {
-        throw new Error("API không trả về dữ liệu hợp lệ.");
-      }
-      const updatedTool = response; // API trả về dữ liệu đã cập nhật
+    if (isProcessing) {
+      console.warn("⏳ Đang xử lý, không gửi yêu cầu mới!");
+      return;
+    }
+    setIsProcessing(true);
 
-      // Cập nhật state
-      setLocalTool(updatedTool); // Đồng bộ dữ liệu cục bộ
+    // CHUYỂN KHAI BÁO RA NGOÀI
+    let oldStatus;
+    let oldAssigned;
+    let oldHolder;
+
+    try {
+      // Lưu data cũ để revert nếu API lỗi
+      oldStatus = localStatus;
+      oldAssigned = localTool.assigned || [];
+      oldHolder = { ...currentHolder };
+
+      // [A] Optimistic update: Cập nhật UI ngay
+      setLocalStatus("PendingDocumentation");
+      setLocalTool((prev) => ({
+        ...prev,
+        assigned: [selectedUser], // Tạm cho user đang cầm
+        status: "PendingDocumentation",
+      }));
       setCurrentHolder({
         user: selectedUser,
         assignedBy: JSON.parse(localStorage.getItem("currentUser")),
         startDate: new Date().toISOString(),
       });
-      onUpdateTool(updatedTool); // Đồng bộ với danh sách cha
 
-      // Gọi lại API để cập nhật dữ liệu chi tiết trong modal
-      await fetchToolDetails(toolData._id);
+      // [B] Đóng modal
+      setShowAssignModal(false);
+      toast.info("Đang bàn giao thiết bị...");
 
+      const response = await onAssign(toolData._id, selectedUser, notes);
+
+      if (!response || !response._id) {
+        throw new Error("API không trả về dữ liệu hợp lệ.");
+      }
+
+      const updatedTool = response;
+
+      // Đồng bộ UI với dữ liệu server
+      setLocalTool(updatedTool);
+      setLocalStatus(updatedTool.status || "PendingDocumentation");
+      setCurrentHolder({
+        user: selectedUser,
+        assignedBy: JSON.parse(localStorage.getItem("currentUser")),
+        startDate: new Date().toISOString(),
+      });
       toast.success("Bàn giao thành công!");
-      handleCloseModal();
+      fetchToolDetails(toolData._id);
     } catch (error) {
-      console.error("Lỗi khi bàn giao:", error);
       toast.error("Không thể bàn giao thiết bị!");
+
+      // Revert UI
+      setLocalStatus(oldStatus);
+      setLocalTool((prev) => ({
+        ...prev,
+        assigned: oldAssigned,
+        status: oldStatus,
+      }));
+      setCurrentHolder(oldHolder);
+    } finally {
+      setIsProcessing(false);
     }
   };
-
-  const previousUsers = toolData.assignmentHistory?.filter(
-    (history) => history.endDate
-  );
 
   const handleOpenModal = () => {
     setShowAssignModal(true);
   };
 
   const handleCloseModal = () => {
-    setShowAssignModal(false);
-    setSelectedUser("");
-    setNotes("");
+    setTimeout(() => {
+      setShowAssignModal(false);
+      setSelectedUser(""); // Xóa user đã chọn
+      setNotes(""); // Xóa ghi chú
+      setSearchText(""); // Xóa ô tìm kiếm
+      setSearchResults([]); // Xóa gợi ý tìm kiếm
+    }, 0);
   };
 
   const handleConfirmRecycle = async () => {
@@ -346,12 +259,10 @@ const ToolProductCard = ({
     }
 
     const results = fuse.search(searchText);
-    const formattedResults = results.map((result) => result.item);
+    const formattedResults = results.map((result) => result.item).slice(0, 7); // Giới hạn 5 kết quả tốt nhất
     setSearchResults(formattedResults);
   };
 
-  // Ví dụ: status === "Active" => hiển thị nút Thu hồi
-  //        status === "Standby" => hiển thị nút Bàn giao
   const handleRevokeClick = () => {
     setShowRevokeModal(true);
   };
@@ -387,27 +298,65 @@ const ToolProductCard = ({
       return;
     }
 
-    try {
-      // Tạo danh sách lý do đầy đủ
-      const reasonsToSave = [...revokeReasons];
-      if (otherReason.trim()) {
-        reasonsToSave.push(`Lý do khác: ${otherReason}`);
-      }
-      const response = await onRevoke(localTool._id, reasonsToSave);
-      const updatedTool = response.tool; // Lấy phần dữ liệu tool
-      setLocalTool(updatedTool); // Đồng bộ dữ liệu chi tiết
-      setLocalStatus(updatedTool.status); // Cập nhật lại trạng thái hiển thị
-      setCurrentHolder(null); // Xóa người sử dụng hiện tại
-      setRevokeReasons([]);
-      setOtherReason(""); // Reset lý do khác
-      setShowRevokeModal(false);
+    if (isProcessing) {
+      console.warn("⏳ Đang xử lý, không gửi yêu cầu mới!");
+      return;
+    }
 
-      onUpdateTool(updatedTool); // Đồng bộ với danh sách cha
-      await fetchToolDetails(localTool._id);
-      toast.success("Thu hồi thành công!");
+    setIsProcessing(true);
+
+    // CHUYỂN KHAI BÁO RA NGOÀI
+    let oldStatus;
+    let oldAssigned;
+    let oldCurrentHolder;
+
+    try {
+      // Lưu trạng thái cũ để revert nếu API lỗi
+      oldStatus = localStatus;
+      oldAssigned = localTool.assigned;
+      oldCurrentHolder = { ...currentHolder };
+
+      // [A] Optimistic update: Cập nhật UI ngay
+      setLocalStatus("Standby"); // Chuyển sang trạng thái chờ cấp phát
+      setLocalTool((prev) => ({
+        ...prev,
+        assigned: [],
+        status: "Standby",
+        currentHolder: null,
+      }));
+      setCurrentHolder(null);
+
+      // [B] Đóng modal ngay
+      setShowRevokeModal(false);
+      toast.info("Đang thu hồi thiết bị...");
+
+      // [C] Gọi API trong nền
+      const response = await onRevoke(localTool._id, revokeReasons);
+
+      if (!response || !response.tool) {
+        throw new Error("API không trả về dữ liệu hợp lệ.");
+      }
+
+      const updatedTool = response.tool;
+
+      // Đồng bộ lại UI từ server
+      setLocalTool(updatedTool);
+      setLocalStatus(updatedTool.status || "Standby");
+      // Fetch Tool ở nền để cập nhật chi tiết
+      fetchToolDetails(localTool._id);
     } catch (error) {
-      console.error("Lỗi khi thu hồi:", error);
       toast.error("Không thể thu hồi thiết bị!");
+
+      // Revert state nếu API lỗi
+      setLocalStatus(oldStatus);
+      setLocalTool((prev) => ({
+        ...prev,
+        assigned: oldAssigned,
+        status: oldStatus,
+        currentHolder: oldCurrentHolder,
+      }));
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -462,13 +411,11 @@ const ToolProductCard = ({
   // -----------------------------------------------------
   // 1) TÁCH LOGIC CHỈNH SỬA SPECS
   // -----------------------------------------------------
-  // Bấm “chỉnh sửa” (processor / ram / storage / display / releaseYear)
   const handleEditSpec = (field, currentValue) => {
     setEditField(field);
     setEditValue(currentValue || "");
   };
 
-  // Bấm “Lưu” khi chỉnh sửa specs => Gọi API /onUpdateSpecs
   const handleSaveSpec = (field, value) => {
     if (!field || value === undefined) {
       toast.error("Giá trị không hợp lệ. Vui lòng kiểm tra lại!");
@@ -479,16 +426,27 @@ const ToolProductCard = ({
     if (["releaseYear", "type", "manufacturer"].includes(field)) {
       payload[field] = value || null;
     } else {
-      payload.specs = {
-        [field]: value || null, // Chỉ gửi trường cần cập nhật
-      };
+      payload.specs = { [field]: value || null };
     }
-    onUpdateSpecs(toolData._id, payload)
-      .then((updatedTool) => {
+
+    axios
+      .put(`${API_URL}/tools/${toolData._id}/specs`, payload, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      })
+      .then((response) => {
         toast.success("Cập nhật thông số thành công!");
+
+        // Cập nhật state ngay lập tức
+        setLocalTool((prevTool) => ({
+          ...prevTool,
+          ...response.data, // Cập nhật dữ liệu mới từ server
+        }));
+
+        // Reset trạng thái chỉnh sửa
         setEditField(null);
         setEditValue("");
-        setLocalTool(updatedTool); // Đồng bộ lại dữ liệu
       })
       .catch((error) => {
         console.error("Cập nhật thông số thất bại:", error);
@@ -508,7 +466,7 @@ const ToolProductCard = ({
       return;
     }
 
-    const fileUrl = `${API_URL}/tools/BBBG/${filename}`;
+    const fileUrl = `${API_URL}/tools/handover/${filename}`;
     const token = localStorage.getItem("authToken");
 
     try {
@@ -523,19 +481,15 @@ const ToolProductCard = ({
         throw new Error("Không thể tải file. Lỗi: " + response.statusText);
       }
 
-      // Chuyển đổi phản hồi thành Blob
+      // Tạo Blob URL để xem file
       const blob = await response.blob();
-
-      // Tạo URL tạm thời từ Blob
       const blobUrl = window.URL.createObjectURL(blob);
 
-      // Mở file trong tab mới
       window.open(blobUrl, "_blank");
 
-      // Tùy chọn: Thu hồi URL tạm sau khi hoàn tất
       setTimeout(() => {
         window.URL.revokeObjectURL(blobUrl);
-      }, 10000); // Thu hồi sau 10 giây
+      }, 10000); // Thu hồi URL sau 10 giây
     } catch (error) {
       console.error("Lỗi khi xem file:", error);
       toast.error("Không thể xem file biên bản!");
@@ -582,14 +536,10 @@ const ToolProductCard = ({
         currentUserTitle: currentUser?.jobTitle || "Không xác định",
         nextUser: currentHolder.user?.fullname || "Không xác định",
         nextUserTitle: currentHolder.user?.jobTitle || "Không xác định",
-        //// Thông tin tool
         toolName: toolData.name || "Không xác định",
         toolSerial: toolData.serial,
-        toolProcessor: toolData.specs.processor,
-        toolRam: toolData.specs.ram,
-        toolStorage: toolData.specs.storage,
         toolreleaseYear: toolData.releaseYear,
-        notes: notes || "Không có ghi chú.",
+        notes: toolData.assignmentHistory[0].notes || "Không có ghi chú.",
       });
 
       // 5. Render tài liệu
@@ -603,21 +553,29 @@ const ToolProductCard = ({
     }
   };
   const handleFileUpload = (e) => {
-    const file = e.target?.files?.[0]; // Lấy file từ event
+    const file = e.target?.files?.[0];
+
     if (!file) {
       toast.error("Không có tệp nào được chọn!");
       return;
     }
 
-    // Kiểm tra định dạng file
-    if (!file.name.endsWith(".pdf")) {
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
       toast.error("Chỉ chấp nhận tệp PDF!");
       return;
     }
+    const userId = currentHolder?.user?._id;
+    const username = currentHolder?.user?.fullname || "Unknown"; // Lấy tên người dùng
+    if (!userId) {
+      toast.error("Không tìm thấy ID người dùng, vui lòng thử lại!");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("file", file); // File tải lên
-    formData.append("toolId", localTool._id); // ID tool
-    formData.append("userId", currentHolder?.user?._id); // ID người dùng hiện tại
+    formData.append("file", file);
+    formData.append("toolId", localTool._id);
+    formData.append("userId", userId);
+    formData.append("username", username); // Gửi username lên backend
 
     axios
       .post(`${API_URL}/tools/upload`, formData, {
@@ -629,20 +587,25 @@ const ToolProductCard = ({
       .then((response) => {
         toast.success("Tải lên thành công!");
 
-        // Cập nhật dữ liệu trong frontend
-        const updatedTool = response.data.tool;
-        setLocalTool(updatedTool); // Đồng bộ lại state
-        setLocalStatus(updatedTool.status); // Cập nhật trạng thái hiển thị
+        // (A) Ghi đè localTool = tool từ server
+        setLocalTool(response.data.tool);
 
-        // Cập nhật dữ liệu trong frontend
-        const updatedHolder = {
-          ...currentHolder,
-          document: response.data.document, // Cập nhật đường dẫn document
-        };
-        setCurrentHolder(updatedHolder); // Đồng bộ lại state
+        // (B) Tìm document tương ứng user
+        const foundHistory = response.data.tool.assignmentHistory.find((h) => {
+          return (
+            h.user?.toString() === currentHolder.user._id ||
+            h.user?._id?.toString() === currentHolder.user._id
+          );
+        });
+        // (C) Gán document
+        setCurrentHolder((prev) => ({
+          ...prev,
+          document: foundHistory?.document || "",
+        }));
+        onUpdateTool(response.data.tool);
       })
       .catch((error) => {
-        console.error("Lỗi khi tải lên file:", error);
+        console.error("❌ Lỗi khi tải lên file:", error);
         toast.error("Tải lên thất bại!");
       });
   };
@@ -667,6 +630,7 @@ const ToolProductCard = ({
       );
 
       const updatedTool = response.data;
+
       // Lấy thông tin chi tiết phòng
       const roomResponse = await axios.get(
         `${API_URL}/rooms/${updatedTool.room}`,
@@ -830,21 +794,19 @@ const ToolProductCard = ({
     try {
       const addedActivity = await addActivity({
         ...newActivity,
-        toolId: localTool._id,
-        updatedBy: JSON.parse(localStorage.getItem("currentUser"))?.fullname,
-        date: new Date().toISOString(), // Thời gian tự động
+        entityType: "tool", // Thay đổi khi áp dụng cho entity khác
+        entityId: localTool._id, // ID thực thể
       });
 
+      // Cập nhật danh sách hoạt động
       if (newActivity.type === "repair") {
-        setRepairs((prev) => [...prev, addedActivity]); // Cập nhật danh sách sửa chữa
+        setRepairs((prev) => [...prev, addedActivity]);
       } else {
-        setUpdates((prev) => [...prev, addedActivity]); // Cập nhật danh sách cập nhật
+        setUpdates((prev) => [...prev, addedActivity]);
       }
 
       setIsAddActivityModalOpen(false);
-
       toast.success("Thêm hoạt động mới thành công!");
-      handleCloseAddActivityModal();
     } catch (error) {
       console.error("Lỗi khi thêm hoạt động:", error);
       toast.error("Không thể thêm hoạt động!");
@@ -854,6 +816,304 @@ const ToolProductCard = ({
   const allActivities = [...repairs, ...updates].sort(
     (a, b) => new Date(b.date) - new Date(a.date)
   );
+
+  // Cập nhật hàm tính trạng thái bảo trì
+  const calculateMaintenanceStatus = (lastInspectionDate, documentUrl) => {
+    if (!lastInspectionDate)
+      return { status: "Chưa kiểm tra", color: "bg-gray-400" };
+    const monthsSinceLastInspection = dayjs().diff(
+      dayjs(lastInspectionDate),
+      "month"
+    );
+    if (monthsSinceLastInspection <= 6) {
+      if (documentUrl && documentUrl.toLowerCase().endsWith(".pdf")) {
+        return { status: "Đã kiểm tra", color: "bg-green-500 text-white" };
+      } else {
+        return {
+          status: "Đã kiểm tra, thiếu biên bản",
+          color: "bg-yellow-500 text-white",
+        };
+      }
+    } else if (monthsSinceLastInspection <= 12) {
+      return { status: "Cần kiểm tra", color: "bg-yellow-500 text-white" };
+    } else {
+      return { status: "Cần kiểm tra gấp", color: "bg-red-500 text-white" };
+    }
+  };
+
+  const handleViewReport = () => {
+    if (!lastInspection?.documentUrl) {
+      toast.error("Không có file biên bản được tải lên!");
+      return;
+    }
+    const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
+    window.open(fileUrl, "_blank"); // Mở file trong tab mới
+  };
+  const handleDownloadReport = () => {
+    if (!lastInspection?.documentUrl) {
+      toast.error("Không có biên bản kiểm tra để tải về!");
+      return;
+    }
+    const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
+    window.open(fileUrl, "_blank"); // Mở tab mới để tải xuống file
+  };
+
+  // Hàm xử lý upload file PDF biên bản đã được scan (sau khi in và ký)
+  const handleFileUploadInspect = (e) => {
+    const file = e.target?.files?.[0];
+    if (!file) {
+      toast.error("Không có tệp nào được chọn!");
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Chỉ chấp nhận tệp PDF!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("inspectId", lastInspection?._id); // Kiểm tra inspectId có giá trị hay không
+
+    axios
+      .post(`${API_URL}/inspects/uploadReport`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      })
+      .then((response) => {
+        toast.success("Tải lên biên bản thành công!");
+        // Cập nhật ngay lập tức dữ liệu kiểm tra
+        setLastInspection(response.data.data);
+
+        // Cập nhật UI ngay lập tức
+        setRefreshKey((prev) => prev + 1);
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi khi tải lên file:", error);
+        toast.error("Tải lên thất bại!");
+      });
+  };
+
+  // Trong block hiển thị thông tin bảo trì bảo dưỡng, chúng ta sử dụng calculateMaintenanceStatus
+  const statusData = calculateMaintenanceStatus(
+    lastInspection?.inspectionDate,
+    lastInspection?.documentUrl
+  );
+
+  const handleSelectUser = (user) => {
+    setSelectedUser(user);
+    setSearchText(user.fullname); // hoặc user.label
+    setSearchResults([]); // ẩn gợi ý sau khi chọn
+  };
+
+  // -----------------------------------------------------
+  // 1) Lấy dữ liệu kiểm tra (Inspection) mỗi khi thay đổi ID tool hoặc refreshKey
+  useEffect(() => {
+    const fetchInspectionData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `${API_URL}/inspects/tool/${toolData._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+          }
+        );
+        const data = await response.json();
+        if (response.ok) {
+          setLastInspection(data.data);
+        } else {
+          setLastInspection(null);
+        }
+      } catch (error) {
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInspectionData();
+  }, [toolData._id, refreshKey]);
+
+  // 2) Mỗi khi localTool thay đổi, ta tăng refreshKey để ép các dữ liệu con reload
+  useEffect(() => {
+    setRefreshKey((prev) => prev + 1);
+  }, [localTool]);
+
+  // 3) Đồng bộ localRoom khi localTool thay đổi (dùng để hiển thị đúng phòng)
+  useEffect(() => {
+    if (localTool?.room) {
+      const detailedRoom = rooms.find(
+        (room) => room.value === localTool.room._id
+      );
+      setLocalRoom(detailedRoom || localTool.room);
+    } else {
+      setLocalRoom(null); // Nếu không có room
+    }
+  }, [localTool, rooms, showRoomEditModal, refreshKey]);
+
+  // 4) Nếu toolData có repairs mới, đồng bộ chúng và cập nhật localStatus
+  useEffect(() => {
+    if (toolData?.repairs) {
+      setRepairs(toolData.repairs);
+      setLocalStatus(toolData.status);
+    }
+  }, [toolData]);
+
+  // 5) Mỗi khi toolData thay đổi, gán nó vào localTool & đồng bộ localStatus
+  useEffect(() => {
+    if (toolData) {
+      setLocalTool(toolData);
+      setLocalStatus(toolData.status);
+    }
+  }, [toolData]);
+
+  // 6) Gọi lại API để lấy chi tiết tool khi _id thay đổi (lúc mở modal, chọn tool khác, v.v.)
+  useEffect(() => {
+    if (toolData?._id) {
+      fetchToolDetails(toolData._id);
+    }
+  }, [toolData?._id]);
+
+  // 7) Lấy danh sách tất cả người dùng để phục vụ tính năng gợi ý bàn giao
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      try {
+        const res = await fetch(`${API_URL}/users`);
+        if (!res.ok) throw new Error("Failed to fetch users");
+        const data = await res.json();
+        setAllUsers(data); // Lưu danh sách người dùng
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      }
+    };
+    fetchAllUsers();
+  }, []);
+
+  useEffect(() => {
+    // 1) Tìm record đang mở (chưa endDate) trong assignmentHistory
+    const openRecord = toolData?.assignmentHistory?.find(
+      (hist) => !hist.endDate
+    );
+
+    if (openRecord) {
+      // Đã có record đang mở => Lấy user + document từ record này
+      setCurrentHolder({
+        user: {
+          _id:
+            openRecord.user?._id?.toString?.() || openRecord.user?.toString?.(),
+          fullname:
+            openRecord.userName ||
+            openRecord.user?.fullname ||
+            "Không xác định",
+          jobTitle: openRecord.jobTitle || openRecord.user?.jobTitle || "",
+          department: openRecord.user?.department || "",
+          avatarUrl: openRecord.user?.avatarUrl || "",
+        },
+        // Ghi lại document
+        document: openRecord.document || "",
+      });
+    } else if (toolData?.assigned?.length > 0) {
+      // 2) Nếu không có record đang mở mà vẫn còn assigned => fallback cũ
+      const latestAssigned = toolData.assigned[toolData.assigned.length - 1];
+      setCurrentHolder({
+        user: {
+          _id: latestAssigned.value,
+          fullname: latestAssigned.label || "N/A",
+          jobTitle: latestAssigned.jobTitle || "",
+          email: latestAssigned.email || "",
+          avatarUrl: latestAssigned.avatarUrl || "",
+          department: latestAssigned.department || "",
+        },
+        document: "", // assigned không có document
+      });
+    } else {
+      // 3) Nếu không có assigned và không có record đang mở
+      setCurrentHolder({
+        user: {
+          fullname: "Chưa bàn giao",
+          jobTitle: "",
+          avatarUrl: "",
+          email: "",
+          department: "",
+        },
+        document: "",
+      });
+    }
+  }, [toolData]);
+
+  // 9) Nếu currentHolder không có biên bản (document), chuyển localStatus về PendingDocumentation
+  useEffect(() => {
+    if (
+      currentHolder &&
+      currentHolder.user &&
+      currentHolder.user.fullname !== "Chưa bàn giao"
+    ) {
+      if (!currentHolder.document) {
+        if (localStatus !== "PendingDocumentation") {
+          setLocalStatus("PendingDocumentation");
+        }
+      } else {
+        // Trường hợp đã có file biên bản, chuyển sang Active
+        if (localStatus !== "Active") {
+          setLocalStatus("Active");
+        }
+      }
+    }
+  }, [currentHolder, localStatus]);
+
+  // 10) Mỗi khi localTool thay đổi, load danh sách activity (repairs, updates)
+  useEffect(() => {
+    const loadActivities = async () => {
+      if (!localTool?._id) {
+        return;
+      }
+      try {
+        const activities = await fetchActivities("tool", localTool._id);
+        const repairList = activities.filter(
+          (activity) => activity.type === "repair"
+        );
+        const updateList = activities.filter(
+          (activity) => activity.type === "update"
+        );
+
+        setRepairs(repairList);
+        setUpdates(updateList);
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu hoạt động:", error);
+        toast.error("Không thể tải lịch sử hoạt động!");
+      }
+    };
+    loadActivities();
+  }, [localTool]);
+
+  // 11) Nếu người dùng chọn “Máy hỏng” trong lý do thu hồi, chuyển sang Broken, ngược lại Standby
+  useEffect(() => {
+    if (revokeReasons.includes("Máy hỏng")) {
+      setLocalStatus("Broken");
+    } else {
+      setLocalStatus("Standby");
+    }
+  }, [revokeReasons]);
+
+  // 12) Lấy danh sách phòng (rooms) ngay khi mở card lần đầu
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const response = await axios.get(`${API_URL}/rooms`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setRooms(response.data.rooms || []);
+      } catch (error) {
+        console.error("Lỗi khi tải danh sách phòng:", error);
+        toast.error("Không thể tải danh sách phòng!");
+      }
+    };
+    fetchRooms();
+  }, []);
   // -----------------------------------------------------
   return (
     <div className="max-w-full mx-auto bg-white p-6 rounded-xl shadow-lg">
@@ -872,7 +1132,7 @@ const ToolProductCard = ({
             )}
             {localStatus === "Standby" && (
               <>
-                <MdOutlineError className="text-[#EAA300] text-lg mr-2 gap-2 font-bold" />{" "}
+                <MdOutlineError className="text-[#ffdb86] text-lg mr-2 gap-2 font-bold" />{" "}
                 Chờ cấp phát
               </>
             )}
@@ -893,12 +1153,20 @@ const ToolProductCard = ({
 
         <div className="flex space-x-2 mt-2 mr-2">
           {localStatus === "Active" && (
-            <button
-              onClick={handleRevokeClick}
-              className="px-5 py-2 bg-[#DC0909] text-white font-bold text-sm rounded-lg hover:bg-[#cc4529] transform transition-transform duration-300 hover:scale-105"
-            >
-              Thu hồi
-            </button>
+            <>
+              <button
+                onClick={() => setShowInspectModal(true)}
+                className="px-5 py-2 bg-[#EAA300] text-white font-bold text-sm rounded-lg hover:bg-[#ECB73B] transform transition-transform duration-300 hover:scale-105"
+              >
+                Kiểm tra
+              </button>
+              <button
+                onClick={handleRevokeClick}
+                className="px-5 py-2 bg-[#DC0909] text-white font-bold text-sm rounded-lg hover:bg-[#cc4529] transform transition-transform duration-300 hover:scale-105"
+              >
+                Thu hồi
+              </button>
+            </>
           )}
           {toolData.status === "Standby" && (
             <>
@@ -960,26 +1228,25 @@ const ToolProductCard = ({
 
       {/* Bố cục chính với 3 block */}
       <div className="grid grid-cols-[180px,2fr,2fr] gap-4">
-        {/* Block 1: Thông tin spec */}
         <div className="w-44 justify-evenly items-center">
           {/* Năm sản xuất */}
           <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
             <div className="flex items-center space-x-3">
-              <FiPackage className="text-2xl text-[#FF5733]" />
+              <FiArchive className="text-2xl text-[#FF5733]" />
               <div>
-                <p className="text-sm text-theme-color-neutral-content">
-                  Năm Sản Xuất
+                <p className="text-xs text-theme-color-neutral-content">
+                  Năm mua
                 </p>
                 {editField === "releaseYear" ? (
                   <input
                     type="text"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 h-6 font-semibold focus:outline-none rounded bg-transparent"
+                    className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
                   />
                 ) : (
                   <p className="font-semibold">
-                    {toolData.releaseYear || "N/A"}
+                    {localTool.releaseYear || "N/A"}
                   </p>
                 )}
               </div>
@@ -1033,7 +1300,7 @@ const ToolProductCard = ({
                   />
                 ) : (
                   <p className="font-semibold">
-                    {toolData.manufacturer || "N/A"}
+                    {localTool.manufacturer || "N/A"}
                   </p>
                 )}
               </div>
@@ -1111,12 +1378,9 @@ const ToolProductCard = ({
                               >
                                 <div className="flex items-center mb-2">
                                   <img
-                                    src={
-                                      hist.avatarUrl ||
-                                      "https://via.placeholder.com/150"
-                                    }
+                                    src={`${BASE_URL}/uploads/Avatar/${hist.avatarUrl}`}
                                     alt="Avatar"
-                                    className="w-10 h-10 rounded-full mr-3 object-cover"
+                                    className="w-10 h-10 rounded-full mr-3 object-cover object-top"
                                   />
                                   <div>
                                     <p className="font-semibold text-sm">
@@ -1242,7 +1506,7 @@ const ToolProductCard = ({
                                       "https://via.placeholder.com/150"
                                     }
                                     alt="Avatar"
-                                    className="w-10 h-10 rounded-full mr-3 object-cover"
+                                    className="w-10 h-10 rounded-full mr-3 object-cover object-top"
                                   />
                                   <div>
                                     <p className="font-semibold text-sm">
@@ -1292,11 +1556,11 @@ const ToolProductCard = ({
                         <img
                           src={
                             currentHolder?.user?.avatarUrl
-                              ? `${BASE_URL}${currentHolder?.user?.avatarUrl}`
+                              ? `${BASE_URL}/uploads/Avatar/${currentHolder?.user?.avatarUrl}`
                               : "/default-avatar.png"
                           }
                           alt="Avatar"
-                          className="w-16 h-16 rounded-full object-cover"
+                          className="w-16 h-16 rounded-full object-cover object-top object-top"
                         />
                         <div>
                           <p className="font-bold text-base">
@@ -1350,7 +1614,7 @@ const ToolProductCard = ({
                     <div className="flex items-center space-x-4">
                       <IoLocationOutline size={24} className="text-[#002147]" />
                       <div>
-                        <p className="font-bold text-base">
+                        <p className="font-bold text-sm">
                           {localRoom?.name || "Không xác định"}
                         </p>
                         {Array.isArray(localRoom?.location) &&
@@ -1376,12 +1640,90 @@ const ToolProductCard = ({
                   </div>
                   <hr className="my-2 border-t border-gray-300" />
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 font-semibold text-sm">
                       <p>Công năng hiện tại:</p>
                       <span className="px-3 py-1 bg-[#002147] text-white text-sm rounded-full">
                         {localRoom?.status || "Không xác định trạng thái"}
                       </span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Block hiển thị thông tin bảo trì bảo dưỡng */}
+                <h3 className="text-sm font-semibold mt-4 mb-2">
+                  Thông tin bảo trì bảo dưỡng
+                </h3>
+                <div className="bg-[#E4E9EF] p-4 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300">
+                  {loading ? (
+                    <p>Đang tải dữ liệu kiểm tra...</p>
+                  ) : lastInspection ? (
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2">
+                        <IoBuildOutline size={28} className="text-[#002147]" />
+                        <div>
+                          <p className="text-sm font-bold ml-2">
+                            Lần kiểm tra gần nhất:{" "}
+                            {dayjs(lastInspection.inspectionDate).format(
+                              "DD/MM/YYYY"
+                            )}
+                          </p>
+                          <p className="text-sm ml-2">
+                            Người kiểm tra:{" "}
+                            {lastInspection.inspectorName || "Không xác định"}
+                          </p>
+                        </div>
+                      </div>
+                      {lastInspection.documentUrl &&
+                        lastInspection.documentUrl
+                          .toLowerCase()
+                          .endsWith(".pdf") && (
+                          <button
+                            onClick={handleViewReport}
+                            className="px-2 py-1 text-[#002147] text-sm"
+                          >
+                            <IoBookOutline size={20} />
+                          </button>
+                        )}
+                      {statusData.status === "Đã kiểm tra, thiếu biên bản" && (
+                        <label className="px-2 py-1 text-[#002147] font-bold rounded text-xs cursor-pointer transform transition-transform duration-300 hover:scale-105">
+                          <IoCloudUploadOutline size={22} />
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            onChange={handleFileUploadInspect}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Chưa có lịch sử kiểm tra.
+                    </p>
+                  )}
+
+                  <hr className="my-4 border-gray-300" />
+
+                  <div className="flex gap-2 items-center">
+                    <h4 className="text-sm font-semibold">
+                      Trạng thái bảo trì:
+                    </h4>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${statusData.color}`}
+                    >
+                      {statusData.status}
+                    </span>
+
+                    {statusData.status === "Đã kiểm tra, thiếu biên bản" && (
+                      <>
+                        <button
+                          onClick={handleDownloadReport}
+                          className="px-2 py-1 text-white font-semibold text-sm rounded-lg shadow-2xl bg-[#002147] transform transition-transform duration-300 hover:scale-105"
+                        >
+                          In Biên bản
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1829,40 +2171,37 @@ const ToolProductCard = ({
                       debouncedSearch(); // Gọi hàm tìm kiếm với debounce
                     }}
                   />
-                  {searchText.trim() && (
-                    <div className="absolute z-10 bg-white border rounded mt-1 max-h-48 w-full overflow-y-auto shadow-lg">
-                      {searchResults.length > 0 ? (
-                        <ul>
-                          {searchResults.map((user) => (
-                            <li
-                              key={user._id}
-                              className="p-2 hover:bg-gray-100 cursor-pointer"
-                              onClick={() => handleSelectUser(user)}
-                            >
-                              <p className="font-bold">{user.fullname}</p>
-                              <p className="text-sm italic text-gray-600">
-                                {user.email}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-500 p-2">
-                          Không tìm thấy kết quả nào!
-                        </p>
-                      )}
+                  {searchResults.length > 0 && searchText.trim() !== "" && (
+                    <div className="absolute w-full bg-white shadow-lg rounded-md">
+                      {searchResults.map((user) => (
+                        <div
+                          key={user._id}
+                          className="p-2 hover:bg-gray-100 cursor-pointer flex flex-row border-b-2"
+                          onClick={() => handleSelectUser(user)}
+                        >
+                          <img
+                            src={`${BASE_URL}/uploads/Avatar/${user.avatarUrl}`}
+                            className="w-10 h-10 rounded-full object-cover object-top"
+                          />
+                          <div className="flex flex-col ml-3">
+                            <span className="font-semibold text-sm">
+                              {user.fullname}
+                            </span>
+                            <span className="italic text-sm">
+                              {user.employeeCode}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
                 {selectedUser && (
                   <div className="mt-4 mb-4 bg-[#002147] text-white p-4 rounded-xl flex items-center space-x-4">
                     <img
-                      src={
-                        selectedUser.avatarUrl ||
-                        "https://via.placeholder.com/150"
-                      }
+                      src={`${BASE_URL}/uploads/Avatar/${selectedUser.avatarUrl}`}
                       alt={selectedUser.fullname}
-                      className="w-20 h-20 rounded-full object-cover"
+                      className="w-20 h-20 rounded-full object-cover object-top"
                     />
                     <div>
                       <p className="font-bold text-lg">
@@ -2029,6 +2368,21 @@ const ToolProductCard = ({
                 </div>
               </div>
             </div>
+          )}
+          {showInspectModal && (
+            <Inspect
+              toolData={localTool}
+              user={currentHolder.user}
+              onClose={() => setShowInspectModal(false)}
+              inspectId={toolData._id} // id là giá trị bạn có
+              onInspectionComplete={(inspectionData) => {
+                // Xử lý dữ liệu kiểm tra tại ToolProductCard
+                setLocalTool((prev) => ({
+                  ...prev,
+                  lastInspection: inspectionData,
+                }));
+              }}
+            />
           )}
         </div>
       </div>

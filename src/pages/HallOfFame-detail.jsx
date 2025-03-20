@@ -132,7 +132,13 @@ function HallOfFamePublicPage() {
         );
     }
   };
-
+  useEffect(() => {
+    document.title = "Wellspring Hà Nội | Hall of Honor";
+    // Cleanup function để reset title khi unmount
+    return () => {
+      document.title = "Wellspring";
+    };
+  }, []);
   return (
     <div className="h-screen w-full">
       <header className="fixed top-0 left-0 w-full h-[80px] bg-[#002855] text-white flex items-center lg:shadow-none justify-between xl:px-20 px-6 shadow-md z-50">

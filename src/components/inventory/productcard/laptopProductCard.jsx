@@ -274,7 +274,6 @@ const LaptopProductCard = ({
       }
       const response = await onRevoke(localLaptop._id, reasonsToSave);
       const updatedLaptop = response.laptop; // Lấy phần dữ liệu laptop
-      console.log("Reasons:", reasonsToSave);
       setLocalLaptop(updatedLaptop); // Đồng bộ dữ liệu chi tiết
       setLocalStatus(updatedLaptop.status); // Cập nhật lại trạng thái hiển thị
       setCurrentHolder(null); // Xóa người sử dụng hiện tại
@@ -353,6 +352,20 @@ const LaptopProductCard = ({
       toast.error("Giá trị không hợp lệ. Vui lòng kiểm tra lại!");
       return;
     }
+    const previousLaptop = localLaptop;
+
+    let updatedLaptop = { ...localLaptop };
+
+    if (["releaseYear", "type", "manufacturer"].includes(field)) {
+      updatedLaptop[field] = value || null;
+    } else {
+      updatedLaptop.specs = { ...updatedLaptop.specs, [field]: value || null };
+    }
+
+    // Cập nhật state ngay lập tức để phản ánh trên UI (optimistic update)
+    setLocalLaptop(updatedLaptop);
+    setEditField(null);
+    setEditValue("");
 
     let payload = {};
     if (["releaseYear", "type", "manufacturer"].includes(field)) {
@@ -370,19 +383,17 @@ const LaptopProductCard = ({
       .then((response) => {
         toast.success("Cập nhật thông số thành công!");
 
-        // Cập nhật state ngay lập tức
+        // Cập nhật lại dữ liệu từ server nếu cần
         setLocalLaptop((prevLaptop) => ({
           ...prevLaptop,
-          ...response.data, // Cập nhật dữ liệu mới từ server
+          ...response.data,
         }));
-
-        // Reset trạng thái chỉnh sửa
-        setEditField(null);
-        setEditValue("");
       })
       .catch((error) => {
         console.error("Cập nhật thông số thất bại:", error);
         toast.error("Không thể cập nhật thông số!");
+        // Revert state if update fails
+        setLocalLaptop(previousLaptop);
       });
   };
 
@@ -500,10 +511,8 @@ const LaptopProductCard = ({
       toast.error("Chỉ chấp nhận tệp PDF!");
       return;
     }
-    console.log(currentHolder);
     const userId = currentHolder?.user?._id;
     const username = currentHolder?.user?.fullname || "Unknown"; // Lấy tên người dùng
-    console.log(username);
     if (!userId) {
       toast.error("Không tìm thấy ID người dùng, vui lòng thử lại!");
       return;
@@ -514,12 +523,6 @@ const LaptopProductCard = ({
     formData.append("laptopId", localLaptop._id);
     formData.append("userId", userId);
     formData.append("username", username); // Gửi username lên backend
-
-    console.log("📤 Dữ liệu gửi lên API:", {
-      laptopId: localLaptop._id,
-      userId,
-      username,
-    });
 
     axios
       .post(`${API_URL}/laptops/upload`, formData, {
@@ -576,7 +579,6 @@ const LaptopProductCard = ({
       );
 
       const updatedLaptop = response.data;
-      console.log("Updated laptop:", updatedLaptop);
 
       // Lấy thông tin chi tiết phòng
       const roomResponse = await axios.get(
@@ -588,7 +590,6 @@ const LaptopProductCard = ({
         }
       );
       const detailedRoom = roomResponse.data;
-      console.log("Detailed room:", detailedRoom);
 
       // Đồng bộ lại state `localRoom` và `localLaptop`
       setLocalRoom(detailedRoom);
@@ -803,7 +804,6 @@ const LaptopProductCard = ({
       return;
     }
     const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
-    console.log(fileUrl);
     window.open(fileUrl, "_blank"); // Mở tab mới để tải xuống file
   };
 
@@ -819,8 +819,6 @@ const LaptopProductCard = ({
       toast.error("Chỉ chấp nhận tệp PDF!");
       return;
     }
-
-    console.log("📤 Inspect ID gửi lên:", lastInspection?._id);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -1193,14 +1191,16 @@ const LaptopProductCard = ({
               <div>
                 <p className="text-xs text-theme-color-neutral-content">Loại</p>
                 {editField === "type" ? (
-                  <input
-                    type="text"
+                  <select
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
-                  />
+                    className="w-24 h-10 font-semibold text-xs focus:outline-none rounded bg-transparent"
+                  >
+                    <option value="Laptop">Laptop</option>
+                    <option value="Desktop">Desktop</option>
+                  </select>
                 ) : (
-                  <p className="font-semibold">{laptopData.type || "N/A"}</p>
+                  <p className="font-semibold">{localLaptop.type || "N/A"}</p>
                 )}
               </div>
             </div>
@@ -1248,7 +1248,7 @@ const LaptopProductCard = ({
                   />
                 ) : (
                   <p className="font-semibold">
-                    {laptopData.specs?.processor || "N/A"}
+                    {localLaptop.specs?.processor || "N/A"}
                   </p>
                 )}
               </div>
@@ -1301,7 +1301,7 @@ const LaptopProductCard = ({
                   />
                 ) : (
                   <p className="font-semibold">
-                    {laptopData.specs?.ram || "N/A"}
+                    {localLaptop.specs?.ram || "N/A"}
                   </p>
                 )}
               </div>
@@ -1352,7 +1352,7 @@ const LaptopProductCard = ({
                   />
                 ) : (
                   <p className="font-semibold">
-                    {laptopData.specs?.storage || "N/A"}
+                    {localLaptop.specs?.storage || "N/A"}
                   </p>
                 )}
               </div>
@@ -1405,7 +1405,7 @@ const LaptopProductCard = ({
                   />
                 ) : (
                   <p className="font-semibold">
-                    {laptopData.specs?.display || "N/A"}
+                    {localLaptop.specs?.display || "N/A"}
                   </p>
                 )}
               </div>
@@ -1458,7 +1458,7 @@ const LaptopProductCard = ({
                   />
                 ) : (
                   <p className="font-semibold">
-                    {laptopData.releaseYear || "N/A"}
+                    {localLaptop.releaseYear || "N/A"}
                   </p>
                 )}
               </div>
@@ -1512,7 +1512,7 @@ const LaptopProductCard = ({
                   />
                 ) : (
                   <p className="font-semibold">
-                    {laptopData.manufacturer || "N/A"}
+                    {localLaptop.manufacturer || "N/A"}
                   </p>
                 )}
               </div>
@@ -2589,7 +2589,6 @@ const LaptopProductCard = ({
               inspectId={laptopData._id} // id là giá trị bạn có
               onInspectionComplete={(inspectionData) => {
                 // Xử lý dữ liệu kiểm tra tại LaptopProductCard
-                console.log("Dữ liệu kiểm tra:", inspectionData);
                 setLocalLaptop((prev) => ({
                   ...prev,
                   lastInspection: inspectionData,

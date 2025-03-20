@@ -301,8 +301,6 @@ const LaptopTable = () => {
   // Gọi API “bàn giao” (POST /laptops/:id/assign)
   // ----------------------------------------------------
   const handleAssignLaptop = async (laptopId, newUserId, notes) => {
-    console.log("Dữ liệu gửi lên:", laptopId, newUserId, notes);
-
     try {
       const token = localStorage.getItem("authToken");
       const currentUser = JSON.parse(localStorage.getItem("currentUser"));
@@ -350,7 +348,6 @@ const LaptopTable = () => {
       }
 
       return data; // Trả về dữ liệu đã cập nhật
-      console.log("Dữ liệu trả về từ API:", data);
     } catch (error) {
       console.error("Error in handleAssignLaptop:", error);
       throw error; // Throw lại lỗi để xử lý ở `LaptopProductCard.jsx`

@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import {
   FiEdit,
+  FiCpu,
+  FiHardDrive,
   FiMonitor,
   FiTrash2,
   FiPackage,
   FiRefreshCw,
+  FiGrid,
+  FiArchive,
 } from "react-icons/fi";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
@@ -17,20 +21,22 @@ import PizZip from "pizzip";
 import { saveAs } from "file-saver";
 import axios from "axios";
 import Dropdown from "../../function/dropdown";
-import { IoLocationOutline } from "react-icons/io5";
-import { API_URL, UPLOAD_URL, BASE_URL } from "../../../config"; // import từ file config
+import {
+  IoLocationOutline,
+  IoBuildOutline,
+  IoBookOutline,
+  IoCloudUploadOutline,
+} from "react-icons/io5";
+import Inspect from "../inspect/inspect";
+import { API_URL, BASE_URL } from "../../../config"; // import từ file config
 
 const ProjectorProductCard = ({
   projectorData,
   onCloseModal,
-  onUpdateSpecs,
   onRevoke,
   onAssign,
-  setSelectedProjector,
   fetchProjectorDetails,
   onUpdateProjector,
-  refetchProjectors,
-  onUpdateRoom,
 }) => {
   const [activeTab, setActiveTab] = useState("repairs");
   const [repairs, setRepairs] = useState([]); // Quản lý danh sách sửa chữa cục bộ
@@ -43,7 +49,7 @@ const ProjectorProductCard = ({
   });
   const [updates, setUpdates] = useState([]); // Danh sách cập nhật phần mềm
   const [setShowAddRepairModal] = useState(false); // Modal thêm sửa chữa
-  const [editField, setEditField] = useState(null); // Tên trường specs đang chỉnh sửa (processor, ram,...)
+  const [editField, setEditField] = useState(null);
   const [editValue, setEditValue] = useState(""); // Giá trị tạm thời khi chỉnh sửa
   const [isEditUpdateOpen, setIsEditUpdateOpen] = useState(false);
   const [editingUpdate, setEditingUpdate] = useState({
@@ -82,6 +88,9 @@ const ProjectorProductCard = ({
     user: {
       fullname: "Chưa bàn giao",
       jobTitle: "",
+      email: "",
+      avatarUrl: "",
+      department: "",
     },
   });
   const [otherReason, setOtherReason] = useState(""); // Lưu nội dung lý do khác
@@ -90,32 +99,28 @@ const ProjectorProductCard = ({
   const [brokenReason, setBrokenReason] = useState(""); // Lưu lý do hỏng
   const [localRoom, setLocalRoom] = useState(null); // State cho phòng hiện tại
   const [rooms, setRooms] = useState([]); // Khai báo state cho danh sách phòng
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false); // Quản lý trạng thái mở/đóng danh sách
   const [showRoomEditModal, setShowRoomEditModal] = useState(false); // State để hiển thị modal chỉnh sửa phòng
-  const room = localProjector.room || null; // Lấy thông tin phòng từ localProjector
   const [showRecycleModal, setShowRecycleModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showInspectModal, setShowInspectModal] = useState(false);
+  const [lastInspection, setLastInspection] = useState(null); // Dữ liệu kiểm tra mới nhất
+  const [loading, setLoading] = useState(false); // Trạng thái tải dữ liệu
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const fetchActivities = async (projectorId) => {
-    try {
-      const response = await axios.get(
-        `${API_URL}/activities/projector/${projectorId}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách hoạt động:", error);
-      toast.error("Không thể tải lịch sử hoạt động!");
-    }
+  const fetchActivities = async (entityType, entityId) => {
+    const response = await axios.get(
+      `${API_URL}/activities/${entityType}/${entityId}`
+    );
+    return response.data;
   };
 
   const addActivity = async (activity) => {
-    try {
-      const response = await axios.post(`${API_URL}/activities`, activity);
-      return response.data;
-    } catch (error) {
-      console.error("Lỗi khi thêm hoạt động:", error);
-      toast.error("Không thể thêm hoạt động!");
-    }
+    const response = await axios.post(`${API_URL}/activities`, {
+      ...activity,
+      entityType: "projector",
+      entityId: projectorData._id,
+    });
+    return response.data;
   };
 
   const updateActivity = async (id, updates) => {
@@ -128,188 +133,93 @@ const ProjectorProductCard = ({
     return response.data;
   };
 
-  useEffect(() => {
-    setRefreshKey((prev) => prev + 1); // Tăng giá trị mỗi lần localProjector thay đổi
-  }, [localProjector]);
-
-  useEffect(() => {
-    if (localProjector?.room) {
-      const detailedRoom = rooms.find(
-        (room) => room.value === localProjector.room._id
-      );
-      setLocalRoom(detailedRoom || localProjector.room);
-    } else {
-      setLocalRoom(null); // Nếu không có room
-    }
-  }, [localProjector, rooms, showRoomEditModal, refreshKey]); // Thêm `showRoomEditModal` vào dependency
-
-  useEffect(() => {
-    if (projectorData?.repairs) {
-      setRepairs(projectorData.repairs); // Chỉ đồng bộ khi thực sự cần thiết
-      setLocalStatus(projectorData.status);
-    }
-  }, [projectorData]); // Chỉ chạy khi `projectorData` thay đổi
-
-  useEffect(() => {
-    if (projectorData) {
-      setLocalProjector(projectorData); // Tránh gọi `setState` khi không cần thiết
-      setLocalStatus(projectorData.status);
-    }
-  }, [projectorData]); // Chỉ phụ thuộc vào `projectorData`
-
-  useEffect(() => {
-    if (localStatus) {
-      fetchProjectorDetails(localProjector?._id);
-    }
-  }, [localStatus]);
-
-  useEffect(() => {
-    if (projectorData?._id) {
-      fetchProjectorDetails(projectorData._id);
-    }
-  }, [projectorData?._id]); // Chỉ phụ thuộc vào `_id`
-
-  useEffect(() => {
-    const fetchAllUsers = async () => {
-      try {
-        const res = await fetch(`${API_URL}/users`);
-        if (!res.ok) throw new Error("Failed to fetch users");
-        const data = await res.json();
-        setAllUsers(data); // Lưu danh sách người dùng
-      } catch (err) {
-        console.error("Error fetching users:", err);
-      }
-    };
-    fetchAllUsers();
-  }, []);
-
-  useEffect(() => {
-    if (projectorData?.assignmentHistory?.length > 0) {
-      const holder = projectorData.assignmentHistory.find(
-        (history) => !history.endDate
-      );
-      setCurrentHolder(
-        holder || {
-          user: {
-            fullname: "Chưa bàn giao",
-            jobTitle: "",
-          },
-        }
-      );
-    } else {
-      setCurrentHolder({
-        user: {
-          fullname: "Chưa bàn giao",
-          jobTitle: "",
-        },
-      });
-    }
-  }, [projectorData]);
-
-  useEffect(() => {
-    setLocalProjector(projectorData); // Đồng bộ dữ liệu khi projectorData thay đổi
-    setLocalStatus(projectorData.status); // Đồng bộ trạng thái
-  }, [projectorData]);
-
-  const handleSelectUser = (user) => {
-    setSelectedUser(user);
-    setSearchText("");
-    setSearchResults([]);
-  };
-  useEffect(() => {
-    const loadActivities = async () => {
-      try {
-        const activities = await fetchActivities(localProjector._id); // Lấy toàn bộ hoạt động
-        const repairList = activities.filter(
-          (activity) => activity.type === "repair"
-        );
-        const updateList = activities.filter(
-          (activity) => activity.type === "update"
-        );
-
-        setRepairs(repairList); // Cập nhật danh sách sửa chữa
-        setUpdates(updateList); // Cập nhật danh sách cập nhật
-      } catch (error) {
-        console.error("Lỗi khi lấy dữ liệu hoạt động:", error);
-        toast.error("Không thể tải lịch sử hoạt động!");
-      }
-    };
-
-    if (localProjector?._id) {
-      loadActivities();
-    }
-  }, [localProjector]);
-
-  useEffect(() => {
-    if (revokeReasons.includes("Máy hỏng")) {
-      setLocalStatus("Broken");
-    } else {
-      setLocalStatus("Standby");
-    }
-  }, [revokeReasons]);
-
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        const token = localStorage.getItem("authToken");
-        const response = await axios.get(`${API_URL}/rooms`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setRooms(response.data.rooms || []);
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách phòng:", error);
-        toast.error("Không thể tải danh sách phòng!");
-      }
-    };
-    fetchRooms();
-  }, []);
-
-  // Xác nhận “bàn giao”
   const handleConfirmAssign = async () => {
     if (!selectedUser || !notes.trim()) {
       toast.error("Vui lòng nhập thông tin hợp lệ trước khi bàn giao!");
       return;
     }
+    if (isProcessing) {
+      console.warn("⏳ Đang xử lý, không gửi yêu cầu mới!");
+      return;
+    }
+    setIsProcessing(true);
+
+    // CHUYỂN KHAI BÁO RA NGOÀI
+    let oldStatus;
+    let oldAssigned;
+    let oldHolder;
 
     try {
-      const response = await onAssign(projectorData._id, selectedUser, notes);
-      if (!response || !response._id) {
-        throw new Error("API không trả về dữ liệu hợp lệ.");
-      }
-      const updatedProjector = response; // API trả về dữ liệu đã cập nhật
+      // Lưu data cũ để revert nếu API lỗi
+      oldStatus = localStatus;
+      oldAssigned = localProjector.assigned || [];
+      oldHolder = { ...currentHolder };
 
-      // Cập nhật state
-      setLocalProjector(updatedProjector); // Đồng bộ dữ liệu cục bộ
+      // [A] Optimistic update: Cập nhật UI ngay
+      setLocalStatus("PendingDocumentation");
+      setLocalProjector((prev) => ({
+        ...prev,
+        assigned: [selectedUser], // Tạm cho user đang cầm
+        status: "PendingDocumentation",
+      }));
       setCurrentHolder({
         user: selectedUser,
         assignedBy: JSON.parse(localStorage.getItem("currentUser")),
         startDate: new Date().toISOString(),
       });
-      onUpdateProjector(updatedProjector); // Đồng bộ với danh sách cha
 
-      // Gọi lại API để cập nhật dữ liệu chi tiết trong modal
-      await fetchProjectorDetails(projectorData._id);
+      // [B] Đóng modal
+      setShowAssignModal(false);
+      toast.info("Đang bàn giao thiết bị...");
 
+      // [C] Gọi API onAssign trong nền
+
+      const response = await onAssign(projectorData._id, selectedUser, notes);
+
+      if (!response || !response._id) {
+        throw new Error("API không trả về dữ liệu hợp lệ.");
+      }
+
+      const updatedProjector = response;
+
+      // Đồng bộ UI với dữ liệu server
+      setLocalProjector(updatedProjector);
+      setLocalStatus(updatedProjector.status || "PendingDocumentation");
+      setCurrentHolder({
+        user: selectedUser,
+        assignedBy: JSON.parse(localStorage.getItem("currentUser")),
+        startDate: new Date().toISOString(),
+      });
       toast.success("Bàn giao thành công!");
-      handleCloseModal();
+      fetchProjectorDetails(projectorData._id);
     } catch (error) {
-      console.error("Lỗi khi bàn giao:", error);
       toast.error("Không thể bàn giao thiết bị!");
+
+      // Revert UI
+      setLocalStatus(oldStatus);
+      setLocalProjector((prev) => ({
+        ...prev,
+        assigned: oldAssigned,
+        status: oldStatus,
+      }));
+      setCurrentHolder(oldHolder);
+    } finally {
+      setIsProcessing(false);
     }
   };
-
-  const previousUsers = projectorData.assignmentHistory?.filter(
-    (history) => history.endDate
-  );
 
   const handleOpenModal = () => {
     setShowAssignModal(true);
   };
 
   const handleCloseModal = () => {
-    setShowAssignModal(false);
-    setSelectedUser("");
-    setNotes("");
+    setTimeout(() => {
+      setShowAssignModal(false);
+      setSelectedUser(""); // Xóa user đã chọn
+      setNotes(""); // Xóa ghi chú
+      setSearchText(""); // Xóa ô tìm kiếm
+      setSearchResults([]); // Xóa gợi ý tìm kiếm
+    }, 0);
   };
 
   const handleConfirmRecycle = async () => {
@@ -329,6 +239,7 @@ const ProjectorProductCard = ({
       setLocalProjector(updatedProjector);
       setLocalStatus("Standby");
       onUpdateProjector(updatedProjector);
+
       toast.success("Trạng thái đã được chuyển về Chờ cấp phát!");
       setShowRecycleModal(false); // Đóng modal
     } catch (error) {
@@ -354,12 +265,10 @@ const ProjectorProductCard = ({
     }
 
     const results = fuse.search(searchText);
-    const formattedResults = results.map((result) => result.item);
+    const formattedResults = results.map((result) => result.item).slice(0, 7); // Giới hạn 5 kết quả tốt nhất
     setSearchResults(formattedResults);
   };
 
-  // Ví dụ: status === "Active" => hiển thị nút Thu hồi
-  //        status === "Standby" => hiển thị nút Bàn giao
   const handleRevokeClick = () => {
     setShowRevokeModal(true);
   };
@@ -394,27 +303,53 @@ const ProjectorProductCard = ({
       toast.error("Vui lòng chọn ít nhất một lý do!");
       return;
     }
+    if (isProcessing) {
+      console.warn("⏳ Đang xử lý, không gửi yêu cầu mới!");
+      return;
+    }
+    setIsProcessing(true);
+
+    // CHUYỂN KHAI BÁO RA NGOÀI
+    let oldStatus;
+    let oldAssigned;
+    let oldCurrentHolder;
 
     try {
-      // Tạo danh sách lý do đầy đủ
-      const reasonsToSave = [...revokeReasons];
-      if (otherReason.trim()) {
-        reasonsToSave.push(`Lý do khác: ${otherReason}`);
-      }
-      const response = await onRevoke(localProjector._id, reasonsToSave);
-      const updatedProjector = response.projector; // Lấy phần dữ liệu projector
-      setLocalProjector(updatedProjector); // Đồng bộ dữ liệu chi tiết
-      setLocalStatus(updatedProjector.status); // Cập nhật lại trạng thái hiển thị
-      setCurrentHolder(null); // Xóa người sử dụng hiện tại
-      setRevokeReasons([]);
-      setOtherReason(""); // Reset lý do khác
+      // Lưu trạng thái cũ để revert nếu API lỗi
+      oldStatus = localStatus;
+      oldAssigned = localProjector.assigned;
+      oldCurrentHolder = { ...currentHolder };
+
+      // [A] Optimistic update: Cập nhật UI ngay
+      setLocalStatus("Standby"); // Chuyển sang trạng thái chờ cấp phát
+      setLocalProjector((prev) => ({
+        ...prev,
+        assigned: [],
+        status: "Standby",
+        currentHolder: null,
+      }));
+      setCurrentHolder(null);
       setShowRevokeModal(false);
-      onUpdateProjector(updatedProjector); // Đồng bộ với danh sách cha
-      await fetchProjectorDetails(localProjector._id);
-      toast.success("Thu hồi thành công!");
+      toast.info("Đang thu hồi thiết bị...");
+      const response = await onRevoke(localProjector._id, revokeReasons);
+      if (!response || !response.projector) {
+        throw new Error("API không trả về dữ liệu hợp lệ.");
+      }
+      const updatedProjector = response.projector;
+      setLocalProjector(updatedProjector);
+      setLocalStatus(updatedProjector.status || "Standby");
+      fetchProjectorDetails(localProjector._id);
     } catch (error) {
-      console.error("Lỗi khi thu hồi:", error);
       toast.error("Không thể thu hồi thiết bị!");
+      setLocalStatus(oldStatus);
+      setLocalProjector((prev) => ({
+        ...prev,
+        assigned: oldAssigned,
+        status: oldStatus,
+        currentHolder: oldCurrentHolder,
+      }));
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -457,6 +392,7 @@ const ProjectorProductCard = ({
       setLocalProjector(updatedProjector);
       setLocalStatus("Broken");
       onUpdateProjector(updatedProjector);
+
       toast.success("Thiết bị đã được báo hỏng!");
       handleCloseBrokenModal();
     } catch (error) {
@@ -468,7 +404,6 @@ const ProjectorProductCard = ({
   // -----------------------------------------------------
   // 1) TÁCH LOGIC CHỈNH SỬA SPECS
   // -----------------------------------------------------
-  //
   const handleEditSpec = (field, currentValue) => {
     setEditField(field);
     setEditValue(currentValue || "");
@@ -484,16 +419,27 @@ const ProjectorProductCard = ({
     if (["releaseYear", "type", "manufacturer"].includes(field)) {
       payload[field] = value || null;
     } else {
-      payload.specs = {
-        [field]: value || null, // Chỉ gửi trường cần cập nhật
-      };
+      payload.specs = { [field]: value || null };
     }
-    onUpdateSpecs(projectorData._id, payload)
-      .then((updatedProjector) => {
+
+    axios
+      .put(`${API_URL}/projectors/${projectorData._id}/specs`, payload, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      })
+      .then((response) => {
         toast.success("Cập nhật thông số thành công!");
+
+        // Cập nhật state ngay lập tức
+        setLocalProjector((prevProjector) => ({
+          ...prevProjector,
+          ...response.data, // Cập nhật dữ liệu mới từ server
+        }));
+
+        // Reset trạng thái chỉnh sửa
         setEditField(null);
         setEditValue("");
-        setLocalProjector(updatedProjector); // Đồng bộ lại dữ liệu
       })
       .catch((error) => {
         console.error("Cập nhật thông số thất bại:", error);
@@ -513,7 +459,7 @@ const ProjectorProductCard = ({
       return;
     }
 
-    const fileUrl = `${API_URL}/projectors/BBBG/${filename}`;
+    const fileUrl = `${API_URL}/projectors/handover/${filename}`;
     const token = localStorage.getItem("authToken");
 
     try {
@@ -528,19 +474,15 @@ const ProjectorProductCard = ({
         throw new Error("Không thể tải file. Lỗi: " + response.statusText);
       }
 
-      // Chuyển đổi phản hồi thành Blob
+      // Tạo Blob URL để xem file
       const blob = await response.blob();
-
-      // Tạo URL tạm thời từ Blob
       const blobUrl = window.URL.createObjectURL(blob);
 
-      // Mở file trong tab mới
       window.open(blobUrl, "_blank");
 
-      // Tùy chọn: Thu hồi URL tạm sau khi hoàn tất
       setTimeout(() => {
         window.URL.revokeObjectURL(blobUrl);
-      }, 10000); // Thu hồi sau 10 giây
+      }, 10000); // Thu hồi URL sau 10 giây
     } catch (error) {
       console.error("Lỗi khi xem file:", error);
       toast.error("Không thể xem file biên bản!");
@@ -587,14 +529,10 @@ const ProjectorProductCard = ({
         currentUserTitle: currentUser?.jobTitle || "Không xác định",
         nextUser: currentHolder.user?.fullname || "Không xác định",
         nextUserTitle: currentHolder.user?.jobTitle || "Không xác định",
-        //// Thông tin projector
         projectorName: projectorData.name || "Không xác định",
         projectorSerial: projectorData.serial,
-        projectorProcessor: projectorData.specs.processor,
-        projectorRam: projectorData.specs.ram,
-        projectorStorage: projectorData.specs.storage,
         projectorreleaseYear: projectorData.releaseYear,
-        notes: notes || "Không có ghi chú.",
+        notes: projectorData.assignmentHistory[0].notes || "Không có ghi chú.",
       });
 
       // 5. Render tài liệu
@@ -608,22 +546,29 @@ const ProjectorProductCard = ({
     }
   };
   const handleFileUpload = (e) => {
-    const file = e.target?.files?.[0]; // Lấy file từ event
+    const file = e.target?.files?.[0];
 
     if (!file) {
       toast.error("Không có tệp nào được chọn!");
       return;
     }
 
-    // Kiểm tra định dạng file
-    if (!file.name.endsWith(".pdf")) {
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
       toast.error("Chỉ chấp nhận tệp PDF!");
       return;
     }
+    const userId = currentHolder?.user?._id;
+    const username = currentHolder?.user?.fullname || "Unknown"; // Lấy tên người dùng
+    if (!userId) {
+      toast.error("Không tìm thấy ID người dùng, vui lòng thử lại!");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("file", file); // File tải lên
-    formData.append("projectorId", localProjector._id); // ID projector
-    formData.append("userId", currentHolder?.user?._id); // ID người dùng hiện tại
+    formData.append("file", file);
+    formData.append("projectorId", localProjector._id);
+    formData.append("userId", userId);
+    formData.append("username", username); // Gửi username lên backend
 
     axios
       .post(`${API_URL}/projectors/upload`, formData, {
@@ -635,20 +580,27 @@ const ProjectorProductCard = ({
       .then((response) => {
         toast.success("Tải lên thành công!");
 
-        // Cập nhật dữ liệu trong frontend
-        const updatedProjector = response.data.projector;
-        setLocalProjector(updatedProjector); // Đồng bộ lại state
-        setLocalStatus(updatedProjector.status); // Cập nhật trạng thái hiển thị
+        // (A) Ghi đè localProjector = projector từ server
+        setLocalProjector(response.data.projector);
 
-        // Cập nhật dữ liệu trong frontend
-        const updatedHolder = {
-          ...currentHolder,
-          document: response.data.document, // Cập nhật đường dẫn document
-        };
-        setCurrentHolder(updatedHolder); // Đồng bộ lại state
+        // (B) Tìm document tương ứng user
+        const foundHistory = response.data.projector.assignmentHistory.find(
+          (h) => {
+            return (
+              h.user?.toString() === currentHolder.user._id ||
+              h.user?._id?.toString() === currentHolder.user._id
+            );
+          }
+        );
+        // (C) Gán document
+        setCurrentHolder((prev) => ({
+          ...prev,
+          document: foundHistory?.document || "",
+        }));
+        onUpdateProjector(response.data.projector);
       })
       .catch((error) => {
-        console.error("Lỗi khi tải lên file:", error);
+        console.error("❌ Lỗi khi tải lên file:", error);
         toast.error("Tải lên thất bại!");
       });
   };
@@ -733,26 +685,6 @@ const ProjectorProductCard = ({
   };
 
   //--------------------------------------------------------------
-  const handleAddNewActivity = async () => {
-    const newActivity = {
-      projectorId: localProjector._id,
-      type: repairData.type, // repair hoặc update
-      description: repairData.description,
-      details: repairData.details,
-      date: repairData.date || new Date().toISOString(),
-      updatedBy: JSON.parse(localStorage.getItem("currentUser"))?.fullname,
-    };
-
-    try {
-      const addedActivity = await addActivity(newActivity);
-      setRepairs([...repairs, addedActivity]);
-      setShowAddRepairModal(false);
-      toast.success("Thêm hoạt động thành công!");
-    } catch (error) {
-      console.error("Lỗi khi thêm hoạt động:", error);
-      toast.error("Không thể thêm hoạt động!");
-    }
-  };
 
   const handleDeleteRepair = async (id) => {
     try {
@@ -857,15 +789,15 @@ const ProjectorProductCard = ({
     try {
       const addedActivity = await addActivity({
         ...newActivity,
-        entityType: "projector", // Thay "monitor" thành "projector"
-        entityId: localProjector._id,
-        updatedBy: JSON.parse(localStorage.getItem("currentUser"))?.fullname,
+        entityType: "projector", // Thay đổi khi áp dụng cho entity khác
+        entityId: localProjector._id, // ID thực thể
       });
 
+      // Cập nhật danh sách hoạt động
       if (newActivity.type === "repair") {
-        setRepairs([...repairs, addedActivity]);
+        setRepairs((prev) => [...prev, addedActivity]);
       } else {
-        setUpdates([...updates, addedActivity]);
+        setUpdates((prev) => [...prev, addedActivity]);
       }
 
       setIsAddActivityModalOpen(false);
@@ -879,6 +811,308 @@ const ProjectorProductCard = ({
   const allActivities = [...repairs, ...updates].sort(
     (a, b) => new Date(b.date) - new Date(a.date)
   );
+
+  // Cập nhật hàm tính trạng thái bảo trì
+  const calculateMaintenanceStatus = (lastInspectionDate, documentUrl) => {
+    if (!lastInspectionDate)
+      return { status: "Chưa kiểm tra", color: "bg-gray-400" };
+    const monthsSinceLastInspection = dayjs().diff(
+      dayjs(lastInspectionDate),
+      "month"
+    );
+    if (monthsSinceLastInspection <= 6) {
+      if (documentUrl && documentUrl.toLowerCase().endsWith(".pdf")) {
+        return { status: "Đã kiểm tra", color: "bg-green-500 text-white" };
+      } else {
+        return {
+          status: "Đã kiểm tra, thiếu biên bản",
+          color: "bg-yellow-500 text-white",
+        };
+      }
+    } else if (monthsSinceLastInspection <= 12) {
+      return { status: "Cần kiểm tra", color: "bg-yellow-500 text-white" };
+    } else {
+      return { status: "Cần kiểm tra gấp", color: "bg-red-500 text-white" };
+    }
+  };
+
+  const handleViewReport = () => {
+    if (!lastInspection?.documentUrl) {
+      toast.error("Không có file biên bản được tải lên!");
+      return;
+    }
+    const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
+    window.open(fileUrl, "_blank"); // Mở file trong tab mới
+  };
+  const handleDownloadReport = () => {
+    if (!lastInspection?.documentUrl) {
+      toast.error("Không có biên bản kiểm tra để tải về!");
+      return;
+    }
+    const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
+    window.open(fileUrl, "_blank"); // Mở tab mới để tải xuống file
+  };
+
+  // Hàm xử lý upload file PDF biên bản đã được scan (sau khi in và ký)
+  const handleFileUploadInspect = (e) => {
+    const file = e.target?.files?.[0];
+    if (!file) {
+      toast.error("Không có tệp nào được chọn!");
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Chỉ chấp nhận tệp PDF!");
+      return;
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("inspectId", lastInspection?._id); // Kiểm tra inspectId có giá trị hay không
+
+    axios
+      .post(`${API_URL}/inspects/uploadReport`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      })
+      .then((response) => {
+        toast.success("Tải lên biên bản thành công!");
+        // Cập nhật ngay lập tức dữ liệu kiểm tra
+        setLastInspection(response.data.data);
+
+        // Cập nhật UI ngay lập tức
+        setRefreshKey((prev) => prev + 1);
+      })
+      .catch((error) => {
+        console.error("❌ Lỗi khi tải lên file:", error);
+        toast.error("Tải lên thất bại!");
+      });
+  };
+
+  // Trong block hiển thị thông tin bảo trì bảo dưỡng, chúng ta sử dụng calculateMaintenanceStatus
+  const statusData = calculateMaintenanceStatus(
+    lastInspection?.inspectionDate,
+    lastInspection?.documentUrl
+  );
+
+  const handleSelectUser = (user) => {
+    setSelectedUser(user);
+    setSearchText(user.fullname); // hoặc user.label
+    setSearchResults([]); // ẩn gợi ý sau khi chọn
+  };
+
+  // -----------------------------------------------------
+  // 1) Lấy dữ liệu kiểm tra (Inspection) mỗi khi thay đổi ID projector hoặc refreshKey
+  useEffect(() => {
+    const fetchInspectionData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `${API_URL}/inspects/projector/${projectorData._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+          }
+        );
+        const data = await response.json();
+        if (response.ok) {
+          setLastInspection(data.data);
+        } else {
+          setLastInspection(null);
+        }
+      } catch (error) {
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInspectionData();
+  }, [projectorData._id, refreshKey]);
+
+  // 2) Mỗi khi localProjector thay đổi, ta tăng refreshKey để ép các dữ liệu con reload
+  useEffect(() => {
+    setRefreshKey((prev) => prev + 1);
+  }, [localProjector]);
+
+  // 3) Đồng bộ localRoom khi localProjector thay đổi (dùng để hiển thị đúng phòng)
+  useEffect(() => {
+    if (localProjector?.room) {
+      const detailedRoom = rooms.find(
+        (room) => room.value === localProjector.room._id
+      );
+      setLocalRoom(detailedRoom || localProjector.room);
+    } else {
+      setLocalRoom(null); // Nếu không có room
+    }
+  }, [localProjector, rooms, showRoomEditModal, refreshKey]);
+
+  // 4) Nếu projectorData có repairs mới, đồng bộ chúng và cập nhật localStatus
+  useEffect(() => {
+    if (projectorData?.repairs) {
+      setRepairs(projectorData.repairs);
+      setLocalStatus(projectorData.status);
+    }
+  }, [projectorData]);
+
+  // 5) Mỗi khi projectorData thay đổi, gán nó vào localProjector & đồng bộ localStatus
+  useEffect(() => {
+    if (projectorData) {
+      setLocalProjector(projectorData);
+      setLocalStatus(projectorData.status);
+    }
+  }, [projectorData]);
+
+  // 6) Gọi lại API để lấy chi tiết projector khi _id thay đổi (lúc mở modal, chọn projector khác, v.v.)
+  useEffect(() => {
+    if (projectorData?._id) {
+      fetchProjectorDetails(projectorData._id);
+    }
+  }, [projectorData?._id]);
+
+  // 7) Lấy danh sách tất cả người dùng để phục vụ tính năng gợi ý bàn giao
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      try {
+        const res = await fetch(`${API_URL}/users`);
+        if (!res.ok) throw new Error("Failed to fetch users");
+        const data = await res.json();
+        setAllUsers(data); // Lưu danh sách người dùng
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      }
+    };
+    fetchAllUsers();
+  }, []);
+
+  useEffect(() => {
+    // 1) Tìm record đang mở (chưa endDate) trong assignmentHistory
+    const openRecord = projectorData?.assignmentHistory?.find(
+      (hist) => !hist.endDate
+    );
+
+    if (openRecord) {
+      // Đã có record đang mở => Lấy user + document từ record này
+      setCurrentHolder({
+        user: {
+          _id:
+            openRecord.user?._id?.toString?.() || openRecord.user?.toString?.(),
+          fullname:
+            openRecord.userName ||
+            openRecord.user?.fullname ||
+            "Không xác định",
+          jobTitle: openRecord.jobTitle || openRecord.user?.jobTitle || "",
+          department: openRecord.user?.department || "",
+          avatarUrl: openRecord.user?.avatarUrl || "",
+        },
+        // Ghi lại document
+        document: openRecord.document || "",
+      });
+    } else if (projectorData?.assigned?.length > 0) {
+      // 2) Nếu không có record đang mở mà vẫn còn assigned => fallback cũ
+      const latestAssigned =
+        projectorData.assigned[projectorData.assigned.length - 1];
+      setCurrentHolder({
+        user: {
+          _id: latestAssigned.value,
+          fullname: latestAssigned.label || "N/A",
+          jobTitle: latestAssigned.jobTitle || "",
+          email: latestAssigned.email || "",
+          avatarUrl: latestAssigned.avatarUrl || "",
+          department: latestAssigned.department || "",
+        },
+        document: "", // assigned không có document
+      });
+    } else {
+      // 3) Nếu không có assigned và không có record đang mở
+      setCurrentHolder({
+        user: {
+          fullname: "Chưa bàn giao",
+          jobTitle: "",
+          avatarUrl: "",
+          email: "",
+          department: "",
+        },
+        document: "",
+      });
+    }
+  }, [projectorData]);
+
+  // 9) Nếu currentHolder không có biên bản (document), chuyển localStatus về PendingDocumentation
+  useEffect(() => {
+    if (
+      currentHolder &&
+      currentHolder.user &&
+      currentHolder.user.fullname !== "Chưa bàn giao"
+    ) {
+      if (!currentHolder.document) {
+        if (localStatus !== "PendingDocumentation") {
+          setLocalStatus("PendingDocumentation");
+        }
+      } else {
+        // Trường hợp đã có file biên bản, chuyển sang Active
+        if (localStatus !== "Active") {
+          setLocalStatus("Active");
+        }
+      }
+    }
+  }, [currentHolder, localStatus]);
+
+  // 10) Mỗi khi localProjector thay đổi, load danh sách activity (repairs, updates)
+  useEffect(() => {
+    const loadActivities = async () => {
+      if (!localProjector?._id) {
+        console.error("Projector ID không hợp lệ:", localProjector?._id);
+        return;
+      }
+      try {
+        const activities = await fetchActivities(
+          "projector",
+          localProjector._id
+        );
+        const repairList = activities.filter(
+          (activity) => activity.type === "repair"
+        );
+        const updateList = activities.filter(
+          (activity) => activity.type === "update"
+        );
+
+        setRepairs(repairList);
+        setUpdates(updateList);
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu hoạt động:", error);
+        toast.error("Không thể tải lịch sử hoạt động!");
+      }
+    };
+    loadActivities();
+  }, [localProjector]);
+
+  // 11) Nếu người dùng chọn “Máy hỏng” trong lý do thu hồi, chuyển sang Broken, ngược lại Standby
+  useEffect(() => {
+    if (revokeReasons.includes("Máy hỏng")) {
+      setLocalStatus("Broken");
+    } else {
+      setLocalStatus("Standby");
+    }
+  }, [revokeReasons]);
+
+  // 12) Lấy danh sách phòng (rooms) ngay khi mở card lần đầu
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const response = await axios.get(`${API_URL}/rooms`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setRooms(response.data.rooms || []);
+      } catch (error) {
+        console.error("Lỗi khi tải danh sách phòng:", error);
+        toast.error("Không thể tải danh sách phòng!");
+      }
+    };
+    fetchRooms();
+  }, []);
   // -----------------------------------------------------
   return (
     <div className="max-w-full mx-auto bg-white p-6 rounded-xl shadow-lg">
@@ -899,7 +1133,7 @@ const ProjectorProductCard = ({
             )}
             {localStatus === "Standby" && (
               <>
-                <MdOutlineError className="text-[#EAA300] text-lg mr-2 gap-2 font-bold" />{" "}
+                <MdOutlineError className="text-[#ffdb86] text-lg mr-2 gap-2 font-bold" />{" "}
                 Chờ cấp phát
               </>
             )}
@@ -920,12 +1154,20 @@ const ProjectorProductCard = ({
 
         <div className="flex space-x-2 mt-2 mr-2">
           {localStatus === "Active" && (
-            <button
-              onClick={handleRevokeClick}
-              className="px-5 py-2 bg-[#DC0909] text-white font-bold text-sm rounded-lg hover:bg-[#cc4529] transform transition-transform duration-300 hover:scale-105"
-            >
-              Thu hồi
-            </button>
+            <>
+              <button
+                onClick={() => setShowInspectModal(true)}
+                className="px-5 py-2 bg-[#EAA300] text-white font-bold text-sm rounded-lg hover:bg-[#ECB73B] transform transition-transform duration-300 hover:scale-105"
+              >
+                Kiểm tra
+              </button>
+              <button
+                onClick={handleRevokeClick}
+                className="px-5 py-2 bg-[#DC0909] text-white font-bold text-sm rounded-lg hover:bg-[#cc4529] transform transition-transform duration-300 hover:scale-105"
+              >
+                Thu hồi
+              </button>
+            </>
           )}
           {projectorData.status === "Standby" && (
             <>
@@ -987,14 +1229,67 @@ const ProjectorProductCard = ({
 
       {/* Bố cục chính với 3 block */}
       <div className="grid grid-cols-[180px,2fr,2fr] gap-4">
-        {/* Block 1: Thông tin spec */}
         <div className="w-44 justify-evenly items-center">
+          {/* Type Block */}
+          <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
+            <div className="flex items-center space-x-3">
+              <FiGrid className="text-2xl text-[#FF5733]" />
+              <div>
+                <p className="text-xs text-theme-color-neutral-content">Loại</p>
+                {editField === "type" ? (
+                  <select
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="w-24 h-10 font-semibold text-xs focus:outline-none rounded bg-transparent"
+                  >
+                    <option value="Máy chiếu">Máy chiếu</option>
+                    <option value="Tivi">Tivi</option>
+                    <option value="Màn hình tương tác">
+                      Màn hình tương tác
+                    </option>
+                  </select>
+                ) : (
+                  <p className="font-semibold">
+                    {localProjector.type || "N/A"}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              {editField === "type" ? (
+                <>
+                  <button onClick={() => handleSaveSpec("type", editValue)}>
+                    <MdCheckCircle
+                      className="text-[#009483] hover:scale-110 mt-5 ml-2"
+                      size={15}
+                    />
+                  </button>
+                  <button onClick={handleCancelEdit}>
+                    <MdCancel
+                      className="text-[#DC0909] hover:scale-110 mt-5"
+                      size={15}
+                    />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => handleEditSpec("type", projectorData.type)}
+                >
+                  <FiEdit
+                    className="text-[#FF5733] hover:scale-110"
+                    size={15}
+                  />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Màn hình Block */}
           <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
             <div className="flex items-center space-x-3">
               <FiMonitor className="text-2xl text-[#FF5733]" />
               <div>
-                <p className="text-sm text-theme-color-neutral-content">
+                <p className="text-xs text-theme-color-neutral-content">
                   Màn hình
                 </p>
                 {editField === "display" ? (
@@ -1002,11 +1297,11 @@ const ProjectorProductCard = ({
                     type="text"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 h-6 font-semibold focus:outline-none rounded bg-transparent"
+                    className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
                   />
                 ) : (
                   <p className="font-semibold">
-                    {projectorData.specs?.display || "N/A"}
+                    {localProjector.specs?.display || "N/A"}
                   </p>
                 )}
               </div>
@@ -1045,21 +1340,21 @@ const ProjectorProductCard = ({
           {/* Năm sản xuất */}
           <div className="flex items-center justify-between bg-gray-100 p-3 rounded-xl mb-4 mt-0 transform transition-transform duration-300 hover:scale-105">
             <div className="flex items-center space-x-3">
-              <FiPackage className="text-2xl text-[#FF5733]" />
+              <FiArchive className="text-2xl text-[#FF5733]" />
               <div>
-                <p className="text-sm text-theme-color-neutral-content">
-                  Năm Sản Xuất
+                <p className="text-xs text-theme-color-neutral-content">
+                  Năm mua
                 </p>
                 {editField === "releaseYear" ? (
                   <input
                     type="text"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 h-6 font-semibold focus:outline-none rounded bg-transparent"
+                    className="w-24 h-6 font-semibold text-sm focus:outline-none rounded bg-transparent"
                   />
                 ) : (
                   <p className="font-semibold">
-                    {projectorData.releaseYear || "N/A"}
+                    {localProjector.releaseYear || "N/A"}
                   </p>
                 )}
               </div>
@@ -1113,7 +1408,7 @@ const ProjectorProductCard = ({
                   />
                 ) : (
                   <p className="font-semibold">
-                    {projectorData.manufacturer || "N/A"}
+                    {localProjector.manufacturer || "N/A"}
                   </p>
                 )}
               </div>
@@ -1191,12 +1486,9 @@ const ProjectorProductCard = ({
                               >
                                 <div className="flex items-center mb-2">
                                   <img
-                                    src={
-                                      hist.avatarUrl ||
-                                      "https://via.placeholder.com/150"
-                                    }
+                                    src={`${BASE_URL}/uploads/Avatar/${hist.avatarUrl}`}
                                     alt="Avatar"
-                                    className="w-10 h-10 rounded-full mr-3 object-cover"
+                                    className="w-10 h-10 rounded-full mr-3 object-cover object-top"
                                   />
                                   <div>
                                     <p className="font-semibold text-sm">
@@ -1317,12 +1609,9 @@ const ProjectorProductCard = ({
                               >
                                 <div className="flex items-center mb-2">
                                   <img
-                                    src={
-                                      hist.avatarUrl ||
-                                      "https://via.placeholder.com/150"
-                                    }
+                                    src={hist.avatarUrl}
                                     alt="Avatar"
-                                    className="w-10 h-10 rounded-full mr-3 object-cover"
+                                    className="w-10 h-10 rounded-full mr-3 object-cover object-top"
                                   />
                                   <div>
                                     <p className="font-semibold text-sm">
@@ -1372,11 +1661,11 @@ const ProjectorProductCard = ({
                         <img
                           src={
                             currentHolder?.user?.avatarUrl
-                              ? `${BASE_URL}${currentHolder?.user?.avatarUrl}`
+                              ? `${BASE_URL}/uploads/Avatar/${currentHolder?.user?.avatarUrl}`
                               : "/default-avatar.png"
                           }
                           alt="Avatar"
-                          className="w-16 h-16 rounded-full object-cover"
+                          className="w-16 h-16 rounded-full object-cover object-top"
                         />
                         <div>
                           <p className="font-bold text-base">
@@ -1430,7 +1719,7 @@ const ProjectorProductCard = ({
                     <div className="flex items-center space-x-4">
                       <IoLocationOutline size={24} className="text-[#002147]" />
                       <div>
-                        <p className="font-bold text-base">
+                        <p className="font-bold text-sm">
                           {localRoom?.name || "Không xác định"}
                         </p>
                         {Array.isArray(localRoom?.location) &&
@@ -1456,12 +1745,90 @@ const ProjectorProductCard = ({
                   </div>
                   <hr className="my-2 border-t border-gray-300" />
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 font-semibold text-sm">
                       <p>Công năng hiện tại:</p>
                       <span className="px-3 py-1 bg-[#002147] text-white text-sm rounded-full">
                         {localRoom?.status || "Không xác định trạng thái"}
                       </span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Block hiển thị thông tin bảo trì bảo dưỡng */}
+                <h3 className="text-sm font-semibold mt-4 mb-2">
+                  Thông tin bảo trì bảo dưỡng
+                </h3>
+                <div className="bg-[#E4E9EF] p-4 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300">
+                  {loading ? (
+                    <p>Đang tải dữ liệu kiểm tra...</p>
+                  ) : lastInspection ? (
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2">
+                        <IoBuildOutline size={28} className="text-[#002147]" />
+                        <div>
+                          <p className="text-sm font-bold ml-2">
+                            Lần kiểm tra gần nhất:{" "}
+                            {dayjs(lastInspection.inspectionDate).format(
+                              "DD/MM/YYYY"
+                            )}
+                          </p>
+                          <p className="text-sm ml-2">
+                            Người kiểm tra:{" "}
+                            {lastInspection.inspectorName || "Không xác định"}
+                          </p>
+                        </div>
+                      </div>
+                      {lastInspection.documentUrl &&
+                        lastInspection.documentUrl
+                          .toLowerCase()
+                          .endsWith(".pdf") && (
+                          <button
+                            onClick={handleViewReport}
+                            className="px-2 py-1 text-[#002147] text-sm"
+                          >
+                            <IoBookOutline size={20} />
+                          </button>
+                        )}
+                      {statusData.status === "Đã kiểm tra, thiếu biên bản" && (
+                        <label className="px-2 py-1 text-[#002147] font-bold rounded text-xs cursor-pointer transform transition-transform duration-300 hover:scale-105">
+                          <IoCloudUploadOutline size={22} />
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            onChange={handleFileUploadInspect}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Chưa có lịch sử kiểm tra.
+                    </p>
+                  )}
+
+                  <hr className="my-4 border-gray-300" />
+
+                  <div className="flex gap-2 items-center">
+                    <h4 className="text-sm font-semibold">
+                      Trạng thái bảo trì:
+                    </h4>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${statusData.color}`}
+                    >
+                      {statusData.status}
+                    </span>
+
+                    {statusData.status === "Đã kiểm tra, thiếu biên bản" && (
+                      <>
+                        <button
+                          onClick={handleDownloadReport}
+                          className="px-2 py-1 text-white font-semibold text-sm rounded-lg shadow-2xl bg-[#002147] transform transition-transform duration-300 hover:scale-105"
+                        >
+                          In Biên bản
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1909,40 +2276,37 @@ const ProjectorProductCard = ({
                       debouncedSearch(); // Gọi hàm tìm kiếm với debounce
                     }}
                   />
-                  {searchText.trim() && (
-                    <div className="absolute z-10 bg-white border rounded mt-1 max-h-48 w-full overflow-y-auto shadow-lg">
-                      {searchResults.length > 0 ? (
-                        <ul>
-                          {searchResults.map((user) => (
-                            <li
-                              key={user._id}
-                              className="p-2 hover:bg-gray-100 cursor-pointer"
-                              onClick={() => handleSelectUser(user)}
-                            >
-                              <p className="font-bold">{user.fullname}</p>
-                              <p className="text-sm italic text-gray-600">
-                                {user.email}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-500 p-2">
-                          Không tìm thấy kết quả nào!
-                        </p>
-                      )}
+                  {searchResults.length > 0 && searchText.trim() !== "" && (
+                    <div className="absolute w-full bg-white shadow-lg rounded-md">
+                      {searchResults.map((user) => (
+                        <div
+                          key={user._id}
+                          className="p-2 hover:bg-gray-100 cursor-pointer flex flex-row border-b-2"
+                          onClick={() => handleSelectUser(user)}
+                        >
+                          <img
+                            src={`${BASE_URL}/uploads/Avatar/${user.avatarUrl}`}
+                            className="w-10 h-10 rounded-full object-cover object-top"
+                          />
+                          <div className="flex flex-col ml-3">
+                            <span className="font-semibold text-sm">
+                              {user.fullname}
+                            </span>
+                            <span className="italic text-sm">
+                              {user.employeeCode}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
                 {selectedUser && (
                   <div className="mt-4 mb-4 bg-[#002147] text-white p-4 rounded-xl flex items-center space-x-4">
                     <img
-                      src={
-                        selectedUser.avatarUrl ||
-                        "https://via.placeholder.com/150"
-                      }
+                      src={`${BASE_URL}/uploads/Avatar/${selectedUser.avatarUrl}`}
                       alt={selectedUser.fullname}
-                      className="w-20 h-20 rounded-full object-cover"
+                      className="w-20 h-20 rounded-full object-cover object-top"
                     />
                     <div>
                       <p className="font-bold text-lg">
@@ -2109,6 +2473,20 @@ const ProjectorProductCard = ({
                 </div>
               </div>
             </div>
+          )}
+          {showInspectModal && (
+            <Inspect
+              projectorData={localProjector}
+              user={currentHolder.user}
+              onClose={() => setShowInspectModal(false)}
+              inspectId={projectorData._id} // id là giá trị bạn có
+              onInspectionComplete={(inspectionData) => {
+                setLocalProjector((prev) => ({
+                  ...prev,
+                  lastInspection: inspectionData,
+                }));
+              }}
+            />
           )}
         </div>
       </div>

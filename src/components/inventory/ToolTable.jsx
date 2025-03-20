@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import { FaSearch } from "react-icons/fa";
@@ -8,7 +8,8 @@ import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import Dropdown from "../function/dropdown";
-import { API_URL, UPLOAD_URL, BASE_URL } from "../../config"; // import từ file config
+import { API_URL } from "../../config"; // import từ file config
+import _ from "lodash"; // hoặc import debounce trực tiếp: import { debounce } from 'lodash';
 
 const ToolTable = () => {
   const [data, setData] = useState([]); // State cho danh sách tools
@@ -16,6 +17,7 @@ const ToolTable = () => {
   const [showAddModal, setShowAddModal] = useState(false); // State để điều khiển modal
   const [newTool, setNewTool] = useState({
     name: "",
+    type: "Tool",
     manufacturer: "",
     serial: "",
     assigned: [],
@@ -32,6 +34,7 @@ const ToolTable = () => {
   });
   const [editingTool, setEditingTool] = useState({
     name: "",
+    type: "Tool",
     manufacturer: "",
     serial: "",
     assigned: [],
@@ -56,7 +59,6 @@ const ToolTable = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [parsedData, setParsedData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [selectedOption, setSelectedOption] = useState("Tất cả trạng thái");
   const [selectedDepartment, setSelectedDepartment] =
     useState("Tất cả phòng ban");
@@ -66,8 +68,6 @@ const ToolTable = () => {
   const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
   const [selectedType, setSelectedType] = useState("Tất cả"); // Mặc định là Tất cả
   const [rooms, setRooms] = useState([]); // Lưu danh sách rooms từ API
-  const [filteredRooms, setFilteredRooms] = useState([]); // Lưu gợi ý tìm kiếm
-  const [showRoomSuggestions, setShowRoomSuggestions] = useState(false); // Kiểm soát hiển thị gợi ý
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -93,9 +93,7 @@ const ToolTable = () => {
         },
       })
       .then((response) => {
-        // Dữ liệu tool đã được cập nhật
         const updatedTool = response.data;
-        // Cập nhật state cục bộ (nếu đang giữ selectedTool)
         if (selectedTool && selectedTool._id === updatedTool._id) {
           setSelectedTool(updatedTool);
         }
@@ -106,32 +104,25 @@ const ToolTable = () => {
         throw error;
       });
   };
-
   const handleViewDetails = (tool) => {
     setSelectedTool(tool); // Chỉ truyền dữ liệu xuống ToolProductCard
     setRefreshKey((prevKey) => prevKey + 1); // Tăng giá trị để ép render
     setShowDetailModal(true);
   };
-
-  const handleRefreshData = async () => {
-    await fetchTools(); // Làm mới danh sách nếu cần
-  };
-
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(`${API_URL}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (response.data && Array.isArray(response.data)) {
         setUsers(
           response.data.map((user) => ({
             value: user._id,
             label: user.fullname,
             title: user.jobTitle || "Không",
-            departmentName: user.department || "Unknown",
-            emailAddress: user.email,
+            department: user.department || "Chưa xác định",
+            email: user.email,
             avatarUrl: user.avatarUrl || "Không có",
           }))
         );
@@ -169,7 +160,10 @@ const ToolTable = () => {
         assigned: tool.assigned.map((user) => ({
           value: user._id,
           label: user.fullname,
-          departmentName: user.department,
+          department: user.department || "Chưa xác định",
+          jobTitle: user.jobTitle,
+          email: user.email,
+          avatarUrl: user.avatarUrl,
         })),
       }));
 
@@ -180,8 +174,6 @@ const ToolTable = () => {
       setCurrentPage(1);
       // Hiển thị trước 30 items
       setData(tools.slice(0, 30));
-
-      console.log("Fetched total tools:", tools.length);
     } catch (error) {
       console.error("Error fetching tools:", error);
     }
@@ -221,12 +213,9 @@ const ToolTable = () => {
     // Lọc theo phòng ban
     if (filters.department && filters.department !== "Tất cả") {
       filtered = filtered.filter((item) =>
-        item.assigned.some((user) => user.departmentName === filters.department)
+        item.assigned.some((user) => user.department === filters.department)
       );
     }
-    console.log("Dữ liệu sau khi lọc:", filtered);
-
-    // Cập nhật dữ liệu state
     setFilteredData(filtered);
 
     const newTotalPages = Math.ceil(filtered.length / 30);
@@ -275,7 +264,6 @@ const ToolTable = () => {
       toast.error("Không thể tải danh sách phòng!");
     }
   };
-
   const handleRevokeTool = async (toolId, reasons) => {
     try {
       const token = localStorage.getItem("authToken");
@@ -286,7 +274,10 @@ const ToolTable = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ revokedBy: currentUser?._id || null, reasons }),
+        body: JSON.stringify({
+          revokedBy: currentUser?._id || null,
+          reasons,
+        }),
       });
 
       if (!response.ok) throw new Error("Không thể thu hồi tool!");
@@ -330,21 +321,16 @@ const ToolTable = () => {
         }),
       });
 
-      console.log("Response from API:", response); // Debug toàn bộ response
-
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "API lỗi không xác định.");
       }
 
       const data = await response.json();
-      console.log("Parsed data:", data); // Debug dữ liệu đã parse
 
       if (!data || !data._id) {
         throw new Error("Dữ liệu trả về từ API không hợp lệ.");
       }
-
-      // Cập nhật state
       if (Array.isArray(data)) {
         setData(
           data.map((tool) => ({
@@ -375,15 +361,25 @@ const ToolTable = () => {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(`${API_URL}/tools/${toolId}`, {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000, // Giới hạn 3 giây
       });
 
-      // Cập nhật dữ liệu chi tiết
-      setSelectedTool(response.data);
+      const rawTool = response.data; // Dữ liệu gốc từ API
+      const mappedTool = {
+        ...rawTool,
+        assigned: rawTool.assigned.map((user) => ({
+          value: user._id,
+          label: user.fullname,
+          department: user.department || "Chưa xác định",
+          jobTitle: user.jobTitle,
+          email: user.email,
+          avatarUrl: user.avatarUrl,
+        })),
+      };
 
-      console.log("Dữ liệu backend", response.data);
+      setSelectedTool(mappedTool);
     } catch (error) {
       console.error("Error fetching tool details:", error);
-      toast.error("Không thể tải thông tin tool!");
     }
   };
 
@@ -408,7 +404,10 @@ const ToolTable = () => {
 
     const newToolData = {
       ...updatedTool,
-      room: updatedRoom || { value: updatedTool.room, label: "Không xác định" },
+      room: updatedRoom || {
+        value: updatedTool.room,
+        label: "Không xác định",
+      },
     };
 
     // Cập nhật danh sách tại bảng
@@ -446,17 +445,16 @@ const ToolTable = () => {
 
       if (response.status === 201) {
         const newClonedTool = response.data;
-
+        // Đưa tool clone lên đầu danh sách
         setOriginalData((prevData) => [newClonedTool, ...prevData]);
         setFilteredData((prevData) => [newClonedTool, ...prevData]);
-        setData((prevData) => [newClonedTool, ...prevData.slice(0, 29)]); // Hiển thị Tool clone ở đầu
+        setData((prevData) => [newClonedTool, ...prevData.slice(0, 29)]); // Hiển thị tool clone ở đầu
         setTotalPages(Math.ceil((filteredData.length + 1) / 30));
         setCurrentPage(1);
         fetchTools(); // Cập nhật lại danh sách
         toast.success("Nhân bản tool thành công!", {
           className: "toast-success",
         });
-        fetchTools(); // Cập nhật lại danh sách
       }
     } catch (error) {
       console.error("Error cloning tool:", error);
@@ -523,10 +521,6 @@ const ToolTable = () => {
       }
       const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Assuming currentUser is stored in localStorage
       const userId = currentUser ? currentUser._id : null; // Retrieve the user's ID
-      console.log(
-        "Current User từ localStorage:",
-        localStorage.getItem("currentUser")
-      );
 
       if (!userId) {
         toast.error("User is not logged in. Please log in and try again.");
@@ -538,6 +532,7 @@ const ToolTable = () => {
         ...newTool,
         releaseYear: newTool.releaseYear || "",
         status: newTool.status || "Standby",
+        type: newTool.type || "Tool",
         specs: {
           processor: newTool.specs?.processor || "",
           ram: newTool.specs?.ram || "",
@@ -553,7 +548,6 @@ const ToolTable = () => {
         userId,
         // Xử lý danh sách người dùng
       };
-      console.log("Payload gửi lên:", payload);
 
       // Gửi dữ liệu lên API
       const response = await axios.post(`${API_URL}/tools`, payload, {
@@ -565,16 +559,17 @@ const ToolTable = () => {
       if (response.status === 201) {
         setOriginalData((prevData) => [newTool, ...prevData]);
         setFilteredData((prevData) => [newTool, ...prevData]);
-        setData((prevData) => [newTool, ...prevData.slice(0, 29)]); // Hiển thị Tool mới ở đầu
+        setData((prevData) => [newTool, ...prevData.slice(0, 29)]); // Hiển thị tool mới ở đầu
         setTotalPages(Math.ceil((filteredData.length + 1) / 30));
         setCurrentPage(1);
+        fetchTools(); // Cập nhật lại danh sách
+
         toast.success("Thêm tool thành công!", {
           className: "toast-success",
           progressClassName: "Toastify__progress-bar",
         });
 
         // Cập nhật danh sách tools và đóng modal
-        fetchTools();
         setShowAddModal(false);
         setNewTool({
           name: "",
@@ -602,30 +597,23 @@ const ToolTable = () => {
     }
   };
 
-  const handleSearchChange = (e) => {
-    const query = e.target.value.toLowerCase();
-    setSearchTerm(query);
-
-    if (!query) {
-      // Người dùng xóa hết => Hiển thị all
+  // Hàm lọc dữ liệu theo searchTerm
+  const filterData = (query) => {
+    if (!query.trim()) {
       setFilteredData(originalData);
       setTotalPages(Math.ceil(originalData.length / 30));
       setData(originalData.slice(0, 30));
       setCurrentPage(1);
-      setSuggestions([]); // Xóa gợi ý
+      setSuggestions([]);
       return;
     }
-
-    // Nếu có từ khóa, lọc
     const filtered = originalData.filter((item) => {
-      // Gom nhiều trường để kiểm tra (name, manufacturer, serial, assigned user, room...)
       const assignedNames = Array.isArray(item.assigned)
-        ? item.assigned.map((u) => `${u.label} ${u.departmentName}`).join(" ")
+        ? item.assigned.map((u) => `${u.label} ${u.department}`).join(" ")
         : "";
       const roomInfo = item.room
         ? `${item.room.label} ${(item.room.location || []).join(" ")}`
         : "";
-
       const combinedText = [
         item.name,
         item.manufacturer,
@@ -635,18 +623,24 @@ const ToolTable = () => {
       ]
         .join(" ")
         .toLowerCase();
-
       return combinedText.includes(query);
     });
-
-    // Cập nhật filteredData
     setFilteredData(filtered);
     setTotalPages(Math.ceil(filtered.length / 30));
     setData(filtered.slice(0, 30));
     setCurrentPage(1);
-
-    // Sinh mảng suggestions (10 item gợi ý đầu tiên)
     setSuggestions(filtered.slice(0, 10));
+  };
+
+  // Sử dụng debounce để giảm số lần lọc
+  const debouncedFilterData = useCallback(_.debounce(filterData, 300), [
+    originalData,
+  ]);
+
+  const handleSearchChange = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchTerm(query);
+    debouncedFilterData(query);
   };
 
   const handleFileChange = (e) => {
@@ -674,8 +668,6 @@ const ToolTable = () => {
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-        console.log("Dữ liệu thô từ Excel:", sheetData);
 
         // Chuẩn hóa dữ liệu
         const normalizedData = sheetData
@@ -753,6 +745,10 @@ const ToolTable = () => {
               serial: row["Serial (serial)"]
                 ? String(row["Serial (serial)"]).trim()
                 : "",
+              type:
+                typeof row["Loại (type)"] === "string"
+                  ? row["Loại (type)"].trim()
+                  : "Tool", // Mặc định là Tool
               manufacturer:
                 typeof row["Nhà Sản Xuất (manufacturer)"] === "string"
                   ? row["Nhà Sản Xuất (manufacturer)"].trim()
@@ -771,8 +767,6 @@ const ToolTable = () => {
             };
           })
           .filter((item) => item !== null); // Loại bỏ các dòng không hợp lệ
-
-        console.log("Dữ liệu chuẩn hóa:", normalizedData);
 
         if (normalizedData.length === 0) {
           toast.error("File Excel không chứa dữ liệu hợp lệ!", {
@@ -806,8 +800,6 @@ const ToolTable = () => {
     }
 
     try {
-      console.log("Dữ liệu gửi lên:", parsedData);
-
       const response = await axios.post(
         `${API_URL}/tools/bulk-upload`,
         { tools: parsedData },
@@ -866,11 +858,12 @@ const ToolTable = () => {
     }
   };
 
+  // useEffect #1: fetch toàn bộ dữ liệu
   useEffect(() => {
     const fetchData = async () => {
-      await fetchTools();
-      await fetchUsers();
-      await fetchRooms();
+      await fetchTools(); // Lấy toàn bộ tools => setOriginalData(...)
+      await fetchUsers(); // Lấy toàn bộ user => setUsers(...)
+      await fetchRooms(); // Lấy toàn bộ room => setRooms(...)
     };
 
     fetchData();
@@ -884,7 +877,6 @@ const ToolTable = () => {
       setData(originalData.slice(0, 30)); // Chỉ hiển thị 30 items đầu tiên
       setCurrentPage(1); // Reset về trang 1
     }
-    console.log("Original Data updated:", originalData);
   }, [originalData]);
 
   // useEffect #3: Mỗi khi filteredData hoặc currentPage thay đổi => cắt 30 records hiển thị
@@ -892,10 +884,9 @@ const ToolTable = () => {
     const startIndex = (currentPage - 1) * 30;
     const paginatedData = filteredData.slice(startIndex, startIndex + 30);
     setData(paginatedData);
-    console.log("Filtered Data updated:", filteredData);
   }, [filteredData, currentPage]);
 
-  // useEffect #4: Nếu đang mở detail (selectedTool), thì tìm Tool mới nhất trong data
+  // useEffect #4: Nếu đang mở detail (selectedTool), thì tìm tool mới nhất trong data
   useEffect(() => {
     if (selectedTool) {
       const updatedTool = data.find((tool) => tool._id === selectedTool._id);
@@ -903,11 +894,6 @@ const ToolTable = () => {
     }
   }, [data]);
   // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
-  useEffect(() => {
-    console.log("Original Data:", originalData);
-    console.log("Filtered Data:", filteredData);
-    console.log("Displayed Data:", data);
-  }, [originalData, filteredData, data]);
 
   return (
     <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
@@ -919,16 +905,10 @@ const ToolTable = () => {
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Tìm kiếm dụng cụ..."
-              className="pl-10 pr-4 py-2 rounded-md w-100 px-3"
+              placeholder="Tìm kiếm tool..."
+              className="pl-10 pr-4 py-2 rounded-md w-2/3"
               value={searchTerm}
               onChange={handleSearchChange}
-              // Thêm onFocus để hiện gợi ý khi focus (nếu muốn)
-              onFocus={() => {
-                if (searchTerm && suggestions.length > 0) {
-                  setSuggestions(suggestions);
-                }
-              }}
             />
 
             {/* Hiển thị suggestions (nếu có) */}
@@ -949,7 +929,7 @@ const ToolTable = () => {
               Thêm mới
             </button>
             <button
-              className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
+              className="px-3 py-2 bg-[#FF5733] text-white text-sm font-bold  rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
               onClick={() => setShowUploadModal(true)}
             >
               Upload
@@ -975,7 +955,6 @@ const ToolTable = () => {
                   onClick={() => {
                     setSelectedOption("Tất cả");
                     applyFilters({ status: "Tất cả" });
-                    setShowDropdown(false); // Đóng dropdown
                   }}
                 >
                   Tất cả trạng thái
@@ -997,7 +976,6 @@ const ToolTable = () => {
                     onClick={() => {
                       setSelectedOption(option.label);
                       applyFilters({ status: option.value });
-                      setShowDropdown(false); // Đóng dropdown
                     }}
                   >
                     {option.label}
@@ -1006,7 +984,6 @@ const ToolTable = () => {
               </div>
             }
           />
-
           <Dropdown
             button={
               <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
@@ -1047,42 +1024,78 @@ const ToolTable = () => {
           <Dropdown
             button={
               <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                {selectedDepartment === "Tất cả"
+                  ? "Phòng ban: Tất cả phòng ban"
+                  : `Phòng ban: ${selectedDepartment}`}
+              </button>
+            }
+            children={
+              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                <button
+                  key="all"
+                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                  onClick={() => {
+                    setSelectedDepartment("Tất cả");
+                    applyFilters({ department: "Tất cả" });
+                  }}
+                >
+                  Tất cả phòng ban
+                </button>
+                {Array.from(
+                  new Set(
+                    originalData.flatMap((item) =>
+                      item.assigned.map((user) => user.department)
+                    )
+                  )
+                ).map((department) => (
+                  <button
+                    key={department}
+                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                    onClick={() => {
+                      setSelectedDepartment(department);
+                      applyFilters({ department });
+                    }}
+                  >
+                    {department}
+                  </button>
+                ))}
+              </div>
+            }
+          />
+          <Dropdown
+            button={
+              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
                 {selectedManufacturer === "Tất cả"
                   ? "Nhà sản xuất: Tất cả nhà sản xuất"
                   : `Nhà sản xuất: ${selectedManufacturer}`}
               </button>
             }
             children={
-              <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
-                {/* Option "Tất cả nhà sản xuất" */}
+              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
                 <button
                   key="all"
                   className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                   onClick={() => {
                     setSelectedManufacturer("Tất cả");
                     applyFilters({ manufacturer: "Tất cả" });
-                    setShowDropdown(false); // Đóng dropdown
                   }}
                 >
                   Tất cả nhà sản xuất
                 </button>
-
-                {/* Các nhà sản xuất */}
-                {Array.from(new Set(data.map((item) => item.manufacturer))).map(
-                  (manufacturer) => (
-                    <button
-                      key={manufacturer}
-                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                      onClick={() => {
-                        setSelectedManufacturer(manufacturer);
-                        applyFilters({ manufacturer });
-                        setShowDropdown(false); // Đóng dropdown
-                      }}
-                    >
-                      {manufacturer}
-                    </button>
-                  )
-                )}
+                {Array.from(
+                  new Set(originalData.map((item) => item.manufacturer))
+                ).map((manufacturer) => (
+                  <button
+                    key={manufacturer}
+                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                    onClick={() => {
+                      setSelectedManufacturer(manufacturer);
+                      applyFilters({ manufacturer });
+                    }}
+                  >
+                    {manufacturer}
+                  </button>
+                ))}
               </div>
             }
           />
@@ -1095,22 +1108,20 @@ const ToolTable = () => {
               </button>
             }
             children={
-              <div className="flex flex-col gap-2  mt-10 bg-white rounded-lg shadow-lg p-4">
-                {/* Option "Tất cả năm sản xuất" */}
+              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
                 <button
                   key="all"
-                  className="text-left px-4 py-2 hover:bg-[gray-100] rounded-lg"
+                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                   onClick={() => {
                     setSelectedYear("Tất cả");
                     applyFilters({ releaseYear: "Tất cả" });
-                    setShowDropdown(false); // Đóng dropdown
                   }}
                 >
                   Tất cả năm sản xuất
                 </button>
-
-                {/* Các năm sản xuất */}
-                {Array.from(new Set(data.map((item) => item.releaseYear)))
+                {Array.from(
+                  new Set(originalData.map((item) => item.releaseYear))
+                )
                   .sort()
                   .map((year) => (
                     <button
@@ -1119,7 +1130,6 @@ const ToolTable = () => {
                       onClick={() => {
                         setSelectedYear(year);
                         applyFilters({ releaseYear: year });
-                        setShowDropdown(false); // Đóng dropdown
                       }}
                     >
                       {year}
@@ -1134,7 +1144,7 @@ const ToolTable = () => {
       {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
       <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
         <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
-          <table className="w-full ">
+          <table className="w-full">
             <thead>
               <tr className="!border-px !border-gray-400">
                 <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
@@ -1142,6 +1152,7 @@ const ToolTable = () => {
                     TÊN THIẾT BỊ
                   </p>
                 </th>
+
                 <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                   <p className="text-sm font-bold text-gray-500">SERIAL</p>
                 </th>
@@ -1176,6 +1187,7 @@ const ToolTable = () => {
                       {item.releaseYear || "N/A"}
                     </span>
                   </td>
+
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">
                       {item.serial}
@@ -1188,8 +1200,8 @@ const ToolTable = () => {
                         <div key={user.value || user._id}>
                           <p className="font-bold">{user.label}</p>
                           <span className="italic text-gray-400">
-                            {user.departmentName
-                              ? user.departmentName
+                            {user.department
+                              ? user.department
                               : "Không xác định"}
                           </span>
                         </div>
@@ -1342,10 +1354,14 @@ const ToolTable = () => {
                         placeholder="Nhập tên thiết bị"
                         value={newTool.name}
                         onChange={(e) =>
-                          setNewTool({ ...newTool, name: e.target.value })
+                          setNewTool({
+                            ...newTool,
+                            name: e.target.value,
+                          })
                         }
                       />
                     </div>
+
                     <div>
                       <label className="block text-gray-600 font-medium mb-2">
                         Nhà sản xuất
@@ -1373,7 +1389,10 @@ const ToolTable = () => {
                         placeholder="Nhập số serial"
                         value={newTool.serial}
                         onChange={(e) =>
-                          setNewTool({ ...newTool, serial: e.target.value })
+                          setNewTool({
+                            ...newTool,
+                            serial: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -1396,6 +1415,93 @@ const ToolTable = () => {
                     </div>
                   </div>
                 </div>
+
+                <div
+                  className="border rounded-lg p-4 mb-4 relative"
+                  style={{
+                    position: "relative",
+                    padding: "16px",
+                    marginBottom: "30px",
+                  }}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-12px",
+                      left: "16px",
+                      backgroundColor: "#fff",
+                      padding: "0 8px",
+                      fontWeight: "bold",
+                      color: "#002147",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    Cấu hình
+                  </span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        Processor
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập bộ xử lý"
+                        value={newTool.specs?.processor || ""}
+                        onChange={(e) =>
+                          setNewTool({
+                            ...newTool,
+                            specs: {
+                              ...newTool.specs,
+                              processor: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        RAM
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập dung lượng RAM"
+                        value={newTool.specs?.ram || ""}
+                        onChange={(e) =>
+                          setNewTool({
+                            ...newTool,
+                            specs: {
+                              ...newTool.specs,
+                              ram: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-2">
+                        Bộ Nhớ
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Nhập dung lượng Bộ nhớ"
+                        value={newTool.specs?.storage || ""}
+                        onChange={(e) =>
+                          setNewTool({
+                            ...newTool,
+                            specs: {
+                              ...newTool.specs,
+                              storage: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex justify-end space-x-4">
                   <button
                     type="button"
@@ -1513,6 +1619,7 @@ const ToolTable = () => {
                     const payload = {
                       ...editingTool,
                       releaseYear: editingTool.releaseYear || "",
+                      type: editingTool.type || "Tool",
                       reason: editingTool.reason || "",
                       specs: {
                         processor: editingTool.specs?.processor || "",
@@ -1527,8 +1634,6 @@ const ToolTable = () => {
                         : [],
                       room: editingTool.room?.value || null, // Chỉ lấy ID phòng
                     };
-
-                    console.log("Payload gửi lên server:", payload);
 
                     await axios.put(
                       `${API_URL}/tools/${editingTool._id}`,
@@ -1607,6 +1712,7 @@ const ToolTable = () => {
                         }
                       />
                     </div>
+
                     <div>
                       <label className="block text-gray-600 font-medium mb-2">
                         Serial
@@ -1722,26 +1828,6 @@ const ToolTable = () => {
                             specs: {
                               ...editingTool.specs,
                               storage: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Màn hình
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập kích thước màn hình"
-                        value={editingTool.specs?.display || ""}
-                        onChange={(e) =>
-                          setEditingTool({
-                            ...editingTool,
-                            specs: {
-                              ...editingTool.specs,
-                              display: e.target.value,
                             },
                           })
                         }
@@ -1867,7 +1953,6 @@ const ToolTable = () => {
                       </div>
                     )}
                   </div>
-                  <div></div>
                 </div>
 
                 <div className="flex justify-end space-x-4">
@@ -1949,7 +2034,7 @@ const ToolTable = () => {
                 key={refreshKey} // Force re-render khi refreshKey thay đổi
                 toolData={{
                   ...selectedTool,
-                  releaseYear: selectedTool.releaseYear || "Không có",
+                  releaseYear: selectedTool.releaseYear,
                 }}
                 setSelectedTool={setSelectedTool}
                 onUpdateSpecs={handleUpdateSpecs} // Bổ sung prop này
