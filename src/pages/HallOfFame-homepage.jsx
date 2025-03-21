@@ -575,27 +575,27 @@ const HallofFame = () => {
             {/* Thông số bên phải */}
             <div className="w-full lg:w-1/2 flex flex-row xl:justify-end justify-center gap-8 md:gap-16">
               <div className="text-center shimmer-text">
-                <div className="text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
+                <div className=" text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
                   {counts.categories}
                 </div>
-                <div className="text-sm md:text-base font-semibold text-[#F9D16F]">
-                  Hạng mục
+                <div className="uppercase text-sm md:text-base font-semibold text-[#F9D16F]">
+                  {t("category")}
                 </div>
               </div>
               <div className="text-center shimmer-text">
                 <div className="text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
                   {counts.students}
                 </div>
-                <div className="text-sm md:text-base font-semibold text-[#F9D16F]">
-                  Học sinh
+                <div className="uppercase text-sm md:text-base font-semibold text-[#F9D16F]">
+                  {t("student")}
                 </div>
               </div>
               <div className="text-center shimmer-text">
                 <div className="text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
                   {counts.classes}
                 </div>
-                <div className="text-sm md:text-base font-semibold text-[#F9D16F]">
-                  Tập thể lớp
+                <div className="uppercase text-sm md:text-base font-semibold text-[#F9D16F]">
+                  {t("class")}
                 </div>
               </div>
             </div>

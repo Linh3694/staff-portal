@@ -5,6 +5,8 @@ const resources = {
   en: {
     translation: {  
       "category": "Category",
+      "student": "Students",
+      "class": "Classes",
       "hallhonor_description": "Hall of Honor is a space dedicated to recognizing and celebrating individuals and groups who have made outstanding achievements and significant contributions to the Wellspring community. It is not only a place to preserve the proud milestones and relentless efforts of WISers but also a source of inspiration, encouraging all Wellspring students to strive for excellence in academics and extracurricular activities.",
       "homepage": "Homepage",
       "hallhonor": "Hall of Honor",
@@ -203,6 +205,8 @@ const resources = {
   vi: {
     translation: {
       "category": "Danh mục",
+      "student": "Học sinh",
+      "class": "Tập thể lớp",
       "homepage": "Trang chủ",
       "hallhonor_description": "Hall of Honor là không gian ghi nhận và tôn vinh những cá nhân, tập thể có thành tích xuất sắc và đóng góp quan trọng cho cộng đồng Wellspring. Đây không chỉ là nơi lưu giữ những dấu ấn đáng tự hào và hành trình nỗ lực không ngừng của các WISers, mà còn là nguồn cảm hứng mạnh mẽ, khích lệ tất cả học sinh Wellspring tiếp tục vươn lên, chinh phục những thành tựu trong học tập, nghệ thuật, thể thao và hoạt động ngoại khóa.",
       "hallhonor": "Bảng vinh danh",
