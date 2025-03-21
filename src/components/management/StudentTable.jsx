@@ -1,13 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { toast } from "react-toastify"; // nếu bạn xài react-toastify để hiển thị thông báo
-import { API_URL, BASE_URL } from "../../config"; // tuỳ đường dẫn config, giống cách bạn dùng ở StudentTable.jsx
+import { toast } from "react-toastify";
+import { API_URL, BASE_URL } from "../../config";
 
 const StudentManagement = () => {
-  // -----------------------------
-  // 1. STATES & HOOKS
-  // -----------------------------
-  // Tab đang chọn: "schoolYear", "class", "student", "enrollment", "photo"
   const [activeTab, setActiveTab] = useState("schoolYear");
 
   // State cho SchoolYear

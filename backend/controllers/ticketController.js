@@ -69,7 +69,7 @@ exports.createTicket = async (req, res) => {
         message: "Không có người dùng nào với vai trò 'technical'.",
       });
     }
-
+    
     // Tìm user ít được gán ticket nhất
     const userTicketCounts = await Promise.all(
       technicalUsers.map(async (user) => {
@@ -83,7 +83,11 @@ exports.createTicket = async (req, res) => {
 
     // Lấy user ít được gán nhất
     const leastAssignedUser = userTicketCounts[0].user;
-
+    console.log(
+  "🟢 Tạo ticket: Người có ít ticket nhất:",
+  leastAssignedUser._id,
+  leastAssignedUser.fullname
+);
     const attachments = req.files.map((file) => ({
       filename: file.originalname,
       url: `${req.protocol}://${req.get("host")}/uploads/Tickets/${file.filename}`,
@@ -107,6 +111,11 @@ exports.createTicket = async (req, res) => {
         },
       ],
     });
+
+    console.log("🟢 Ticket mới được tạo:", {
+  ticketCode: ticket.ticketCode,
+  assignedTo: ticket.assignedTo,
+});
     
     res.status(201).json({ success: true, ticket });
   } catch (error) {
@@ -115,24 +124,44 @@ exports.createTicket = async (req, res) => {
 };
 
 // b) Lấy danh sách ticket
+// a) Lấy danh sách ticket
 exports.getTickets = async (req, res) => {
+    console.log("🔵 Kiểm tra req.user:", req.user); // ✅ Kiểm tra user có tồn tại không
+
   const { status, priority } = req.query;
-  const userId = req.user.id; // Lấy ID user từ token
+  const userId = req.user._id; // Lấy ID user từ token
   try {
-    const query = req.user.role === "superadmin" ? {} : { creator: userId };
+    let query = {};
+    console.log("🔵 User đang truy vấn tickets:", req.user._id);
+    console.log("🔵 Query tìm tickets:", JSON.stringify(query, null, 2));
+    if (req.user.role === "superadmin") {
+      // Superadmin được xem tất cả ticket
+      query = {};
+    } else {
+      // Các role khác: xem ticket mà họ tạo ra hoặc được gán cho họ
+      query = { $or: [{ creator: userId }, { assignedTo: userId }] };
+    }
+
     if (status === "assignedOrProcessing") {
       // Tìm ticket có status IN ["Assigned","Processing"]
       query.status = { $in: ["Assigned", "Processing"] };
     } else if (status) {
-      // Trường hợp còn lại
+      // Các trường hợp khác
       query.status = status;
     }
     if (priority) query.priority = priority;
 
     const tickets = await Ticket.find(query)
-    .sort({ createdAt: -1 })  // sắp xếp giảm dần theo createdAt
-    .populate("creator assignedTo")
-
+      .sort({ createdAt: -1 }) // Sắp xếp giảm dần theo createdAt
+      .populate("creator assignedTo");
+    console.log(
+      "🔵 Danh sách tickets trả về:",
+      tickets.map((t) => ({
+        ticketCode: t.ticketCode,
+        assignedTo: t.assignedTo?._id,
+        assignedToName: t.assignedTo?.fullname,
+      }))
+    );
     res.status(200).json({ success: true, tickets });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

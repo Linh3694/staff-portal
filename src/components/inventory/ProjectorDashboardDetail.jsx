@@ -10,7 +10,8 @@ import {
 
 const ProjectorDashboardDetail = () => {
   const [projectors, setProjectors] = useState([]);
-  const [deviceFilter, setDeviceFilter] = useState("Projector");
+  const [deviceFilter, setDeviceFilter] = useState("Tất cả");
+  const [projectorTypes, setProjectorTypes] = useState([]);
   const [yearDeviceFilter, setYearDeviceFilter] = useState("Projector");
 
   const [statusData, setStatusData] = useState(null);
@@ -40,7 +41,13 @@ const ProjectorDashboardDetail = () => {
   useEffect(() => {
     if (!projectors.length) return;
 
-    const filteredProjectors = projectors;
+    const types = Array.from(new Set(projectors.map((proj) => proj.type)));
+    setProjectorTypes(types);
+
+    const filteredProjectors =
+      deviceFilter === "Tất cả"
+        ? projectors
+        : projectors.filter((proj) => proj.type === deviceFilter);
 
     const statusCount = {
       Active: 0,
@@ -78,12 +85,21 @@ const ProjectorDashboardDetail = () => {
       }
       if (!deptMap[dept]) {
         deptMap[dept] = { total: 0 };
+        types.forEach((t) => {
+          deptMap[dept][t] = 0;
+        });
       }
       deptMap[dept].total += 1;
+      const pType = proj.type || "Không xác định";
+      if (deptMap[dept][pType] !== undefined) {
+        deptMap[dept][pType] += 1;
+      } else {
+        deptMap[dept][pType] = 1;
+      }
     });
     const deptStats = Object.keys(deptMap).map((dept) => ({
       department: dept,
-      total: deptMap[dept].total,
+      ...deptMap[dept],
     }));
     setDeptData(deptStats);
 
@@ -114,7 +130,7 @@ const ProjectorDashboardDetail = () => {
           {/* Bộ lọc và thống kê trạng thái */}
           <div className="flex flex-col">
             <div className="flex space-x-2">
-              {["All", "Projector"].map((type) => (
+              {["Tất cả", ...projectorTypes].map((type) => (
                 <button
                   key={type}
                   onClick={() => setDeviceFilter(type)}
@@ -124,7 +140,7 @@ const ProjectorDashboardDetail = () => {
                       : "bg-transparent text-[#e8e8e8] border border-[#e8e8e8]"
                   }`}
                 >
-                  {type === "All" ? "Tất cả" : type}
+                  {type === "Tất cả" ? "Tất cả" : type}
                 </button>
               ))}
             </div>
@@ -181,6 +197,108 @@ const ProjectorDashboardDetail = () => {
           </div>
         </div>
       )}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-2">
+        {/* Bảng thống kê: Phòng ban sử dụng */}
+        <div className="rounded-2xl shadow-xl p-7 border border-gray-100 mt-6">
+          <h3 className="text-xl font-bold mb-2">Phòng ban sử dụng</h3>
+          {deptData && deptData.length > 0 ? (
+            <div>
+              <table className="w-full">
+                <thead>
+                  <tr className="!border-px !border-gray-400">
+                    <th className="border-b border-gray-200 py-2 pr-4 text-start text-sm font-bold text-gray-500">
+                      PHÒNG BAN
+                    </th>
+                    {projectorTypes.map((type, idx) => (
+                      <th
+                        key={idx}
+                        className="border-b border-gray-200 py-2 pr-4 text-start text-sm font-bold text-gray-500"
+                      >
+                        {type.toUpperCase()}
+                      </th>
+                    ))}
+                    <th className="border-b border-gray-200 py-2 pr-4 text-start text-sm font-bold text-gray-500">
+                      TỔNG
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deptData.map((item, index) => (
+                    <tr key={index} className="border-b border-gray-200">
+                      <td className="py-3 pr-4">
+                        <p className="text-sm font-bold text-navy-700">
+                          {item.department}
+                        </p>
+                      </td>
+                      {projectorTypes.map((type, idx) => (
+                        <td key={idx} className="py-3 pr-4">
+                          <p className="text-sm font-bold text-navy-700">
+                            {item[type] || 0}
+                          </p>
+                        </td>
+                      ))}
+                      <td className="py-3 pr-4">
+                        <p className="text-sm font-bold text-navy-700">
+                          {item.total}
+                        </p>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>Đang tải dữ liệu...</p>
+          )}
+        </div>
+
+        {/* Bảng thống kê: Năm sản xuất */}
+        <div className="rounded-2xl shadow-xl p-7 border border-gray-100 mt-6">
+          <h3 className="text-xl font-bold mb-2">Năm sản xuất</h3>
+          {yearData && yearData.length > 0 ? (
+            <div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 py-2 text-start text-sm font-bold text-gray-500">
+                      NĂM
+                    </th>
+                    <th className="px-4 py-2 text-start text-sm font-bold text-gray-500">
+                      SỐ LƯỢNG
+                    </th>
+                    <th className="px-4 py-2 text-start text-sm font-bold text-gray-500">
+                      TỶ LỆ
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {yearData.map((item, index) => (
+                    <tr key={index} className="border-b border-gray-200">
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-bold text-navy-700">
+                          {item.year}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-bold text-navy-700">
+                          {item.count}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-bold text-navy-700">
+                          {item.percent}%
+                        </p>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>Đang tải dữ liệu...</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

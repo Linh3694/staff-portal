@@ -10,8 +10,6 @@ import ProjectorTable from "../components/inventory/ProjectorTable";
 import ToolTable from "../components/inventory/ToolTable";
 import Ticket from "../components/ticket/Ticket";
 import TicketAdminTable from "../components/ticket/TicketAdminTable";
-import TeamManagement from "../components/ticket/TeamManagement";
-import TicketReports from "../components/ticket/TicketReports";
 import StudentTable from "../components/management/StudentTable";
 import UserTable from "../components/management/UserTable";
 import RoomTable from "../components/management/RoomTable";
@@ -90,6 +88,14 @@ const Dashboard = () => {
     // Nếu có mục nào khác cần tab, bạn có thể thêm ở đây.
   };
 
+  useEffect(() => {
+    document.title = "360 Wisers | Hà Nội";
+    // Cleanup function để reset title khi unmount
+    return () => {
+      document.title = "Wellspring";
+    };
+  }, []);
+
   // Lấy submenu từ URL
   useEffect(() => {
     const path = location.pathname.split("/")[2]; // Lấy đoạn sau `/dashboard/`
@@ -120,7 +126,11 @@ const Dashboard = () => {
         });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch user data");
+          // Token sai hoặc hết hạn
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("role");
+          window.location.href = "/login";
+          return;
         }
 
         const data = await response.json();
@@ -135,9 +145,11 @@ const Dashboard = () => {
           department: data.department || "Không xác định",
           role: data.role,
         });
-        localStorage.setItem("currentUser", JSON.stringify(data));
       } catch (error) {
         console.error("Error fetching current user:", error.message);
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("role");
+        window.location.href = "/login";
       }
     };
 
@@ -158,8 +170,6 @@ const Dashboard = () => {
       case "Quản lý Tickets":
         if (activeTab === "Ticket lists")
           return <TicketAdminTable currentUser={currentUser} />;
-        if (activeTab === "Teams") return <TeamManagement />;
-        if (activeTab === "Reports") return <TicketReports />;
         break;
       case "Quản lý người dùng":
         return (

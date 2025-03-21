@@ -13,7 +13,7 @@ import {
 import { FaMemory } from "react-icons/fa";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import "react-toastify/dist/ReactToastify.module.css";
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import { debounce } from "lodash";
 import Fuse from "fuse.js";

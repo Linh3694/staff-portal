@@ -532,11 +532,11 @@ const StudentHonorContent = ({
           <img src={`/halloffame/vector.png`} alt="Cover" />
         </div>
         <div className="lg:w-[900px] w-full mx-auto text-left mt-4 mb-4">
-          <p className="mb-4 text-[#002855] text-justify font-semibold lg:text-[18px] text-[15px]">
+          <div className="mb-4 text-[#002855] text-justify font-semibold lg:text-[18px] text-[15px]">
             {i18n.language === "vi"
               ? currentCategory.description || ""
               : currentCategory.descriptionEng || ""}
-          </p>
+          </div>
         </div>
         {currentCategory.coverImage && (
           <div className="relative mb-4 mt-8 w-full lg:w-[1410px] max-h-[470px] mx-auto">
@@ -554,7 +554,7 @@ const StudentHonorContent = ({
             />
             {/* Lớp trên cùng: text ở góc trên bên phải căn giữa theo chiều dọc */}
             <div className="absolute top-0 right-0 h-full flex items-center justify-center pr-4">
-              <p className="text-[#f9d16f] text-right lg:mr-8 lg:mt-12 leading-tight ">
+              <div className="text-[#f9d16f] text-right lg:mr-8 lg:mt-12 leading-tight ">
                 {lines.map((line, idx) => {
                   const textSize =
                     i18n.language === "vi"
@@ -571,7 +571,7 @@ const StudentHonorContent = ({
                     </div>
                   );
                 })}
-              </p>
+              </div>
             </div>
           </div>
         )}

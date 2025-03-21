@@ -29,7 +29,6 @@ const UserTable = ({ handleSyncClients }) => {
     employeeCode: "",
   });
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const bcrypt = require("bcryptjs"); // Import bcrypt for password hashing
 
   // Lấy dữ liệu từ ${API_URL}//users
   const fetchUsers = async () => {
@@ -109,16 +108,6 @@ const UserTable = ({ handleSyncClients }) => {
     ) {
       toast.error("Vui lòng điền đầy đủ thông tin bắt buộc!");
       return;
-    }
-
-    if (newUser.active && newUser.password) {
-      if (
-        typeof newUser.password === "string" &&
-        !newUser.password.startsWith("$2")
-      ) {
-        const salt = await bcrypt.genSalt(10);
-        newUser.password = await bcrypt.hash(newUser.password, salt);
-      }
     }
 
     const payload = {

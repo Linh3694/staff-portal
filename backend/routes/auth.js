@@ -12,8 +12,12 @@ const mongoose = require("mongoose");
 router.post(
   "/login",
   [
-    check("email").isEmail().withMessage("Invalid email format"),
-    check("password").notEmpty().withMessage("Password is required"),
+    check("email")
+      .notEmpty().withMessage("Vui lòng nhập email!"),
+    check("email")
+      .isEmail().withMessage("Email không hợp lệ. Vui lòng kiểm tra."),
+    check("password")
+      .notEmpty().withMessage("Vui lòng nhập mật khẩu!")
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -24,30 +28,31 @@ router.post(
     const { email, password } = req.body;
 
     try {
+      // Tìm kiếm user theo email
       const user = await User.findOne({ email });
       if (!user) {
-        console.log("User không tồn tại trong DB");
-        return res.status(404).json({ message: "User not found" });
+        console.log("Tài khoản không tồn tại trong DB");
+        return res.status(404).json({ message: "Tài khoản không tồn tại!" });
       }
 
+      // Kiểm tra mật khẩu
       const isPasswordValid = await bcrypt.compare(password, user.password || "");
       console.log("Mật khẩu nhập:", password);
       console.log("Mật khẩu trong DB:", user.password);
       console.log("Mật khẩu hợp lệ:", isPasswordValid);
-
       if (!isPasswordValid) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "Mật khẩu không đúng!" });
       }
 
-      // Tạo token
+      // Tạo token với thời gian hiệu lực 1 ngày
       const token = jwt.sign(
         { id: user._id, role: user.role },
         process.env.JWT_SECRET,
-        { expiresIn: "1d" } // token có hạn 1 ngày
+        { expiresIn: "1d" }
       );
 
-      res.status(200).json({
-        message: "Login successful",
+      return res.status(200).json({
+        message: "Đăng nhập thành công!",
         token,
         user: {
           fullname: user.fullname || "N/A",
@@ -58,8 +63,8 @@ router.post(
         },
       });
     } catch (error) {
-      console.error("Error logging in:", error.message);
-      res.status(500).json({ message: "Server error", error: error.message });
+      console.error("Lỗi đăng nhập:", error.message);
+      return res.status(500).json({ message: "Lỗi server", error: error.message });
     }
   }
 );

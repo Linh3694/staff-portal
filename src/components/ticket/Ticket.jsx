@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import "tailwindcss/tailwind.css";
 import { FiSearch } from "react-icons/fi";
-import { API_URL } from "../../config";
+import { API_URL, BASE_URL } from "../../config";
 import { FaRegCircle, FaRegCircleDot, FaStar } from "react-icons/fa6";
 import { FaCheckCircle } from "react-icons/fa";
+import { FiSend } from "react-icons/fi";
 
 const Ticket = ({ currentUser }) => {
   const [activeTab, setActiveTab] = useState("create");
@@ -32,18 +32,16 @@ const Ticket = ({ currentUser }) => {
   const [messages, setMessages] = useState([]);
 
   const fetchTicketById = async (ticketId) => {
-    console.log("📥 Fetching Ticket ID:", ticketId); // 🔥 Debug
-    if (!ticketId) {
-      console.error("🚨 Lỗi: Ticket ID bị undefined!");
-      return;
-    }
+    console.log("📥 Fetching Ticket ID:", ticketId); // Debug
+    if (!ticketId) return;
+
     try {
       const res = await axios.get(`${API_URL}/tickets/${ticketId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("📜 Dữ liệu từ API:", res.data.ticket); // ✅ Kiểm tra dữ liệu từ API
       if (res.data.success) {
         setSelectedTicket(res.data.ticket);
+        // Việc setSelectedTicket => trigger useEffect(...) để map tin nhắn, avatar...
       }
     } catch (error) {
       console.error("Lỗi khi lấy chi tiết ticket:", error);
@@ -89,26 +87,30 @@ const Ticket = ({ currentUser }) => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
       if (res.data.success) {
-        // Cập nhật ngay UI
-        setMessages((prev) => [
-          ...prev,
-          {
-            text: newMessage,
-            sender: currentUser?.fullname || "Me",
-            senderId: currentUser?.id,
-            senderAvatar: currentUser?.avatar || "/logo.png",
-            time: new Date().toLocaleString("vi-VN"),
-            isSelf: true,
-          },
-        ]);
-        setNewMessage("");
-        // await fetchTicketById(selectedTicket._id);
+        // Sau khi gửi tin nhắn, gọi lại API để lấy ticket mới nhất (có avatar chính xác)
+        await fetchTicketById(selectedTicket._id);
+        setNewMessage(""); // Xóa nội dung ô chat
       }
     } catch (error) {
       console.error("Lỗi khi gửi tin nhắn:", error);
     }
   };
+
+  useEffect(() => {
+    // Khi đã chọn 1 ticket để xem chi tiết, ta tự động reload mỗi 5 giây
+    let interval = null;
+    if (selectedTicket?._id) {
+      interval = setInterval(() => {
+        fetchTicketById(selectedTicket._id);
+      }, 5000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [selectedTicket?._id]);
 
   const submitTicket = async () => {
     try {
@@ -277,7 +279,9 @@ const Ticket = ({ currentUser }) => {
         text: m.text,
         sender: m.sender?.fullname || "N/A", // ✅ Lấy đúng fullname
         senderId: m.sender?._id, // ✅ Lấy ID của sender
-        senderAvatar: m.sender?.avatarUrl || "/logo.png", // ✅ Hiển thị avatar
+        senderAvatar: m.sender?.avatarUrl
+          ? `${BASE_URL}/uploads/Avatar/${m.sender.avatarUrl}`
+          : "/default-avatar.png",
         time: new Date(m.timestamp).toLocaleString("vi-VN"),
         isSelf: m.sender?._id === currentUser?.id, // ✅ Kiểm tra user hiện tại
       }));
@@ -298,10 +302,10 @@ const Ticket = ({ currentUser }) => {
   }, [searchTerm, filterStatus]);
 
   return (
-    <div className="h-screen py-8 px-4 flex justify-center">
-      <div className="w-full flex flex-row gap-6 max-h-[700px]">
+    <div className="max-h-screen flex justify-center">
+      <div className="w-full max-h-screen flex flex-row gap-6 ">
         {/* Bên trái - Danh sách ticket */}
-        <div className="w-1/3 px-6 py-4 bg-white rounded-lg">
+        <div className="w-1/2 px-6 py-4 bg-white rounded-2xl shadow-lg">
           <div className="flex flex-row items-center justify-between mb-4">
             <span className="text-2xl font-bold text-gray-800">
               Danh sách Ticket
@@ -401,7 +405,7 @@ const Ticket = ({ currentUser }) => {
             </div>
           </div>
 
-          <div className="mt-3 flex flex-col gap-4 max-h-[400px] overflow-y-auto">
+          <div className="mt-3 flex flex-col gap-4 max-h-[500px] overflow-hidden hover:overflow-y-auto">
             {userTickets.length === 0 ? (
               <p className="text-gray-500">Không có ticket nào.</p>
             ) : (
@@ -455,7 +459,7 @@ const Ticket = ({ currentUser }) => {
 
         {/* Bên phải - Tạo ticket */}
         {showCreateTicket && !selectedTicket && (
-          <div className="w-[1100px] max-h-[900px] p-6 bg-white rounded-lg shadow-md relative">
+          <div className="w-[1100px] max-h-[900px] p-6 bg-white rounded-2xl shadow-lg relative">
             {/* Icon góc dưới phải */}
             <img
               src="/ticket/icon3.png"
@@ -495,7 +499,7 @@ const Ticket = ({ currentUser }) => {
                       gì ạ ^^
                     </h1>
                     <h1 className="text-center text-[#FF5733] text-md font-bold underline">
-                      Hướng dẫn tạo ticket trên 360° WISers
+                      Hướng dẫn tạo ticket trên 360° WISers
                     </h1>
                     {/* Các lựa chọn */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16">
@@ -887,17 +891,17 @@ const Ticket = ({ currentUser }) => {
         )}
         {/* Khi xem chi tiết ticket */}
         {selectedTicket && (
-          <div className="bg-white w-[1100px] max-h-[700px] rounded-xl shadow-xl p-6">
+          <div className="bg-white w-full max-h-screen rounded-xl shadow-xl p-6">
             <h1 className="text-start text-2xl font-bold text-[#002147] mb-5">
               {selectedTicket.title || "Chưa có tiêu đề"}
             </h1>
 
             {/* Bố cục chính */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="h-full grid grid-cols-2 gap-6">
               {/* Bên trái */}
-              <div className="space-y-6">
+              <div className="h-full space-y-6">
                 {/* Thông tin chung */}
-                <div className="bg-[#F8F8F8] p-4 rounded-xl border-gray-200">
+                <div className="bg-[#F8F8F8] p-4 border-gray-200 rounded-xl shadow-md">
                   <h2 className="text-lg font-semibold text-[#002147] mb-4">
                     Thông tin chung
                   </h2>
@@ -939,11 +943,11 @@ const Ticket = ({ currentUser }) => {
                 </div>
 
                 {/* Trao đổi (Khung chat) */}
-                <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="h-[450px] max-h-[450px] bg-[#f8f8f8] p-6 rounded-xl shadow-md">
                   <h2 className="text-lg font-semibold text-gray-600 mb-4">
                     Trao đổi
                   </h2>
-                  <div className="mt-4 space-y-4 max-h-48 overflow-y-auto px-2">
+                  <div className="mt-4 space-y-4 max-h-[310px] overflow-hidden hover:overflow-y-auto px-2">
                     {messages.map((m, idx) => (
                       <div
                         key={idx}
@@ -965,8 +969,8 @@ const Ticket = ({ currentUser }) => {
                             <div
                               className={`px-3 py-2 rounded-lg text-sm ${
                                 m.isSelf
-                                  ? "bg-blue-500 text-white text-right"
-                                  : "bg-gray-200 text-gray-700"
+                                  ? "bg-[#E4E9EF] text-[#002147]"
+                                  : "bg-[#EBEBEB] text-[#757575]"
                               }`}
                             >
                               {m.text}
@@ -994,22 +998,22 @@ const Ticket = ({ currentUser }) => {
                       placeholder="Nhập tin nhắn..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-lg"
+                      className="w-full p-2 border-none bg-[#EBEBEB] rounded-full text-sm"
                     />
                     <button
                       onClick={handleSendMessage}
-                      className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                      className="bg-[#FF5733] text-white p-2 rounded-full flex items-center"
                     >
-                      ➤
+                      <FiSend size={18} />
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Bên phải */}
-              <div className="space-y-6">
+              <div className="h-full space-y-6">
                 {/* Nội dung yêu cầu */}
-                <div className="max-h-[420px] bg-[#F8F8F8] p-6 rounded-xl shadow-md border border-gray-200">
+                <div className="max-h-[60%] bg-[#F8F8F8] p-6 rounded-xl shadow-md border border-gray-200">
                   <h2 className="text-lg font-semibold text-[#002147] mb-4 bg-gray-200 px-4 py-2 rounded-lg text-center">
                     Nội dung yêu cầu
                   </h2>
@@ -1027,15 +1031,15 @@ const Ticket = ({ currentUser }) => {
                   </div>
                 </div>
                 {/* Đánh giá */}
-                <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="bg-[#F8F8F8] p-6 rounded-xl shadow-md">
                   <h2 className="text-lg font-semibold text-gray-600 mb-4">
                     Đánh giá
                   </h2>
-                  <div className="flex items-center mt-4">
+                  <div className="flex items-center text-center justify-center mt-4">
                     {[...Array(5)].map((_, i) => (
                       <FaStar
                         key={i}
-                        className={`cursor-pointer text-2xl ${
+                        className={`cursor-pointer text-4xl text-center ${
                           i < rating ? "text-yellow-400" : "text-gray-300"
                         }`}
                         onClick={() => setRating(i + 1)}
@@ -1064,7 +1068,7 @@ const Ticket = ({ currentUser }) => {
 
                   <button
                     onClick={handleFeedback}
-                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+                    className="mt-4 px-4 py-2 bg-[#002855] text-white rounded-xl transition"
                   >
                     {selectedTicket.feedback?.rating
                       ? "Cập nhật đánh giá"

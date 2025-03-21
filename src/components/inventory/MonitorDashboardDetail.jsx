@@ -185,7 +185,204 @@ const MonitorDashboardDetail = () => {
           </div>
         </div>
       )}
-      {/* Các bảng thống kê phòng ban và năm sản xuất có thể giữ nguyên cấu trúc */}
+      {/* 2) Bảng thống kê: Phòng ban */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="rounded-2xl shadow-xl p-7 border border-gray-100">
+          <h3 className="text-xl font-bold mb-2">Phòng ban sử dụng</h3>
+          {deptData && deptData.length > 0 ? (
+            <div>
+              <table className="w-full">
+                <thead>
+                  <tr className="!border-px !border-gray-400">
+                    <th className="border-b-[1px] border-gray-200 py-2 pr-4 text-start text-sm font-bold text-gray-500">
+                      PHÒNG BAN
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 py-2 pr-4 text-start text-sm font-bold text-gray-500">
+                      LAPTOP
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 py-2 pr-4 text-start text-sm font-bold text-gray-500">
+                      DESKTOP
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 py-2 pr-4 text-start text-sm font-bold text-gray-500">
+                      TỔNG
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deptData
+                    .slice(
+                      currentPage * rowsPerPage,
+                      (currentPage + 1) * rowsPerPage
+                    )
+                    .map((item, index) => (
+                      <tr key={index} className="border-b border-gray-200">
+                        <td className="py-3 pr-4">
+                          <p className="text-sm font-bold text-navy-700">
+                            {item.department}
+                          </p>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="text-sm font-bold text-navy-700">
+                            {item.laptop}
+                          </p>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="text-sm font-bold text-navy-700">
+                            {item.desktop}
+                          </p>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="text-sm font-bold text-navy-700">
+                            {item.total}
+                          </p>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+              <div className="flex flex-row gap-2 justify-end items-center mt-4">
+                {/* Phân trang cho bảng năm sản xuất */}
+                <div className="flex space-x-2">
+                  {Array.from(
+                    { length: Math.ceil(yearData.length / rowsPerPage) },
+                    (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setYearCurrentPage(i)}
+                        className={`px-1 border border-gray-300 rounded ${
+                          yearCurrentPage === i
+                            ? "bg-[#002855] text-white text-base"
+                            : "bg-white text-gray-700 text-sm"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    )
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setYearCurrentPage(0); // Reset về trang đầu tiên
+                    }}
+                    className="text-base border border-gray-300 rounded-lg"
+                  >
+                    {[5, 10, 20, 50].map((num) => (
+                      <option key={num} value={num}>
+                        {num}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p>Đang tải dữ liệu...</p>
+          )}
+        </div>
+
+        {/* 3) Bảng thống kê: Năm sản xuất */}
+        <div className="rounded-2xl shadow-xl p-7 border border-gray-100">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-xl font-bold">Năm sản xuất</h3>
+            <select
+              value={yearDeviceFilter}
+              onChange={(e) => setYearDeviceFilter(e.target.value)}
+              className="px-5 py-1 border border-gray-300 rounded-2xl text-sm"
+            >
+              <option value="All">Tất cả</option>
+              <option value="Laptop">Laptop</option>
+              <option value="Desktop">Desktop</option>
+            </select>
+          </div>
+          {yearData && yearData.length > 0 ? (
+            <div>
+              <table className="w-full rounded-2xl">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 py-2 text-start text-sm font-bold text-gray-500">
+                      NĂM
+                    </th>
+                    <th className="px-4 py-2 text-start text-sm font-bold text-gray-500">
+                      SỐ LƯỢNG
+                    </th>
+                    <th className="px-4 py-2 text-start text-sm font-bold text-gray-500">
+                      TỶ LỆ
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {yearData
+                    .slice(
+                      yearCurrentPage * rowsPerPage,
+                      (yearCurrentPage + 1) * rowsPerPage
+                    )
+                    .map((item, index) => (
+                      <tr key={index} className="border-b border-gray-200">
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-bold text-navy-700">
+                            {item.year}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-bold text-navy-700">
+                            {item.count}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-bold text-navy-700">
+                            {item.percent}%
+                          </p>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+              <div className="flex flex-row gap-2 justify-end items-center mt-4">
+                {/* Phân trang cho bảng năm sản xuất */}
+                <div className="flex space-x-2">
+                  {Array.from(
+                    { length: Math.ceil(yearData.length / rowsPerPage) },
+                    (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setYearCurrentPage(i)}
+                        className={`px-1 border border-gray-300 rounded ${
+                          yearCurrentPage === i
+                            ? "bg-[#002855] text-white text-base"
+                            : "bg-white text-gray-700 text-sm"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    )
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setYearCurrentPage(0); // Reset về trang đầu tiên
+                    }}
+                    className="text-base border border-gray-300 rounded-lg"
+                  >
+                    {[5, 10, 20, 50].map((num) => (
+                      <option key={num} value={num}>
+                        {num}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p>Đang tải dữ liệu...</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

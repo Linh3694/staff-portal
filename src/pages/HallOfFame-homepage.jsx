@@ -11,6 +11,7 @@ import "@splidejs/splide/dist/css/splide.min.css";
 import "animate.css";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
+import useResponsive from "../hook/useResponsive";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -22,8 +23,10 @@ const HallofFame = () => {
     i18n.changeLanguage(newLanguage);
   };
   // 1. Thêm state mới ngay sau các state đã có (ví dụ, sau const [quoteIndex, setQuoteIndex] = useState(null);)
-  const [isMobileView, setIsMobileView] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const { width, isMobile } = useResponsive();
+  const isMobileView = isMobile; // hoặc: width < 1024;
+
   useEffect(() => {
     document.title = "Wellspring Hà Nội | Hall of Honor";
     // Cleanup function để reset title khi unmount
@@ -31,35 +34,21 @@ const HallofFame = () => {
       document.title = "Wellspring";
     };
   }, []);
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const handleResize = () => setIsMobileView(window.innerWidth < 1024);
-      handleResize();
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
-    }
-  }, []);
+
   const ReadMoreText = ({ text }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const toggleExpanded = () => setIsExpanded(!isExpanded);
+    const toggleExpanded = () => setIsExpanded((prev) => !prev);
 
-    // Determine if the viewport is mobile (< md)
-    const [isMobile, setIsMobile] = useState(() => {
-      if (typeof window !== "undefined") {
-        return window.innerWidth < 768;
-      }
-      return false;
-    });
+    // Lấy thông tin responsive
+    const { isMobile: isMobileResponsive } = useResponsive();
 
-    useEffect(() => {
-      const handleResize = () => setIsMobile(window.innerWidth < 1024);
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
-    }, []);
-
-    // Apply threshold only on mobile; on desktop, show full text
-    const threshold = isMobile ? 470 : Infinity;
+    // Ở màn hình lớn, không giới hạn (Infinity). Ở màn hình nhỏ, 470 ký tự.
+    const threshold = isMobileResponsive ? 470 : Infinity;
+    // Kiểm tra xem có cần cắt không
     const shouldTruncate = text.length > threshold;
+
+    // Nếu không cần cắt hoặc đã mở rộng => hiển thị đầy đủ
+    // Nếu cần cắt => hiển thị đến threshold + "..."
     const displayText =
       isExpanded || !shouldTruncate
         ? text
@@ -78,9 +67,7 @@ const HallofFame = () => {
             onClick={toggleExpanded}
             className="text-[#002147] font-bold text-xs mt-2 md:hidden"
           >
-            {isExpanded
-              ? t("readLess", "Rút gọn")
-              : t("readMore", "Xem đầy đủ")}
+            {isExpanded ? t("readLess") : t("readMore")}
           </button>
         )}
       </div>
@@ -131,9 +118,9 @@ const HallofFame = () => {
     imageUrls.forEach((url) => {
       const img = new Image();
       img.src = url;
-      img.onload = () => console.log(`Image loaded: ${url}`); // Kiểm tra xem ảnh có được tải nhanh hay không
     });
   };
+
   const marqueeRef = useRef(null);
 
   useEffect(() => {
@@ -247,29 +234,20 @@ const HallofFame = () => {
 
   // Tính toán kích thước slide dựa trên window.innerWidth
   useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      if (width < 640) {
-        // Mobile: 90% chiều rộng, chiều cao nhỏ hơn
-        setItemWidth(width * 0.9);
-        setItemHeight(450);
-      } else if (width < 1024) {
-        // Laptop 13" hoặc 14": 80% chiều rộng, chiều cao trung bình
-        setItemWidth(width * 0.85);
-        setItemHeight(400);
-      } else if (width < 1600) {
-        // Màn hình dưới 1600px: 85% chiều rộng, chiều cao lớn hơn
-        setItemWidth(width * 0.75);
-        setItemHeight(500);
-      } else {
-        setItemWidth(1280);
-        setItemHeight(560);
-      }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    if (width < 640) {
+      setItemWidth(width * 0.9);
+      setItemHeight(450);
+    } else if (width < 1024) {
+      setItemWidth(width * 0.85);
+      setItemHeight(400);
+    } else if (width < 1600) {
+      setItemWidth(width * 0.75);
+      setItemHeight(500);
+    } else {
+      setItemWidth(1280);
+      setItemHeight(560);
+    }
+  }, [width]);
 
   useEffect(() => {
     gsap.fromTo(
@@ -433,7 +411,7 @@ const HallofFame = () => {
 
     const targetCounts = {
       categories: 11,
-      students: 200,
+      students: 600,
       classes: 12,
     };
 
@@ -576,7 +554,7 @@ const HallofFame = () => {
             <div className="w-full lg:w-1/2 flex flex-row xl:justify-end justify-center gap-8 md:gap-16">
               <div className="text-center shimmer-text">
                 <div className=" text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
-                  {counts.categories}
+                  {counts.categories}+
                 </div>
                 <div className="uppercase text-sm md:text-base font-semibold text-[#F9D16F]">
                   {t("category")}
@@ -584,7 +562,7 @@ const HallofFame = () => {
               </div>
               <div className="text-center shimmer-text">
                 <div className="text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
-                  {counts.students}
+                  {counts.students}+
                 </div>
                 <div className="uppercase text-sm md:text-base font-semibold text-[#F9D16F]">
                   {t("student")}
@@ -592,7 +570,7 @@ const HallofFame = () => {
               </div>
               <div className="text-center shimmer-text">
                 <div className="text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
-                  {counts.classes}
+                  {counts.classes}+
                 </div>
                 <div className="uppercase text-sm md:text-base font-semibold text-[#F9D16F]">
                   {t("class")}
@@ -605,7 +583,7 @@ const HallofFame = () => {
 
       <section
         ref={section2Ref}
-        className="flex bg-white relative w-full flex-col items-center justify-center overflow-hidden h-screen"
+        className="flex bg-white relative w-full flex-col items-center justify-center min-h-screen"
       >
         {/* Tiêu đề */}
         <div className="relative w-full text-center mb-10 z-10">
@@ -622,7 +600,7 @@ const HallofFame = () => {
             swiperRef.current = swiper;
           }}
           onSlideChange={(swiper) => setActiveSlide(swiper.realIndex)}
-          className="section2-slide relative w-full mx-auto overflow-hidden z-10 section2-content"
+          className="section2-slide relative w-full mx-auto z-10 section2-content"
         >
           {principals.map((principal, index) => {
             const isActive = index === activeSlide;
@@ -630,7 +608,7 @@ const HallofFame = () => {
               <SwiperSlide key={index} className="flex justify-center relative">
                 <div
                   style={{ width: itemWidth, height: itemHeight }}
-                  className={`carousel-slide flex-shrink-0 rounded-[20px] lg:px-10 lg:py-12 px-7 py-7 transition-all duration-500 ease-in-out overflow-hidden ${
+                  className={`animate-nudge carousel-slide flex-shrink-0 rounded-[20px] lg:px-10 lg:py-12 px-7 py-7 overflow-hidden transition-all duration-500 ease-in-out ${
                     isActive
                       ? "bg-[#f8f8f8] backdrop-blur-none scale-100 opacity-100"
                       : "bg-[#000000] backdrop-blur-3xl scale-75 opacity-10"
@@ -654,7 +632,7 @@ const HallofFame = () => {
                       className="hidden md:block w-auto xll:max-h-[100%] md:max-h-[90%] max-h-[60%] absolute bottom-0 md:-bottom-[50px] xl:right-15 xll:right-20 md:right-12 right-5 object-contain pointer-events-none"
                     />
                     {/* Cột text */}
-                    <div className="w-full md:w-[60%] xl:w-[70%] max-w-[730px] flex flex-col items-center md:items-start text-left  z-10">
+                    <div className="w-full md:w-[60%] xl:w-[70%] max-w-[730px] flex flex-col items-center md:items-start text-left z-10">
                       <div>
                         <div className="lg:my-3">
                           <ReadMoreText text={principal.message} />
@@ -667,7 +645,7 @@ const HallofFame = () => {
                             </footer>
                           </blockquote>
                         )}
-                        <div className="mt-8 md:hidden flex flex-row items-center gap-3">
+                        <div className="md:hidden mt-10 flex flex-row items-center gap-3">
                           <img
                             src={principal.image}
                             alt={principal.name}
@@ -700,17 +678,17 @@ const HallofFame = () => {
                   <>
                     {/* Nút chuyển slide bên trái - nằm ngoài card */}
                     <button
-                      className="hidden md:block absolute top-1/2 md:left-[2%] lg:left-[5%] transform -translate-y-1/2 bg-[#e5e5e5] text-[#757575] rounded-full p-2"
+                      className="animate-slideOutLeft block absolute top-1/2 left-0 md:left-[2%] lg:left-[5%] transform -translate-y-1/2 transition-all duration-300 hover:-translate-x-4 md:bg-[#e5e5e5] text-[#cacaca] md:text-[#757575] rounded-full p-2"
                       onClick={() => swiperRef.current.slidePrev()}
                     >
-                      <FaChevronLeft className="xll:w-6 h-auto w-4" />{" "}
+                      <FaChevronLeft className="xll:w-6 h-auto w-5" />
                     </button>
                     {/* Nút chuyển slide bên phải - nằm ngoài card */}
                     <button
-                      className="hidden md:block absolute top-1/2  md:right-[2%] lg:right-[5%] transform -translate-y-1/2 bg-[#e5e5e5] text-[#757575] rounded-full p-2"
+                      className="animate-slideOutRight block absolute top-1/2 right-0 md:right-[2%] lg:right-[5%] transform -translate-y-1/2 transition-all duration-300 hover:translate-x-4 md:bg-[#e5e5e5] text-[#cacaca] md:text-[#757575] rounded-full p-2"
                       onClick={() => swiperRef.current.slideNext()}
                     >
-                      <FaChevronRight className="xll:w-6 h-auto w-4" />{" "}
+                      <FaChevronRight className="xll:w-6 h-auto w-5" />
                     </button>
                   </>
                 )}

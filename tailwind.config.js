@@ -11,8 +11,18 @@ module.exports = {
           fadeOut: "fadeOut 0.3s ease-in-out",
           shine: 'shine 5s linear infinite',
           scrollDown: 'scrollDown 1.5s infinite',
+          slideOutLeft: 'slideOutLeft 2s ease-in-out infinite',
+          slideOutRight: 'slideOutRight 2s ease-in-out infinite',
         },
         keyframes: {
+          slideOutLeft: {
+          '0%, 100%': { transform: 'translateY(-50%) translateX(0)' },
+          '50%': { transform: 'translateY(-50%) translateX(-0.5rem)' },
+          },
+          slideOutRight: {
+             '0%, 100%': { transform: 'translateY(-50%) translateX(0)' },
+            '50%': { transform: 'translateY(-50%) translateX(0.5rem)' },
+          },
           scrollDown: {
             '0%': { transform: 'translateY(0)' },
             '20%': { transform: 'translateY(15px)' },

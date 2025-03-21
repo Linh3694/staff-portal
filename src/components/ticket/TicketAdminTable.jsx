@@ -6,8 +6,6 @@ import { FiSend } from "react-icons/fi";
 import { FaTrashCan, FaCheck, FaXmark } from "react-icons/fa6";
 
 const TicketAdminTable = ({ currentUser }) => {
-  console.log("Current user:", currentUser);
-
   // ---------------------------------------------------------
   // 1. State chung về danh sách tickets
   // ---------------------------------------------------------
@@ -65,11 +63,11 @@ const TicketAdminTable = ({ currentUser }) => {
   const fetchTickets = async () => {
     try {
       const token = localStorage.getItem("authToken");
+
       const response = await axios.get(`${API_URL}/tickets`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Danh sách tickets:", response.data.tickets);
-      console.log("Ảnh đính kèm:", processingTicket?.attachments);
+
       setTickets(response.data.tickets);
       setOriginalTickets(response.data.tickets);
       setLoading(false);
@@ -81,23 +79,19 @@ const TicketAdminTable = ({ currentUser }) => {
     }
   };
   const fetchTicketById = async (ticketId) => {
-    console.log("📥 Fetching Ticket ID:", ticketId); // ✅ Debug
-    if (!ticketId) {
-      console.error("🚨 Lỗi: Ticket ID bị undefined!");
-      return;
-    }
     try {
-      const res = await axios.get(`${API_URL}/tickets/${ticketId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
+      const token = localStorage.getItem("authToken");
+
+      const response = await axios.get(`${API_URL}/tickets/${ticketId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("📜 Dữ liệu từ API:", res.data.ticket); // ✅ Kiểm tra dữ liệu từ API
-      if (res.data.success) {
-        setSelectedTicket(res.data.ticket);
+      if (response.data.success) {
+        setSelectedTicket(response.data.ticket);
+      } else {
+        console.error("❌ Không thể tải ticket:", response.data.message);
       }
     } catch (error) {
-      console.error("Lỗi khi lấy chi tiết ticket:", error);
+      console.error("Lỗi khi getTicketById (Admin):", error);
     }
   };
 
@@ -211,8 +205,7 @@ const TicketAdminTable = ({ currentUser }) => {
     // A) Lọc theo "all" hoặc "assignedToMe"
     let match =
       filter === "all" ||
-      (filter === "assignedToMe" &&
-        ticket.assignedTo?.email === currentUser.email);
+      (filter === "assignedToMe" && ticket.assignedTo?._id === currentUser.id);
 
     // B) Lọc theo nhiều ưu tiên
     if (selectedPriorities.length > 0) {
@@ -263,7 +256,6 @@ const TicketAdminTable = ({ currentUser }) => {
   // 15. Mở modal Assigned: chỉ mở nếu ticket.status === "Assigned"
   // ---------------------------------------------------------
   const handleAssignedTicketClick = (ticket) => {
-    console.log("🚀 Ticket được chọn:", ticket); // Debug
     if (ticket.status === "Assigned") {
       setAssignedTicket(ticket);
       setSelectedAction("accept");
@@ -441,7 +433,9 @@ const TicketAdminTable = ({ currentUser }) => {
           text: m.text,
           sender: m?.sender?.fullname || "N/A",
           senderId: m?.sender?._id,
-          senderAvatar: m?.sender?.avatar || "/default-avatar.png",
+          senderAvatar: m.sender?.avatarUrl
+            ? `${BASE_URL}/uploads/Avatar/${m.sender.avatarUrl}`
+            : "/default-avatar.png",
           time: new Date(m.timestamp).toLocaleString("vi-VN"),
           isSelf: m?.sender?._id === currentUser?.id,
         };
@@ -450,47 +444,51 @@ const TicketAdminTable = ({ currentUser }) => {
     }
   }, [selectedTicket]);
 
+  // -----------------------------------------
+  // 4. Gửi tin nhắn
+  // -----------------------------------------
+
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    if (!selectedTicket || !selectedTicket._id) {
-      toast.error("Vui lòng chọn ticket trước khi gửi tin nhắn.");
-      return;
-    }
-
     try {
+      const token = localStorage.getItem("authToken");
       const res = await axios.post(
-        `${API_URL}/tickets/${selectedTicket._id}/messages`,
+        `${API_URL}/tickets/${processingTicket._id}/messages`,
         { text: newMessage },
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
       if (res.data.success) {
-        // Thêm luôn vào state messages
-        setMessages((prev) => [
-          ...prev,
-          {
-            text: newMessage,
-            sender: currentUser?.fullname || "Me (tech)",
-            senderId: currentUser?.id,
-            senderAvatar: currentUser?.avatar || "/default-avatar.png",
-            time: new Date().toLocaleString("vi-VN"),
-            isSelf: true,
-          },
-        ]);
+        // Gọi lại fetchTicketById để cập nhật avatar hiển thị đúng
+        await fetchTicketById(processingTicket._id);
         setNewMessage("");
-
-        // Hoặc fetch lại ticket:
-        // await fetchTicketById(selectedTicket._id);
       }
     } catch (error) {
-      console.error("🚨 Lỗi khi gửi tin nhắn:", error);
-      toast.error("Không thể gửi tin nhắn. Vui lòng thử lại.");
+      console.error("Lỗi khi gửi tin nhắn (Admin):", error);
     }
   };
+  // -----------------------------------------
+  // 5. Polling mỗi 5s để load tin nhắn mới
+  // -----------------------------------------
+  useEffect(() => {
+    let interval = null;
+    if (processingTicket?._id && activeTab === "exchange") {
+      // Chỉ polling khi admin đang ở tab Trao đổi
+      interval = setInterval(() => {
+        fetchTicketById(processingTicket._id);
+      }, 5000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [processingTicket?._id, activeTab]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // ---------------------------------------------------------
   // 18. useEffect gọi fetch
@@ -501,29 +499,23 @@ const TicketAdminTable = ({ currentUser }) => {
   }, []);
 
   useEffect(() => {
-    if (selectedTicket && selectedTicket.messages) {
-      console.log("📥 Tin nhắn từ API:", selectedTicket.messages); // ✅ Debug API response
-
-      const mapped = selectedTicket.messages.map((m) => ({
+    if (processingTicket && processingTicket.messages) {
+      const mapped = processingTicket.messages.map((m) => ({
         text: m.text,
-        sender: m?.sender?.fullname || "N/A",
-        senderId: m?.sender?._id,
-        senderAvatar: m?.sender?.avatarUrl
-          ? `${BASE_URL}${m.sender.avatarUrl}` // ✅ Format ảnh đầy đủ
+        senderId: m.sender?._id,
+        sender: m.sender?.fullname || "N/A",
+        // Giả sử DB lưu ảnh tại m.sender.avatarUrl
+        senderAvatar: m.sender?.avatarUrl
+          ? `${BASE_URL}/uploads/Avatar/${m.sender.avatarUrl}`
           : "/default-avatar.png",
         time: new Date(m.timestamp).toLocaleString("vi-VN"),
-        isSelf: m?.sender?._id === currentUser?.id,
+        isSelf: m.sender?._id === currentUser?.id,
       }));
-
-      console.log("📥 Tin nhắn sau khi map:", mapped); // ✅ Debug dữ liệu tin nhắn
       setMessages(mapped);
+    } else {
+      setMessages([]);
     }
-  }, [selectedTicket]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
+  }, [processingTicket]);
   // ---------------------------------------------------------
   // 19. JSX render
   // ---------------------------------------------------------
@@ -1132,7 +1124,7 @@ const TicketAdminTable = ({ currentUser }) => {
 
         {isProcessingModalOpen && processingTicket && (
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-            <div className="bg-white w-[80%] rounded-lg p-6 flex flex-col gap-4 relative">
+            <div className="bg-white w-[80%] max-h-[80vh] overflow-y-auto rounded-lg p-6 flex flex-col gap-4 relative">
               <h3 className="text-2xl font-bold text-[#002147] mb-2 text-start">
                 {processingTicket.ticketCode}: {processingTicket.title}
               </h3>
@@ -1227,29 +1219,6 @@ const TicketAdminTable = ({ currentUser }) => {
                       )}
                     </div>
                   </div>
-
-                  {/* <div className="bg-[#F8F8F8] p-4 rounded-lg shadow-md">
-                    <div className="mb-4">
-                      <p className="text-gray-500 font-semibold">
-                        Thiết bị sửa chữa
-                      </p>
-                      <div className="flex flex-col gap-2">
-                        {processingTicket?.devices?.map((device, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between bg-white p-2 rounded-md shadow"
-                          >
-                            <p className="text-sm text-gray-700">{device}</p>
-                            <button className="text-red-500 text-sm">✕</button>
-                          </div>
-                        ))}
-                      </div>
-
-                      <button className="mt-2 text-blue-500 text-sm font-semibold flex items-center gap-1">
-                        <span>+</span> Thêm thiết bị
-                      </button>
-                    </div>
-                  </div> */}
                 </div>
 
                 {/* 2️⃣ Cột giữa - Trao đổi & Lịch sử */}
@@ -1279,12 +1248,12 @@ const TicketAdminTable = ({ currentUser }) => {
                   </div>
 
                   {/* Nội dung theo Tab */}
-                  <div className="flex flex-col flex-grow rounded-b-lg h-full">
+                  <div className="h-full flex flex-col flex-grow rounded-b-lg ">
                     {activeTab === "exchange" ? (
                       // Nội dung tab Trao đổi
-                      <div className="flex flex-col h-full">
+                      <div className="h-fullflex flex-col ">
                         {/* Danh sách tin nhắn (cuộn khi cần) */}
-                        <div className="h-full flex flex-col space-y-2 overflow-y-auto px-4 mt-4 mb-2">
+                        <div className="h-[400px] flex flex-col space-y-2 overflow-y-auto px-4 mt-4 mb-2">
                           {messages.map((m, idx) => (
                             <div
                               key={idx}
@@ -1297,7 +1266,7 @@ const TicketAdminTable = ({ currentUser }) => {
                                 <img
                                   src={m.senderAvatar}
                                   alt="Avatar"
-                                  className="w-11 h-11 rounded-full border shadow-md object-cover"
+                                  className="w-11 h-11 rounded-full border shadow-md object-cover object-top"
                                 />
                               )}
 
@@ -1322,7 +1291,7 @@ const TicketAdminTable = ({ currentUser }) => {
                                 <img
                                   src={m.senderAvatar}
                                   alt="Avatar"
-                                  className="w-11 h-11 rounded-full border shadow-md object-cover"
+                                  className="w-11 h-11 rounded-full border shadow-md object-cover object-top"
                                 />
                               )}
                             </div>

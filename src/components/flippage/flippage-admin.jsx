@@ -7,7 +7,6 @@ import { toast } from "react-toastify";
 import Switch from "react-switch";
 
 function FlippageAdmin({ currentUser }) {
-  console.log("AdminPage Loaded");
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileList, setFileList] = useState([]);
   const [editingId, setEditingId] = useState(null);
@@ -100,7 +99,6 @@ function FlippageAdmin({ currentUser }) {
         return res.json();
       })
       .then((data) => {
-        console.log("🔍 API Response:", data);
         if (Array.isArray(data)) {
           setFileList(data);
         }

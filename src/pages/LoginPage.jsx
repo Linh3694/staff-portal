@@ -1,73 +1,147 @@
-import React from "react";
+import React, { useState } from "react";
 import "react-toastify/dist/ReactToastify.css";
 import { API_URL } from "../config"; // import từ file config
+import { ReactTyped } from "react-typed";
 
 const LoginPage = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
   // **Đăng nhập với Microsoft** - Chuyển hướng sang server
   const handleMicrosoftLogin = () => {
     window.location.href = `${API_URL}/auth/microsoft`;
   };
+  const handleGoogleLogin = () => {};
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    // Validate email and password
+    if (!email) {
+      setError("Vui lòng nhập email!");
+      return;
+    }
+    if (!email.includes("@")) {
+      setError("Email không hợp lệ. Vui lòng kiểm tra.");
+      return;
+    }
+    if (!password) {
+      setError("Vui lòng nhập mật khẩu!");
+      return;
+    }
+
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.errors && data.errors.length > 0) {
+          setError(data.errors[0].msg);
+        } else {
+          setError(data.message || "Đăng nhập thất bại!");
+        }
+      } else {
+        // Lưu token và thông tin role, sau đó chuyển hướng nếu đăng nhập thành công
+        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("role", data.user.role);
+        window.location.href = "/dashboard"; // Cập nhật đường dẫn theo yêu cầu
+      }
+    } catch (err) {
+      setError("Đã xảy ra lỗi. Vui lòng thử lại sau!");
+    }
+  };
 
   return (
-    <div className="min-h-screen w-full overflow-hidden bg-[#EDEDED] ">
-      <div className="absolute top-0  md:top-4 md:left-20 flex flex-col items-start">
-        {/* Logo */}
-        <div className="flex items-center justify-between md:gap-5 gap-24 animate-slide-down">
-          <img
-            src="/login/wellsping-logo.png"
-            alt="Logo 2"
-            className="w-36 h-20"
-          />
-          <img
-            src="/login/happyjourney.png"
-            alt="Logo 1"
-            className="w-32 h-28"
-          />
-        </div>
+    <div
+      className="min-h-screen w-full overflow-hidden bg-[#EDEDED]"
+      style={{
+        backgroundImage: 'url("/login/building.svg")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className="w-[850px] h-screen flex flex-col items-center justify-center">
+        <div className="w-full p-8 flex flex-col items-center">
+          <h2 className="text-4xl font-bold mb-10 text-center">
+            <ReactTyped
+              strings={["Đăng nhập để tiếp tục nhé..."]}
+              typeSpeed={50}
+              backSpeed={30}
+              showCursor={true}
+              cursorChar="|"
+            />
+          </h2>
 
-        <div className="flex flex-col items-center justify-center text-center lg:text-left lg:items-start w-full">
-          <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold md:mt-16 xs:mt-5 ">
-            <span className="font-normal" style={{ color: "#2B6478" }}>
-              360°
-            </span>{" "}
-            <span style={{ color: "#F05023" }}>W</span>
-            <span style={{ color: "#F5AA1E" }}>I</span>
-            <span style={{ color: "#009483" }}>S</span>
-            <span style={{ color: "#2B6478" }}>ers</span>
-          </h1>
-
-          {/* Slogan Warm heart... */}
-          <div className="text-lg xl:text-xl 2xl:text-2xl text-[#002855] font-medium mt-6">
-            <span className="mr-2">Warm heart</span> |
-            <span className="mx-2">Innovation minds</span> |
-            <span className="ml-2">Sharing</span>
+          <div className="w-1/2 mb-4">
+            <label className="text-left block font-medium mb-2 text-[#757575]">
+              Tên đăng nhập
+            </label>
+            <input
+              type="text"
+              placeholder="email@wellspring.edu.vn"
+              className="w-full h-10 border-none rounded-full p-2 text-sm px-4"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
 
-          {/* Câu slogan bên dưới */}
-          <p className="text-[#002855] text-lg xl:text-xl 2xl:text-2xl font-light mt-10">
-            Đồng hành cùng nhà giáo, thắp sáng niềm say mê công việc! ✨
-          </p>
+          <div className="w-1/2 mb-6">
+            <label className="text-left block font-medium mb-2 text-[#757575]">
+              Mật khẩu
+            </label>
+            <input
+              type="password"
+              placeholder="**********"
+              className="w-full h-10 border-none rounded-full p-2 text-sm px-4"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          <button
+            onClick={handleLogin}
+            className="w-1/2 bg-[#002855] text-white py-3 font-bold rounded-full mb-4 hover:bg-[#1a3a5e] transition-all"
+          >
+            Đăng nhập
+          </button>
+
+          {error && <div className="text-sm mb-4 text-red-500">{error}</div>}
+
+          <div className="w-1/2 flex flex-row justify-between gap-4">
+            <button
+              onClick={handleGoogleLogin}
+              className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded-full hover:bg-[#002855] hover:text-white font-semibold transition-all flex items-center justify-center gap-2"
+            >
+              <img src="/login/google.webp" alt="Google" className="w-5 h-5" />
+              Google
+            </button>
+            <button
+              onClick={handleMicrosoftLogin}
+              className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded-full hover:bg-[#002855] hover:text-white font-semibold transition-all flex items-center justify-center gap-2"
+            >
+              <img
+                src="/login/microsoft.svg"
+                alt="Microsoft"
+                className="w-5 h-5"
+              />
+              Microsoft
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="absolute bottom-72 md:bottom-20 md:right-0 lg:right-0 lg:bottom-20 xl:-right-20 2xl:right-28">
-        <img
-          src="/login/building.svg"
-          alt="Building"
-          className="w-[800px] lg:w-[1200px] xl:w-[1300px] 2xl:w-[1385px]"
-        />
-      </div>
-      <div className="xl:w-[400px] w-[300px] fixed md:bottom-20 bottom-44 left-1/2 transform -translate-x-1/2 animate-slide-up">
-        {/* Nút đăng nhập với Microsoft */}
-        <button
-          onClick={handleMicrosoftLogin}
-          className="w-full bg-[#002147] text-white py-3 font-bold rounded-full mb-4 hover:bg-[#1a3a5e] transition-all flex items-center justify-center gap-2"
-        >
-          <img src="/login/microsoft.svg" alt="Microsoft" className="w-5 h-5" />
-          Đăng nhập với Microsoft
-        </button>
-      </div>
-      <footer className="absolute bottom-36 left-8 md:bottom-4 md:left-20 md:text-sm text-[10px] text-gray-600 items-center ">
+      <footer className="absolute bottom-32 left-8 md:bottom-7 md:left-20 md:text-sm text-[10px] text-gray-600 items-center ">
         © Copyright 2025 Wellspring International Bilingual Schools. All Rights
         Reserved.
       </footer>

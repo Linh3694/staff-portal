@@ -18,34 +18,33 @@ const Sidebar = ({
   // Danh sách ID các danh mục đã có giao diện (được xử lý trong switch).
   const enabledCategoryIds = [
     "67b5a7864c93fbb31475ad44", // Học sinh Danh dự
-    "67b5a81e4c93fbb31475ad4a", // Học bổng Tài năng
     "67b5a98b4c93fbb31475ad56", // WISers Nỗ lực
     "67b5a7c84c93fbb31475ad47", // Lớp Danh dự
   ];
 
   const fixedCategories = [
     {
-      id: "empty",
+      id: "empty_1",
       nameKey: "scholarship_talent",
       default: "Học bổng Tài năng",
     },
     {
-      id: "empty",
+      id: "empty_2",
       nameKey: "top_graduates",
       default: "Thủ khoa Tốt nghiệp",
     },
     {
-      id: "empty",
+      id: "empty_3",
       nameKey: "wiser_excellent",
       default: "WISers Ưu tú",
     },
     {
-      id: "empty",
+      id: "empty_4",
       nameKey: "wiser_inspiration",
       default: "WISers Truyền cảm hứng",
     },
     {
-      id: "empty",
+      id: "empty_5",
       nameKey: "wiser_honor",
       default: "WISers Danh dự",
       subCategories: [
@@ -67,12 +66,12 @@ const Sidebar = ({
       default: "WISers Nỗ lực",
     },
     {
-      id: "empty",
+      id: "empty_6",
       nameKey: "standardized_test",
       default: "Thành tích các bài thi chuẩn hóa",
     },
     {
-      id: "empty",
+      id: "empty_7",
       nameKey: "competition",
       default: "Thành tích trong các cuộc thi và giải đấu",
     },

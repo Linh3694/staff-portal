@@ -81,7 +81,7 @@ userSchema.pre('save', async function (next) {
   }
 
   // Hash mật khẩu nếu chưa được hash
-  const isHashed = this.password.startsWith('$2b$');
+  const isHashed = this.password.startsWith('$2a$') || this.password.startsWith('$2b$');
   if (!isHashed) {
     this.password = await bcrypt.hash(this.password, 10);
   }

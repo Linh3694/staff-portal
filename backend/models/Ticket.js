@@ -35,7 +35,7 @@ const ticketSchema = new mongoose.Schema(
       status: {
         type: String,
         enum: ["Open", "Assigned", "Processing" , "Waiting for Customer", "Done", "Closed" , "Cancelled"],
-        default: "Open",
+        default: "Assigned",
       },
       creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
       assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Nhân viên hỗ trợ

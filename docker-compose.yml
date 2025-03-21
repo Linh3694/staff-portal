@@ -1,9 +1,0 @@
-version: '3.9'
-
-services:
-  inventory-app:
-    build:
-      context: .
-    ports:
-      - "3000:80" # Map port 3000 của máy chủ host tới port 80 trong container
-    restart: always
