@@ -93,7 +93,7 @@ const resources = {
             "vi": "Học bổng Tài năng (50%-100%) trong 07 năm học liên tiếp (kể từ năm học 2017-2018). \n\nSinh viên ngành Sociology, Rutgers University–New Brunswick (New Jersey), Hoa Kỳ",
             "en": "50%-100% Talent Scholarship for 07 school year (2017-2024). \n\nCurrently a Sociology student at Rutgers University–New Brunswick (New Jersey, USA)"
           },
-          "image": "/halloffame/student1.jpg",        
+          "image": "/halloffame/student1.webp",        
         },
         {
           "name": {
@@ -291,7 +291,7 @@ const resources = {
             "vi": "Học bổng Tài năng (50%-100%) trong 07 năm học liên tiếp (kể từ năm học 2017-2018). \n\nSinh viên ngành Sociology, Rutgers University–New Brunswick (New Jersey), Hoa Kỳ",
             "en": "50%-100% Talent Scholarship for 07 school year (2017-2024). \n\nCurrently a Sociology student at Rutgers University–New Brunswick (New Jersey, USA)"
           },
-          "image": "/halloffame/student1.jpg",        
+          "image": "/halloffame/student1.webp",        
         },
         {
           "name": {
