@@ -312,12 +312,21 @@ const ClassHonorContent = ({
     if (
       activeTab === "month" &&
       selectedSchoolYearId &&
-      !selectedMonth &&
+      (!selectedMonth || selectedMonth === "") &&
       distinctMonths.length > 0
     ) {
-      setSelectedMonth(distinctMonths[0]);
+      const firstMonth = String(distinctMonths[0]);
+      setSelectedMonth(firstMonth);
+
+      // Đảm bảo records được lọc lại với tháng mới
+      const recordsForMonth = recordsCatTypeYear.filter(
+        (r) => String(r.subAward?.month) === firstMonth
+      );
+      if (recordsForMonth.length > 0) {
+        setSelectedMonth(firstMonth);
+      }
     }
-  }, [activeTab, selectedSchoolYearId, selectedMonth, distinctMonths]);
+  }, [activeTab, selectedSchoolYearId, distinctMonths]);
 
   // --------------------------------------------------
   // 4) Lọc record theo các tiêu chí => DÙNG awardClasses
