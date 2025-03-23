@@ -1166,18 +1166,27 @@ function HallOfFameAdminPage() {
                   : "Tạo mới Loại Vinh Danh"}
               </h2>
               <div className="relative group mb-2">
-                {categoryFormData.coverImage && (
-                  <div>
-                    <img
-                      src={`${BASE_URL}/${categoryFormData.coverImage}`}
-                      alt="Cover"
-                      className="w-full h-48 rounded-2xl object-cover cursor-pointer"
-                      onClick={() =>
-                        document.getElementById("coverImageUpload").click()
-                      }
-                    />
+              <div>
+                {categoryFormData.coverImage ? (
+                  <img
+                    src={`${BASE_URL}/${categoryFormData.coverImage}`}
+                    alt="Cover"
+                    className="w-full h-48 rounded-2xl object-cover cursor-pointer"
+                    onClick={() =>
+                      document.getElementById("coverImageUpload").click()
+                    }
+                  />
+                ) : (
+                  <div
+                    className="w-full h-48 rounded-2xl bg-gray-100 flex items-center justify-center cursor-pointer border border-dashed border-gray-300 hover:bg-gray-200 transition"
+                    onClick={() =>
+                      document.getElementById("coverImageUpload").click()
+                    }
+                  >
+                    <span className="text-gray-500">Chọn ảnh bìa</span>
                   </div>
                 )}
+              </div>
                 <input
                   type="file"
                   id="coverImageUpload"
