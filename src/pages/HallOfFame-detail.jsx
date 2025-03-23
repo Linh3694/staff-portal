@@ -27,7 +27,7 @@ function HallOfFamePublicPage() {
 
   // --- UI state: selected category (mặc định là “Học sinh Danh dự”) & sidebar dropdown ---
   const [selectedCategoryId, setSelectedCategoryId] = useState(
-    "67b5a7864c93fbb31475ad44"
+    "67df88144651c845d0bec3dc"
   );
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -35,7 +35,7 @@ function HallOfFamePublicPage() {
   const categoryTitleRef = useRef(null);
   const getCategoryName = () => {
     // Ví dụ: trả về tên dựa vào selectedCategoryId hoặc từ API / state
-    return selectedCategoryId === "67b5a7864c93fbb31475ad44"
+    return selectedCategoryId === "67df88144651c845d0bec3dc"
       ? t("student_honor", "Học sinh Danh dự")
       : t("class_honor", "Lớp Danh dự");
   };
@@ -81,7 +81,7 @@ function HallOfFamePublicPage() {
     // còn với các danh mục khác có thể render component tương ứng.
     switch (selectedCategoryId) {
       //// Học sinh danh dự
-      case "67b5a7864c93fbb31475ad44":
+      case "67df88144651c845d0bec3dc":
         return (
           <StudentHonorContent
             categoryId={selectedCategoryId}
@@ -141,14 +141,15 @@ function HallOfFamePublicPage() {
   }, []);
   return (
     <div className="h-screen w-full">
-      <header className="fixed top-0 left-0 w-full h-[80px] bg-[#002855] text-white flex items-center lg:shadow-none justify-between xl:px-20 px-6 shadow-md z-50">
+      <header className="fixed top-0 left-0 w-full h-[80px] bg-[#002855] text-white flex items-center lg:shadow-none justify-between xll:px-20 px-6 shadow-md z-50">
+        
+        <div className="flex flex-row gap-7 items-center">
         <button
-          className="xl:hidden mr-4"
+          className="xll:hidden mr-4"
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         >
           <FaBars size={24} />
         </button>
-        <div className="flex flex-row gap-7 items-center">
           <button onClick={() => navigate("/hall-of-honor")}>
             <img
               src="/halloffame/HOH-gold.png"
@@ -164,11 +165,6 @@ function HallOfFamePublicPage() {
             />
           </a>
         </div>
-        {/* {showCategoryNameInHeader && (
-          <div className="ml-4 text-2xl shimmer-text uppercase font-bold">
-            {getCategoryName()}
-          </div>
-        )} */}
         <div className="flex flex-row gap-10 items-center">
           <img
             src="/halloffame/HJ-white.png"
@@ -201,13 +197,7 @@ function HallOfFamePublicPage() {
           closeSidebar={() => setIsSidebarOpen(false)}
         />
 
-        <div className="flex-1 lg:pl-16">
-          <div ref={categoryTitleRef} className="absolute py-4">
-            <h1 className="text-4xl font-bold text-white">
-              {getCategoryName()}
-            </h1>
-          </div>
-
+        <div className="flex-1 xll:pl-16">
           {renderMainContent()}
         </div>
 

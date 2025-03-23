@@ -90,7 +90,7 @@ const Sidebar = ({
     <aside
       className={`fixed top-12 md:top-0 left-0 z-40 flex h-full w-full md:w-[350px] lg:w-[400px] bg-white p-4 shadow-md transform transition-transform duration-300 overflow-y-auto
       ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} 
-      xl:translate-x-0 xl:relative xl:flex xl:w-[270px] xl:h-[calc(100vh-80px)] xl:shadow-none xl:overflow-y-visible`}
+      xll:translate-x-0 xll:relative xll:flex xll:w-[270px] xll:h-[calc(100vh-80px)] xll:shadow-none xll:overflow-y-visible`}
     >
       <nav className="space-y-4 mt-10 ">
         <button
@@ -139,7 +139,7 @@ const Sidebar = ({
                   if (!hasSubcategories) {
                     if (isCatEnabled) {
                       setSelectedCategoryId(fixedCat.id);
-                      if (window.innerWidth < 1024) {
+                      if (window.innerWidth < 1600) {
                         closeSidebar && closeSidebar();
                       }
                     }
@@ -183,7 +183,7 @@ const Sidebar = ({
                         onClick={() => {
                           if (isSubEnabled) {
                             setSelectedCategoryId(sub.id);
-                            if (window.innerWidth < 1024) {
+                            if (window.innerWidth < 1600) {
                               closeSidebar && closeSidebar();
                             }
                           }

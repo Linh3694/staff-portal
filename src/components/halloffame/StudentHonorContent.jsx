@@ -539,12 +539,12 @@ const StudentHonorContent = ({
           </div>
         </div>
         {currentCategory.coverImage && (
-          <div className="relative mb-4 mt-8 w-full lg:w-[1410px] max-h-[470px] mx-auto">
+          <div className="relative mb-4 mt-8 w-full max-h-[470px] mx-auto">
             {/* Lớp dưới cùng: ảnh coverImage */}
             <img
               src={`${BASE_URL}/${currentCategory.coverImage}`}
               alt="Cover"
-              className="w-full h-auto object-cover"
+              className="w-full max-h-[470px] object-cover"
             />
             {/* Lớp giữa: khung frame-cover.png đè lên */}
             <img
@@ -747,7 +747,7 @@ const StudentHonorContent = ({
           return (
             <div
               key={level.id}
-              className="w-full lg:w-[1410px] border-b border-gray-200 pb-4 mx-auto"
+              className="w-full border-b border-gray-200 pb-4 mx-auto"
             >
               <div
                 className="w-full flex justify-between items-center cursor-pointer py-4 text-[#002855] text-[22px] font-semibold"

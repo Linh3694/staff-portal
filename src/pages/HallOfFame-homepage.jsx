@@ -444,8 +444,6 @@ const HallofFame = () => {
     };
   }, [shouldStartCounting]);
 
-  // Thêm state để kiểm soát việc play/pause video
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   return (
     <>
@@ -527,7 +525,7 @@ const HallofFame = () => {
 
       {/* Section mới: Text và Thông số */}
       <section
-        className="relative w-full py-20 xl:px-44 px-10"
+        className="relative w-full py-20 px-10 xl:px-20 xll:px-44 "
         style={{
           backgroundImage: "url('/halloffame/section3.png')",
           backgroundSize: "cover",
@@ -535,7 +533,7 @@ const HallofFame = () => {
         }}
       >
         <div
-          className="container mx-auto px-4"
+          className="container mx-auto"
           style={{
             opacity: textOpacity,
             transform: textTransform,
@@ -545,7 +543,7 @@ const HallofFame = () => {
           <div className="flex flex-col lg:flex-row justify-between items-center gap-10">
             {/* Text bên trái */}
             <div className="w-full lg:w-1/2">
-              <p className="text-lg lg:text-xl font-semibold text-[#F9D16F] shimmer-text text-justify">
+              <p className="text-lg xll:text-2xl font-semibold text-[#F9D16F] shimmer-text text-justify">
                 {t("hallhonor_description")}
               </p>
             </div>
@@ -553,7 +551,7 @@ const HallofFame = () => {
             {/* Thông số bên phải */}
             <div className="w-full lg:w-1/2 flex flex-row xl:justify-end justify-center gap-8 md:gap-16">
               <div className="text-center shimmer-text">
-                <div className=" text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
+                <div className=" text-5xl lg:text-6xl xll:text-7xl 2xl:text-8xl font-bold mb-2 text-[#F9D16F]">
                   {counts.categories}+
                 </div>
                 <div className="uppercase text-sm md:text-base font-semibold text-[#F9D16F]">
@@ -561,7 +559,7 @@ const HallofFame = () => {
                 </div>
               </div>
               <div className="text-center shimmer-text">
-                <div className="text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
+                <div className="text-5xl lg:text-6xl xll:text-7xl 2xl:text-8xl font-bold mb-2 text-[#F9D16F]">
                   {counts.students}+
                 </div>
                 <div className="uppercase text-sm md:text-base font-semibold text-[#F9D16F]">
@@ -569,7 +567,7 @@ const HallofFame = () => {
                 </div>
               </div>
               <div className="text-center shimmer-text">
-                <div className="text-5xl lg:text-8xl font-bold mb-2 text-[#F9D16F]">
+                <div className="text-5xl lg:text-6xl xll:text-7xl 2xl:text-8xl  font-bold mb-2 text-[#F9D16F]">
                   {counts.classes}+
                 </div>
                 <div className="uppercase text-sm md:text-base font-semibold text-[#F9D16F]">
