@@ -1124,7 +1124,7 @@ const TicketAdminTable = ({ currentUser }) => {
 
         {isProcessingModalOpen && processingTicket && (
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-            <div className="bg-white w-[80%] max-h-[80vh] overflow-y-auto rounded-lg p-6 flex flex-col gap-4 relative">
+            <div className="bg-white w-[80%] max-h-[100vh] overflow-y-auto rounded-lg p-6 flex flex-col gap-4 relative">
               <h3 className="text-2xl font-bold text-[#002147] mb-2 text-start">
                 {processingTicket.ticketCode}: {processingTicket.title}
               </h3>
@@ -1575,7 +1575,7 @@ const TicketAdminTable = ({ currentUser }) => {
               <div className="flex items-end justify-end gap-4">
                 {/* Nút Hủy */}
                 <button
-                  className="px-4 py-2 bg-[#EBEBEB] text-gray-500 rounded-lg"
+                  className="px-4 py-2 bg-[#EBEBEB] text-gray-500 rounded-lg font-semibold"
                   onClick={handleCancelUpdate}
                 >
                   Hủy bỏ
@@ -1583,7 +1583,7 @@ const TicketAdminTable = ({ currentUser }) => {
 
                 {/* Nút Xác nhận */}
                 <button
-                  className="px-4 py-2 bg-[#FF5733] text-white rounded-lg"
+                  className="px-4 py-2 bg-[#FF5733] text-white rounded-lg font-semibold"
                   onClick={handleUpdateStatus}
                 >
                   Cập nhật

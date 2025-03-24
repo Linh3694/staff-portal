@@ -123,7 +123,6 @@ exports.createTicket = async (req, res) => {
   }
 };
 
-// b) Lấy danh sách ticket
 // a) Lấy danh sách ticket
 exports.getTickets = async (req, res) => {
     console.log("🔵 Kiểm tra req.user:", req.user); // ✅ Kiểm tra user có tồn tại không
@@ -132,10 +131,7 @@ exports.getTickets = async (req, res) => {
   const userId = req.user._id; // Lấy ID user từ token
   try {
     let query = {};
-    console.log("🔵 User đang truy vấn tickets:", req.user._id);
-    console.log("🔵 Query tìm tickets:", JSON.stringify(query, null, 2));
     if (req.user.role === "superadmin") {
-      // Superadmin được xem tất cả ticket
       query = {};
     } else {
       // Các role khác: xem ticket mà họ tạo ra hoặc được gán cho họ
@@ -143,7 +139,6 @@ exports.getTickets = async (req, res) => {
     }
 
     if (status === "assignedOrProcessing") {
-      // Tìm ticket có status IN ["Assigned","Processing"]
       query.status = { $in: ["Assigned", "Processing"] };
     } else if (status) {
       // Các trường hợp khác
@@ -154,14 +149,6 @@ exports.getTickets = async (req, res) => {
     const tickets = await Ticket.find(query)
       .sort({ createdAt: -1 }) // Sắp xếp giảm dần theo createdAt
       .populate("creator assignedTo");
-    console.log(
-      "🔵 Danh sách tickets trả về:",
-      tickets.map((t) => ({
-        ticketCode: t.ticketCode,
-        assignedTo: t.assignedTo?._id,
-        assignedToName: t.assignedTo?.fullname,
-      }))
-    );
     res.status(200).json({ success: true, tickets });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

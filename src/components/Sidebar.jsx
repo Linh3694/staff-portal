@@ -8,7 +8,6 @@ import {
   FiUsers,
   FiHome,
   FiFolder,
-  FiBook,
 } from "react-icons/fi";
 import {
   Accordion,
@@ -22,7 +21,6 @@ import {
   FaChevronRight,
   FaArrowRightFromBracket,
   FaCircleUser,
-  FaMedal,
   FaBus,
 } from "react-icons/fa6";
 import { FaUserGraduate, FaUserTie } from "react-icons/fa";
@@ -247,7 +245,7 @@ const Sidebar = ({
       </div>
 
       {/* MENU */}
-      <nav className="flex-1 px-2 py-2 space-y-2">
+      <nav className="max-h-[75%] overflow-y-auto flex-1 px-2 py-2 space-y-2">
         <Accordion type="single" collapsible>
           {menuItems.map((menu, index) => {
             if (menu.allowedRoles && !menu.allowedRoles.includes(role))
@@ -345,7 +343,7 @@ const Sidebar = ({
           })}
         </Accordion>
       </nav>
-      <div className="absolute bottom-6 left-6">
+      <div className="absolute bottom-4 left-4">
         {!effectiveCollapsed ? (
           <div className="relative">
             <button
