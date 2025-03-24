@@ -708,6 +708,10 @@ function HallOfFameAdminPage() {
       const filteredRecords = res.data
         .filter((record) => {
           return (
+            // Thêm điều kiện awardCategory
+            record.awardCategory &&
+            record.awardCategory._id === editingCategory &&
+            // Rồi mới xét tới subAward
             record.subAward.label === subAward.label &&
             record.subAward.type === subAward.type &&
             String(record.subAward.schoolYear) ===
@@ -954,7 +958,7 @@ function HallOfFameAdminPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-[#002855] hover:bg-[#0d1d2f] text-white text-sm font-semibold px-3 py-1 rounded-lg"
+                className="bg-[#002855] hover:bg-[#0d1d2f] text-white text-sm font-bold px-3 py-2 rounded-xl"
               >
                 Tạo mới
               </button>
@@ -1047,18 +1051,18 @@ function HallOfFameAdminPage() {
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <div className="text-sm font-semibold text-navy-700 space-x-2 text-end">
                       <button
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded-lg"
+                        className="bg-[#EAA300] hover:bg-yellow-600 text-white font-semibold px-3 py-1 rounded-lg"
                         onClick={() => {
                           handleCategoryEdit(cat);
                         }}
                       >
-                        Edit
+                        Cập nhật
                       </button>
                       <button
-                        className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-lg"
+                        className="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded-lg"
                         onClick={() => handleCategoryDelete(cat._id)}
                       >
-                        Delete
+                        Xoá
                       </button>
                     </div>
                   </td>
@@ -1125,16 +1129,16 @@ function HallOfFameAdminPage() {
                   </td>
                   <td className="border px-2 py-1 space-x-2">
                     <button
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded"
+                      className="bg-[#EAA300] text-white px-2 py-1 rounded"
                       onClick={() => handleRecordEditOutside(r)}
                     >
-                      Edit
+                      Cập nhật
                     </button>
                     <button
-                      className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
+                      className="bg-[#DC0909]  text-white px-2 py-1 rounded"
                       onClick={() => handleRecordDelete(r._id)}
                     >
-                      Delete
+                      Xoá
                     </button>
                   </td>
                 </tr>
@@ -1166,27 +1170,27 @@ function HallOfFameAdminPage() {
                   : "Tạo mới Loại Vinh Danh"}
               </h2>
               <div className="relative group mb-2">
-              <div>
-                {categoryFormData.coverImage ? (
-                  <img
-                    src={`${BASE_URL}/${categoryFormData.coverImage}`}
-                    alt="Cover"
-                    className="w-full h-48 rounded-2xl object-cover cursor-pointer"
-                    onClick={() =>
-                      document.getElementById("coverImageUpload").click()
-                    }
-                  />
-                ) : (
-                  <div
-                    className="w-full h-48 rounded-2xl bg-gray-100 flex items-center justify-center cursor-pointer border border-dashed border-gray-300 hover:bg-gray-200 transition"
-                    onClick={() =>
-                      document.getElementById("coverImageUpload").click()
-                    }
-                  >
-                    <span className="text-gray-500">Chọn ảnh bìa</span>
-                  </div>
-                )}
-              </div>
+                <div>
+                  {categoryFormData.coverImage ? (
+                    <img
+                      src={`${BASE_URL}/${categoryFormData.coverImage}`}
+                      alt="Cover"
+                      className="w-full h-48 rounded-2xl object-cover cursor-pointer"
+                      onClick={() =>
+                        document.getElementById("coverImageUpload").click()
+                      }
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-48 rounded-2xl bg-gray-100 flex items-center justify-center cursor-pointer border border-dashed border-gray-300 hover:bg-gray-200 transition"
+                      onClick={() =>
+                        document.getElementById("coverImageUpload").click()
+                      }
+                    >
+                      <span className="text-gray-500">Chọn ảnh bìa</span>
+                    </div>
+                  )}
+                </div>
                 <input
                   type="file"
                   id="coverImageUpload"
