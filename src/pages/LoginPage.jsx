@@ -63,47 +63,44 @@ const LoginPage = () => {
 
   return (
     <div
-      className="min-h-screen w-full overflow-hidden bg-[#EDEDED]"
+      className="min-h-screen w-full flex overflow-hidden"
       style={{
-        backgroundImage: 'url("/login/building.svg")',
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
+        background: "linear-gradient(to bottom, #F1F2E9 0%, #F5F1CD 100%)",
       }}
     >
-      <div className="w-[850px] h-screen flex flex-col items-center justify-center">
-        <div className="w-full p-8 flex flex-col items-center">
-          <h2 className="text-4xl font-bold mb-10 text-center">
-            <ReactTyped
-              strings={["Đăng nhập để tiếp tục nhé..."]}
-              typeSpeed={50}
-              backSpeed={30}
-              showCursor={true}
-              cursorChar="|"
-            />
-          </h2>
-
-          <div className="w-1/2 mb-4">
+      {/* Cột bên trái: Form đăng nhập */}
+      <div className="w-1/2 flex flex-col justify-center items-center relative">
+        <h2 className="text-4xl font-bold mb-10 text-center">
+          <ReactTyped
+            strings={["Đăng nhập để tiếp tục nhé..."]}
+            typeSpeed={50}
+            backSpeed={30}
+            showCursor={true}
+            cursorChar="|"
+          />
+        </h2>
+        <div className="w-4/5 max-w-[450px] mx-auto">
+          <div className="mb-4">
             <label className="text-left block font-medium mb-2 text-[#757575]">
               Tên đăng nhập
             </label>
             <input
               type="text"
               placeholder="email@wellspring.edu.vn"
-              className="w-full h-10 border-none rounded-full p-2 text-sm px-4"
+              className="w-full h-10 border-none rounded-full p-2 text-sm px-4 shadow"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
-          <div className="w-1/2 mb-6">
+          <div className="mb-6">
             <label className="text-left block font-medium mb-2 text-[#757575]">
               Mật khẩu
             </label>
             <input
               type="password"
               placeholder="**********"
-              className="w-full h-10 border-none rounded-full p-2 text-sm px-4"
+              className="w-full h-10 border-none rounded-full p-2 text-sm px-4 shadow"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -111,14 +108,14 @@ const LoginPage = () => {
 
           <button
             onClick={handleLogin}
-            className="w-1/2 bg-[#002855] text-white py-3 font-bold rounded-full mb-4 hover:bg-[#1a3a5e] transition-all"
+            className="w-full bg-[#002855] text-white py-3 font-bold rounded-full mb-4 hover:bg-[#1a3a5e] transition-all"
           >
             Đăng nhập
           </button>
 
           {error && <div className="text-sm mb-4 text-red-500">{error}</div>}
 
-          <div className="w-1/2 flex flex-row justify-between gap-4">
+          <div className="flex flex-row justify-between gap-4">
             <button
               onClick={handleGoogleLogin}
               className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded-full hover:bg-[#002855] hover:text-white font-semibold transition-all flex items-center justify-center gap-2"
@@ -140,11 +137,32 @@ const LoginPage = () => {
           </div>
         </div>
       </div>
-
-      <footer className="absolute bottom-32 left-8 md:bottom-7 md:left-20 md:text-sm text-[10px] text-gray-600 items-center ">
+      <footer className="absolute bottom-7 left-64 text-xs text-gray-600">
         © Copyright 2025 Wellspring International Bilingual Schools. All Rights
         Reserved.
       </footer>
+
+      {/* Cột bên phải: Hình 3 thiết bị */}
+      <div className="w-1/2 flex items-center justify-center relative">
+        {/* Laptop */}
+        <img
+          src="/login/laptop.png"
+          alt="Laptop"
+          className="w-[80%] -left-32 relative z-10 fadeDown"
+        />
+        {/* Phone */}
+        <img
+          src="/login/phone.svg"
+          alt="Phone"
+          className="w-[25%] absolute -left-28 top-[39%] z-20 fadeLeft"
+        />
+        {/* Tablet */}
+        <img
+          src="/login/tablet.png"
+          alt="Tablet"
+          className="w-[45%] absolute left-[40%] top-[45%] z-20 fadeRight"
+        />
+      </div>
     </div>
   );
 };
