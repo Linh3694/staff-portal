@@ -34,7 +34,6 @@ function RecruitmentAdmin({ currentUser }) {
         if (Array.isArray(data)) {
           setFileList(data);
         }
-        console.log(data);
       })
       .catch((err) => {
         toast.error("Có lỗi khi tải danh sách CV!");

@@ -8,8 +8,7 @@ const classSchema = new mongoose.Schema(
       ref: "SchoolYear",
       required: true
     },
-    homeroomTeacher: { type: String },
-  },
+homeroomTeacher: { type: mongoose.Schema.Types.ObjectId, ref: "User" },  },
   { timestamps: true }
 );
 

@@ -17,8 +17,6 @@ function MicrosoftAuthSuccess() {
 
     try {
       const decoded = jwtDecode(token);
-      console.log("Payload của token:", decoded);
-
       const userRole = decoded.role;
       if (!userRole) throw new Error("Token không chứa role.");
 

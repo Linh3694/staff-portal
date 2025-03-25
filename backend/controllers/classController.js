@@ -13,7 +13,9 @@ exports.createClass = async (req, res) => {
 
 exports.getAllClasses = async (req, res) => {
   try {
-    const classes = await ClassModel.find().populate("schoolYear");
+    const classes = await ClassModel.find()
+    .populate("homeroomTeacher", "fullname email avatarUrl")
+    .populate("schoolYear");
     return res.json(classes);
   } catch (err) {
     return res.status(400).json({ error: err.message });
@@ -59,11 +61,6 @@ exports.deleteClass = async (req, res) => {
   }
 };
 
-/**
- * Bulk upload Classes qua file Excel/CSV
- * File gồm các cột ví dụ: "ClassName", "SchoolYearCode", "HomeroomTeacher"
- */
-// controllers/classController.js
 exports.bulkUploadClasses = async (req, res) => {
   try {
     if (!req.file) {
@@ -108,10 +105,6 @@ exports.bulkUploadClasses = async (req, res) => {
   }
 };
 
-/** 
- * Ví dụ dummy function để tìm schoolYear theo code 
- * -> trả về _id
- */
 const SchoolYear = require("../models/SchoolYear"); // import model
 async function findSchoolYearIdByCode(code) {
   if (!code) return null;

@@ -10,7 +10,9 @@ import ProjectorTable from "../components/inventory/ProjectorTable";
 import ToolTable from "../components/inventory/ToolTable";
 import Ticket from "../components/ticket/Ticket";
 import TicketAdminTable from "../components/ticket/TicketAdminTable";
-import StudentTable from "../components/management/StudentTable";
+import StudentClass from "../components/management/student/studentClass";
+import StudentSchoolYear from "../components/management/student/studentSchoolYear";
+import StudentStudent from "../components/management/student/studentStudent";
 import UserTable from "../components/management/UserTable";
 import RoomTable from "../components/management/RoomTable";
 import Profile from "../components/profile/Profile";
@@ -85,12 +87,12 @@ const Dashboard = () => {
       "Danh sách xe",
       "Danh sách lịch trình",
     ],
+    "Quản lý học sinh": ["Quản lý Năm học", "Quản lý Lớp", "Quản lý Học Sinh"],
     // Nếu có mục nào khác cần tab, bạn có thể thêm ở đây.
   };
 
   useEffect(() => {
     document.title = "360 Wisers | Hà Nội";
-    // Cleanup function để reset title khi unmount
     return () => {
       document.title = "Wellspring";
     };
@@ -167,18 +169,25 @@ const Dashboard = () => {
         if (activeTab === "Thiết bị trình chiếu") return <ProjectorTable />;
         if (activeTab === "Khác") return <ToolTable />;
         break;
+
       case "Quản lý Tickets":
         if (activeTab === "Ticket lists")
           return <TicketAdminTable currentUser={currentUser} />;
         break;
+
       case "Quản lý người dùng":
         return (
           <UserTable
           // Truyền props cần thiết (ví dụ: danh sách người dùng, hàm sync,…)
           />
         );
+
       case "Quản lý học sinh":
-        return <StudentTable />;
+        if (activeTab === "Quản lý Năm học") return <StudentSchoolYear />;
+        if (activeTab === "Quản lý Lớp") return <StudentClass />;
+        if (activeTab === "Quản lý Học Sinh") return <StudentStudent />;
+        break;
+
       case "Quản lý phòng học":
         return (
           <RoomTable
