@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { API_URL } from "../../../config";
 import { toast } from "react-toastify";
+import { FiEdit, FiTrash2 } from "react-icons/fi";
 
 const StudentStudent = () => {
   const [students, setStudents] = useState([]);
@@ -23,7 +24,9 @@ const StudentStudent = () => {
   const [classes, setClasses] = useState([]);
   const [newEnrollment, setNewEnrollment] = useState({
     student: "",
+    studentInput: "",
     class: "",
+    classInput: "",
     schoolYear: "",
     startDate: "",
     endDate: "",
@@ -38,6 +41,7 @@ const StudentStudent = () => {
   const indexOfLastRecord = currentPage * pageSize;
   const indexOfFirstRecord = indexOfLastRecord - pageSize;
   const currentStudents = students.slice(indexOfFirstRecord, indexOfLastRecord);
+  const [schoolYears, setSchoolYears] = useState([]);
 
   // 3. Thêm hàm fetchClasses (tương tự fetchStudents)
   const fetchClasses = async () => {
@@ -47,6 +51,16 @@ const StudentStudent = () => {
       setClasses(data);
     } catch (error) {
       toast.error("Lỗi khi tải dữ liệu lớp!");
+    }
+  };
+
+  const fetchSchoolYears = async () => {
+    try {
+      const res = await fetch(`${API_URL}/schoolYears`);
+      const data = await res.json();
+      setSchoolYears(data);
+    } catch (error) {
+      toast.error("Lỗi khi tải dữ liệu năm học!");
     }
   };
 
@@ -65,6 +79,7 @@ const StudentStudent = () => {
   useEffect(() => {
     fetchStudents();
     fetchClasses();
+    fetchSchoolYears();
   }, []);
 
   const handleCreate = async () => {
@@ -267,42 +282,75 @@ const StudentStudent = () => {
       {loading ? (
         <div>Đang tải dữ liệu...</div>
       ) : (
-        <table className="w-full text-sm">
+        <table className="w-full">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 text-left">#</th>
-              <th className="p-2 text-left">Mã</th>
-              <th className="p-2 text-left">Họ tên</th>
-              <th className="p-2 text-left">Ngày sinh</th>
-              <th className="p-2 text-left">Email</th>
-              <th className="p-2 text-left">Hành động</th>
+            <tr className="!border-px !border-gray-400">
+              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                <p className="text-sm font-bold text-gray-500">STT</p>
+              </th>
+              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                <p className="text-sm font-bold text-gray-500">MÃ HỌC SINH</p>
+              </th>
+              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                <p className="text-sm font-bold text-gray-500">HỌ VÀ TÊN</p>
+              </th>
+              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                <p className="text-sm font-bold text-gray-500">NGÀY SINH</p>
+              </th>
+              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                <p className="text-sm font-bold text-gray-500">EMAIL</p>
+              </th>
+              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                <p className="text-sm font-bold text-gray-500">HÀNH ĐỘNG</p>
+              </th>
             </tr>
           </thead>
           <tbody>
             {currentStudents.map((student, idx) => (
-              <tr key={student._id} className="border-b">
-                <td className="p-2">{idx + 1}</td>
-                <td className="p-2 font-bold">{student.code}</td>
-                <td className="p-2">{student.fullName}</td>
-                <td className="p-2">
-                  {student.dateOfBirth
-                    ? student.dateOfBirth.substring(0, 10)
-                    : ""}
+              <tr key={student._id} className="border-b border-gray-200">
+                <td className="max-w-[150px] border-white/0 py-3 pr-4">
+                  <p className="text-sm font-bold text-navy-700"> {idx + 1}</p>
                 </td>
-                <td className="p-2">{student.email}</td>
-                <td className="p-2">
-                  <button
-                    onClick={() => openEditModal(student)}
-                    className="mr-2 px-3 py-1 bg-yellow-400 text-white rounded"
-                  >
-                    Sửa
-                  </button>
-                  <button
-                    onClick={() => handleDelete(student._id)}
-                    className="px-3 py-1 bg-red-500 text-white rounded"
-                  >
-                    Xoá
-                  </button>
+                <td className="max-w-[150px] border-white/0 py-3 pr-4">
+                  <p className="text-sm font-bold text-navy-700">
+                    {" "}
+                    {student.code}
+                  </p>
+                </td>
+                <td className="max-w-[150px] border-white/0 py-3 pr-4">
+                  <p className="text-sm font-bold text-navy-700">
+                    {" "}
+                    {student.fullName}
+                  </p>
+                </td>
+                <td className="max-w-[150px] border-white/0 py-3 pr-4">
+                  <p className="text-sm font-bold text-navy-700">
+                    {" "}
+                    {student.dateOfBirth
+                      ? student.dateOfBirth.substring(0, 10)
+                      : ""}
+                  </p>
+                </td>
+                <td className="max-w-[150px] border-white/0 py-3 pr-4">
+                  <p className="text-sm font-bold text-navy-700">
+                    {student.email}
+                  </p>
+                </td>
+                <td className="max-w-[150px] border-white/0 py-3 pr-4">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => openEditModal(student)}
+                      className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                    >
+                      <FiEdit size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(student._id)}
+                      className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -349,55 +397,59 @@ const StudentStudent = () => {
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded w-96">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-[20px] w-96">
             <h2 className="text-xl font-bold mb-4">Tạo Học sinh mới</h2>
+            <label className="font-semibold ml-2 text-base">Mã học sinh</label>
             <input
               type="text"
-              className="border p-2 rounded mb-2 w-full"
-              placeholder="Mã học sinh"
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              placeholder="Nhập mã học sinh..."
               value={formData.code}
               onChange={(e) =>
                 setFormData({ ...formData, code: e.target.value })
               }
             />
+            <label className="font-semibold ml-2 text-base">Họ và tên</label>
             <input
               type="text"
-              className="border p-2 rounded mb-2 w-full"
-              placeholder="Họ tên"
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              placeholder="Nhập tên học sinh..."
               value={formData.fullName}
               onChange={(e) =>
                 setFormData({ ...formData, fullName: e.target.value })
               }
             />
+            <label className="font-semibold ml-2 text-base">Ngày sinh</label>
             <input
-              type="date"
-              className="border p-2 rounded mb-2 w-full"
-              placeholder="Ngày sinh"
+              type="text"
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              placeholder="Nhập ngày sinh..."
               value={formData.dateOfBirth}
               onChange={(e) =>
                 setFormData({ ...formData, dateOfBirth: e.target.value })
               }
             />
+            <label className="font-semibold ml-2 text-base">Email</label>
             <input
-              type="email"
-              className="border p-2 rounded mb-2 w-full"
-              placeholder="Email"
+              type="text"
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              placeholder="Nhập email..."
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
             />
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2 mt-2">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="mr-2 px-4 py-2 bg-gray-300 rounded"
+                className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#ff6b3a] transform transition-transform duration-300 hover:scale-105 "
               >
                 Hủy
               </button>
               <button
                 onClick={handleCreate}
-                className="px-4 py-2 bg-green-500 text-white rounded"
+                className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
               >
                 Tạo
               </button>
@@ -409,38 +461,41 @@ const StudentStudent = () => {
       {showEditModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded w-96">
-            <h2 className="text-xl font-bold mb-4">Chỉnh sửa Học sinh</h2>
+            <label className="font-semibold ml-2 text-base">Mã học sinh</label>
             <input
               type="text"
-              className="border p-2 rounded mb-2 w-full"
-              placeholder="Mã học sinh"
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              placeholder="Nhập mã học sinh..."
               value={formData.code}
               onChange={(e) =>
                 setFormData({ ...formData, code: e.target.value })
               }
             />
+            <label className="font-semibold ml-2 text-base">Họ và tên</label>
             <input
               type="text"
-              className="border p-2 rounded mb-2 w-full"
-              placeholder="Họ tên"
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              placeholder="Nhập tên học sinh..."
               value={formData.fullName}
               onChange={(e) =>
                 setFormData({ ...formData, fullName: e.target.value })
               }
             />
+            <label className="font-semibold ml-2 text-base">Ngày sinh</label>
             <input
-              type="date"
-              className="border p-2 rounded mb-2 w-full"
-              placeholder="Ngày sinh"
+              type="text"
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              placeholder="Nhập ngày sinh..."
               value={formData.dateOfBirth}
               onChange={(e) =>
                 setFormData({ ...formData, dateOfBirth: e.target.value })
               }
             />
+            <label className="font-semibold ml-2 text-base">Email</label>
             <input
-              type="email"
-              className="border p-2 rounded mb-2 w-full"
-              placeholder="Email"
+              type="text"
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              placeholder="Nhập email..."
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
@@ -449,13 +504,13 @@ const StudentStudent = () => {
             <div className="flex justify-end">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="mr-2 px-4 py-2 bg-gray-300 rounded"
+                className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#ff6b3a] transform transition-transform duration-300 hover:scale-105 "
               >
                 Hủy
               </button>
               <button
                 onClick={handleUpdate}
-                className="px-4 py-2 bg-green-500 text-white rounded"
+                className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
               >
                 Lưu
               </button>
@@ -465,106 +520,131 @@ const StudentStudent = () => {
       )}
       {showEnrollmentModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="p-4 border rounded-md mb-4 bg-gray-50">
-            <h3 className="font-semibold mb-2">Enrollment</h3>
-            <div className="flex gap-4 mb-2">
-              <div>
-                <label className="block text-sm font-bold">Học sinh</label>
-                <select
-                  className="border p-2 rounded"
-                  value={newEnrollment.student}
-                  onChange={(e) =>
-                    setNewEnrollment({
-                      ...newEnrollment,
-                      student: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">--Chọn học sinh--</option>
-                  {students.map((s) => (
-                    <option key={s._id} value={s._id}>
+          <div className="bg-white p-6 rounded-[20px] w-96">
+            <h3 className="font-semibold mb-2">Gán học sinh vào lớp</h3>
+            <label className="block text-sm font-bold">Học sinh</label>
+            <input
+              list="studentSuggestions"
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              placeholder="Nhập mã học sinh..."
+              value={newEnrollment.studentInput || ""}
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                setNewEnrollment((prev) => ({
+                  ...prev,
+                  studentInput: inputValue,
+                }));
+                // Tìm học sinh có mã khớp để lưu lại _id
+                const found = students.find((s) => s.code === inputValue);
+                if (found) {
+                  setNewEnrollment((prev) => ({ ...prev, student: found._id }));
+                } else {
+                  setNewEnrollment((prev) => ({ ...prev, student: "" }));
+                }
+              }}
+            />
+            <datalist id="studentSuggestions">
+              {newEnrollment.studentInput &&
+                students
+                  .filter(
+                    (s) =>
+                      s.code
+                        .toLowerCase()
+                        .includes(newEnrollment.studentInput.toLowerCase()) ||
+                      s.fullName
+                        .toLowerCase()
+                        .includes(newEnrollment.studentInput.toLowerCase())
+                  )
+                  .slice(0, 5)
+                  .map((s) => (
+                    <option key={s._id} value={s.code}>
                       {s.fullName} ({s.code})
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-bold">Lớp</label>
-                <select
-                  className="border p-2 rounded"
-                  value={newEnrollment.class}
-                  onChange={(e) =>
-                    setNewEnrollment({
-                      ...newEnrollment,
-                      class: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">--Chọn lớp--</option>
-                  {classes.map((c) => (
-                    <option key={c._id} value={c._id}>
+            </datalist>
+
+            <label className="block text-sm font-bold">Lớp</label>
+            <input
+              list="classSuggestions"
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              placeholder="Nhập tên lớp..."
+              value={newEnrollment.classInput || ""}
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                setNewEnrollment((prev) => ({
+                  ...prev,
+                  classInput: inputValue,
+                }));
+                const found = classes.find((c) => c.className === inputValue);
+                if (found) {
+                  setNewEnrollment((prev) => ({ ...prev, class: found._id }));
+                } else {
+                  setNewEnrollment((prev) => ({ ...prev, class: "" }));
+                }
+              }}
+            />
+            <datalist id="classSuggestions">
+              {newEnrollment.classInput &&
+                classes
+                  .filter((c) =>
+                    c.className
+                      .toLowerCase()
+                      .includes(newEnrollment.classInput.toLowerCase())
+                  )
+                  .slice(0, 5)
+                  .map((c) => (
+                    <option key={c._id} value={c.className}>
                       {c.className}
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-bold">Năm học</label>
-                <select
-                  className="border p-2 rounded"
-                  value={newEnrollment.schoolYear}
-                  onChange={(e) =>
-                    setNewEnrollment({
-                      ...newEnrollment,
-                      schoolYear: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">--Chọn năm học--</option>
-                  {/* {schoolYears.map((sy) => (
-                  <option key={sy._id} value={sy._id}>
-                    {sy.code}
-                  </option>
-                ))} */}
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-4 mb-2">
-              <div>
-                <label className="block text-sm font-bold">Ngày bắt đầu</label>
-                <input
-                  type="date"
-                  className="border p-2 rounded"
-                  value={newEnrollment.startDate}
-                  onChange={(e) =>
-                    setNewEnrollment({
-                      ...newEnrollment,
-                      startDate: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold">Ngày kết thúc</label>
-                <input
-                  type="date"
-                  className="border p-2 rounded"
-                  value={newEnrollment.endDate}
-                  onChange={(e) =>
-                    setNewEnrollment({
-                      ...newEnrollment,
-                      endDate: e.target.value,
-                    })
-                  }
-                />
-              </div>
-            </div>
-            <button
-              onClick={createEnrollment}
-              className="mt-2 px-4 py-2 bg-green-500 text-white rounded"
+            </datalist>
+
+            <label className="block text-sm font-bold">Năm học</label>
+            <select
+              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+              value={newEnrollment.schoolYear}
+              onChange={(e) =>
+                setNewEnrollment({
+                  ...newEnrollment,
+                  schoolYear: e.target.value,
+                })
+              }
             >
-              Thêm Enrollment
-            </button>
+              <option value="">--Chọn năm học--</option>
+              {schoolYears.map((sy) => (
+                <option key={sy._id} value={sy._id}>
+                  {sy.code}
+                </option>
+              ))}
+            </select>
+
+            <div className="flex justify-end gap-2 mt-2">
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    setShowEnrollmentModal(false);
+                    setNewEnrollment({
+                      student: "",
+                      studentInput: "",
+                      class: "",
+                      classInput: "",
+                      schoolYear: "",
+                      startDate: "",
+                      endDate: "",
+                    });
+                  }}
+                  className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#ff6b3a] transform transition-transform duration-300 hover:scale-105"
+                >
+                  Huỷ
+                </button>
+                <button
+                  onClick={createEnrollment}
+                  className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
+                >
+                  Thêm Enrollment
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
