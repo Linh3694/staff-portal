@@ -189,7 +189,7 @@ const StudentSchoolYear = () => {
             />
             <label className="font-semibold ml-2 text-base">Ngày bắt đầu</label>
             <input
-              type="text"
+              type="date"
               className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
               placeholder="01/07/2024"
               value={formData.startDate}
@@ -201,7 +201,7 @@ const StudentSchoolYear = () => {
               Ngày kết thúc
             </label>
             <input
-              type="text"
+              type="date"
               className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
               placeholder="30/06/2025"
               value={formData.endDate}
