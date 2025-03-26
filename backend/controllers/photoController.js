@@ -57,7 +57,6 @@ exports.uploadStudentPhoto = async (req, res) => {
       student = foundStudent._id;
     }
 
-    // Nếu client không truyền `schoolYear`, tự động lấy năm học mới nhất
     if (!schoolYear) {
       schoolYear = await getLatestSchoolYear(student);
       if (!schoolYear) {
@@ -68,7 +67,6 @@ exports.uploadStudentPhoto = async (req, res) => {
       }
     }
 
-    // Chuyển ảnh thành .webp
     const fileNameWebp = `photo-${Date.now()}.webp`;
     const outPath = `uploads/Students/${fileNameWebp}`;
 
@@ -147,6 +145,7 @@ exports.bulkUploadPhotosFromZip = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "No ZIP file uploaded" });
     }
+
     const zipPath = req.file.path;
     const zip = new AdmZip(zipPath);
     const zipEntries = zip.getEntries();
@@ -155,66 +154,56 @@ exports.bulkUploadPhotosFromZip = async (req, res) => {
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
-
-    // 1) Lấy ngày hiện tại
     const now = new Date();
-
-    // 2) Tìm SchoolYear tương ứng với ngày hiện tại
     let defaultSY = await SchoolYear.findOne({
       startDate: { $lte: now },
       endDate: { $gte: now },
     }).sort({ startDate: -1 });
-    console.log(defaultSY)
-    // 3) Nếu không tìm thấy => fallback năm học mới nhất
     if (!defaultSY) {
       defaultSY = await SchoolYear.findOne().sort({ startDate: -1 });
     }
-
-    // Bung file từ ZIP
+    let totalEntries = 0;
+    let skippedDirs = 0;
+    let skippedSysFiles = 0;
+    let skippedNonImages = 0;
+    let noStudentFound = 0;
+    let createdPhotos = 0;
+    let updatedPhotos = 0;
     for (const entry of zipEntries) {
+      totalEntries++;
+
       const fileName = entry.entryName;
-    
-      // 1) Bỏ qua thư mục (entry.isDirectory = true)
       if (entry.isDirectory) {
+        skippedDirs++;
         continue;
       }
-    
-      // 2) Bỏ qua file .DS_Store, __MACOSX,... 
-      // (nếu fileName chứa "__MACOSX", hoặc kết thúc là ".DS_Store"... thì skip)
       if (fileName.includes("__MACOSX") || fileName.endsWith(".DS_Store")) {
+        skippedSysFiles++;
         continue;
       }
-    
-      // 3) Bỏ qua file không có đuôi .jpg/.jpeg/.png (tùy bạn)
       const lower = fileName.toLowerCase();
-      if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg") && !lower.endsWith(".png")) {
+      if (
+        !lower.endsWith(".jpg") &&
+        !lower.endsWith(".jpeg") &&
+        !lower.endsWith(".png")
+      ) {
+        skippedNonImages++;
         continue;
       }
-    
-      // Nếu qua được các chốt chặn trên => đây là file ảnh hợp lệ
-      // => Tiến hành parse baseName
       const splitted = fileName.split("/");
-      // Lấy "WS12010001.jpg" phần cuối
-      const justFile = splitted[splitted.length - 1]; 
-      const baseName = justFile.split(".")[0]; 
-      console.log(fileName, "=> baseName:", baseName);
-      // Tìm student theo studentCode = baseName
+      const justFile = splitted[splitted.length - 1];
+      const baseName = justFile.split(".")[0];
+
       const student = await Student.findOne({ studentCode: baseName });
-
-      // Nếu không thấy student => tuỳ logic (skip, báo lỗi, ...)
       if (!student) {
-        continue; 
+        noStudentFound++;
+        continue;
       }
-
-      // Bung ảnh ra memory
       const fileBuffer = entry.getData();
-
-      // Convert sang .webp
       const outName = `${baseName}-${Date.now()}.webp`;
       const outPath = `${outputDir}${outName}`;
       await sharp(fileBuffer).webp({ quality: 80 }).toFile(outPath);
 
-      // Tạo/ update Photo
       let photo = await Photo.findOne({
         student: student._id,
         schoolYear: defaultSY._id,
@@ -222,32 +211,45 @@ exports.bulkUploadPhotosFromZip = async (req, res) => {
       if (!photo) {
         photo = new Photo({
           student: student._id,
-          class: null, // Ở bulk này, ta chỉ đang xử lý ảnh HS
+          class: null, 
           schoolYear: defaultSY._id,
           photoUrl: outPath,
         });
-      } else {
-        // Update => ví dụ xoá file cũ nếu muốn
-        photo.photoUrl = outPath;
+        await photo.save();
+        createdPhotos++;
+     } else {
+        if (fs.existsSync(photo.photoUrl)) {
+        fs.unlinkSync(photo.photoUrl);
       }
-      await photo.save();
+        photo.photoUrl = outPath;
+        await photo.save();
+        updatedPhotos++;
+      }
     }
 
-    return res.json({ message: "Bulk upload từ ZIP thành công!" });
+    // Kết thúc, trả về thống kê cho Frontend
+    return res.json({
+      message: "Bulk upload từ ZIP thành công!",
+      totalEntries,
+      skippedDirs,
+      skippedSysFiles,
+      skippedNonImages,
+      noStudentFound,
+      createdPhotos,
+      updatedPhotos,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: error.message });
   } finally {
+    // Xoá file ZIP sau khi xử lý xong
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
   }
 };
 
-/**
- * (Tuỳ chọn) Hàm upload ảnh cho 1 LỚP (theo năm học).
- * Nếu muốn "lưu ảnh của lớp học" thì gọi endpoint này.
- */
+
 exports.uploadClassPhoto = async (req, res) => {
   try {
     if (!req.file) {
@@ -283,7 +285,6 @@ exports.uploadClassPhoto = async (req, res) => {
       }
     }
 
-    // Convert ảnh -> .webp
     const uploadedPath = req.file.path;
     const fileNameWebp = `class-photo-${Date.now()}.webp`;
     const outPath = `uploads/Students/${fileNameWebp}`;

@@ -26,7 +26,7 @@ exports.createStudent = async (req, res) => {
 /** Lấy tất cả student */
 exports.getAllStudents = async (req, res) => {
   try {
-    const students = await Student.find().populate("family");
+    const students = await Student.find();
     return res.json(students);
   } catch (err) {
     return res.status(400).json({ error: err.message });
@@ -37,7 +37,7 @@ exports.getAllStudents = async (req, res) => {
 exports.getStudentById = async (req, res) => {
   try {
     const { id } = req.params;
-    const student = await Student.findById(id).populate("family");
+    const student = await Student.findById(id);
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
     }
@@ -83,13 +83,6 @@ exports.deleteStudent = async (req, res) => {
   }
 };
 
-/**
- * Bulk upload students qua Excel:
- * - Cột "ID học sinh" => xác định studentCode
- * - "Họ tên HS" => name
- * - "Ngày sinh(DD/MM/YYYY)" => birthDate => parseExcelDate
- * - "Lớp hiện tại" => Tìm Class => Tự động tạo enrollment
- */
 exports.bulkUploadStudents = async (req, res) => {
   try {
     if (!req.file) {
@@ -114,13 +107,15 @@ exports.bulkUploadStudents = async (req, res) => {
           studentCode,
           name: row["Họ tên HS"] || "Unknown",
           birthDate: parseExcelDate(row["Ngày sinh(DD/MM/YYYY)"]),
-          // ... other fields ...
+          email: row["Email"] || "",
         });
       } else {
         // Update
         student.name = row["Họ tên HS"] || student.name;
         const newBD = parseExcelDate(row["Ngày sinh(DD/MM/YYYY)"]);
         if (newBD) student.birthDate = newBD;
+        const newEmail = row["Email"];
+        if (newEmail) student.email = newEmail;
       }
       await student.save();
       
@@ -131,8 +126,6 @@ exports.bulkUploadStudents = async (req, res) => {
     console.error(error);
     return res.status(500).json({ error: error.message });
   } finally {
-    // Xoá file tạm nếu muốn
-    // fs.unlinkSync(req.file.path);
   }
 };
 

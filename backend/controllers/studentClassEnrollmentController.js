@@ -9,7 +9,6 @@ const SchoolYear = require("../models/SchoolYear");
 
 exports.enrollStudentToClass = async (req, res) => {
   try {
-    // req.body = { student, class, schoolYear, startDate, ... }
     const enrollment = await StudentClassEnrollment.create(req.body);
     return res.status(201).json(enrollment);
   } catch (err) {
@@ -149,7 +148,11 @@ exports.bulkUploadEnrollments = async (req, res) => {
         },
       });
     });
-
+    console.log("Rows:", rows);
+console.log("Student Map:", studentMap);
+console.log("SchoolYear Map:", schoolYearMap);
+console.log("Class Map:", classMap);
+console.log("Bulk Ops:", bulkOps);
     if (bulkOps.length > 0) {
       const result = await StudentClassEnrollment.bulkWrite(bulkOps);
       return res.json({ message: "Bulk upload Enrollments success!", result });
