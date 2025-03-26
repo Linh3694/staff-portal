@@ -4,7 +4,18 @@ const xlsx = require("xlsx"); // hoặc exceljs
 
 exports.createClass = async (req, res) => {
   try {
-    const newClass = await ClassModel.create(req.body);
+    const { className, schoolYear, homeroomTeachers } = req.body;
+    const formattedTeachers = Array.isArray(homeroomTeachers)
+     ? homeroomTeachers
+     : homeroomTeachers
+     ? [homeroomTeachers]
+     : [];
+
+    const newClass = await ClassModel.create({
+     className,
+     schoolYear,
+     homeroomTeachers: formattedTeachers,
+});
     return res.status(201).json(newClass);
   } catch (err) {
     return res.status(400).json({ error: err.message });
@@ -14,7 +25,7 @@ exports.createClass = async (req, res) => {
 exports.getAllClasses = async (req, res) => {
   try {
     const classes = await ClassModel.find()
-    .populate("homeroomTeacher", "fullname email avatarUrl")
+    .populate("homeroomTeachers", "fullname email avatarUrl")
     .populate("schoolYear");
     return res.json(classes);
   } catch (err) {
@@ -38,8 +49,22 @@ exports.getClassById = async (req, res) => {
 exports.updateClass = async (req, res) => {
   try {
     const { id } = req.params;
-    const updated = await ClassModel.findByIdAndUpdate(id, req.body, { new: true });
-    if (!updated) {
+const { className, schoolYear, homeroomTeachers } = req.body;
+const formattedTeachers = Array.isArray(homeroomTeachers)
+  ? homeroomTeachers
+  : homeroomTeachers
+  ? [homeroomTeachers]
+  : [];
+
+const updated = await ClassModel.findByIdAndUpdate(
+  id,
+  {
+    className,
+    schoolYear,
+    homeroomTeachers: formattedTeachers,
+  },
+  { new: true }
+);    if (!updated) {
       return res.status(404).json({ message: "Class not found" });
     }
     return res.json(updated);
@@ -66,7 +91,7 @@ exports.bulkUploadClasses = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "No Excel file uploaded" });
     }
-    
+
     // Đọc file Excel
     const workbook = xlsx.readFile(req.file.path);
     const sheetName = workbook.SheetNames[0];
@@ -76,27 +101,48 @@ exports.bulkUploadClasses = async (req, res) => {
     // Lấy tất cả SchoolYear và tạo map: { code: _id }
     const schoolYears = await SchoolYear.find({});
     const schoolYearMap = {};
-    schoolYears.forEach(sy => {
+    schoolYears.forEach((sy) => {
       if (sy.code) schoolYearMap[sy.code.trim()] = sy._id;
     });
 
-    // Tạo mảng đối tượng lớp cần insert
+    // Lấy tất cả giáo viên và tạo map theo email
+    const users = await require("../models/User").find({});
+    const userMap = {};
+    users.forEach((u) => {
+      if (u.email) userMap[u.email.trim()] = u._id;
+    });
+
     const classesToInsert = [];
-    rows.forEach(row => {
-      if (!row.ClassName || !row.SchoolYearCode) return; // bỏ qua nếu thiếu thông tin bắt buộc
+
+    rows.forEach((row) => {
+      if (!row.ClassName || !row.SchoolYearCode) return;
+
       const schoolYearId = schoolYearMap[row.SchoolYearCode.trim()];
-      if (!schoolYearId) return; // bỏ qua nếu không tìm thấy SchoolYear tương ứng
+      if (!schoolYearId) return;
+
+      let teacherIds = [];
+      if (row.HomeroomTeachers) {
+        teacherIds = row.HomeroomTeachers.split(",")
+          .map((email) => email.trim())
+          .map((email) => userMap[email])
+          .filter(Boolean);
+      }
+
       classesToInsert.push({
         className: row.ClassName.trim(),
         schoolYear: schoolYearId,
-        homeroomTeacher: row.HomeroomTeacher ? row.HomeroomTeacher.trim() : "",
+        homeroomTeachers: teacherIds,
       });
     });
 
     if (classesToInsert.length > 0) {
       await ClassModel.insertMany(classesToInsert);
     }
-    return res.json({ message: "Bulk upload Classes success!", count: classesToInsert.length });
+
+    return res.json({
+      message: "Bulk upload Classes success!",
+      count: classesToInsert.length,
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: err.message });

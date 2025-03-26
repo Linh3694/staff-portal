@@ -10,7 +10,6 @@ const StudentStudent = () => {
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [studentExcelFile, setStudentExcelFile] = useState(null);
-  const [showExcelUploadModal, setShowExcelUploadModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -42,8 +41,6 @@ const StudentStudent = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSchoolYearFilter, setSelectedSchoolYearFilter] = useState("");
   const [enrollments, setEnrollments] = useState([]);
-  const [photoZipUploadProgress, setPhotoZipUploadProgress] = useState(0);
-  const [photoZipUploadResult, setPhotoZipUploadResult] = useState(null);
   const [photoZipUploading, setPhotoZipUploading] = useState(false);
   const [photoZipStats, setPhotoZipStats] = useState(null);
   const [photoZipFile, setPhotoZipFile] = useState(null);
@@ -68,6 +65,7 @@ const StudentStudent = () => {
   const [enrollmentExcelScanResult, setEnrollmentExcelScanResult] =
     useState(null);
   const enrollmentExcelInputRef = useRef(null);
+
   // 3. Thêm hàm fetchClasses (tương tự fetchStudents)
   const fetchClasses = async () => {
     try {
