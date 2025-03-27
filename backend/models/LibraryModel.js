@@ -7,6 +7,19 @@ const DocumentTypeSchema = new mongoose.Schema({
 });
 const DocumentType = mongoose.model("DocumentType", DocumentTypeSchema);
 
+const SeriesNameSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  code: { type: String, required: true, unique: true },
+});
+const SeriesName = mongoose.model("SeriesName", SeriesNameSchema);
+
+const SpecialCodeSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  code: { type: String, required: true, unique: true },
+});
+const SpecialCode = mongoose.model("SpecialCode", SpecialCodeSchema);
+
+
 const IntroductionSchema = new mongoose.Schema(
   {
     youtubeLink: {
@@ -74,8 +87,8 @@ const BookDetailSchema = new mongoose.Schema(
     },
     documentType: {
       // Loại tài liệu
-      type: [DocumentTypeSchema],
-      default: [],
+      type: String,
+      default: '',
     },
     coverPrice: {
       // Giá bìa
@@ -102,6 +115,13 @@ const BookDetailSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    specialCode: {
+      // Đăng ký cá biệt
+      type: String,
+      default: '',
+      unique: true,
+    },
+
   },
   { _id: false } // Không tạo _id riêng cho mỗi BookDetail
 );
@@ -165,5 +185,7 @@ const LibrarySchema = new mongoose.Schema(
 
 module.exports = {
   DocumentType,
+  SeriesName,
+  SpecialCode,
   Library: mongoose.model('Library', LibrarySchema),
 };

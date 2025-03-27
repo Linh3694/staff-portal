@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { API_URL, BASE_URL } from "../../config";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 
@@ -9,6 +9,10 @@ function DocumentType() {
   const [data, setData] = useState([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  // Dùng để edit inline
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editCode, setEditCode] = useState("");
 
   const fetchData = () => {
     fetch(`${API_URL}/libraries/document-types`)
@@ -21,6 +25,43 @@ function DocumentType() {
 
   useEffect(fetchData, []);
 
+  // Khi bấm Edit, bật chế độ editing
+  const handleEdit = (item) => {
+    setEditingId(item._id);
+    setEditName(item.name);
+    setEditCode(item.code);
+  };
+
+  // Khi bấm Save, gọi API PUT
+  const handleSaveEdit = (id) => {
+    fetch(`${API_URL}/libraries/document-types/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName, code: editCode }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Lỗi khi cập nhật document type");
+        }
+        return res.json();
+      })
+      .then(() => {
+        setEditingId(null);
+        fetchData();
+      })
+      .catch((error) => {
+        console.error("Error updating document type:", error);
+        alert(error.message);
+      });
+  };
+
+  // Khi bấm Cancel
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
+  // Tạo mới DocumentType
   const handleCreate = () => {
     if (!name || !code) return;
     fetch(`${API_URL}/libraries/document-types`, {
@@ -30,7 +71,6 @@ function DocumentType() {
     })
       .then(async (res) => {
         if (!res.ok) {
-          // Nếu có lỗi, trả về lỗi JSON từ backend
           const err = await res.json();
           throw new Error(err.error || "Lỗi khi tạo document type");
         }
@@ -111,35 +151,799 @@ function DocumentType() {
           </tr>
         </thead>
         <tbody>
-          {data.map((item, idx) => (
-            <tr key={item._id}>
-              <td className="max-w-[150px] border-white/0 py-3 pr-4">
-                <p className="text-sm font-semibold text-navy-700">{idx + 1}</p>
-              </td>
-              <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                <p className="text-sm font-semibold text-navy-700">
-                  {item.name}
-                </p>
-              </td>
-              <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                <p className="text-sm font-semibold text-navy-700">
-                  {item.code}
-                </p>
-              </td>
+          {data.map((item, idx) => {
+            const isEditing = editingId === item._id;
+            return (
+              <tr key={item._id}>
+                <td className="max-w-[150px] border-white/0 py-3 pr-4">
+                  <p className="text-sm font-semibold text-navy-700">
+                    {idx + 1}
+                  </p>
+                </td>
+                <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                  {isEditing ? (
+                    <input
+                      className="border border-gray-300 px-2 py-1 rounded-2xl text-sm"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                    />
+                  ) : (
+                    <p className="text-sm font-semibold text-navy-700">
+                      {item.name}
+                    </p>
+                  )}
+                </td>
+                <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                  {isEditing ? (
+                    <input
+                      className="border border-gray-300 px-2 py-1 rounded-2xl text-sm"
+                      value={editCode}
+                      onChange={(e) => setEditCode(e.target.value)}
+                    />
+                  ) : (
+                    <p className="text-sm font-semibold text-navy-700">
+                      {item.code}
+                    </p>
+                  )}
+                </td>
 
-              <td className="max-w-[150px] border-white/0 py-3 pr-4 justify-end">
+                <td className="max-w-[150px] border-white/0 py-3 pr-4 justify-end">
+                  <div className="flex justify-end space-x-2">
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={() => handleSaveEdit(item._id)}
+                          className="flex items-center justify-center px-2 py-1 text-sm text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          Lưu
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="flex items-center justify-center px-2 py-1 text-sm text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                        >
+                          Huỷ
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiEdit size={14} />
+                        </button>
+                        <button
+                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                          onClick={() => handleDelete(item)}
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ------------------- COMPONENT SeriesName ------------------- //
+
+function SeriesName() {
+  const [data, setData] = useState([]);
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  // Dùng để edit inline
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editCode, setEditCode] = useState("");
+
+  const fetchData = () => {
+    fetch(`${API_URL}/libraries/series-names`)
+      .then((res) => res.json())
+      .then(setData)
+      .catch((error) => {
+        console.error("Error fetching series names:", error);
+      });
+  };
+
+  useEffect(fetchData, []);
+
+  const handleCreate = () => {
+    if (!name || !code) return;
+    fetch(`${API_URL}/libraries/series-names`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, code }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Lỗi khi tạo series name");
+        }
+        return res.json();
+      })
+      .then(() => {
+        setName("");
+        setCode("");
+        fetchData();
+      })
+      .catch((error) => {
+        console.error("Error creating series name:", error);
+        alert(error.message);
+      });
+  };
+
+  // Edit
+  const handleEdit = (item) => {
+    setEditingId(item._id);
+    setEditName(item.name);
+    setEditCode(item.code);
+  };
+
+  // Save
+  const handleSaveEdit = (id) => {
+    fetch(`${API_URL}/libraries/series-names/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName, code: editCode }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Lỗi khi cập nhật series name");
+        }
+        return res.json();
+      })
+      .then(() => {
+        setEditingId(null);
+        fetchData();
+      })
+      .catch((error) => {
+        console.error("Error updating series name:", error);
+        alert(error.message);
+      });
+  };
+
+  // Cancel
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const handleDelete = (item) => {
+    fetch(`${API_URL}/libraries/series-names/${item._id}`, {
+      method: "DELETE",
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Lỗi khi xóa series name");
+        }
+        return res.json();
+      })
+      .then(fetchData)
+      .catch((error) => {
+        console.error("Error deleting series name:", error);
+        alert(error.message);
+      });
+  };
+
+  return (
+    <div>
+      <div className="flex flex-row items-center justify-between mb-4">
+        <h2 className="text-[24px] font-bold">Tùng thư</h2>
+        <div className="flex gap-2 items-center justify-center text-sm">
+          <label className="text-sm">Tên:</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nhập tên tùng thư..."
+            className="border border-gray-200 px-2 py-1 rounded-2xl text-sm"
+          />
+
+          <label className="text-sm">Mã:</label>
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Nhập mã tùng thư..."
+            className="border border-gray-200 px-2 py-1 rounded-2xl text-sm"
+          />
+          <button
+            onClick={handleCreate}
+            className="px-3 py-1 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635]"
+          >
+            Thêm mới
+          </button>
+        </div>
+      </div>
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+              <p className="text-sm font-bold text-gray-600">STT</p>
+            </th>
+            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+              <p className="text-sm font-bold text-gray-600">TÊN TÙNG THƯ</p>
+            </th>
+            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+              <p className="text-sm font-bold text-gray-600">MÃ</p>
+            </th>
+            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-end">
+              <p className="text-sm font-bold text-gray-600">HÀNH ĐỘNG</p>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((item, idx) => {
+            const isEditing = editingId === item._id;
+            return (
+              <tr key={item._id}>
+                <td className="max-w-[150px] border-white/0 py-3 pr-4">
+                  <p className="text-sm font-semibold text-navy-700">
+                    {idx + 1}
+                  </p>
+                </td>
+                <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                  {isEditing ? (
+                    <input
+                      className="border border-gray-300 px-2 py-1 rounded-xl text-sm"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                    />
+                  ) : (
+                    <p className="text-sm font-semibold text-navy-700">
+                      {item.name}
+                    </p>
+                  )}
+                </td>
+                <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                  {isEditing ? (
+                    <input
+                      className="border border-gray-300 px-2 py-1 rounded-xl text-sm"
+                      value={editCode}
+                      onChange={(e) => setEditCode(e.target.value)}
+                    />
+                  ) : (
+                    <p className="text-sm font-semibold text-navy-700">
+                      {item.code}
+                    </p>
+                  )}
+                </td>
+                <td className="max-w-[150px] border-white/0 py-3 pr-4 justify-end">
+                  <div className="flex justify-end space-x-2">
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={() => handleSaveEdit(item._id)}
+                          className="flex items-center justify-center px-2 py-1 text-sm text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          Lưu
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="flex items-center justify-center px-2 py-1 text-sm text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                        >
+                          Huỷ
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiEdit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ------------------- COMPONENT SpecialCode ------------------- //
+function SpecialCode() {
+  const [data, setData] = useState([]);
+  // State cho tạo mới Special Code (bao gồm cả name và code)
+  const [newName, setNewName] = useState("");
+  const [newCode, setNewCode] = useState("");
+
+  // State cho inline editing
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editCode, setEditCode] = useState("");
+
+  const fetchData = () => {
+    fetch(`${API_URL}/libraries/special-codes`)
+      .then((res) => res.json())
+      .then(setData)
+      .catch((error) => {
+        console.error("Error fetching special codes:", error);
+      });
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Tạo mới SpecialCode
+  const handleCreate = () => {
+    if (!newName.trim() || !newCode.trim()) return;
+    fetch(`${API_URL}/libraries/special-codes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName.trim(), code: newCode.trim() }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Lỗi khi tạo special code");
+        }
+        return res.json();
+      })
+      .then(() => {
+        setNewName("");
+        setNewCode("");
+        fetchData();
+      })
+      .catch((error) => {
+        console.error("Error creating special code:", error);
+        alert(error.message);
+      });
+  };
+
+  // Bật chế độ Edit
+  const handleEdit = (item) => {
+    setEditingId(item._id);
+    setEditName(item.name);
+    setEditCode(item.code);
+  };
+
+  // Lưu thay đổi sau khi edit
+  const handleSaveEdit = (id) => {
+    fetch(`${API_URL}/libraries/special-codes/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName, code: editCode }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Lỗi khi cập nhật special code");
+        }
+        return res.json();
+      })
+      .then(() => {
+        setEditingId(null);
+        fetchData();
+      })
+      .catch((error) => {
+        console.error("Error updating special code:", error);
+        alert(error.message);
+      });
+  };
+
+  // Hủy bỏ chế độ Edit
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
+  // Xóa SpecialCode
+  const handleDelete = (item) => {
+    fetch(`${API_URL}/libraries/special-codes/${item._id}`, {
+      method: "DELETE",
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Lỗi khi xóa special code");
+        }
+        return res.json();
+      })
+      .then(() => {
+        fetchData();
+      })
+      .catch((error) => {
+        console.error("Error deleting special code:", error);
+        alert(error.message);
+      });
+  };
+
+  return (
+    <div>
+      <div className="flex flex-row items-center justify-between mb-4">
+        <h2 className="text-[24px] font-bold">Đăng kí cá biệt</h2>
+        <div className="flex gap-2 items-center justify-center text-sm">
+          <label className="text-sm">Tên:</label>
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Nhập tên..."
+            className="border border-gray-200 px-2 py-1 rounded-2xl text-sm"
+          />
+          <label className="text-sm">Mã:</label>
+
+          <input
+            value={newCode}
+            onChange={(e) => setNewCode(e.target.value)}
+            placeholder="Nhập mã cá biệt..."
+            className="border border-gray-200 px-2 py-1 rounded-2xl text-sm"
+          />
+          <button
+            onClick={handleCreate}
+            className="px-3 py-1 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635]"
+          >
+            Thêm mới
+          </button>
+        </div>
+      </div>
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+              <p className="text-sm font-bold text-gray-600">STT</p>
+            </th>
+            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+              <p className="text-sm font-bold text-gray-600">TÊN</p>
+            </th>
+            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+              <p className="text-sm font-bold text-gray-600">MÃ</p>
+            </th>
+            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-end">
+              <p className="text-sm font-bold text-gray-600">HÀNH ĐỘNG</p>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((item, idx) => {
+            const isEditing = editingId === item._id;
+            return (
+              <tr key={item._id}>
+                <td className="max-w-[150px] border-white/0 py-3 pr-4">
+                  <p className="text-sm font-semibold text-navy-700">
+                    {idx + 1}
+                  </p>
+                </td>
+                <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                  {isEditing ? (
+                    <input
+                      className="border border-gray-300 px-2 py-1 rounded-2xl text-sm"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                    />
+                  ) : (
+                    <p className="text-sm font-semibold text-navy-700">
+                      {item.name}
+                    </p>
+                  )}
+                </td>
+                <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                  {isEditing ? (
+                    <input
+                      className="border border-gray-300 px-2 py-1 rounded-2xl text-sm"
+                      value={editCode}
+                      onChange={(e) => setEditCode(e.target.value)}
+                    />
+                  ) : (
+                    <p className="text-sm font-semibold text-navy-700">
+                      {item.code}
+                    </p>
+                  )}
+                </td>
+                <td className="max-w-[150px] border-white/0 py-3 pr-4 justify-end">
+                  <div className="flex justify-end space-x-2">
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={() => handleSaveEdit(item._id)}
+                          className="flex items-center justify-center px-2 py-1 text-sm text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          Lưu
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="flex items-center justify-center px-2 py-1 text-sm text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          Huỷ
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiEdit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+///// ĐẦU SÁCH COMPONENT /////
+function LibraryInformation() {
+  const [libraries, setLibraries] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create"); // "create" hoặc "edit"
+
+  const [currentLibrary, setCurrentLibrary] = useState({
+    authors: "",
+    title: "",
+    coverImage: "",
+    category: "",
+    language: "",
+    description: "",
+  });
+
+  // Quản lý file ảnh bìa
+  const coverImageInputRef = useRef(null);
+  const [coverImageFile, setCoverImageFile] = useState(null);
+  const [coverImagePreview, setCoverImagePreview] = useState(null);
+
+  // Lấy danh sách Library
+  const fetchLibraries = () => {
+    fetch(`${API_URL}/libraries`)
+      .then((res) => res.json())
+      .then(setLibraries)
+      .catch((err) => console.error("Error fetching libraries:", err));
+  };
+
+  useEffect(() => {
+    fetchLibraries();
+  }, []);
+
+  // ========================= Mở modal tạo/sửa =========================
+  const openCreateModal = () => {
+    setModalMode("create");
+    setCurrentLibrary({
+      authors: "",
+      title: "",
+      coverImage: "",
+      category: "",
+      language: "",
+      description: "",
+    });
+    setCoverImageFile(null);
+    setCoverImagePreview(null);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (library) => {
+    setModalMode("edit");
+    // Gộp authors[] -> authors string
+    const authorsString = library.authors?.join(", ") || "";
+    setCurrentLibrary({
+      ...library,
+      authors: authorsString,
+    });
+    if (library.coverImage) {
+      // Hiển thị ảnh bìa cũ
+      setCoverImageFile(null);
+      setCoverImagePreview(`${BASE_URL}/${library.coverImage}`);
+      // hoặc library.coverImage nếu nó đã là URL đầy đủ
+    } else {
+      setCoverImageFile(null);
+      setCoverImagePreview(null);
+    }
+    setIsModalOpen(true);
+  };
+
+  // ========================= Nhập dữ liệu trong modal =========================
+  const handleModalChange = (e) => {
+    const { name, value } = e.target;
+    setCurrentLibrary((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ========================= Lưu (Create/Update) =========================
+  const handleModalSave = async () => {
+    try {
+      // FormData để gửi file + các trường text
+      const formData = new FormData();
+
+      // authors: chuyển chuỗi -> cắt -> gộp
+      const authorsArr = currentLibrary.authors
+        .split(",")
+        .map((a) => a.trim())
+        .filter(Boolean);
+
+      formData.append("authors", authorsArr.join(",")); // backend sẽ tách lại
+      formData.append("title", currentLibrary.title);
+      formData.append("category", currentLibrary.category);
+      formData.append("language", currentLibrary.language);
+      formData.append("description", currentLibrary.description);
+
+      if (coverImageFile) {
+        formData.append("file", coverImageFile);
+      }
+
+      if (modalMode === "create") {
+        // Tạo mới
+        const res = await fetch(`${API_URL}/libraries`, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Error creating library");
+          return;
+        }
+      } else {
+        // Chỉnh sửa
+        // Cách 1: Gửi PUT multipart => Cần route PUT multipart
+        // Cách 2: Tạm upload file nếu có => Lấy filePath => Gửi PUT JSON
+        // Tạm dùng Cách 2:
+
+        // 1) Lấy library gốc
+        const oldLibRes = await fetch(
+          `${API_URL}/libraries/${currentLibrary._id}`
+        );
+        const oldLib = await oldLibRes.json();
+        if (!oldLibRes.ok) {
+          alert("Không tìm thấy Library cần sửa");
+          return;
+        }
+
+        let updatedCover = oldLib.coverImage || "";
+
+        // 2) Nếu có file ảnh => upload => lấy filePath
+        if (coverImageFile) {
+          const uploadRes = await fetch(`${API_URL}/libraries`, {
+            method: "POST",
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadRes.ok) {
+            updatedCover = uploadData.filePath;
+          } else {
+            alert("Upload coverImage thất bại!");
+            return;
+          }
+        }
+
+        // 3) Tạo payload JSON
+        const payload = {
+          authors: authorsArr,
+          title: currentLibrary.title,
+          category: currentLibrary.category,
+          language: currentLibrary.language,
+          description: currentLibrary.description,
+          coverImage: updatedCover,
+        };
+
+        // 4) Gửi PUT JSON
+        const updateRes = await fetch(
+          `${API_URL}/libraries/${currentLibrary._id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+        const updateData = await updateRes.json();
+        if (!updateRes.ok) {
+          alert(updateData.error || "Error updating library");
+          return;
+        }
+      }
+
+      // Xong
+      setIsModalOpen(false);
+      fetchLibraries();
+    } catch (err) {
+      console.error("Error saving library:", err);
+      alert("Error saving library");
+    }
+  };
+
+  // ========================= Xoá Library =========================
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/libraries/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Error deleting library");
+      } else {
+        fetchLibraries();
+      }
+    } catch (err) {
+      console.error("Error deleting library:", err);
+    }
+  };
+
+  return (
+    <div>
+      {/* Nút tạo mới */}
+      <div className="flex flex-row items-center justify-between mb-4">
+        <h2 className="text-[24px] font-bold">Đầu sách</h2>
+        <button
+          onClick={openCreateModal}
+          className="px-3 py-1 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635]"
+        >
+          Thêm mới
+        </button>
+      </div>
+
+      {/* Bảng hiển thị Đầu sách */}
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+              STT
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+              Tên sách
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+              Tác giả
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+              Thể loại
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+              Ngôn ngữ
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+              Mô tả
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-end text-sm font-bold text-gray-600">
+              HÀNH ĐỘNG
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {libraries.map((lib, idx) => (
+            <tr key={lib._id}>
+              <td className="py-2 px-3 text-sm">{idx + 1}</td>
+              <td className="py-2 px-3 text-sm">{lib.title}</td>
+              <td className="py-2 px-3 text-sm">{lib.authors?.join(", ")}</td>
+              <td className="py-2 px-3 text-sm">{lib.category}</td>
+              <td className="py-2 px-3 text-sm">{lib.language}</td>
+              <td className="py-2 px-3 text-sm">{lib.description}</td>
+              <td className="py-2 px-3 text-right">
                 <div className="flex justify-end space-x-2">
                   <button
-                    onClick={() => handleDelete(item)}
-                    className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                    onClick={() => openEditModal(lib)}
+                    className="flex items-center justify-center px-2 py-1 text-sm text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
                   >
-                    <FiEdit size={14} />
+                    Sửa
                   </button>
                   <button
-                    className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
-                    onClick={() => handleDelete(item)}
+                    onClick={() => handleDelete(lib._id)}
+                    className="flex items-center justify-center px-2 py-1 text-sm text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
                   >
-                    <FiTrash2 size={14} />
+                    Xoá
                   </button>
                 </div>
               </td>
@@ -147,553 +951,654 @@ function DocumentType() {
           ))}
         </tbody>
       </table>
+
+      {/* Modal Tạo/Sửa */}
+      {isModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-[20px] p-6 w-[60%]">
+            <h3 className="text-xl font-bold mb-4">
+              {modalMode === "create"
+                ? "Tạo mới đầu sách"
+                : "Chỉnh sửa đầu sách"}
+            </h3>
+            <div className="flex gap-4">
+              {/* Left Column */}
+              <div className="flex-1">
+                <div className="mb-3">
+                  <label className="block mb-1">
+                    Tên sách <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    placeholder="Nhập tên sách..."
+                    value={currentLibrary.title}
+                    onChange={handleModalChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Thể loại:</label>
+                  <input
+                    type="text"
+                    name="category"
+                    placeholder="Nhập thể loại..."
+                    value={currentLibrary.category}
+                    onChange={handleModalChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Ngôn ngữ:</label>
+                  <input
+                    type="text"
+                    name="language"
+                    placeholder="Nhập ngôn ngữ..."
+                    value={currentLibrary.language}
+                    onChange={handleModalChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Mô tả:</label>
+                  <textarea
+                    name="description"
+                    placeholder="Nhập mô tả..."
+                    value={currentLibrary.description}
+                    onChange={handleModalChange}
+                    rows="3"
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+              </div>
+              {/* Right Column */}
+              <div className="flex-1">
+                <div className="mb-3">
+                  <label className="block mb-1">Tác giả:</label>
+                  <input
+                    type="text"
+                    name="authors"
+                    placeholder="Nhập tên tác giả, cách nhau dấu phẩy..."
+                    value={currentLibrary.authors}
+                    onChange={handleModalChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1">Ảnh bìa:</label>
+                  <div
+                    className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl px-4 py-6 bg-gray-50 text-center text-gray-500 cursor-pointer hover:border-[#002147] transition mt-2"
+                    onClick={() =>
+                      coverImageInputRef.current &&
+                      coverImageInputRef.current.click()
+                    }
+                  >
+                    {coverImagePreview ? (
+                      <img
+                        src={coverImagePreview}
+                        alt="Preview"
+                        className="h-32 object-contain"
+                      />
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium">
+                          Kéo thả hoặc chọn ảnh bìa từ máy tính
+                        </p>
+                        <p className="text-xs italic mt-1">
+                          Định dạng hỗ trợ: <b>.jpg, .jpeg, .png</b>
+                        </p>
+                      </>
+                    )}
+                    <input
+                      ref={coverImageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        setCoverImageFile(file);
+                        setCoverImagePreview(URL.createObjectURL(file));
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-4 space-x-2">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-3 py-1 bg-gray-400 text-white rounded-lg text-base font-semibold transform transition-transform duration-300 hover:scale-105"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={handleModalSave}
+                className="px-3 py-1 bg-[#002147] text-white rounded-lg text-base font-semibold transform transition-transform duration-300 hover:scale-105"
+              >
+                Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// 2) SeriesName - Tùng thư
-function SeriesName() {
-  const [data, setData] = useState([]);
+// ------------------- COMPONENT BookDetail ------------------- //
+function BookDetail() {
+  const [libraryList, setLibraryList] = useState([]);
+  const [selectedLibrary, setSelectedLibrary] = useState(null);
 
+  // Tìm kiếm Library
+  const [librarySearchTerm, setLibrarySearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+
+  // Danh sách Book => hiển thị books của selectedLibrary
+  const books = selectedLibrary?.books || [];
+
+  // Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create");
+  const [currentBook, setCurrentBook] = useState({
+    isbn: "",
+    documentIdentifier: "",
+    bookTitle: "",
+    classificationSign: "",
+    publisherPlaceName: "",
+    publisherName: "",
+    publishYear: "",
+    pages: "",
+    attachments: [],
+    documentType: "",
+    coverPrice: "",
+    language: "",
+    catalogingAgency: "",
+    storageLocation: "",
+    seriesName: "",
+  });
+
+  // Lấy toàn bộ Library => cho tính năng search
   useEffect(() => {
-    fetch("/api/libraries")
-      .then((res) => res.json())
-      .then((libraries) => {
-        const seriesList = [];
-        libraries.forEach((lib) => {
-          lib.books.forEach((book) => {
-            if (book.seriesName) {
-              seriesList.push(book.seriesName);
-            }
-          });
-        });
-        const uniqueSeries = [...new Set(seriesList)];
-
-        const formatted = uniqueSeries.map((sn, index) => ({
-          name: sn,
-          code: 200 + index, // ví dụ code tạm
-        }));
-
-        setData(formatted);
-      })
-      .catch((err) => console.error(err));
-  }, []);
-
-  const handleEdit = (item) => {
-    alert(`Sửa Tùng thư: ${item.name}`);
-    // Logic PUT/POST...
-  };
-
-  const handleDelete = (item) => {
-    alert(`Xóa Tùng thư: ${item.name}`);
-    // Logic DELETE...
-  };
-
-  return (
-    <div>
-      <h2>Tùng thư</h2>
-      <button>Thêm mới</button>
-      <table
-        border="1"
-        cellPadding="8"
-        style={{ marginTop: "10px", width: "100%", borderCollapse: "collapse" }}
-      >
-        <thead>
-          <tr>
-            <th>STT</th>
-            <th>Tên đầu mục</th>
-            <th>Mã</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((item, idx) => (
-            <tr key={item.code}>
-              <td>{idx + 1}</td>
-              <td>{item.name}</td>
-              <td>{item.code}</td>
-              <td>
-                <button onClick={() => handleEdit(item)}>Sửa</button>
-                <button onClick={() => handleDelete(item)}>Xóa</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// 3) SpecialCode - Đăng kí cá biệt (hiện chưa kết nối DB)
-function SpecialCode() {
-  const [data, setData] = useState([]);
-  const [newCode, setNewCode] = useState("");
-
-  const handleAdd = () => {
-    if (!newCode.trim()) return;
-    const newItem = {
-      id: data.length + 1,
-      code: newCode.trim(),
-    };
-    setData((prev) => [...prev, newItem]);
-    setNewCode("");
-  };
-
-  const handleDelete = (id) => {
-    setData((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  return (
-    <div>
-      <h2>Đăng kí cá biệt</h2>
-      <div style={{ marginBottom: "10px" }}>
-        <input
-          type="text"
-          value={newCode}
-          onChange={(e) => setNewCode(e.target.value)}
-          placeholder="Nhập mã đặc biệt"
-        />
-        <button onClick={handleAdd}>Thêm mới</button>
-      </div>
-      <table
-        border="1"
-        cellPadding="8"
-        style={{ width: "100%", borderCollapse: "collapse" }}
-      >
-        <thead>
-          <tr>
-            <th>STT</th>
-            <th>Mã</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((item, idx) => (
-            <tr key={item.id}>
-              <td>{idx + 1}</td>
-              <td>{item.code}</td>
-              <td>
-                <button onClick={() => handleDelete(item.id)}>Xóa</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// 4) BookInformation - Đầu sách (Library Schema)
-function BookInformation() {
-  const [libraries, setLibraries] = useState([]);
-  // Tạm lấy library[0]
-  const [authors, setAuthors] = useState([]);
-  const [title, setTitle] = useState("");
-  const [coverImage, setCoverImage] = useState("");
-  const [category, setCategory] = useState("");
-  const [language, setLanguage] = useState("");
-  const [description, setDescription] = useState("");
-
-  useEffect(() => {
-    fetch("/api/libraries")
+    fetch(`${API_URL}/libraries`)
       .then((res) => res.json())
       .then((data) => {
-        setLibraries(data);
-        if (data.length > 0) {
-          // Dùng bản ghi đầu tiên để demo
-          const lib = data[0];
-          setAuthors(lib.authors || []);
-          setTitle(lib.title || "");
-          setCoverImage(lib.coverImage || "");
-          setCategory(lib.category || "");
-          setLanguage(lib.language || "");
-          setDescription(lib.description || "");
+        if (Array.isArray(data)) {
+          setLibraryList(data);
         }
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error("Error fetching library list:", err));
   }, []);
 
-  const handleSave = () => {
-    // Nếu đã có library thì PUT, nếu chưa thì POST
-    if (libraries.length > 0) {
-      const libraryId = libraries[0]._id;
-      fetch(`/api/libraries/${libraryId}`, {
+  // ============== Search Library: Hiển thị 5 match ==============
+  const handleLibrarySearch = (term) => {
+    setLibrarySearchTerm(term);
+    if (!term.trim()) {
+      setSearchResults([]);
+      setSelectedLibrary(null);
+      return;
+    }
+    const lower = term.toLowerCase();
+    const matched = libraryList
+      .filter((lib) => lib.title.toLowerCase().includes(lower))
+      .slice(0, 5);
+    setSearchResults(matched);
+  };
+
+  // Khi chọn 1 library trong gợi ý
+  const handleSelectLibrary = (lib) => {
+    setSelectedLibrary(lib);
+    setLibrarySearchTerm(lib.title);
+    setSearchResults([]);
+  };
+
+  // ============== Tạo mới Book ==============
+  const openCreateModal = () => {
+    if (!selectedLibrary) {
+      alert("Vui lòng chọn Library trước!");
+      return;
+    }
+    setModalMode("create");
+    setCurrentBook({
+      isbn: "",
+      documentIdentifier: "",
+      bookTitle: "",
+      classificationSign: "",
+      publisherPlaceName: "",
+      publisherName: "",
+      publishYear: "",
+      pages: "",
+      attachments: [],
+      documentType: "",
+      coverPrice: "",
+      language: "",
+      catalogingAgency: "",
+      storageLocation: "",
+      seriesName: "",
+    });
+    setIsModalOpen(true);
+  };
+
+  // ============== Sửa Book ==============
+  const openEditModal = (book, idx) => {
+    if (!selectedLibrary) {
+      alert("Vui lòng chọn Library trước!");
+      return;
+    }
+    setModalMode("edit");
+    setCurrentBook({
+      ...book,
+      _index: idx, // để biết index khi update
+    });
+    setIsModalOpen(true);
+  };
+
+  // ============== Nhập form trong modal ==============
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setCurrentBook((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ============== Lưu Book (Create/Edit) ==============
+  const handleSaveModal = async () => {
+    if (!selectedLibrary) {
+      alert("Vui lòng chọn Library trước!");
+      return;
+    }
+    try {
+      // Xử lý attachments => mảng
+      let newAttachments = currentBook.attachments;
+      if (typeof newAttachments === "string") {
+        newAttachments = newAttachments
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
+      }
+
+      const newBooks = [...selectedLibrary.books];
+      if (modalMode === "create") {
+        // Thêm vào cuối
+        newBooks.push({
+          ...currentBook,
+          attachments: newAttachments,
+          publishYear: currentBook.publishYear
+            ? Number(currentBook.publishYear)
+            : null,
+          pages: currentBook.pages ? Number(currentBook.pages) : null,
+          coverPrice: currentBook.coverPrice
+            ? Number(currentBook.coverPrice)
+            : null,
+        });
+      } else {
+        // Edit
+        const idx = currentBook._index;
+        if (idx != null) {
+          newBooks[idx] = {
+            ...currentBook,
+            attachments: newAttachments,
+            publishYear: currentBook.publishYear
+              ? Number(currentBook.publishYear)
+              : null,
+            pages: currentBook.pages ? Number(currentBook.pages) : null,
+            coverPrice: currentBook.coverPrice
+              ? Number(currentBook.coverPrice)
+              : null,
+          };
+          delete newBooks[idx]._index;
+        }
+      }
+
+      // Cập nhật library
+      const payload = {
+        ...selectedLibrary,
+        books: newBooks,
+      };
+      const res = await fetch(`${API_URL}/libraries/${selectedLibrary._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          authors,
-          title,
-          coverImage,
-          category,
-          language,
-          description,
-        }),
-      })
-        .then((res) => res.json())
-        .then((updated) => {
-          alert("Cập nhật thành công!");
-          console.log(updated);
-        })
-        .catch((err) => console.error(err));
-    } else {
-      // Tạo mới library
-      fetch("/api/libraries", {
-        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Error updating library");
+        return;
+      }
+
+      // Cập nhật selectedLibrary
+      setSelectedLibrary(data);
+      setIsModalOpen(false);
+      alert("Lưu sách thành công!");
+    } catch (err) {
+      console.error("Error saving book:", err);
+      alert("Error saving book");
+    }
+  };
+
+  // ============== Xoá Book ==============
+  const handleDelete = async (idx) => {
+    if (!selectedLibrary) {
+      alert("Vui lòng chọn Library trước!");
+      return;
+    }
+    try {
+      const newBooks = [...selectedLibrary.books];
+      newBooks.splice(idx, 1);
+      const payload = {
+        ...selectedLibrary,
+        books: newBooks,
+      };
+      const res = await fetch(`${API_URL}/libraries/${selectedLibrary._id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          authors,
-          title,
-          coverImage,
-          category,
-          language,
-          description,
-        }),
-      })
-        .then((res) => res.json())
-        .then((created) => {
-          alert("Tạo mới thành công!");
-          setLibraries([created]);
-        })
-        .catch((err) => console.error(err));
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Error deleting book");
+        return;
+      }
+      setSelectedLibrary(data);
+      alert("Xoá sách thành công!");
+    } catch (err) {
+      console.error("Error deleting book:", err);
+      alert("Error deleting book");
     }
   };
 
   return (
     <div>
-      <h2>Đầu sách (Library Information)</h2>
-      <div style={{ marginBottom: "10px" }}>
-        <label>Tác giả: </label>
+      {/* Search Library */}
+      <div className="mb-4">
+        <label className="block mb-1 font-semibold">
+          Chọn Library <span className="text-red-500">*</span>
+        </label>
         <input
           type="text"
-          value={authors.join(", ")}
-          onChange={(e) => setAuthors(e.target.value.split(","))}
-          style={{ width: "100%" }}
+          className="border border-gray-300 px-2 py-1 rounded w-full"
+          placeholder="Nhập tên library..."
+          value={librarySearchTerm}
+          onChange={(e) => handleLibrarySearch(e.target.value)}
         />
+        {searchResults.length > 0 && (
+          <div className="border border-gray-200 mt-1 rounded bg-white shadow-md">
+            {searchResults.map((lib) => (
+              <div
+                key={lib._id}
+                className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleSelectLibrary(lib)}
+              >
+                {lib.title}
+              </div>
+            ))}
+          </div>
+        )}
+        {selectedLibrary && (
+          <div className="mt-2 text-sm text-gray-600">
+            Đã chọn: <b>{selectedLibrary.title}</b>
+          </div>
+        )}
       </div>
-      <div style={{ marginBottom: "10px" }}>
-        <label>Tên sách: </label>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={{ width: "100%" }}
-        />
-      </div>
-      <div style={{ marginBottom: "10px" }}>
-        <label>Ảnh bìa: </label>
-        <input
-          type="text"
-          value={coverImage}
-          onChange={(e) => setCoverImage(e.target.value)}
-          style={{ width: "100%" }}
-        />
-      </div>
-      <div style={{ marginBottom: "10px" }}>
-        <label>Thể loại: </label>
-        <input
-          type="text"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          style={{ width: "100%" }}
-        />
-      </div>
-      <div style={{ marginBottom: "10px" }}>
-        <label>Ngôn ngữ: </label>
-        <input
-          type="text"
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          style={{ width: "100%" }}
-        />
-      </div>
-      <div style={{ marginBottom: "10px" }}>
-        <label>Mô tả: </label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          style={{ width: "100%" }}
-        />
-      </div>
-      <button onClick={handleSave}>Lưu</button>
-    </div>
-  );
-}
 
-// 5) BookDetail - Sách (danh sách `books` trong Library)
-function BookDetail() {
-  const [library, setLibrary] = useState(null);
-  const [books, setBooks] = useState([]);
-
-  // State cho form "Thêm sách mới"
-  const [isbn, setIsbn] = useState("");
-  const [documentIdentifier, setDocumentIdentifier] = useState("");
-  const [bookTitle, setBookTitle] = useState("");
-  const [classificationSign, setClassificationSign] = useState("");
-  const [publisherPlaceName, setPublisherPlaceName] = useState("");
-  const [publisherName, setPublisherName] = useState("");
-  const [publishYear, setPublishYear] = useState("");
-  const [pages, setPages] = useState("");
-  const [attachments, setAttachments] = useState([]);
-  const [documentType, setDocumentType] = useState("");
-  const [coverPrice, setCoverPrice] = useState("");
-  const [lang, setLang] = useState("");
-  const [catalogingAgency, setCatalogingAgency] = useState("");
-  const [storageLocation, setStorageLocation] = useState("");
-  const [seriesName, setSeriesName] = useState("");
-
-  useEffect(() => {
-    // Lấy library đầu tiên trong DB
-    fetch("/api/libraries")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.length > 0) {
-          const firstLibrary = data[0];
-          setLibrary(firstLibrary);
-          setBooks(firstLibrary.books || []);
-        }
-      })
-      .catch((err) => console.error(err));
-  }, []);
-
-  const handleAddBook = () => {
-    const newBook = {
-      isbn,
-      documentIdentifier,
-      bookTitle,
-      classificationSign,
-      publisherPlaceName,
-      publisherName,
-      publishYear: publishYear ? Number(publishYear) : null,
-      pages: pages ? Number(pages) : null,
-      attachments,
-      documentType,
-      coverPrice: coverPrice ? Number(coverPrice) : null,
-      language: lang,
-      catalogingAgency,
-      storageLocation,
-      seriesName,
-    };
-    setBooks((prev) => [...prev, newBook]);
-
-    // Reset form
-    setIsbn("");
-    setDocumentIdentifier("");
-    setBookTitle("");
-    setClassificationSign("");
-    setPublisherPlaceName("");
-    setPublisherName("");
-    setPublishYear("");
-    setPages("");
-    setAttachments([]);
-    setDocumentType("");
-    setCoverPrice("");
-    setLang("");
-    setCatalogingAgency("");
-    setStorageLocation("");
-    setSeriesName("");
-  };
-
-  const handleDeleteBook = (index) => {
-    setBooks((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSaveAll = () => {
-    if (!library) return;
-    // Gọi API cập nhật lại library.books
-    fetch(`/api/libraries/${library._id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...library,
-        books, // mảng mới
-      }),
-    })
-      .then((res) => res.json())
-      .then((updated) => {
-        alert("Cập nhật danh sách Sách thành công!");
-        setLibrary(updated);
-        setBooks(updated.books);
-      })
-      .catch((err) => console.error(err));
-  };
-
-  return (
-    <div>
-      <h2>Sách (Book Detail)</h2>
-      {/* Form thêm sách */}
-      <div
-        style={{
-          border: "1px solid #ddd",
-          padding: "10px",
-          marginBottom: "20px",
-        }}
-      >
-        <h3>Thêm sách mới</h3>
-        <div>
-          <label>ISBN: </label>
-          <input
-            type="text"
-            value={isbn}
-            onChange={(e) => setIsbn(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Định danh tài liệu: </label>
-          <input
-            type="text"
-            value={documentIdentifier}
-            onChange={(e) => setDocumentIdentifier(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Tên Sách: </label>
-          <input
-            type="text"
-            value={bookTitle}
-            onChange={(e) => setBookTitle(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Ký hiệu phân loại tài liệu: </label>
-          <input
-            type="text"
-            value={classificationSign}
-            onChange={(e) => setClassificationSign(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Tên nơi xuất bản: </label>
-          <input
-            type="text"
-            value={publisherPlaceName}
-            onChange={(e) => setPublisherPlaceName(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Tên nhà xuất bản: </label>
-          <input
-            type="text"
-            value={publisherName}
-            onChange={(e) => setPublisherName(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Năm xuất bản: </label>
-          <input
-            type="number"
-            value={publishYear}
-            onChange={(e) => setPublishYear(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Số trang: </label>
-          <input
-            type="number"
-            value={pages}
-            onChange={(e) => setPages(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Attachments (cách nhau bởi dấu phẩy): </label>
-          <input
-            type="text"
-            value={attachments.join(", ")}
-            onChange={(e) =>
-              setAttachments(e.target.value.split(",").map((x) => x.trim()))
-            }
-          />
-        </div>
-        <div>
-          <label>Loại tài liệu (documentType): </label>
-          <input
-            type="text"
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Giá bìa: </label>
-          <input
-            type="number"
-            value={coverPrice}
-            onChange={(e) => setCoverPrice(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Ngôn ngữ: </label>
-          <input
-            type="text"
-            value={lang}
-            onChange={(e) => setLang(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Cơ quan biên mục: </label>
-          <input
-            type="text"
-            value={catalogingAgency}
-            onChange={(e) => setCatalogingAgency(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Kho lưu giữ tài liệu: </label>
-          <input
-            type="text"
-            value={storageLocation}
-            onChange={(e) => setStorageLocation(e.target.value)}
-          />
-        </div>
-        <div>
-          <label>Tên Tùng thư: </label>
-          <input
-            type="text"
-            value={seriesName}
-            onChange={(e) => setSeriesName(e.target.value)}
-          />
-        </div>
-        <button style={{ marginTop: "10px" }} onClick={handleAddBook}>
-          Thêm sách
+      <div className="flex flex-row items-center justify-between mb-4">
+        <h2 className="text-[24px] font-bold">Sách (Book Detail)</h2>
+        <button
+          onClick={openCreateModal}
+          className="px-3 py-1 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635]"
+        >
+          Thêm mới
         </button>
       </div>
 
-      {/* Danh sách books */}
-      <table
-        border="1"
-        cellPadding="8"
-        style={{ width: "100%", borderCollapse: "collapse" }}
-      >
+      {/* Bảng Books */}
+      <table className="w-full">
         <thead>
           <tr>
-            <th>ISBN</th>
-            <th>Định danh</th>
-            <th>Tên sách</th>
-            <th>Ký hiệu</th>
-            <th>Nhà XB</th>
-            <th>Năm XB</th>
-            <th>Hành động</th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+              STT
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+              ISBN
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+              Tên Sách
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+              Năm XB
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-end text-sm font-bold text-gray-600">
+              HÀNH ĐỘNG
+            </th>
           </tr>
         </thead>
         <tbody>
-          {books.map((b, index) => (
-            <tr key={index}>
-              <td>{b.isbn}</td>
-              <td>{b.documentIdentifier}</td>
-              <td>{b.bookTitle}</td>
-              <td>{b.classificationSign}</td>
-              <td>{b.publisherName}</td>
-              <td>{b.publishYear}</td>
-              <td>
-                <button onClick={() => handleDeleteBook(index)}>Xóa</button>
+          {books.map((b, idx) => (
+            <tr key={idx}>
+              <td className="py-2 px-3 text-sm">{idx + 1}</td>
+              <td className="py-2 px-3 text-sm">{b.isbn}</td>
+              <td className="py-2 px-3 text-sm">{b.bookTitle}</td>
+              <td className="py-2 px-3 text-sm">{b.publishYear}</td>
+              <td className="py-2 px-3 text-right">
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={() => openEditModal(b, idx)}
+                    className="flex items-center justify-center px-2 py-1 text-sm text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    onClick={() => handleDelete(idx)}
+                    className="flex items-center justify-center px-2 py-1 text-sm text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
+                  >
+                    Xoá
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
+          {books.length === 0 && selectedLibrary && (
+            <tr>
+              <td colSpan={5} className="p-4 text-center text-sm text-gray-500">
+                Chưa có quyển sách nào trong Library này
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 
-      <button style={{ marginTop: "10px" }} onClick={handleSaveAll}>
-        Lưu toàn bộ Sách
-      </button>
+      {/* Modal Create/Edit Book */}
+      {isModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-[20px] p-6 w-[60%]">
+            <h3 className="text-xl font-bold mb-4">
+              {modalMode === "create" ? "Thêm sách mới" : "Chỉnh sửa sách"}
+            </h3>
+            <div className="flex gap-4">
+              {/* Cột 1 */}
+              <div className="flex-1">
+                <div className="mb-3">
+                  <label className="block mb-1">
+                    ISBN <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="isbn"
+                    value={currentBook.isbn}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">
+                    Tên sách <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="bookTitle"
+                    value={currentBook.bookTitle}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Năm XB:</label>
+                  <input
+                    type="number"
+                    name="publishYear"
+                    value={currentBook.publishYear}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Định danh tài liệu:</label>
+                  <input
+                    type="text"
+                    name="documentIdentifier"
+                    value={currentBook.documentIdentifier}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Ký hiệu phân loại:</label>
+                  <input
+                    type="text"
+                    name="classificationSign"
+                    value={currentBook.classificationSign}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+              </div>
+              {/* Cột 2 */}
+              <div className="flex-1">
+                <div className="mb-3">
+                  <label className="block mb-1">Nhà XB:</label>
+                  <input
+                    type="text"
+                    name="publisherName"
+                    value={currentBook.publisherName}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Nơi XB:</label>
+                  <input
+                    type="text"
+                    name="publisherPlaceName"
+                    value={currentBook.publisherPlaceName}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Số trang:</label>
+                  <input
+                    type="number"
+                    name="pages"
+                    value={currentBook.pages}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Giá bìa:</label>
+                  <input
+                    type="number"
+                    name="coverPrice"
+                    value={currentBook.coverPrice}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Ngôn ngữ:</label>
+                  <input
+                    type="text"
+                    name="language"
+                    value={currentBook.language}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Tùng thư:</label>
+                  <input
+                    type="text"
+                    name="seriesName"
+                    value={currentBook.seriesName}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">
+                    Attachments (cách nhau bởi dấu phẩy):
+                  </label>
+                  <input
+                    type="text"
+                    name="attachments"
+                    value={
+                      Array.isArray(currentBook.attachments)
+                        ? currentBook.attachments.join(", ")
+                        : currentBook.attachments
+                    }
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Cơ quan biên mục:</label>
+                  <input
+                    type="text"
+                    name="catalogingAgency"
+                    value={currentBook.catalogingAgency}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Kho lưu trữ:</label>
+                  <input
+                    type="text"
+                    name="storageLocation"
+                    value={currentBook.storageLocation}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block mb-1">Loại tài liệu:</label>
+                  <input
+                    type="text"
+                    name="documentType"
+                    value={currentBook.documentType}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end mt-4 space-x-2">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-3 py-1 bg-gray-400 text-white rounded-lg text-base font-semibold transform transition-transform duration-300 hover:scale-105"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={handleSaveModal}
+                className="px-3 py-1 bg-[#002147] text-white rounded-lg text-base font-semibold transform transition-transform duration-300 hover:scale-105"
+              >
+                Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -741,7 +1646,7 @@ function LibraryData() {
         {activeTab === "documentType" && <DocumentType />}
         {activeTab === "seriesName" && <SeriesName />}
         {activeTab === "specialCode" && <SpecialCode />}
-        {activeTab === "bookInformation" && <BookInformation />}
+        {activeTab === "bookInformation" && <LibraryInformation />}
         {activeTab === "bookDetail" && <BookDetail />}
       </main>
     </div>

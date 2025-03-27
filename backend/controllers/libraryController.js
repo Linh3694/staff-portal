@@ -1,5 +1,5 @@
 // controllers/libraryController.js
-const { Library, DocumentType } = require("../models/LibraryModel");
+const { Library, DocumentType, SeriesName, SpecialCode } = require("../models/LibraryModel");
 
 // CREATE - Tạo mới Library
 exports.createLibrary = async (req, res) => {
@@ -103,6 +103,20 @@ exports.createDocumentType = async (req, res) => {
   }
 };
 
+exports.updateDocumentType = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedDocType = await DocumentType.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedDocType) {
+      return res.status(404).json({ error: "Document Type not found" });
+    }
+    return res.status(200).json(updatedDocType);
+  } catch (error) {
+    console.error("Error updating document type:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 exports.deleteDocumentType = async (req, res) => {
   try {
     const { id } = req.params;
@@ -115,3 +129,108 @@ exports.deleteDocumentType = async (req, res) => {
 };
 
 // --------------------------------------------
+// SeriesName Controllers
+
+exports.getAllSeriesNames = async (req, res) => {
+  try {
+    const seriesNames = await SeriesName.find();
+    return res.status(200).json(seriesNames);
+  } catch (error) {
+    console.error("Error fetching series names:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.createSeriesName = async (req, res) => {
+  try {
+    const { name, code } = req.body;
+    // Kiểm tra trùng mã
+    const existing = await SeriesName.findOne({ code });
+    if (existing) {
+      return res.status(400).json({ error: "Mã này đã tồn tại." });
+    }
+    const newSeries = new SeriesName({ name, code });
+    await newSeries.save();
+    return res.status(201).json(newSeries);
+  } catch (error) {
+    console.error("Error creating series name:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.updateSeriesName = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedSeries = await SeriesName.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedSeries) {
+      return res.status(404).json({ error: "Series not found" });
+    }
+    return res.status(200).json(updatedSeries);
+  } catch (error) {
+    console.error("Error updating series name:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.deleteSeriesName = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await SeriesName.findByIdAndDelete(id);
+    return res.status(200).json({ message: "Deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting series name:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// -------------------- Special Code Controllers -------------------- //
+
+exports.getAllSpecialCodes = async (req, res) => {
+  try {
+    const codes = await SpecialCode.find();
+    return res.status(200).json(codes);
+  } catch (error) {
+    console.error("Error fetching special codes:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.createSpecialCode = async (req, res) => {
+  try {
+    const { code, name } = req.body;
+    const existing = await SpecialCode.findOne({ code });
+    if (existing) {
+      return res.status(400).json({ error: "Mã này đã tồn tại." });
+    }
+    const newCode = new SpecialCode({ code, name });
+    await newCode.save();
+    return res.status(201).json(newCode);
+  } catch (error) {
+    console.error("Error creating special code:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+exports.updateSpecialCode = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedCode = await SpecialCode.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedCode) {
+      return res.status(404).json({ error: "Special Code not found" });
+    }
+    return res.status(200).json(updatedCode);
+  } catch (error) {
+    console.error("Error updating special code:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.deleteSpecialCode = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await SpecialCode.findByIdAndDelete(id);
+    return res.status(200).json({ message: "Deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting special code:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
