@@ -173,7 +173,7 @@ const LoginPage = () => {
           />
         </div>
       </div>
-      <div className="flex text-center items-center p-3 justify-center lg:text-xs text-gray-600">
+      <div className="flex text-center items-center p-3 justify-center text-xs text-gray-600">
         © Copyright 2025 Wellspring International Bilingual Schools. All Rights
         Reserved.
       </div>
