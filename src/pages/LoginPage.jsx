@@ -69,110 +69,115 @@ const LoginPage = () => {
       }}
     >
       <div className="h-full w-full my-auto flex flex-row">
-      {/* Cột bên trái: Form đăng nhập */}
-      <div className="w-1/2 flex flex-col justify-center items-center relative">
-        <h2 className="text-4xl font-bold mb-10 text-center">
-          <ReactTyped
-            strings={["Đăng nhập để tiếp tục nhé..."]}
-            typeSpeed={35}
-            backSpeed={30}
-            showCursor={true}
-            cursorChar="|"
-          />
-        </h2>
-        <div className="w-[60%] max-w-[450px] mx-auto">
-          <div className="mb-4">
-            <label className="text-left block font-medium mb-2 text-[#757575]">
-              Tên đăng nhập
-            </label>
-            <input
-              type="text"
-              placeholder="email@wellspring.edu.vn"
-              className="w-full h-[5vh] border-none rounded-full p-2 text-sm px-4 shadow"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+        {/* Cột bên trái: Form đăng nhập */}
+        <div className="lg:w-1/2 w-full flex flex-col justify-center items-center relative">
+          <h2 className="lg:text-4xl text-3xl font-bold mb-10 text-center">
+            <ReactTyped
+              strings={["Đăng nhập để tiếp tục nhé..."]}
+              typeSpeed={35}
+              backSpeed={30}
+              showCursor={true}
+              cursorChar="|"
             />
-          </div>
-
-          <div className="mb-6">
-            <label className="text-left block font-medium mb-2 text-[#757575]">
-              Mật khẩu
-            </label>
-            <input
-              type="password"
-              placeholder="**********"
-              className="w-full h-[5vh] border-none rounded-full p-2 text-sm px-4 shadow"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          <button
-            onClick={handleLogin}
-            className="w-full bg-[#002855] text-white py-3 font-bold rounded-full hover:bg-[#1a3a5e] transition-all"
-          >
-            Đăng nhập
-          </button>
-
-          {error && <div className="text-sm mb-4 text-red-500">{error}</div>}
-
-          <div className="flex items-center my-8 w-full">
-            <div className="flex-grow h-px bg-gray-300"></div>
-            <span className="mx-4 text-gray-500 text-sm font-medium">Đăng nhập với phương thức khác</span>
-            <div className="flex-grow h-px bg-gray-300"></div>
-          </div>
-
-          <div className="flex flex-row justify-between gap-4">
-            <button
-              onClick={handleGoogleLogin}
-              className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded-full hover:bg-[#002855] hover:text-white font-semibold transition-all flex items-center justify-center gap-2"
-            >
-              <img src="/login/google.webp" alt="Google" className="w-5 h-5" />
-              Google
-            </button>
-            <button
-              onClick={handleMicrosoftLogin}
-              className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded-full hover:bg-[#002855] hover:text-white font-semibold transition-all flex items-center justify-center gap-2"
-            >
-              <img
-                src="/login/microsoft.svg"
-                alt="Microsoft"
-                className="w-5 h-5"
+          </h2>
+          <div className="lg:w-[60%] w-full max-w-[450px] mx-auto px-10 lg:px-0">
+            <div className="mb-4">
+              <label className="text-left block font-medium mb-2 text-[#757575]">
+                Tên đăng nhập
+              </label>
+              <input
+                type="text"
+                placeholder="email@wellspring.edu.vn"
+                className="w-full h-[5vh] border-none rounded-full p-2 text-sm px-4 shadow"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
-              Microsoft
+            </div>
+
+            <div className="mb-6">
+              <label className="text-left block font-medium mb-2 text-[#757575]">
+                Mật khẩu
+              </label>
+              <input
+                type="password"
+                placeholder="**********"
+                className="w-full h-[5vh] border-none rounded-full p-2 text-sm px-4 shadow"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            <button
+              onClick={handleLogin}
+              className="w-full bg-[#002855] text-white py-3 font-bold rounded-full hover:bg-[#1a3a5e] transition-all"
+            >
+              Đăng nhập
             </button>
+
+            {error && <div className="text-sm mb-4 text-red-500">{error}</div>}
+
+            <div className="flex items-center my-8 w-full">
+              <div className="flex-grow h-px bg-gray-300"></div>
+              <span className="mx-4 text-gray-500 text-sm font-medium">
+                Đăng nhập với phương thức khác
+              </span>
+              <div className="flex-grow h-px bg-gray-300"></div>
+            </div>
+
+            <div className="flex flex-row justify-between gap-4">
+              <button
+                onClick={handleGoogleLogin}
+                className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded-full hover:bg-[#002855] hover:text-white font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                <img
+                  src="/login/google.webp"
+                  alt="Google"
+                  className="w-5 h-5"
+                />
+                Google
+              </button>
+              <button
+                onClick={handleMicrosoftLogin}
+                className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded-full hover:bg-[#002855] hover:text-white font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                <img
+                  src="/login/microsoft.svg"
+                  alt="Microsoft"
+                  className="w-5 h-5"
+                />
+                Microsoft
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      
 
-      {/* Cột bên phải: Hình 3 thiết bị */}
-      <div className="w-1/2 flex items-center justify-center relative">
-        {/* Laptop */}
-        <img
-          src="/login/laptop.png"
-          alt="Laptop"
-          className="w-[80%] -left-[10%] relative z-10 fadeDown"
-        />
-        {/* Phone */}
-        <img
-          src="/login/phone.svg"
-          alt="Phone"
-          className="w-[25%] absolute -left-[4%] top-[39%] z-20 fadeLeft"
-        />
-        {/* Tablet */}
-        <img
-          src="/login/tablet.png"
-          alt="Tablet"
-          className="w-[48%] absolute left-[45%] top-[45%] z-20 fadeRight"
-        />
+        {/* Cột bên phải: Hình 3 thiết bị */}
+        <div className="hidden lg:flex w-1/2  items-center justify-center relative">
+          {/* Laptop */}
+          <img
+            src="/login/laptop.png"
+            alt="Laptop"
+            className="w-[80%] -left-[10%] relative z-10 fadeDown"
+          />
+          {/* Phone */}
+          <img
+            src="/login/phone.svg"
+            alt="Phone"
+            className="w-[25%] absolute -left-[4%] top-[39%] z-20 fadeLeft"
+          />
+          {/* Tablet */}
+          <img
+            src="/login/tablet.png"
+            alt="Tablet"
+            className="w-[48%] absolute left-[45%] top-[45%] z-20 fadeRight"
+          />
+        </div>
       </div>
-      </div>
-        <div className="flex items-center p-3 justify-center text-xs text-gray-600">
-      © Copyright 2025 Wellspring International Bilingual Schools. All Rights Reserved.
+      <div className="flex text-center items-center p-3 justify-center lg:text-xs text-gray-600">
+        © Copyright 2025 Wellspring International Bilingual Schools. All Rights
+        Reserved.
       </div>
     </div>
-    
   );
 };
 
