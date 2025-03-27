@@ -10,7 +10,8 @@ function HallOfFameAdminPage() {
   const [showCreateModal, setShowCreateModal] = useState(false); // Thêm state mới
   const [newCategoryName, setNewCategoryName] = useState(""); // Thêm state cho tên mới
   const [newCategoryNameEng, setNewCategoryNameEng] = useState(""); // Thêm state cho tên tiếng Anh
-
+  const [selectedSubAwardSchoolYear, setSelectedSubAwardSchoolYear] =
+    useState("");
   // Thêm useEffect để thay đổi title
   useEffect(() => {
     document.title = "Quản lý Hall of Fame | Wellspring";
@@ -1468,25 +1469,50 @@ function HallOfFameAdminPage() {
                       );
                     }
 
+                    // Filter sub-awards based on the selected school year
+                    const filteredSubAwards = selectedSubAwardSchoolYear
+                      ? cat.subAwards.filter(
+                          (sub) =>
+                            String(sub.schoolYear) ===
+                            String(selectedSubAwardSchoolYear)
+                        )
+                      : [];
+
                     return (
-                      <div className="grid grid-cols-3 gap-4">
-                        {cat.subAwards.map((sub, idx) => (
-                          <div
-                            key={idx}
-                            className={`cursor-pointer p-2 rounded-xl border transition ${
-                              selectedSubAward &&
-                              selectedSubAward.label === sub.label &&
-                              selectedSubAward.type === sub.type &&
-                              String(selectedSubAward.schoolYear) ===
-                                String(sub.schoolYear)
-                                ? "bg-[#002855] text-white"
-                                : "hover:bg-gray-50"
-                            }`}
-                            onClick={() => handleSubAwardSelect(sub)}
-                          >
-                            <div className="font-medium ml-1">{sub.label}</div>
-                          </div>
-                        ))}
+                      <div className="mb-4">
+                        <label>Chọn Năm Học:</label>
+                        <select
+                          className="border border-gray-300 rounded-3xl p-2 px-4 mr-4 ml-2"
+                          value={selectedSubAwardSchoolYear}
+                          onChange={(e) =>
+                            setSelectedSubAwardSchoolYear(e.target.value)
+                          }
+                        >
+                          {(schoolYears || []).map((sy) => (
+                            <option key={sy._id} value={sy._id}>
+                              {sy.code || sy.name}
+                            </option>
+                          ))}
+                        </select>
+                        <label>Chọn mục:</label>
+                        <select
+                          className="border border-gray-300 rounded-3xl p-2 ml-2"
+                          value={selectedSubAward ? selectedSubAward.label : ""}
+                          onChange={(e) => {
+                            const chosen = filteredSubAwards.find(
+                              (sub) => sub.label === e.target.value
+                            );
+                            if (chosen) {
+                              handleSubAwardSelect(chosen);
+                            }
+                          }}
+                        >
+                          {filteredSubAwards.map((sub, idx) => (
+                            <option key={idx} value={sub.label}>
+                              {sub.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     );
                   })()}
