@@ -41,6 +41,7 @@ const routeRoutes = require("./routes/routeRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const tripRoutes = require("./routes/tripRoutes");
 const dailyTripRoutes = require("./routes/dailyTripRoutes");
+const libraryRoutes = require("./routes/library");
 
 const app = express();
 
@@ -118,6 +119,7 @@ app.use("/api/routes", routeRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/trips", tripRoutes);
 app.use("/api/daily-trips", dailyTripRoutes);
+app.use("/api/libraries", libraryRoutes);
 
 
 // Khởi động server

@@ -23,7 +23,7 @@ import {
   FaCircleUser,
   FaBus,
 } from "react-icons/fa6";
-import { FaUserGraduate, FaUserTie } from "react-icons/fa";
+import { FaBook, FaUserGraduate, FaUserTie } from "react-icons/fa";
 import { IoDocuments } from "react-icons/io5";
 import { LuTicketSlash } from "react-icons/lu";
 
@@ -116,6 +116,12 @@ const Sidebar = ({
           label: "Quản lý Bus",
           icon: <FaBus size={16} />,
           link: "/dashboard/bus-service",
+          allowedRoles: ["superadmin", "admin", "technical"],
+        },
+        {
+          label: "Quản lý Thư viện",
+          icon: <FaBook size={16} />,
+          link: "/dashboard/library",
           allowedRoles: ["superadmin", "admin", "technical"],
         },
       ],

@@ -1,6 +1,7 @@
 // Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 // Import các component nội dung (điều chỉnh đường dẫn nếu cần)
 import LaptopTable from "../components/inventory/LaptopTable";
@@ -28,6 +29,9 @@ import BusRoutes from "../components/busService/BusRoutes";
 import BusTrips from "../components/busService/BusTrips";
 import BusVehicles from "../components/busService/BusVehicles";
 import BusDashboard from "../components/busService/BusDashboard";
+import LibraryReport from "../components/library/libraryReport";
+import LibraryData from "../components/library/libraryData";
+import LibraryManagement from "../components/library/libraryManagement";
 
 const urlToMenu = {
   devices: "Quản lý thiết bị",
@@ -41,6 +45,7 @@ const urlToMenu = {
   recruitmentadmin: "Quản lý tuyển dụng",
   halloffame: "Quản lý vinh danh",
   bus: "Quản lý Bus",
+  library: "Quản lý Thư viện",
 };
 
 const Dashboard = () => {
@@ -88,7 +93,7 @@ const Dashboard = () => {
       "Danh sách lịch trình",
     ],
     "Quản lý học sinh": ["Quản lý Năm học", "Quản lý Lớp", "Quản lý Học Sinh"],
-    // Nếu có mục nào khác cần tab, bạn có thể thêm ở đây.
+    "Quản lý Thư viện": ["Quản lý dữ liệu", "Quản lý Sách", "Báo Cáo"],
   };
 
   useEffect(() => {
@@ -176,11 +181,7 @@ const Dashboard = () => {
         break;
 
       case "Quản lý người dùng":
-        return (
-          <UserTable
-          // Truyền props cần thiết (ví dụ: danh sách người dùng, hàm sync,…)
-          />
-        );
+        return <UserTable />;
 
       case "Quản lý học sinh":
         if (activeTab === "Quản lý Năm học") return <StudentSchoolYear />;
@@ -189,11 +190,13 @@ const Dashboard = () => {
         break;
 
       case "Quản lý phòng học":
-        return (
-          <RoomTable
-          // Truyền các props cần thiết
-          />
-        );
+        return <RoomTable />;
+
+      case "Quản lý Thư viện":
+        if (activeTab === "Quản lý dữ liệu") return <LibraryData />;
+        if (activeTab === "Quản lý Sách") return <LibraryManagement />;
+        if (activeTab === "Báo Cáo") return <LibraryReport />;
+        break;
 
       case "Phần mềm lật trang":
         return <FlippageAdmin currentUser={currentUser} />;
@@ -209,6 +212,7 @@ const Dashboard = () => {
         if (activeTab === "Danh sách xe") return <BusVehicles />;
         if (activeTab === "Danh sách lịch trình") return <BusTrips />;
         break;
+
       case "Hồ sơ cá nhân":
         return (
           <div>
