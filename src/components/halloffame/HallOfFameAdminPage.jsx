@@ -4,6 +4,7 @@ import axios from "axios";
 import { API_URL, BASE_URL } from "../../config";
 import * as XLSX from "xlsx";
 import { FaPen, FaTrashCan } from "react-icons/fa6";
+import { FaSave } from "react-icons/fa";
 
 function HallOfFameAdminPage() {
   const [activeTab, setActiveTab] = useState("categories");
@@ -490,6 +491,30 @@ function HallOfFameAdminPage() {
   };
 
   // ----------------- RECORD FORM (Trong Modal) -----------------
+  const anyRecordChanged = selectedSubAwardRecords.some((r) => r.isChanged);
+
+  const handleSaveAllChanges = async () => {
+    try {
+      // Lọc ra các record đã thay đổi
+      const changedRecords = selectedSubAwardRecords.filter((r) => r.isChanged);
+
+      for (const record of changedRecords) {
+        // Gọi API cập nhật từng record
+        await axios.put(`${API_URL}/award-records/${record._id}`, record);
+      }
+
+      // Khi cập nhật xong, đặt lại isChanged = false cho tất cả
+      setSelectedSubAwardRecords((prevRecords) =>
+        prevRecords.map((r) => ({ ...r, isChanged: false }))
+      );
+
+      alert("Cập nhật tất cả thành công!");
+    } catch (error) {
+      console.error("Error updating all changed records:", error);
+      alert("Cập nhật tất cả thất bại!");
+    }
+  };
+
   const handleRecordSubAwardChange = (indexString) => {
     const idx = parseInt(indexString, 10);
     setRecordFormData((prev) => {
@@ -891,6 +916,15 @@ function HallOfFameAdminPage() {
     }
   };
 
+  const handleDeleteCustomSubAward = (index) => {
+    setCustomSubAwards((prev) => prev.filter((_, i) => i !== index));
+    // Nếu bạn muốn cập nhật cả trong categoryFormData.subAwards:
+    setCategoryFormData((prev) => ({
+      ...prev,
+      subAwards: prev.subAwards.filter((_, i) => i !== index),
+    }));
+  };
+
   // Reset tất cả state khi đóng modal
   const resetModalState = () => {
     setShowCategoryModal(false);
@@ -1052,7 +1086,7 @@ function HallOfFameAdminPage() {
                   <td className="min-w-[150px] border-white/0 py-3 pr-4">
                     <div className="text-sm font-semibold text-navy-700 space-x-2 text-end">
                       <button
-                        className="bg-[#EAA300] hover:bg-yellow-600 text-white font-semibold px-3 py-1 rounded-lg"
+                        className="bg-[#002855] text-white font-semibold px-3 py-1 rounded-lg"
                         onClick={() => {
                           handleCategoryEdit(cat);
                         }}
@@ -1152,17 +1186,17 @@ function HallOfFameAdminPage() {
       {/* Modal Tạo/Sửa Category + Tạo Record */}
       {showCategoryModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-20">
-          <div className="bg-white p-6 rounded shadow-lg w-11/12 relative flex gap-6">
+          <div className="bg-white pt-16 px-10 pb-6 rounded-[20px] shadow-lg w-11/12 relative flex gap-6">
             <button
               onClick={resetModalState}
-              className="absolute top-2 right-2 text-xl"
+              className="absolute top-[2%] right-[1%] text-sm items-center justify-center px-3 py-1 font-bold text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
             >
-              ×
+              Đóng
             </button>
 
             {/* Nửa bên trái: Thông tin Category + Step subAward */}
             <div
-              className="w-1/2 border-r pr-4 overflow-y-auto"
+              className="w-1/2 border-r pr-4 overflow-y-hidden hover:overflow-y-auto"
               style={{ maxHeight: "80vh" }}
             >
               <h2 className="text-xl font-semibold mb-2">
@@ -1360,12 +1394,26 @@ function HallOfFameAdminPage() {
                                 (sy) => sy._id === sub.schoolYear
                               );
                               return (
-                                <li key={index} className="text-sm">
-                                  {sub.label} (
-                                  {schoolYear
-                                    ? `Năm học ${schoolYear.code}`
-                                    : sub.schoolYear}
-                                  )
+                                <li
+                                  key={index}
+                                  className="text-sm flex items-center gap-2"
+                                >
+                                  <span>
+                                    {sub.label} (
+                                    {schoolYear
+                                      ? `Năm học ${schoolYear.code}`
+                                      : sub.schoolYear}
+                                    )
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteCustomSubAward(index)
+                                    }
+                                    className="text-white font-semibold hover:text-red-700 rounded-lg bg-orange-red-dark px-2"
+                                    title="Xoá"
+                                  >
+                                    X
+                                  </button>
                                 </li>
                               );
                             })}
@@ -1434,7 +1482,7 @@ function HallOfFameAdminPage() {
                     <div className="mt-4 flex justify-end">
                       <button
                         type="button"
-                        className="bg-[#009483] text-white px-3 py-1 rounded-lg text-sm"
+                        className="bg-[#002855]  text-white px-3 py-1 rounded-lg text-sm font-bold"
                         onClick={async () => {
                           try {
                             await handleCategorySubmit();
@@ -1446,7 +1494,7 @@ function HallOfFameAdminPage() {
                           }
                         }}
                       >
-                        Lưu Category
+                        Cập nhật
                       </button>
                     </div>
                   </div>
@@ -1482,12 +1530,13 @@ function HallOfFameAdminPage() {
                       <div className="mb-4">
                         <label>Chọn Năm Học:</label>
                         <select
-                          className="border border-gray-300 rounded-3xl p-2 px-4 mr-4 ml-2"
+                          className="border border-gray-300 rounded-3xl mr-4 ml-2"
                           value={selectedSubAwardSchoolYear}
                           onChange={(e) =>
                             setSelectedSubAwardSchoolYear(e.target.value)
                           }
                         >
+                          <option>Chọn Năm Học</option>
                           {(schoolYears || []).map((sy) => (
                             <option key={sy._id} value={sy._id}>
                               {sy.code || sy.name}
@@ -1496,7 +1545,7 @@ function HallOfFameAdminPage() {
                         </select>
                         <label>Chọn mục:</label>
                         <select
-                          className="border border-gray-300 rounded-3xl p-2 ml-2"
+                          className="border border-gray-300 rounded-3xl ml-2"
                           value={selectedSubAward ? selectedSubAward.label : ""}
                           onChange={(e) => {
                             const chosen = filteredSubAwards.find(
@@ -1507,6 +1556,7 @@ function HallOfFameAdminPage() {
                             }
                           }}
                         >
+                          <option>Chọn mục</option>
                           {filteredSubAwards.map((sub, idx) => (
                             <option key={idx} value={sub.label}>
                               {sub.label}
@@ -1522,7 +1572,7 @@ function HallOfFameAdminPage() {
 
             {/* Nửa bên phải: Form Tạo Record */}
             <div
-              className="w-1/2 pl-4 overflow-y-auto"
+              className="w-1/2 pl-4 overflow-y-hidden hover:overflow-y-auto"
               style={{ maxHeight: "80vh" }}
             >
               {/* Nếu chưa có editingCategory => disable form */}
@@ -1536,7 +1586,14 @@ function HallOfFameAdminPage() {
               {selectedSubAward && (
                 <div className="mb-4">
                   <div className="p-3 rounded-t">
-                    <div className="flex justify-end items-center">
+                    <div className="flex justify-between items-center">
+                      <a
+                        href="/records-sample"
+                        download
+                        className="bg-[#002855] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
+                      >
+                        Tải file mẫu
+                      </a>
                       <div className="space-x-2">
                         <input
                           type="file"
@@ -1547,7 +1604,7 @@ function HallOfFameAdminPage() {
                         />
                         <label
                           htmlFor="excel-students"
-                          className="bg-[#009483] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
+                          className="bg-[#002855] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
                         >
                           Thêm học sinh
                         </label>
@@ -1561,15 +1618,23 @@ function HallOfFameAdminPage() {
                         />
                         <label
                           htmlFor="excel-classes"
-                          className="bg-[#009483] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
+                          className="bg-[#002855] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
                         >
                           Thêm lớp
                         </label>
-
+                        {/* Nút “Cập nhật tất cả” -> chỉ hiện khi anyRecordChanged = true */}
+                        {anyRecordChanged && (
+                          <button
+                            onClick={handleSaveAllChanges}
+                            className="bg-[#009483] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
+                          >
+                            Cập nhật tất cả
+                          </button>
+                        )}
                         {selectedSubAwardRecords.length > 0 && (
                           <button
                             onClick={handleDeleteAllRecords}
-                            className="bg-[#DC0909] text-white px-3 py-1 rounded text-sm"
+                            className="bg-[#DC0909] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
                           >
                             Xóa tất cả dữ liệu
                           </button>
@@ -1749,7 +1814,7 @@ function HallOfFameAdminPage() {
                                 <div className="flex space-x-2">
                                   <button
                                     onClick={handleAddNewRecord}
-                                    className="text-white bg-[#009483] hover:bg-[#008577] p-1 rounded-[8px]"
+                                    className="text-white bg-[#002855] p-1 rounded-[8px]"
                                     title="Thêm mới"
                                     disabled={!selectedStudent}
                                   >
@@ -1776,20 +1841,7 @@ function HallOfFameAdminPage() {
                                       }}
                                       className="text-red-500 hover:text-red-600 p-1 rounded-[8px] hover:bg-red-50"
                                       title="Hủy"
-                                    >
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="h-5 w-5"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
-                                      >
-                                        <path
-                                          fillRule="evenodd"
-                                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                          clipRule="evenodd"
-                                        />
-                                      </svg>
-                                    </button>
+                                    ></button>
                                   )}
                                 </div>
                               </td>
@@ -1847,7 +1899,7 @@ function HallOfFameAdminPage() {
                                 <div className="flex space-x-2">
                                   <button
                                     onClick={handleAddNewClassRecord}
-                                    className="text-white bg-[#009483] hover:bg-[#008577] p-1 rounded-[8px]"
+                                    className="text-white bg-[#002855]  p-1 rounded-[8px]"
                                     title="Thêm mới"
                                     disabled={!classInput}
                                   >
@@ -1897,55 +1949,75 @@ function HallOfFameAdminPage() {
                         {/* Hiển thị records đã lưu */}
                         {selectedSubAwardRecords.map((record, recordIndex) => (
                           <React.Fragment key={`record-${recordIndex}`}>
-                            {/* Hiển thị học sinh */}
+                            {/* 3.1) Nếu record có student(s) */}
                             {record.students?.map((student, studentIndex) => (
                               <tr
                                 key={`record-${recordIndex}-student-${studentIndex}`}
                                 className="border-b border-gray-200"
                               >
+                                {/* Mã học sinh */}
                                 <td className="py-3 pr-4">
                                   <input
                                     type="text"
                                     value={student.student?.studentCode || ""}
                                     readOnly
-                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full"
                                   />
                                 </td>
+
+                                {/* Ghi chú tiếng Việt (note) */}
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                   <div className="relative">
+                                    {/* Input hiển thị để click vào chuyển sang textarea */}
                                     <input
                                       type="text"
                                       value={student.note || ""}
-                                      onChange={(e) => {
-                                        const updatedRecords = [
-                                          ...selectedSubAwardRecords,
-                                        ];
-                                        updatedRecords[recordIndex].students[
-                                          studentIndex
-                                        ].note = e.target.value;
-                                        setSelectedSubAwardRecords(
-                                          updatedRecords
-                                        );
-                                      }}
                                       onFocus={(e) => {
                                         e.target.style.display = "none";
                                         e.target.nextElementSibling.style.display =
                                           "block";
                                         e.target.nextElementSibling.focus();
                                       }}
-                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                      onChange={() => {
+                                        /* Để tránh warning của React, không làm gì trong đây */
+                                      }}
+                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full cursor-pointer"
                                     />
+
+                                    {/* Textarea ẩn, hiển thị khi focus */}
                                     <textarea
+                                      rows={3}
+                                      style={{ display: "none" }}
                                       value={student.note || ""}
                                       onChange={(e) => {
-                                        const updatedRecords = [
-                                          ...selectedSubAwardRecords,
-                                        ];
-                                        updatedRecords[recordIndex].students[
-                                          studentIndex
-                                        ].note = e.target.value;
+                                        const newValue = e.target.value;
+
+                                        // Chỉ cập nhật record tương ứng
                                         setSelectedSubAwardRecords(
-                                          updatedRecords
+                                          (prevRecords) =>
+                                            prevRecords.map((rec, idx) => {
+                                              if (idx !== recordIndex) {
+                                                return rec; // giữ nguyên các record khác
+                                              }
+                                              // nếu là recordIndex này, ta clone students
+                                              const updatedStudents =
+                                                rec.students.map(
+                                                  (stu, sIdx) => {
+                                                    if (sIdx !== studentIndex) {
+                                                      return stu; // giữ nguyên student khác
+                                                    }
+                                                    return {
+                                                      ...stu,
+                                                      note: newValue,
+                                                    };
+                                                  }
+                                                );
+                                              return {
+                                                ...rec,
+                                                isChanged: true, // đánh dấu record này
+                                                students: updatedStudents,
+                                              };
+                                            })
                                         );
                                       }}
                                       onBlur={(e) => {
@@ -1953,46 +2025,57 @@ function HallOfFameAdminPage() {
                                         e.target.previousElementSibling.style.display =
                                           "block";
                                       }}
-                                      className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
-                                      rows="4"
+                                      className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                     />
                                   </div>
                                 </td>
+
+                                {/* Ghi chú tiếng Anh (noteEng) */}
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                   <div className="relative">
+                                    {/* Input */}
                                     <input
                                       type="text"
                                       value={student.noteEng || ""}
-                                      onChange={(e) => {
-                                        const updatedRecords = [
-                                          ...selectedSubAwardRecords,
-                                        ];
-                                        updatedRecords[recordIndex].students[
-                                          studentIndex
-                                        ].noteEng = e.target.value;
-                                        setSelectedSubAwardRecords(
-                                          updatedRecords
-                                        );
-                                      }}
                                       onFocus={(e) => {
                                         e.target.style.display = "none";
                                         e.target.nextElementSibling.style.display =
                                           "block";
                                         e.target.nextElementSibling.focus();
                                       }}
-                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                      onChange={() => {}}
+                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full cursor-pointer"
                                     />
+                                    {/* Textarea */}
                                     <textarea
+                                      rows={3}
+                                      style={{ display: "none" }}
                                       value={student.noteEng || ""}
                                       onChange={(e) => {
-                                        const updatedRecords = [
-                                          ...selectedSubAwardRecords,
-                                        ];
-                                        updatedRecords[recordIndex].students[
-                                          studentIndex
-                                        ].noteEng = e.target.value;
+                                        const newValue = e.target.value;
                                         setSelectedSubAwardRecords(
-                                          updatedRecords
+                                          (prevRecords) =>
+                                            prevRecords.map((rec, idx) => {
+                                              if (idx !== recordIndex) {
+                                                return rec;
+                                              }
+                                              const updatedStudents =
+                                                rec.students.map(
+                                                  (stu, sIdx) => {
+                                                    if (sIdx !== studentIndex)
+                                                      return stu;
+                                                    return {
+                                                      ...stu,
+                                                      noteEng: newValue,
+                                                    };
+                                                  }
+                                                );
+                                              return {
+                                                ...rec,
+                                                isChanged: true,
+                                                students: updatedStudents,
+                                              };
+                                            })
                                         );
                                       }}
                                       onBlur={(e) => {
@@ -2000,71 +2083,42 @@ function HallOfFameAdminPage() {
                                         e.target.previousElementSibling.style.display =
                                           "block";
                                       }}
-                                      className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
-                                      rows="4"
+                                      className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                     />
                                   </div>
                                 </td>
+
+                                {/* Cột thao tác */}
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                   <div className="flex space-x-2">
-                                    <button
-                                      onClick={async () => {
-                                        try {
-                                          await axios.put(
-                                            `${API_URL}/award-records/${record._id}`,
-                                            record
-                                          );
-                                          alert("Cập nhật thành công!");
-                                        } catch (error) {
-                                          console.error(
-                                            "Error updating record:",
-                                            error
-                                          );
-                                          alert("Cập nhật thất bại!");
-                                        }
-                                      }}
-                                      className="text-[#002855] hover:text-[#002147] p-1 rounded-full hover:bg-blue-50"
-                                      title="Cập nhật"
-                                    >
-                                      <FaPen size={14} />
-                                    </button>
+                                    {/* Nút Xóa */}
                                     <button
                                       onClick={async () => {
                                         if (
-                                          window.confirm(
-                                            "Bạn có chắc chắn muốn xóa record này?"
+                                          !window.confirm(
+                                            "Bạn có chắc muốn xóa record này?"
                                           )
                                         ) {
-                                          try {
-                                            const updatedRecords = [
-                                              ...selectedSubAwardRecords,
-                                            ];
-                                            updatedRecords[
-                                              recordIndex
-                                            ].students = updatedRecords[
-                                              recordIndex
-                                            ].students.filter(
-                                              (_, idx) => idx !== studentIndex
-                                            );
-                                            await axios.put(
-                                              `${API_URL}/award-records/${record._id}`,
-                                              updatedRecords[recordIndex]
-                                            );
-                                            setSelectedSubAwardRecords(
-                                              updatedRecords
-                                            );
-                                            alert("Xóa thành công!");
-                                          } catch (error) {
-                                            console.error(
-                                              "Error deleting record:",
-                                              error
-                                            );
-                                            alert("Xóa thất bại!");
-                                          }
+                                          return;
+                                        }
+                                        try {
+                                          await axios.delete(
+                                            `${API_URL}/award-records/${record._id}`
+                                          );
+                                          // Xoá record khỏi state
+                                          setSelectedSubAwardRecords((prev) =>
+                                            prev.filter(
+                                              (_, fIdx) => fIdx !== recordIndex
+                                            )
+                                          );
+                                          alert("Đã xóa thành công!");
+                                        } catch (err) {
+                                          console.error(err);
+                                          alert("Xóa thất bại!");
                                         }
                                       }}
-                                      className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
-                                      title="Xóa"
+                                      className="text-[#DC0909] hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                                      title="Xóa record"
                                     >
                                       <FaTrashCan size={14} />
                                     </button>
@@ -2073,58 +2127,66 @@ function HallOfFameAdminPage() {
                               </tr>
                             ))}
 
-                            {/* Hiển thị lớp */}
+                            {/* 3.2) Nếu record có awardClasses */}
                             {record.awardClasses?.map(
                               (awardClass, classIndex) => (
                                 <tr
                                   key={`record-${recordIndex}-class-${classIndex}`}
                                   className="border-b border-gray-200"
                                 >
+                                  {/* Tên lớp */}
                                   <td className="py-3 pr-4">
                                     <input
                                       type="text"
                                       value={awardClass.class?.className || ""}
                                       readOnly
-                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full"
                                     />
                                   </td>
+
+                                  {/* Ghi chú tiếng Việt (note) */}
                                   <td className="px-3 py-2 text-sm text-gray-900">
                                     <div className="relative">
                                       <input
                                         type="text"
                                         value={awardClass.note || ""}
-                                        onChange={(e) => {
-                                          const updatedRecords = [
-                                            ...selectedSubAwardRecords,
-                                          ];
-                                          updatedRecords[
-                                            recordIndex
-                                          ].awardClasses[classIndex].note =
-                                            e.target.value;
-                                          setSelectedSubAwardRecords(
-                                            updatedRecords
-                                          );
-                                        }}
                                         onFocus={(e) => {
                                           e.target.style.display = "none";
                                           e.target.nextElementSibling.style.display =
                                             "block";
                                           e.target.nextElementSibling.focus();
                                         }}
-                                        className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                        onChange={() => {}}
+                                        className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full cursor-pointer"
                                       />
                                       <textarea
+                                        rows={3}
+                                        style={{ display: "none" }}
                                         value={awardClass.note || ""}
                                         onChange={(e) => {
-                                          const updatedRecords = [
-                                            ...selectedSubAwardRecords,
-                                          ];
-                                          updatedRecords[
-                                            recordIndex
-                                          ].awardClasses[classIndex].note =
-                                            e.target.value;
+                                          const newValue = e.target.value;
                                           setSelectedSubAwardRecords(
-                                            updatedRecords
+                                            (prevRecords) =>
+                                              prevRecords.map((rec, idx) => {
+                                                if (idx !== recordIndex)
+                                                  return rec;
+                                                const updatedClasses =
+                                                  rec.awardClasses.map(
+                                                    (ac, cIdx) => {
+                                                      if (cIdx !== classIndex)
+                                                        return ac;
+                                                      return {
+                                                        ...ac,
+                                                        note: newValue,
+                                                      };
+                                                    }
+                                                  );
+                                                return {
+                                                  ...rec,
+                                                  isChanged: true,
+                                                  awardClasses: updatedClasses,
+                                                };
+                                              })
                                           );
                                         }}
                                         onBlur={(e) => {
@@ -2132,48 +2194,54 @@ function HallOfFameAdminPage() {
                                           e.target.previousElementSibling.style.display =
                                             "block";
                                         }}
-                                        className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
-                                        rows="4"
+                                        className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                       />
                                     </div>
                                   </td>
+
+                                  {/* Ghi chú tiếng Anh (noteEng) */}
                                   <td className="px-3 py-2 text-sm text-gray-900">
                                     <div className="relative">
                                       <input
                                         type="text"
                                         value={awardClass.noteEng || ""}
-                                        onChange={(e) => {
-                                          const updatedRecords = [
-                                            ...selectedSubAwardRecords,
-                                          ];
-                                          updatedRecords[
-                                            recordIndex
-                                          ].awardClasses[classIndex].noteEng =
-                                            e.target.value;
-                                          setSelectedSubAwardRecords(
-                                            updatedRecords
-                                          );
-                                        }}
                                         onFocus={(e) => {
                                           e.target.style.display = "none";
                                           e.target.nextElementSibling.style.display =
                                             "block";
                                           e.target.nextElementSibling.focus();
                                         }}
-                                        className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
+                                        onChange={() => {}}
+                                        className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full cursor-pointer"
                                       />
                                       <textarea
+                                        rows={3}
+                                        style={{ display: "none" }}
                                         value={awardClass.noteEng || ""}
                                         onChange={(e) => {
-                                          const updatedRecords = [
-                                            ...selectedSubAwardRecords,
-                                          ];
-                                          updatedRecords[
-                                            recordIndex
-                                          ].awardClasses[classIndex].noteEng =
-                                            e.target.value;
+                                          const newValue = e.target.value;
                                           setSelectedSubAwardRecords(
-                                            updatedRecords
+                                            (prevRecords) =>
+                                              prevRecords.map((rec, idx) => {
+                                                if (idx !== recordIndex)
+                                                  return rec;
+                                                const updatedClasses =
+                                                  rec.awardClasses.map(
+                                                    (ac, cIdx) => {
+                                                      if (cIdx !== classIndex)
+                                                        return ac;
+                                                      return {
+                                                        ...ac,
+                                                        noteEng: newValue,
+                                                      };
+                                                    }
+                                                  );
+                                                return {
+                                                  ...rec,
+                                                  isChanged: true,
+                                                  awardClasses: updatedClasses,
+                                                };
+                                              })
                                           );
                                         }}
                                         onBlur={(e) => {
@@ -2181,63 +2249,42 @@ function HallOfFameAdminPage() {
                                           e.target.previousElementSibling.style.display =
                                             "block";
                                         }}
-                                        className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
-                                        rows="4"
+                                        className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                       />
                                     </div>
                                   </td>
+
+                                  {/* Cột thao tác cho lớp */}
                                   <td className="px-3 py-2 text-sm text-gray-900">
                                     <div className="flex space-x-2">
-                                      <button
-                                        onClick={async () => {
-                                          try {
-                                            await axios.put(
-                                              `${API_URL}/award-records/${record._id}`,
-                                              record
-                                            );
-                                            alert("Cập nhật thành công!");
-                                          } catch (error) {
-                                            console.error(
-                                              "Error updating record:",
-                                              error
-                                            );
-                                            alert("Cập nhật thất bại!");
-                                          }
-                                        }}
-                                        className="text-[#002855] hover:text-[#002147] p-1 rounded-full hover:bg-blue-50"
-                                        title="Cập nhật"
-                                      >
-                                        <FaPen size={14} />
-                                      </button>
+                                      {/* Nút Xoá */}
                                       <button
                                         onClick={async () => {
                                           if (
-                                            window.confirm(
-                                              "Bạn có chắc chắn muốn xóa record này?"
+                                            !window.confirm(
+                                              "Bạn có chắc muốn xóa record này?"
                                             )
                                           ) {
-                                            try {
-                                              await axios.delete(
-                                                `${API_URL}/award-records/${record._id}`
-                                              );
-                                              setSelectedSubAwardRecords(
-                                                (prev) =>
-                                                  prev.filter(
-                                                    (r) => r._id !== record._id
-                                                  )
-                                              );
-                                              alert("Xóa thành công!");
-                                            } catch (error) {
-                                              console.error(
-                                                "Error deleting record:",
-                                                error
-                                              );
-                                              alert("Xóa thất bại!");
-                                            }
+                                            return;
+                                          }
+                                          try {
+                                            await axios.delete(
+                                              `${API_URL}/award-records/${record._id}`
+                                            );
+                                            setSelectedSubAwardRecords((prev) =>
+                                              prev.filter(
+                                                (_, fIdx) =>
+                                                  fIdx !== recordIndex
+                                              )
+                                            );
+                                            alert("Đã xóa thành công!");
+                                          } catch (err) {
+                                            console.error(err);
+                                            alert("Xóa thất bại!");
                                           }
                                         }}
-                                        className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
-                                        title="Xóa"
+                                        className="text-[#DC0909] hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                                        title="Xóa record"
                                       >
                                         <FaTrashCan size={14} />
                                       </button>
