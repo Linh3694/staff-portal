@@ -3,3 +3,4 @@ export const API_URL =
 export const UPLOAD_URL =
   import.meta.env.VITE_UPLOAD_URL || "http://localhost:5001/uploads";
 export const BASE_URL = import.meta.env.VITE_URL || "http://localhost:5001";
+export const CDN_URL = import.meta.env.VITE_CDN;

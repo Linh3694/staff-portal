@@ -12,6 +12,7 @@ import "animate.css";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import useResponsive from "../hook/useResponsive";
+import { CDN_URL } from "../config";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -83,19 +84,19 @@ const HallofFame = () => {
         text: t("principal1.quote.text"),
         author: t("principal1.quote.author"),
       },
-      image: "/halloffame/nguyenvinhson.png",
+      image: `${CDN_URL}/HallOfFame/nguyenvinhson.png`,
     },
     {
       name: t("principal2.name"),
       title: t("principal2.title"),
       message: t("principal2.message"),
-      image: "/halloffame/hoangthiminh.png",
+      image: `${CDN_URL}/HallOfFame/hoangthiminh.png`,
     },
     {
       name: t("principal3.name"),
       title: t("principal3.title"),
       message: t("principal3.message"),
-      image: "/halloffame/lethuynga.png",
+      image: `${CDN_URL}/HallOfFame/lethuynga.png`,
     },
   ];
 
@@ -127,7 +128,7 @@ const HallofFame = () => {
     // Chỉ preload ảnh đầu tiên để cải thiện tốc độ load
     const initialImages = Array.from(
       { length: 5 }, // Chỉ load trước 5 ảnh đầu tiên
-      (_, i) => `/halloffame/students/student${i + 1}.webp`
+      (_, i) => `${CDN_URL}/HallOfFame/students/student${i + 1}.webp`
     );
 
     setTopImages(initialImages);
@@ -138,7 +139,7 @@ const HallofFame = () => {
     setTimeout(() => {
       const fullImages = Array.from(
         { length: 20 },
-        (_, i) => `/halloffame/students/student${i + 1}.webp`
+        (_, i) => `${CDN_URL}/HallOfFame/students/student${i + 1}.webp`
       );
       setTopImages(fullImages.slice(0, 10));
       setBottomImages(fullImages.slice(10, 20));
@@ -444,7 +445,6 @@ const HallofFame = () => {
     };
   }, [shouldStartCounting]);
 
-
   return (
     <>
       <header className="fixed top-0 left-0 w-full h-[80px] bg-[#002855] text-white flex items-center lg:shadow-none justify-between lg:px-20 px-6 shadow-md z-50">
@@ -452,14 +452,14 @@ const HallofFame = () => {
         <div className="flex flex-row gap-10 items-center">
           <button onClick={() => navigate("/hall-of-honor")}>
             <img
-              src="/halloffame/HOH-gold.png"
+              src={`${CDN_URL}/HallOfFame/HOH-gold.png`}
               className="h-10"
               alt="Wellspring Logo"
             />
           </button>
           <a href="https://wellspring.edu.vn">
             <img
-              src="/halloffame/WS-white.png"
+              src={`${CDN_URL}/HallOfFame/WS-white.png`}
               className="h-16"
               alt="Wellspring Logo"
             />
@@ -475,7 +475,7 @@ const HallofFame = () => {
         {/* Logo/nút khác bên phải */}
         <div className="flex flex-row gap-10 items-center">
           <img
-            src="/halloffame/HJ-white.png"
+            src={`${CDN_URL}/HallOfFame/HJ-white.png`}
             className="h-12 hidden md:block"
             alt="Happy Journey"
           />
@@ -504,7 +504,7 @@ const HallofFame = () => {
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
           <video
             className="hidden lg:flex absolute top-0 left-0 w-full h-full object-cover"
-            src="/halloffame/banner.mp4"
+            src={`${CDN_URL}/HallOfFame/banner.mp4`}
             autoPlay
             muted
             loop
@@ -513,7 +513,7 @@ const HallofFame = () => {
           />
           <video
             className="lg:hidden absolute top-0 left-0 w-full h-full object-cover"
-            src="/halloffame/banner_mobile.mp4"
+            src={`${CDN_URL}/HallOfFame/banner_mobile.mp4`}
             autoPlay
             muted
             loop
@@ -527,7 +527,7 @@ const HallofFame = () => {
       <section
         className="relative w-full py-20 px-10 xl:px-20 xll:px-44 "
         style={{
-          backgroundImage: "url('/halloffame/section3.png')",
+          backgroundImage: `url(${CDN_URL}/HallOfFame/section3.png)`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}

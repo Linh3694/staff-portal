@@ -1588,7 +1588,7 @@ function HallOfFameAdminPage() {
                   <div className="p-3 rounded-t">
                     <div className="flex justify-between items-center">
                       <a
-                        href="/records-sample"
+                        href="/record-sample.xlsx"
                         download
                         className="bg-[#002855] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
                       >
