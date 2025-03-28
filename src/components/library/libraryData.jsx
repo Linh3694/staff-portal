@@ -1097,7 +1097,7 @@ function BookDetail() {
   const [searchResults, setSearchResults] = useState([]);
 
   // Danh sách Book => hiển thị books của selectedLibrary
-  const books = selectedLibrary?.books || [];
+  const [allBooks, setAllBooks] = useState([]);
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1119,6 +1119,24 @@ function BookDetail() {
     storageLocation: "",
     seriesName: "",
   });
+
+  // Hàm fetchAllBooks (có sẵn trong code)
+  const fetchAllBooks = () => {
+    fetch(`${API_URL}/libraries/books`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Tất cả sách:", data);
+        setAllBooks(data); // Lưu toàn bộ sách vào state
+      })
+      .catch((error) => {
+        console.error("Lỗi khi lấy tất cả sách:", error);
+      });
+  };
+
+  // Gọi khi component mount
+  useEffect(() => {
+    fetchAllBooks();
+  }, []);
 
   // Lấy toàn bộ Library => cho tính năng search
   useEffect(() => {
@@ -1301,8 +1319,6 @@ function BookDetail() {
 
   return (
     <div>
-      {/* Search Library */}
-
       <div className="flex flex-row items-center justify-between mb-4">
         <h2 className="text-[24px] font-bold">Sách</h2>
         <button
@@ -1335,7 +1351,7 @@ function BookDetail() {
           </tr>
         </thead>
         <tbody>
-          {books.map((b, idx) => (
+          {allBooks.map((b, idx) => (
             <tr key={idx}>
               <td className="py-2 px-3 text-sm">{idx + 1}</td>
               <td className="py-2 px-3 text-sm">{b.isbn}</td>
@@ -1343,26 +1359,16 @@ function BookDetail() {
               <td className="py-2 px-3 text-sm">{b.publishYear}</td>
               <td className="py-2 px-3 text-right">
                 <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={() => openEditModal(b, idx)}
-                    className="flex items-center justify-center px-2 py-1 text-sm text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
-                  >
-                    Sửa
-                  </button>
-                  <button
-                    onClick={() => handleDelete(idx)}
-                    className="flex items-center justify-center px-2 py-1 text-sm text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
-                  >
-                    Xoá
-                  </button>
+                  {/* tuỳ bạn muốn xử lý nút Sửa/Xoá thế nào,
+              vì giờ mỗi book có 1 libraryId riêng */}
                 </div>
               </td>
             </tr>
           ))}
-          {books.length === 0 && selectedLibrary && (
+          {allBooks.length === 0 && (
             <tr>
               <td colSpan={5} className="p-4 text-center text-sm text-gray-500">
-                Chưa có quyển sách nào trong Library này
+                Hiện chưa có sách nào trong hệ thống
               </td>
             </tr>
           )}

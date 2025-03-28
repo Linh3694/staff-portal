@@ -236,6 +236,20 @@ exports.deleteSpecialCode = async (req, res) => {
 };
 
 
+exports.getBooksFromLibrary = async (req, res) => {
+  try {
+    const { libraryId } = req.params;
+    const library = await Library.findById(libraryId);
+    if (!library) {
+      return res.status(404).json({ error: 'Library not found' });
+    }
+    return res.status(200).json(library.books);
+  } catch (error) {
+    console.error('Error retrieving books from library:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // POST /libraries/:libraryId/books
 exports.addBookToLibrary = async (req, res) => {
   try {
@@ -302,6 +316,20 @@ exports.deleteBookFromLibrary = async (req, res) => {
     return res.status(200).json(library);
   } catch (error) {
     console.error('Error deleting book from library:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+exports.getAllBooks = async (req, res) => {
+  try {
+    const libraries = await Library.find();
+    const allBooks = libraries.reduce((acc, library) => {
+      const booksWithLibraryId = library.books.map(book => ({ ...book.toObject(), libraryId: library._id }));
+      return acc.concat(booksWithLibraryId);
+    }, []);
+    return res.status(200).json(allBooks);
+  } catch (error) {
+    console.error('Error fetching all books:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };

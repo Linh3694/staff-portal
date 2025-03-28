@@ -1,5 +1,3 @@
-// routes/libraryRoutes.js
-
 const express = require("express");
 const router = express.Router();
 const libraryController = require("../controllers/libraryController");
@@ -27,10 +25,12 @@ router.delete("/special-codes/:id", libraryController.deleteSpecialCode);
 router.post('/:libraryId/books', libraryController.addBookToLibrary);
 router.put('/:libraryId/books/:bookIndex', libraryController.updateBookInLibrary);
 router.delete('/:libraryId/books/:bookIndex', libraryController.deleteBookFromLibrary);
+router.get('/:libraryId/books', libraryController.getBooksFromLibrary);
+
+router.get('/books', libraryController.getAllBooks);
 
 router.post("/", uploadLibraryImage.upload.single("file"), async (req, res) => {
   try {
-    // Nếu có file được gửi, convert file sang WebP và gán đường dẫn vào req.body.coverImage
     if (req.file) {
       const filePath = await uploadLibraryImage.convertToWebp(req.file.buffer, req.file.originalname);
       req.body.coverImage = filePath;
