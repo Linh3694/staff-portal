@@ -722,7 +722,7 @@ const StudentHonorContent = ({
                       student.currentClass?.className ||
                       t("noClass", "Chưa cập nhật lớp")}
                   </div>
-                  <div className="h-[60px] lg:w-[208px] w-[150px] text-[#f9d16f] shimmer-text lg:text-[18px] text-[14px] font-bold text-center">
+                  <div className="h-[60px] lg:w-[208px] w-[150px] text-[#f9d16f]  lg:text-[18px] text-[14px] font-bold text-center">
                     {student.student?.name}
                   </div>
                 </div>
@@ -793,7 +793,7 @@ const StudentHonorContent = ({
                                 student.currentClass?.className ||
                                 t("noClass", "Chưa cập nhật lớp")}
                             </div>
-                            <div className="h-[60px] lg:w-[208px] w-[150px] text-[#f9d16f] shimmer-text lg:text-[18px] text-[14px] font-bold text-center">
+                            <div className="h-[60px] lg:w-[208px] w-[150px] text-[#f9d16f]  lg:text-[18px] text-[14px] font-bold text-center">
                               {student.student?.name}
                             </div>
                           </div>
