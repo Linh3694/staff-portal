@@ -77,15 +77,27 @@ exports.uploadStudentPhoto = async (req, res) => {
       fs.unlinkSync(uploadedPath);
     }
 
-    // Tạo Photo
-    const newPhoto = await Photo.create({
-      student,           // gán student
-      class: null,       // null vì là ảnh cá nhân
-      schoolYear,
-      photoUrl: outPath,
-    });
-
-    return res.status(201).json(newPhoto);
+    // Kiểm tra xem đã có ảnh trùng student + schoolYear chưa
+    let existingPhoto = await Photo.findOne({ student, schoolYear });
+    if (existingPhoto) {
+      // Xoá ảnh cũ
+      if (fs.existsSync(existingPhoto.photoUrl)) {
+        fs.unlinkSync(existingPhoto.photoUrl);
+      }
+      // Cập nhật url mới
+      existingPhoto.photoUrl = outPath;
+      await existingPhoto.save();
+      return res.status(200).json(existingPhoto);
+    } else {
+      // Tạo Photo mới
+      const newPhoto = await Photo.create({
+        student,
+        class: null,
+        schoolYear,
+        photoUrl: outPath,
+      });
+      return res.status(201).json(newPhoto);
+    }
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: err.message });

@@ -9,8 +9,24 @@ const SchoolYear = require("../models/SchoolYear");
 
 exports.enrollStudentToClass = async (req, res) => {
   try {
-    const enrollment = await StudentClassEnrollment.create(req.body);
-    return res.status(201).json(enrollment);
+    const { student, class: classId, schoolYear } = req.body;
+
+    // Tìm xem đã có enrollment cho học sinh này trong cùng năm học chưa
+    const existingEnrollment = await StudentClassEnrollment.findOne({
+      student,
+      schoolYear
+    });
+
+    if (existingEnrollment) {
+      // Đã có => cập nhật sang lớp mới
+      existingEnrollment.class = classId;
+      await existingEnrollment.save();
+      return res.status(200).json(existingEnrollment);
+    } else {
+      // Chưa có => tạo mới
+      const newEnrollment = await StudentClassEnrollment.create(req.body);
+      return res.status(201).json(newEnrollment);
+    }
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
@@ -148,11 +164,6 @@ exports.bulkUploadEnrollments = async (req, res) => {
         },
       });
     });
-    console.log("Rows:", rows);
-console.log("Student Map:", studentMap);
-console.log("SchoolYear Map:", schoolYearMap);
-console.log("Class Map:", classMap);
-console.log("Bulk Ops:", bulkOps);
     if (bulkOps.length > 0) {
       const result = await StudentClassEnrollment.bulkWrite(bulkOps);
       return res.json({ message: "Bulk upload Enrollments success!", result });

@@ -106,7 +106,7 @@ exports.bulkUploadClasses = async (req, res) => {
     });
 
     // Lấy tất cả giáo viên và tạo map theo email
-    const users = await require("../models/User").find({});
+    const users = await require("../models/Users").find({});
     const userMap = {};
     users.forEach((u) => {
       if (u.email) userMap[u.email.trim()] = u._id;
@@ -136,13 +136,37 @@ exports.bulkUploadClasses = async (req, res) => {
     });
 
     if (classesToInsert.length > 0) {
-      await ClassModel.insertMany(classesToInsert);
-    }
+      // Lọc bỏ các lớp đã tồn tại dựa trên className và schoolYear
+      const filteredClasses = [];
+      for (const cls of classesToInsert) {
+        const exists = await ClassModel.findOne({
+          className: cls.className,
+          schoolYear: cls.schoolYear,
+        });
+        if (!exists) {
+          filteredClasses.push(cls);
+        }
+      }
 
-    return res.json({
-      message: "Bulk upload Classes success!",
-      count: classesToInsert.length,
-    });
+      if (filteredClasses.length > 0) {
+        await ClassModel.insertMany(filteredClasses);
+        return res.json({
+          message: `Bulk upload success! ${filteredClasses.length} lớp mới được thêm.`,
+          count: filteredClasses.length,
+        });
+      } else {
+        return res.json({
+          message:
+            "Bulk upload: Tất cả các lớp đã tồn tại trong hệ thống, không có lớp mới được thêm.",
+          count: 0,
+        });
+      }
+    } else {
+      return res.json({
+        message: "Không có dữ liệu hợp lệ trong file Excel.",
+        count: 0,
+      });
+    }
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: err.message });

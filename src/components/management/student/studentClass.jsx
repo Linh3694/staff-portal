@@ -40,7 +40,7 @@ const StudentClass = () => {
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollments, setEnrollments] = useState([]);
   const [selectedClassForEnroll, setSelectedClassForEnroll] = useState(null);
-
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   // Modal “Thêm học sinh” vào lớp
   const [showEnrollStudentModal, setShowEnrollStudentModal] = useState(false);
   const [enrollStudentInput, setEnrollStudentInput] = useState("");
@@ -52,6 +52,32 @@ const StudentClass = () => {
     schoolYear: "",
     homeroomTeachers: [],
   };
+  const [showClassPhotoModal, setShowClassPhotoModal] = useState(false);
+  const [newClassPhoto, setNewClassPhoto] = useState({
+    class: "",
+    classInput: "",
+    file: null,
+  });
+  const classPhotoInputRef = useRef(null);
+  const classZipInputRef = useRef(null);
+  const [classPhotoZipUploading, setClassPhotoZipUploading] = useState(false);
+  const [classPhotoZipStats, setClassPhotoZipStats] = useState(null);
+  // State cho enrollment form
+  const [newEnrollment, setNewEnrollment] = useState({
+    student: "",
+    studentInput: "",
+    class: "",
+    classInput: "",
+    schoolYear: "",
+    startDate: "",
+    endDate: "",
+  });
+
+  // State và ref cho upload Excel enrollment
+  const [enrollmentExcelFile, setEnrollmentExcelFile] = useState(null);
+  const [enrollmentExcelScanResult, setEnrollmentExcelScanResult] =
+    useState(null);
+  const enrollmentExcelInputRef = useRef(null);
 
   // -----------------------------------
   // FETCH DATA
@@ -286,6 +312,68 @@ const StudentClass = () => {
   };
 
   // -----------------------------------
+  // UPLOAD IMAGE CLASS
+  // -----------------------------------
+  const handleClassPhotoUpload = async () => {
+    if (!newClassPhoto.class || !newClassPhoto.file) {
+      toast.warning("Vui lòng chọn lớp và file ảnh!");
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append("classId", newClassPhoto.class);
+      formData.append("schoolYear", newClassPhoto.schoolYear);
+      formData.append("photo", newClassPhoto.file);
+      // Giả sử endpoint upload ảnh cho lớp là /photos/class
+      const res = await fetch(`${API_URL}/photos/class`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText);
+      }
+      toast.success("Upload ảnh lớp thành công!");
+      setNewClassPhoto({
+        class: "",
+        classInput: "",
+        schoolYear: "",
+        file: null,
+      });
+      fetchClassPhotos();
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi upload ảnh lớp!");
+    }
+  };
+
+  const handleClassPhotoZipUpload = () => {
+    const file = classZipInputRef.current.files[0];
+    if (!file) return;
+    setClassPhotoZipUploading(true);
+    setClassPhotoZipStats(null);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_URL}/photos/bulk-upload-class`);
+    xhr.onload = function () {
+      setClassPhotoZipUploading(false);
+      if (xhr.status === 200) {
+        toast.success("Upload ZIP ảnh lớp thành công!");
+        const response = JSON.parse(xhr.responseText);
+        setClassPhotoZipStats(response);
+        fetchClassPhotos();
+      } else {
+        toast.error("Lỗi upload ZIP ảnh lớp!");
+      }
+    };
+    xhr.onerror = function () {
+      setClassPhotoZipUploading(false);
+      toast.error("Lỗi upload ZIP ảnh lớp!");
+    };
+    const formData = new FormData();
+    formData.append("zipFile", file);
+    xhr.send(formData);
+  };
+  // -----------------------------------
   // EDITING CLASS
   // -----------------------------------
   const openEditModal = (cls) => {
@@ -354,6 +442,7 @@ const StudentClass = () => {
       });
       if (!res.ok) throw new Error("Failed to enroll student");
       toast.success("Thêm học sinh vào lớp thành công!");
+      await fetchEnrollments(); // Hoặc fetchAllEnrollment() nếu bạn đặt tên hàm khác
       setShowEnrollStudentModal(false);
       setEnrollStudentInput("");
       setSelectedStudentId("");
@@ -361,6 +450,60 @@ const StudentClass = () => {
       fetchEnrollments();
     } catch (error) {
       toast.error("Lỗi khi enroll học sinh!");
+    }
+  };
+
+  // -----------------------------------
+  // ENROLLMENT EXCEL
+  // -----------------------------------
+
+  const createEnrollment = async () => {
+    try {
+      const res = await fetch(`${API_URL}/enrollments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newEnrollment),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText);
+      }
+      toast.success("Enrollment thành công!");
+      setNewEnrollment({
+        student: "",
+        studentInput: "",
+        class: "",
+        classInput: "",
+        schoolYear: "",
+        startDate: "",
+        endDate: "",
+      });
+    } catch (error) {
+      toast.error("Lỗi tạo Enrollment!");
+    }
+  };
+
+  const handleEnrollmentExcelUpload = async () => {
+    if (!enrollmentExcelFile) {
+      toast.warning("Bạn chưa chọn file Excel!");
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append("excelFile", enrollmentExcelFile);
+      const res = await fetch(`${API_URL}/enrollments/bulk`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText);
+      }
+      toast.success("Upload Excel Enrollment thành công!");
+      setEnrollmentExcelFile(null);
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi upload Excel Enrollment!");
     }
   };
 
@@ -385,47 +528,17 @@ const StudentClass = () => {
           </button>
           {/* Chỉ để mở modal enroll, user chọn lớp */}
           <button
-            onClick={() => setShowEnrollStudentModal(true)}
+            onClick={() => setShowEnrollmentModal(true)}
             className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
           >
-            Enroll
+            Enrollment
           </button>
-          {/* Upload Excel */}
-          <button
-            onClick={() => fileInputRef.current && fileInputRef.current.click()}
-            className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
-          >
-            Upload Excel
-          </button>
-          <input
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            ref={fileInputRef}
-            style={{ display: "none" }}
-            onChange={(e) => {
-              if (e.target.files[0]) {
-                setClassExcelFile(e.target.files[0]);
-                handleClassExcelUpload();
-              }
-            }}
-          />
           {/* Upload Ảnh ZIP */}
           <button
-            onClick={() => {
-              const input = document.createElement("input");
-              input.type = "file";
-              input.accept = ".zip";
-              input.onchange = handleBulkClassPhotoZip;
-              input.click();
-            }}
-            disabled={uploadingZip}
-            className={`mr-2 px-3 py-2 text-sm font-bold rounded-lg shadow-2xl transform transition-transform duration-300 ${
-              uploadingZip
-                ? "bg-orange-red text-white cursor-not-allowed"
-                : "bg-[#002147] text-white hover:bg-[#001635] hover:scale-105"
-            }`}
+            onClick={() => setShowClassPhotoModal(true)}
+            className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
           >
-            {uploadingZip ? "Đang xử lý..." : "Upload Ảnh"}
+            Cập nhật Ảnh
           </button>
         </div>
       </div>
@@ -572,142 +685,185 @@ const StudentClass = () => {
       {/* MODAL TẠO LỚP */}
       {showCreateModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-[20px] w-96">
-            <h2 className="text-xl font-bold mb-4">Tạo Lớp mới</h2>
-
-            <label className="font-semibold ml-2 text-base">Tên lớp</label>
-            <input
-              type="text"
-              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
-              placeholder="Nhập tên lớp..."
-              value={formData.className}
-              onChange={(e) =>
-                setFormData({ ...formData, className: e.target.value })
-              }
-            />
-
-            <label className="font-semibold ml-2 text-base mt-4">Năm học</label>
-            <select
-              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
-              value={formData.schoolYear}
-              onChange={(e) =>
-                setFormData({ ...formData, schoolYear: e.target.value })
-              }
-            >
-              <option value="">--Chọn năm học--</option>
-              {schoolYears.map((sy) => (
-                <option key={sy._id} value={sy._id}>
-                  {sy.code}
-                </option>
-              ))}
-            </select>
-
-            <label className="font-semibold ml-2 text-base mt-4">GVCN</label>
-            <input
-              type="text"
-              className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
-              placeholder="Tìm GVCN..."
-              value={teacherQuery}
-              onChange={(e) => {
-                const query = e.target.value;
-                setTeacherQuery(query);
-                if (!query.trim()) {
-                  setTeacherSuggestions([]);
-                  return;
+          <div className="bg-white p-6 rounded-[20px] w-[800px] flex gap-4">
+            {/* Left Column – Create Class Form */}
+            <div className="flex-1 pr-4">
+              <h2 className="text-xl font-bold mb-4">Tạo Lớp mới</h2>
+              <label className="font-semibold ml-2 text-base">Tên lớp</label>
+              <input
+                type="text"
+                className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+                placeholder="Nhập tên lớp..."
+                value={formData.className}
+                onChange={(e) =>
+                  setFormData({ ...formData, className: e.target.value })
                 }
-                const filtered = allTeachers.filter(
-                  (teacher) =>
-                    teacher.fullname &&
-                    teacher.fullname.toLowerCase().includes(query.toLowerCase())
-                );
-                setTeacherSuggestions(filtered.slice(0, 5));
-              }}
-            />
-            {teacherSuggestions.length > 0 && (
-              <div className="border border-gray-300 bg-white shadow-md mt-1 rounded-xl">
-                {teacherSuggestions.map((teacher) => (
-                  <div
-                    key={teacher._id}
-                    className="p-2 hover:bg-gray-100 cursor-pointer rounded-xl flex items-center gap-2"
-                    onClick={() => {
-                      if (!formData.homeroomTeachers.includes(teacher._id)) {
-                        setFormData({
-                          ...formData,
-                          homeroomTeachers: [
-                            ...formData.homeroomTeachers,
-                            teacher._id,
-                          ],
-                        });
-                      }
-                      setTeacherQuery("");
-                      setTeacherSuggestions([]);
-                    }}
-                  >
-                    <img
-                      src={`${BASE_URL}/uploads/Avatar/${teacher.avatarUrl}`}
-                      alt="avatar"
-                      className="w-8 h-8 rounded-full object-cover object-top"
-                    />
-                    <div>
-                      <div className="text-base font-semibold">
-                        {teacher.fullname}
-                      </div>
-                      <div className="text-sm italic text-gray-600">
-                        {teacher.email}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              />
 
-            {/* Danh sách GVCN đã chọn */}
-            {formData.homeroomTeachers.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.homeroomTeachers.map((teacherId) => {
-                  const teacher = allTeachers.find((t) => t._id === teacherId);
-                  if (!teacher) return null;
-                  return (
+              <label className="font-semibold ml-2 text-base mt-4">
+                Năm học
+              </label>
+              <select
+                className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+                value={formData.schoolYear}
+                onChange={(e) =>
+                  setFormData({ ...formData, schoolYear: e.target.value })
+                }
+              >
+                <option value="">--Chọn năm học--</option>
+                {schoolYears.map((sy) => (
+                  <option key={sy._id} value={sy._id}>
+                    {sy.code}
+                  </option>
+                ))}
+              </select>
+
+              <label className="font-semibold ml-2 text-base mt-4">GVCN</label>
+              <input
+                type="text"
+                className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+                placeholder="Tìm GVCN..."
+                value={teacherQuery}
+                onChange={(e) => {
+                  const query = e.target.value;
+                  setTeacherQuery(query);
+                  if (!query.trim()) {
+                    setTeacherSuggestions([]);
+                    return;
+                  }
+                  const filtered = allTeachers.filter(
+                    (teacher) =>
+                      teacher.fullname &&
+                      teacher.fullname
+                        .toLowerCase()
+                        .includes(query.toLowerCase())
+                  );
+                  setTeacherSuggestions(filtered.slice(0, 5));
+                }}
+              />
+              {teacherSuggestions.length > 0 && (
+                <div className="border border-gray-300 bg-white shadow-md mt-1 rounded-xl">
+                  {teacherSuggestions.map((teacher) => (
                     <div
-                      key={teacherId}
-                      className="flex items-center bg-gray-200 px-2 py-1 rounded-full text-sm"
-                    >
-                      {teacher.fullname}
-                      <button
-                        className="ml-2 text-red-500 hover:text-red-700"
-                        onClick={() => {
+                      key={teacher._id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer rounded-xl flex items-center gap-2"
+                      onClick={() => {
+                        if (!formData.homeroomTeachers.includes(teacher._id)) {
                           setFormData({
                             ...formData,
-                            homeroomTeachers: formData.homeroomTeachers.filter(
-                              (id) => id !== teacherId
-                            ),
+                            homeroomTeachers: [
+                              ...formData.homeroomTeachers,
+                              teacher._id,
+                            ],
                           });
-                        }}
-                      >
-                        ×
-                      </button>
+                        }
+                        setTeacherQuery("");
+                        setTeacherSuggestions([]);
+                      }}
+                    >
+                      <img
+                        src={`${BASE_URL}/uploads/Avatar/${teacher.avatarUrl}`}
+                        alt="avatar"
+                        className="w-8 h-8 rounded-full object-cover object-top"
+                      />
+                      <div>
+                        <div className="text-base font-semibold">
+                          {teacher.fullname}
+                        </div>
+                        <div className="text-sm italic text-gray-600">
+                          {teacher.email}
+                        </div>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
 
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => {
-                  resetForm();
-                  setShowCreateModal(false);
-                }}
-                className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#ff6b3a] transform transition-transform duration-300 hover:scale-105 "
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => {
+                    resetForm();
+                    setShowCreateModal(false);
+                  }}
+                  className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#ff6b3a] transform transition-transform duration-300 hover:scale-105"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleCreate}
+                  className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
+                >
+                  Tạo
+                </button>
+              </div>
+            </div>
+
+            {/* Vertical Divider */}
+            <div className="w-px bg-gray-300" />
+
+            {/* Right Column – Excel Upload */}
+            <div className="flex-1 flex-col pl-4">
+              <h2 className="text-xl font-bold mb-4">Upload danh sách lớp</h2>
+              <label className="block font-semibold text-base mb-3">
+                File Excel *
+              </label>
+              <div
+                className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl px-4 py-6 bg-gray-50 text-center text-gray-500 cursor-pointer hover:border-[#002147] transition"
+                onClick={() =>
+                  fileInputRef.current && fileInputRef.current.click()
+                }
               >
-                Hủy
-              </button>
-              <button
-                onClick={handleCreate}
-                className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
+                <p className="text-sm font-medium">
+                  Kéo thả hoặc chọn tệp từ máy tính
+                </p>
+                <p className="text-xs italic mt-1">
+                  Định dạng hỗ trợ: <b>.xlsx, .xls, .csv</b> &bull; Dung lượng
+                  tối đa: 5MB
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    setClassExcelFile(file);
+                  }}
+                />
+              </div>
+              {classExcelFile && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded">
+                    <span className="text-sm font-medium text-gray-800 truncate">
+                      {classExcelFile.name}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setClassExcelFile(null);
+                      }}
+                      className="ml-2 text-red-500 font-bold text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+              <a
+                href="/classes-sample.xlsx"
+                download
+                className="text-[#002855] underline text-sm my-4 inline-block"
               >
-                Tạo
-              </button>
+                Tải file mẫu tại đây
+              </a>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={handleClassExcelUpload}
+                  className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635] transition-transform duration-300 hover:scale-105"
+                >
+                  Tải lên
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1081,6 +1237,437 @@ const StudentClass = () => {
               >
                 Enroll
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showEnrollmentModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg max-w-4xl w-full">
+            {/* Header Modal */}
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-2xl font-bold">Gán học sinh vào lớp</h1>
+              <button
+                onClick={() => setShowEnrollmentModal(false)}
+                className="text-red-500 font-bold text-xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex gap-4">
+              {/* Cột trái: Enrollment Form */}
+              <div className="flex-1 pr-4">
+                <h3 className="font-semibold mb-2">Gán học sinh vào lớp</h3>
+                <label className="block text-sm font-bold">Học sinh</label>
+                <input
+                  list="studentSuggestions"
+                  className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+                  placeholder="Nhập mã học sinh..."
+                  value={newEnrollment.studentInput || ""}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                    setNewEnrollment((prev) => ({
+                      ...prev,
+                      studentInput: inputValue,
+                    }));
+                    const found = students.find(
+                      (s) => s.studentCode === inputValue
+                    );
+                    if (found) {
+                      setNewEnrollment((prev) => ({
+                        ...prev,
+                        student: found._id,
+                      }));
+                    } else {
+                      setNewEnrollment((prev) => ({ ...prev, student: "" }));
+                    }
+                  }}
+                />
+                <datalist id="studentSuggestions">
+                  {newEnrollment.studentInput &&
+                    students
+                      .filter(
+                        (s) =>
+                          s.studentCode
+                            .toLowerCase()
+                            .includes(
+                              newEnrollment.studentInput.toLowerCase()
+                            ) ||
+                          s.name
+                            .toLowerCase()
+                            .includes(newEnrollment.studentInput.toLowerCase())
+                      )
+                      .slice(0, 5)
+                      .map((s) => (
+                        <option key={s._id} value={s.studentCode}>
+                          {s.name} ({s.studentCode})
+                        </option>
+                      ))}
+                </datalist>
+                <label className="block text-sm font-bold">Lớp</label>
+                <input
+                  list="classSuggestions"
+                  className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+                  placeholder="Nhập tên lớp..."
+                  value={newEnrollment.classInput || ""}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                    setNewEnrollment((prev) => ({
+                      ...prev,
+                      classInput: inputValue,
+                    }));
+                    const found = classes.find(
+                      (c) => c.className === inputValue
+                    );
+                    if (found) {
+                      setNewEnrollment((prev) => ({
+                        ...prev,
+                        class: found._id,
+                      }));
+                    } else {
+                      setNewEnrollment((prev) => ({ ...prev, class: "" }));
+                    }
+                  }}
+                />
+                <datalist id="classSuggestions">
+                  {newEnrollment.classInput &&
+                    classes
+                      .filter((c) =>
+                        c.className
+                          .toLowerCase()
+                          .includes(newEnrollment.classInput.toLowerCase())
+                      )
+                      .slice(0, 5)
+                      .map((c) => (
+                        <option key={c._id} value={c.className}>
+                          {c.className}
+                        </option>
+                      ))}
+                </datalist>
+                <label className="block text-sm font-bold">Năm học</label>
+                <select
+                  className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+                  value={newEnrollment.schoolYear}
+                  onChange={(e) =>
+                    setNewEnrollment({
+                      ...newEnrollment,
+                      schoolYear: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">--Chọn năm học--</option>
+                  {schoolYears.map((sy) => (
+                    <option key={sy._id} value={sy._id}>
+                      {sy.code}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex justify-end gap-2 mt-2">
+                  <button
+                    onClick={() =>
+                      setShowEnrollmentModal(false) &&
+                      setNewEnrollment({
+                        student: "",
+                        studentInput: "",
+                        class: "",
+                        classInput: "",
+                        schoolYear: "",
+                        startDate: "",
+                        endDate: "",
+                      })
+                    }
+                    className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#ff6b3a] transition-transform duration-300 hover:scale-105"
+                  >
+                    Huỷ
+                  </button>
+                  <button
+                    onClick={createEnrollment}
+                    className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transition-transform duration-300 hover:scale-105"
+                  >
+                    Enroll
+                  </button>
+                </div>
+              </div>
+              {/* Divider */}
+              <div className="w-px bg-gray-300" />
+              {/* Cột phải: Upload Excel Enrollment */}
+              <div className="flex-1 pl-4">
+                <h3 className="font-semibold mb-2">
+                  Upload danh sách enrollment
+                </h3>
+                <label className="block font-semibold text-base mb-3">
+                  File Excel *
+                </label>
+                <div
+                  className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl px-4 py-6 bg-gray-50 text-center text-gray-500 cursor-pointer hover:border-[#002147] transition"
+                  onClick={() =>
+                    enrollmentExcelInputRef.current &&
+                    enrollmentExcelInputRef.current.click()
+                  }
+                >
+                  <p className="text-sm font-medium">
+                    Kéo thả hoặc chọn tệp từ máy tính
+                  </p>
+                  <p className="text-xs italic mt-1">
+                    Định dạng hỗ trợ: <b>.xlsx</b> &bull; Dung lượng tối đa: 5MB
+                  </p>
+                  <input
+                    ref={enrollmentExcelInputRef}
+                    type="file"
+                    accept=".xlsx,.xls"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      setEnrollmentExcelFile(file);
+                    }}
+                  />
+                </div>
+                {enrollmentExcelFile && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded">
+                      <span className="text-sm font-medium text-gray-800 truncate">
+                        {enrollmentExcelFile.name}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setEnrollmentExcelFile(null);
+                          setEnrollmentExcelScanResult(null);
+                        }}
+                        className="ml-2 text-red-500 font-bold text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {enrollmentExcelScanResult !== null ? (
+                      <div className="mt-1 text-xs text-gray-600 italic">
+                        Có thể thêm: {enrollmentExcelScanResult} enrollment mới.
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-xs text-gray-600 italic">
+                        Đang kiểm tra file...
+                      </div>
+                    )}
+                  </div>
+                )}
+                <a
+                  href="/enrollment-sample.xlsx"
+                  download
+                  className="text-[#002855] underline text-sm my-4 inline-block"
+                >
+                  Tải file mẫu tại đây
+                </a>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={async () => {
+                      await handleEnrollmentExcelUpload();
+                    }}
+                    className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635] transition-transform duration-300 hover:scale-105"
+                  >
+                    Tải lên
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showClassPhotoModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-[20px] w-[800px] flex gap-4">
+            {/* Left Column – Single Class Photo Upload */}
+            <div className="flex-1 pr-4">
+              <h3 className="font-semibold mb-2">Upload Ảnh Lớp</h3>
+              <label className="block text-sm font-bold">Lớp</label>
+              <input
+                list="photoClassSuggestions"
+                className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+                placeholder="Nhập tên lớp..."
+                value={newClassPhoto.classInput}
+                onChange={(e) => {
+                  const inputValue = e.target.value;
+                  setNewClassPhoto((prev) => ({
+                    ...prev,
+                    classInput: inputValue,
+                  }));
+                  const found = classes.find((cls) =>
+                    cls.className
+                      .toLowerCase()
+                      .includes(inputValue.toLowerCase())
+                  );
+                  if (found) {
+                    setNewClassPhoto((prev) => ({ ...prev, class: found._id }));
+                  } else {
+                    setNewClassPhoto((prev) => ({ ...prev, class: "" }));
+                  }
+                }}
+              />
+              <datalist id="photoClassSuggestions">
+                {newClassPhoto.classInput &&
+                  classes
+                    .filter((cls) =>
+                      cls.className
+                        .toLowerCase()
+                        .includes(newClassPhoto.classInput.toLowerCase())
+                    )
+                    .slice(0, 5)
+                    .map((cls) => (
+                      <option key={cls._id} value={cls.className}>
+                        {cls.className}
+                      </option>
+                    ))}
+              </datalist>
+
+              {/* New: Thêm trường chọn Năm học */}
+              <label className="block text-sm font-bold">Năm học</label>
+              <select
+                className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
+                value={newClassPhoto.schoolYear || ""}
+                onChange={(e) =>
+                  setNewClassPhoto((prev) => ({
+                    ...prev,
+                    schoolYear: e.target.value,
+                  }))
+                }
+              >
+                <option value="">--Chọn năm học--</option>
+                {schoolYears.map((sy) => (
+                  <option key={sy._id} value={sy._id}>
+                    {sy.code}
+                  </option>
+                ))}
+              </select>
+
+              <label className="block font-bold text-sm mb-1">File ảnh *</label>
+              <div
+                className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl px-4 py-6 bg-gray-50 text-center text-gray-500 cursor-pointer hover:border-[#002147] transition"
+                onClick={() =>
+                  classPhotoInputRef.current &&
+                  classPhotoInputRef.current.click()
+                }
+              >
+                {newClassPhoto.file ? (
+                  <img
+                    src={URL.createObjectURL(newClassPhoto.file)}
+                    alt="Preview"
+                    className="w-full max-h-48 object-contain"
+                  />
+                ) : (
+                  <>
+                    <p className="text-sm font-medium">
+                      Kéo thả hoặc chọn tệp từ máy tính
+                    </p>
+                    <p className="text-xs italic mt-1">
+                      Định dạng hỗ trợ: <b>image/*</b> &bull; Dung lượng tối đa:
+                      5MB
+                    </p>
+                  </>
+                )}
+                <input
+                  ref={classPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    setNewClassPhoto((prev) => ({ ...prev, file }));
+                  }}
+                />
+              </div>
+              {newClassPhoto.file && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded">
+                    <span className="text-sm font-medium text-gray-800 truncate">
+                      {newClassPhoto.file.name}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setNewClassPhoto((prev) => ({ ...prev, file: null }))
+                      }
+                      className="ml-2 text-red-500 font-bold text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => {
+                    setShowClassPhotoModal(false);
+                    setNewClassPhoto({
+                      class: "",
+                      classInput: "",
+                      schoolYear: "",
+                      file: null,
+                    });
+                  }}
+                  className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#ff6b3a] transition-transform duration-300"
+                >
+                  Huỷ
+                </button>
+                <button
+                  onClick={handleClassPhotoUpload}
+                  className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transition-transform duration-300"
+                >
+                  Upload ảnh
+                </button>
+              </div>
+            </div>
+
+            {/* Vertical Divider */}
+            <div className="w-px bg-gray-300" />
+
+            {/* Right Column – ZIP Upload */}
+            <div className="flex-1 pl-4">
+              <h3 className="font-semibold mb-2">
+                Upload ZIP ảnh cho nhiều lớp
+              </h3>
+              <div
+                className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl px-4 py-6 bg-gray-50 text-center text-gray-500 cursor-pointer hover:border-[#002147] transition"
+                onClick={() =>
+                  classZipInputRef.current && classZipInputRef.current.click()
+                }
+              >
+                <p className="text-sm font-medium">
+                  Kéo thả hoặc chọn tệp ZIP từ máy tính
+                </p>
+                <p className="text-xs italic mt-1">
+                  Định dạng hỗ trợ: <b>.zip</b> &bull; Dung lượng tối đa: 1024MB
+                </p>
+                <input
+                  ref={classZipInputRef}
+                  type="file"
+                  accept=".zip"
+                  className="hidden"
+                  onChange={(e) => {
+                    // Optionally, you can store the file name here if needed
+                  }}
+                />
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={handleClassPhotoZipUpload}
+                  className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635] transition-transform duration-300"
+                >
+                  Upload
+                </button>
+              </div>
+              {classPhotoZipUploading && (
+                <div className="mt-2 text-sm italic text-gray-600">
+                  Đang xử lý, vui lòng chờ...
+                </div>
+              )}
+              {classPhotoZipStats && (
+                <div className="mt-2 p-3 border rounded-xl bg-gray-50 text-sm text-gray-600">
+                  <p className="font-bold text-gray-800">Kết quả:</p>
+                  <p>Tổng số file: {classPhotoZipStats.totalEntries}</p>
+                  <p>Không tìm thấy lớp: {classPhotoZipStats.noClassFound}</p>
+                  <p>Ảnh mới tạo: {classPhotoZipStats.createdPhotos}</p>
+                  <p>Ảnh được cập nhật: {classPhotoZipStats.updatedPhotos}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

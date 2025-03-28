@@ -7,7 +7,6 @@ import * as XLSX from "xlsx";
 const StudentStudent = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [studentExcelFile, setStudentExcelFile] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,15 +22,7 @@ const StudentStudent = () => {
   });
   // State cho Enrollment
   const [classes, setClasses] = useState([]);
-  const [newEnrollment, setNewEnrollment] = useState({
-    student: "",
-    studentInput: "",
-    class: "",
-    classInput: "",
-    schoolYear: "",
-    startDate: "",
-    endDate: "",
-  });
+
   // State cho upload ảnh học sinh
   const [newPhoto, setNewPhoto] = useState({
     student: "",
@@ -61,10 +52,6 @@ const StudentStudent = () => {
   const zipInputRef = useRef(null);
   const [excelScanResult, setExcelScanResult] = useState(null);
   const [photos, setPhotos] = useState([]);
-  const [enrollmentExcelFile, setEnrollmentExcelFile] = useState(null);
-  const [enrollmentExcelScanResult, setEnrollmentExcelScanResult] =
-    useState(null);
-  const enrollmentExcelInputRef = useRef(null);
 
   // 3. Thêm hàm fetchClasses (tương tự fetchStudents)
   const fetchClasses = async () => {
@@ -242,30 +229,6 @@ const StudentStudent = () => {
     reader.readAsArrayBuffer(file);
   };
 
-  const createEnrollment = async () => {
-    try {
-      const res = await fetch(`${API_URL}/enrollments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newEnrollment),
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText);
-      }
-      toast.success("Enrollment thành công!");
-      setNewEnrollment({
-        student: "",
-        class: "",
-        schoolYear: "",
-        startDate: "",
-        endDate: "",
-      });
-    } catch (error) {
-      toast.error("Lỗi tạo Enrollment!");
-    }
-  };
-
   const handleStudentPhotoUpload = async () => {
     if (!newPhoto.student || !newPhoto.schoolYear || !newPhoto.file) {
       toast.warning("Vui lòng chọn học sinh, năm học và file ảnh!");
@@ -276,7 +239,7 @@ const StudentStudent = () => {
       formData.append("student", newPhoto.student);
       formData.append("schoolYear", newPhoto.schoolYear);
       formData.append("photo", newPhoto.file);
-      const res = await fetch(`${API_URL}/photos`, {
+      const res = await fetch(`${API_URL}/photos/student`, {
         method: "POST",
         body: formData,
       });
@@ -286,7 +249,8 @@ const StudentStudent = () => {
       }
       toast.success("Upload ảnh học sinh thành công!");
       setNewPhoto({ student: "", schoolYear: "", file: null });
-      // (Có thể gọi hàm fetchPhotos() nếu cần refresh danh sách ảnh)
+      fetchPhotos();
+      setShowPhotoModal(false);
     } catch (error) {
       console.error(error);
       toast.error("Lỗi upload ảnh học sinh!");
@@ -325,32 +289,6 @@ const StudentStudent = () => {
     const formData = new FormData();
     formData.append("zipFile", file);
     xhr.send(formData);
-  };
-
-  const handleEnrollmentExcelUpload = async () => {
-    if (!enrollmentExcelFile) {
-      toast.warning("Bạn chưa chọn file Excel!");
-      return;
-    }
-    try {
-      const formData = new FormData();
-      formData.append("excelFile", enrollmentExcelFile);
-
-      const res = await fetch(`${API_URL}/enrollments/bulk`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText);
-      }
-      toast.success("Upload Excel Enrollment thành công!");
-      setEnrollmentExcelFile(null);
-      fetchEnrollments();
-    } catch (error) {
-      console.error(error);
-      toast.error("Lỗi upload Excel Enrollment!");
-    }
   };
 
   return (
@@ -398,12 +336,6 @@ const StudentStudent = () => {
               Thêm
             </button>
 
-            <button
-              onClick={() => setShowEnrollmentModal(true)}
-              className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
-            >
-              Enrollment
-            </button>
             <button
               onClick={() => setShowPhotoModal(true)}
               className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
@@ -806,223 +738,6 @@ const StudentStudent = () => {
               >
                 Lưu
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showEnrollmentModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-[20px] w-[800px] flex gap-4">
-            {/* Left Column: Enrollment Form */}
-            <div className="flex-1 pr-4">
-              <h3 className="font-semibold mb-2">Gán học sinh vào lớp</h3>{" "}
-              <label className="block text-sm font-bold">Học sinh</label>
-              <input
-                list="studentSuggestions"
-                className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
-                placeholder="Nhập mã học sinh..."
-                value={newEnrollment.studentInput || ""}
-                onChange={(e) => {
-                  const inputValue = e.target.value;
-                  setNewEnrollment((prev) => ({
-                    ...prev,
-                    studentInput: inputValue,
-                  }));
-                  const found = students.find(
-                    (s) => s.studentCode === inputValue
-                  );
-                  if (found) {
-                    setNewEnrollment((prev) => ({
-                      ...prev,
-                      student: found._id,
-                    }));
-                  } else {
-                    setNewEnrollment((prev) => ({ ...prev, student: "" }));
-                  }
-                }}
-              />
-              <datalist id="studentSuggestions">
-                {newEnrollment.studentInput &&
-                  students
-                    .filter(
-                      (s) =>
-                        s.studentCode
-                          .toLowerCase()
-                          .includes(newEnrollment.studentInput.toLowerCase()) ||
-                        s.name
-                          .toLowerCase()
-                          .includes(newEnrollment.studentInput.toLowerCase())
-                    )
-                    .slice(0, 5)
-                    .map((s) => (
-                      <option key={s._id} value={s.studentCode}>
-                        {s.name} ({s.studentCode})
-                      </option>
-                    ))}
-              </datalist>
-              <label className="block text-sm font-bold">Lớp</label>
-              <input
-                list="classSuggestions"
-                className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
-                placeholder="Nhập tên lớp..."
-                value={newEnrollment.classInput || ""}
-                onChange={(e) => {
-                  const inputValue = e.target.value;
-                  setNewEnrollment((prev) => ({
-                    ...prev,
-                    classInput: inputValue,
-                  }));
-                  const found = classes.find((c) => c.className === inputValue);
-                  if (found) {
-                    setNewEnrollment((prev) => ({ ...prev, class: found._id }));
-                  } else {
-                    setNewEnrollment((prev) => ({ ...prev, class: "" }));
-                  }
-                }}
-              />
-              <datalist id="classSuggestions">
-                {newEnrollment.classInput &&
-                  classes
-                    .filter((c) =>
-                      c.className
-                        .toLowerCase()
-                        .includes(newEnrollment.classInput.toLowerCase())
-                    )
-                    .slice(0, 5)
-                    .map((c) => (
-                      <option key={c._id} value={c.className}>
-                        {c.className}
-                      </option>
-                    ))}
-              </datalist>
-              <label className="block text-sm font-bold">Năm học</label>{" "}
-              <select
-                className="border border-gray-100 bg-[#f8f8f8] p-2 rounded-xl mb-2 w-full text-sm"
-                value={newEnrollment.schoolYear}
-                onChange={(e) =>
-                  setNewEnrollment({
-                    ...newEnrollment,
-                    schoolYear: e.target.value,
-                  })
-                }
-              >
-                <option value="">--Chọn năm học--</option>
-                {schoolYears.map((sy) => (
-                  <option key={sy._id} value={sy._id}>
-                    {sy.code}
-                  </option>
-                ))}
-              </select>
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  onClick={() => {
-                    setShowEnrollmentModal(false);
-                    setNewEnrollment({
-                      student: "",
-                      studentInput: "",
-                      class: "",
-                      classInput: "",
-                      schoolYear: "",
-                      startDate: "",
-                      endDate: "",
-                    });
-                  }}
-                  className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#ff6b3a] transform transition-transform duration-300 hover:scale-105"
-                >
-                  Huỷ
-                </button>
-                <button
-                  onClick={createEnrollment}
-                  className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
-                >
-                  Enroll
-                </button>
-              </div>
-            </div>
-
-            {/* Vertical Divider */}
-            <div className="w-px bg-gray-300" />
-
-            {/* Right Column: Upload Excel Enrollment */}
-            <div className="flex-1 pl-4">
-              <h3 className="font-semibold mb-2">
-                Upload danh sách enrollment
-              </h3>
-              <label className="block font-semibold text-base mb-3">
-                File Excel *
-              </label>
-              <div
-                className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl px-4 py-6 bg-gray-50 text-center text-gray-500 cursor-pointer hover:border-[#002147] transition"
-                onClick={() =>
-                  enrollmentExcelInputRef.current &&
-                  enrollmentExcelInputRef.current.click()
-                }
-              >
-                <p className="text-sm font-medium">
-                  Kéo thả hoặc chọn tệp từ máy tính
-                </p>
-                <p className="text-xs italic mt-1">
-                  Định dạng hỗ trợ: <b>.xlsx</b> &bull; Dung lượng tối đa: 5MB
-                </p>
-                <input
-                  ref={enrollmentExcelInputRef}
-                  type="file"
-                  accept=".xlsx,.xls"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    setEnrollmentExcelFile(file);
-                    // Nếu có hàm quét file excel enrollment, gọi ở đây:
-                    // handleEnrollmentExcelFileCheck(file);
-                  }}
-                />{" "}
-              </div>
-              {enrollmentExcelFile && (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded">
-                    <span className="text-sm font-medium text-gray-800 truncate">
-                      {enrollmentExcelFile.name}
-                    </span>
-                    <button
-                      onClick={() => {
-                        setEnrollmentExcelFile(null);
-                        setEnrollmentExcelScanResult(null);
-                      }}
-                      className="ml-2 text-red-500 font-bold text-xs"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  {enrollmentExcelScanResult !== null ? (
-                    <div className="mt-1 text-xs text-gray-600 italic">
-                      Có thể thêm: {enrollmentExcelScanResult} enrollment mới.
-                    </div>
-                  ) : (
-                    <div className="mt-1 text-xs text-gray-600 italic">
-                      Đang kiểm tra file...
-                    </div>
-                  )}
-                </div>
-              )}
-              <a
-                href="/enrollment-sample.xlsx"
-                download
-                className="text-[#002855] underline text-sm my-4 inline-block"
-              >
-                Tải file mẫu tại đây
-              </a>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={async () => {
-                    await handleEnrollmentExcelUpload();
-                    setShowEnrollmentModal(false);
-                  }}
-                  className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635] transition-transform duration-300 hover:scale-105"
-                >
-                  Tải lên
-                </button>
-              </div>
             </div>
           </div>
         </div>

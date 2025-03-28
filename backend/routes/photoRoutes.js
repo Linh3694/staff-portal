@@ -6,7 +6,8 @@ const uploadSinglePhoto = require("../middleware/uploadStudents");
 const photoController = require("../controllers/photoController");
 
 // Tạo mới photo => upload.single("photo") 
-router.post("/", uploadSinglePhoto.single("photo"), photoController.uploadStudentPhoto);
+router.post("/student", uploadSinglePhoto.single("photo"), photoController.uploadStudentPhoto);
+router.post("/class", uploadSinglePhoto.single("photo"), photoController.uploadClassPhoto);
 router.get("/", photoController.getAllPhotos);
 router.get("/:id", photoController.getPhotoById);
 router.delete("/:id", photoController.deletePhoto);
