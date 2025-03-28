@@ -234,3 +234,74 @@ exports.deleteSpecialCode = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
+// POST /libraries/:libraryId/books
+exports.addBookToLibrary = async (req, res) => {
+  try {
+    const { libraryId } = req.params;
+    const library = await Library.findById(libraryId);
+    if (!library) {
+      return res.status(404).json({ error: 'Library not found' });
+    }
+
+    // Đẩy book detail mới vào mảng books
+    library.books.push(req.body);
+    await library.save();
+
+    return res.status(200).json(library);
+  } catch (error) {
+    console.error('Error adding book to library:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// PUT /libraries/:libraryId/books/:bookIndex
+exports.updateBookInLibrary = async (req, res) => {
+  try {
+    const { libraryId, bookIndex } = req.params;
+    const library = await Library.findById(libraryId);
+    if (!library) {
+      return res.status(404).json({ error: 'Library not found' });
+    }
+
+    if (!library.books[bookIndex]) {
+      return res.status(404).json({ error: 'Book detail not found in this library' });
+    }
+
+    // Gộp thuộc tính cũ và mới
+    library.books[bookIndex] = {
+      ...library.books[bookIndex]._doc, 
+      ...req.body,
+    };
+
+    await library.save();
+    return res.status(200).json(library);
+  } catch (error) {
+    console.error('Error updating book in library:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// DELETE /libraries/:libraryId/books/:bookIndex
+exports.deleteBookFromLibrary = async (req, res) => {
+  try {
+    const { libraryId, bookIndex } = req.params;
+    const library = await Library.findById(libraryId);
+    if (!library) {
+      return res.status(404).json({ error: 'Library not found' });
+    }
+
+    if (!library.books[bookIndex]) {
+      return res.status(404).json({ error: 'Book detail not found in this library' });
+    }
+
+    library.books.splice(bookIndex, 1);
+    await library.save();
+
+    return res.status(200).json(library);
+  } catch (error) {
+    console.error('Error deleting book from library:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};

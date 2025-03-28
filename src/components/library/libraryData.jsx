@@ -1194,13 +1194,15 @@ function BookDetail() {
   };
 
   // ============== Lưu Book (Create/Edit) ==============
+  // Tạo/sửa 1 book
   const handleSaveModal = async () => {
     if (!selectedLibrary) {
       alert("Vui lòng chọn Library trước!");
       return;
     }
+
     try {
-      // Xử lý attachments => mảng
+      // Chuẩn bị data
       let newAttachments = currentBook.attachments;
       if (typeof newAttachments === "string") {
         newAttachments = newAttachments
@@ -1209,57 +1211,58 @@ function BookDetail() {
           .filter(Boolean);
       }
 
-      const newBooks = [...selectedLibrary.books];
-      if (modalMode === "create") {
-        // Thêm vào cuối
-        newBooks.push({
-          ...currentBook,
-          attachments: newAttachments,
-          publishYear: currentBook.publishYear
-            ? Number(currentBook.publishYear)
-            : null,
-          pages: currentBook.pages ? Number(currentBook.pages) : null,
-          coverPrice: currentBook.coverPrice
-            ? Number(currentBook.coverPrice)
-            : null,
-        });
-      } else {
-        // Edit
-        const idx = currentBook._index;
-        if (idx != null) {
-          newBooks[idx] = {
-            ...currentBook,
-            attachments: newAttachments,
-            publishYear: currentBook.publishYear
-              ? Number(currentBook.publishYear)
-              : null,
-            pages: currentBook.pages ? Number(currentBook.pages) : null,
-            coverPrice: currentBook.coverPrice
-              ? Number(currentBook.coverPrice)
-              : null,
-          };
-          delete newBooks[idx]._index;
-        }
-      }
-
-      // Cập nhật library
       const payload = {
-        ...selectedLibrary,
-        books: newBooks,
+        ...currentBook,
+        attachments: newAttachments,
+        publishYear: currentBook.publishYear
+          ? Number(currentBook.publishYear)
+          : null,
+        pages: currentBook.pages ? Number(currentBook.pages) : null,
+        coverPrice: currentBook.coverPrice
+          ? Number(currentBook.coverPrice)
+          : null,
       };
-      const res = await fetch(`${API_URL}/libraries/${selectedLibrary._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || "Error updating library");
-        return;
+
+      if (modalMode === "create") {
+        // Tạo mới (POST /libraries/:libraryId/books)
+        const res = await fetch(
+          `${API_URL}/libraries/${selectedLibrary._id}/books`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Error adding new book");
+          return;
+        }
+        setSelectedLibrary(data); // data = library sau khi thêm book
+      } else {
+        // Chỉnh sửa (PUT /libraries/:libraryId/books/:bookIndex)
+        const bookIndex = currentBook._index;
+        if (bookIndex == null) {
+          alert("Không xác định index của book để sửa");
+          return;
+        }
+
+        const res = await fetch(
+          `${API_URL}/libraries/${selectedLibrary._id}/books/${bookIndex}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Error updating book");
+          return;
+        }
+        setSelectedLibrary(data); // data = library sau khi update
       }
 
-      // Cập nhật selectedLibrary
-      setSelectedLibrary(data);
       setIsModalOpen(false);
       alert("Lưu sách thành công!");
     } catch (err) {
@@ -1275,23 +1278,20 @@ function BookDetail() {
       return;
     }
     try {
-      const newBooks = [...selectedLibrary.books];
-      newBooks.splice(idx, 1);
-      const payload = {
-        ...selectedLibrary,
-        books: newBooks,
-      };
-      const res = await fetch(`${API_URL}/libraries/${selectedLibrary._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // Xoá 1 book (DELETE /libraries/:libraryId/books/:bookIndex)
+      const res = await fetch(
+        `${API_URL}/libraries/${selectedLibrary._id}/books/${idx}`,
+        {
+          method: "DELETE",
+        }
+      );
       const data = await res.json();
       if (!res.ok) {
         alert(data.error || "Error deleting book");
         return;
       }
-      setSelectedLibrary(data);
+
+      setSelectedLibrary(data); // data = library sau khi xoá book
       alert("Xoá sách thành công!");
     } catch (err) {
       console.error("Error deleting book:", err);

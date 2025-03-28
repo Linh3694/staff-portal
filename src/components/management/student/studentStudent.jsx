@@ -333,14 +333,14 @@ const StudentStudent = () => {
               }}
               className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
             >
-              Thêm
+              Thêm học sinh
             </button>
 
             <button
               onClick={() => setShowPhotoModal(true)}
               className="mr-2 px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
             >
-              Upload Ảnh
+              Cập nhật ảnh học sinh
             </button>
           </div>
         </div>

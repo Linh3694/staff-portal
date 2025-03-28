@@ -23,8 +23,10 @@ router.get("/special-codes", libraryController.getAllSpecialCodes);
 router.post("/special-codes", libraryController.createSpecialCode);
 router.put("/special-codes/:id", libraryController.updateSpecialCode);
 router.delete("/special-codes/:id", libraryController.deleteSpecialCode);
-
-
+// -------------------- Add Book APIs -------------------- //
+router.post('/:libraryId/books', libraryController.addBookToLibrary);
+router.put('/:libraryId/books/:bookIndex', libraryController.updateBookInLibrary);
+router.delete('/:libraryId/books/:bookIndex', libraryController.deleteBookFromLibrary);
 
 router.post("/", uploadLibraryImage.upload.single("file"), async (req, res) => {
   try {
