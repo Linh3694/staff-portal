@@ -1156,10 +1156,6 @@ function BookDetail() {
 
   // ============== Tạo mới Book ==============
   const openCreateModal = () => {
-    if (!selectedLibrary) {
-      alert("Vui lòng chọn Library trước!");
-      return;
-    }
     setModalMode("create");
     setCurrentBook({
       isbn: "",
@@ -1183,10 +1179,6 @@ function BookDetail() {
 
   // ============== Sửa Book ==============
   const openEditModal = (book, idx) => {
-    if (!selectedLibrary) {
-      alert("Vui lòng chọn Library trước!");
-      return;
-    }
     setModalMode("edit");
     setCurrentBook({
       ...book,
@@ -1310,39 +1302,9 @@ function BookDetail() {
   return (
     <div>
       {/* Search Library */}
-      <div className="mb-4">
-        <label className="block mb-1 font-semibold">
-          Chọn Library <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          className="border border-gray-300 px-2 py-1 rounded w-full"
-          placeholder="Nhập tên library..."
-          value={librarySearchTerm}
-          onChange={(e) => handleLibrarySearch(e.target.value)}
-        />
-        {searchResults.length > 0 && (
-          <div className="border border-gray-200 mt-1 rounded bg-white shadow-md">
-            {searchResults.map((lib) => (
-              <div
-                key={lib._id}
-                className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                onClick={() => handleSelectLibrary(lib)}
-              >
-                {lib.title}
-              </div>
-            ))}
-          </div>
-        )}
-        {selectedLibrary && (
-          <div className="mt-2 text-sm text-gray-600">
-            Đã chọn: <b>{selectedLibrary.title}</b>
-          </div>
-        )}
-      </div>
 
       <div className="flex flex-row items-center justify-between mb-4">
-        <h2 className="text-[24px] font-bold">Sách (Book Detail)</h2>
+        <h2 className="text-[24px] font-bold">Sách</h2>
         <button
           onClick={openCreateModal}
           className="px-3 py-1 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635]"
@@ -1410,190 +1372,254 @@ function BookDetail() {
       {/* Modal Create/Edit Book */}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-[20px] p-6 w-[60%]">
+          <div className="bg-white rounded-[20px] p-8 w-[40%] max-h-[93%]">
             <h3 className="text-xl font-bold mb-4">
               {modalMode === "create" ? "Thêm sách mới" : "Chỉnh sửa sách"}
             </h3>
+            <div className="w-full">
+              <label className="block mb-1">
+                Chọn Đầu Sách <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                className="w-[48%] border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                placeholder="Nhập đầu sách..."
+                value={librarySearchTerm}
+                onChange={(e) => handleLibrarySearch(e.target.value)}
+                disabled={modalMode === "edit"}
+              />
+              {searchResults.length > 0 && (
+                <div className="border border-gray-200 mt-1 rounded bg-white shadow-md">
+                  {searchResults.map((lib) => (
+                    <div
+                      key={lib._id}
+                      className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleSelectLibrary(lib)}
+                    >
+                      {lib.title}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedLibrary && (
+                <div className="mt-2 text-sm text-gray-600">
+                  Đã chọn: <b>{selectedLibrary.title}</b>
+                </div>
+              )}
+            </div>
             <div className="flex gap-4">
-              {/* Cột 1 */}
               <div className="flex-1">
-                <div className="mb-3">
-                  <label className="block mb-1">
-                    ISBN <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="isbn"
-                    value={currentBook.isbn}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
+                <hr className="border-gray-100 mt-3 mb-1" />
+                <label className="text-lg text-[#002855]">
+                  Thông tin tài liệu
+                </label>
+                <div className="w-full grid grid-cols-2 gap-x-6 gap-y-2 mt-2">
+                  <div className="mb-3">
+                    <label className="block mb-1 text-sm">
+                      ISBN <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="isbn"
+                      placeholder="Nhập mã ISBN"
+                      value={currentBook.isbn}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="block mb-1 text-sm">
+                      Định danh tài liệu:{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="documentIdentifier"
+                      placeholder="Nhập định danh tài liệu"
+                      value={currentBook.documentIdentifier}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">
+                      Tên sách <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="bookTitle"
+                      placeholder="Nhập tên sách"
+                      value={currentBook.bookTitle}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-1 text-sm">
+                      Ký hiệu phân loại: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="classificationSign"
+                      placeholder="Nhập ký hiệu phân loại"
+                      value={currentBook.classificationSign}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label className="block mb-1">
-                    Tên sách <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="bookTitle"
-                    value={currentBook.bookTitle}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
+                <hr className="border-gray-100 mt-3 mb-1" />
+                <label className="text-lg text-[#002855]">
+                  Thông tin xuất bản
+                </label>
+                <div className="w-full grid grid-cols-3 gap-x-4 mt-2">
+                  <div>
+                    <label className="block mb-1 text-sm">
+                      Năm Xuất Bản: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="publishYear"
+                      placeholder="Nhập năm xuất bản"
+                      value={currentBook.publishYear}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">
+                      Nhà Xuất Bản: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="publisherName"
+                      placeholder="Nhập tên nhà xuất bản"
+                      value={currentBook.publisherName}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">
+                      Nơi Xuất Bản: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="publisherPlaceName"
+                      placeholder="Nhập nơi xuất bản"
+                      value={currentBook.publisherPlaceName}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Năm XB:</label>
-                  <input
-                    type="number"
-                    name="publishYear"
-                    value={currentBook.publishYear}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Định danh tài liệu:</label>
-                  <input
-                    type="text"
-                    name="documentIdentifier"
-                    value={currentBook.documentIdentifier}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Ký hiệu phân loại:</label>
-                  <input
-                    type="text"
-                    name="classificationSign"
-                    value={currentBook.classificationSign}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-              </div>
-              {/* Cột 2 */}
-              <div className="flex-1">
-                <div className="mb-3">
-                  <label className="block mb-1">Nhà XB:</label>
-                  <input
-                    type="text"
-                    name="publisherName"
-                    value={currentBook.publisherName}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Nơi XB:</label>
-                  <input
-                    type="text"
-                    name="publisherPlaceName"
-                    value={currentBook.publisherPlaceName}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Số trang:</label>
-                  <input
-                    type="number"
-                    name="pages"
-                    value={currentBook.pages}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Giá bìa:</label>
-                  <input
-                    type="number"
-                    name="coverPrice"
-                    value={currentBook.coverPrice}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Ngôn ngữ:</label>
-                  <input
-                    type="text"
-                    name="language"
-                    value={currentBook.language}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Tùng thư:</label>
-                  <input
-                    type="text"
-                    name="seriesName"
-                    value={currentBook.seriesName}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">
-                    Attachments (cách nhau bởi dấu phẩy):
-                  </label>
-                  <input
-                    type="text"
-                    name="attachments"
-                    value={
-                      Array.isArray(currentBook.attachments)
-                        ? currentBook.attachments.join(", ")
-                        : currentBook.attachments
-                    }
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Cơ quan biên mục:</label>
-                  <input
-                    type="text"
-                    name="catalogingAgency"
-                    value={currentBook.catalogingAgency}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Kho lưu trữ:</label>
-                  <input
-                    type="text"
-                    name="storageLocation"
-                    value={currentBook.storageLocation}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block mb-1">Loại tài liệu:</label>
-                  <input
-                    type="text"
-                    name="documentType"
-                    value={currentBook.documentType}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
-                  />
+                <hr className="border-gray-100 mt-3 mb-1" />
+
+                <label className="text-lg text-[#002855]">Mô tả</label>
+                <div className="w-full grid grid-cols-3 gap-x-4 mt-2">
+                  <div className="mb-3">
+                    <label className="block mb-1 text-sm">
+                      Số trang: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="pages"
+                      placeholder="Nhập số trang"
+                      value={currentBook.pages}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="block mb-1 text-sm">
+                      Giá bìa: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="coverPrice"
+                      placeholder="Nhập giá bìa"
+                      value={currentBook.coverPrice}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="block mb-1 text-sm">
+                      Ngôn ngữ: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="language"
+                      value={currentBook.language}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="block mb-1 text-sm">
+                      Tùng thư: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="seriesName"
+                      value={currentBook.seriesName}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="block mb-1 text-sm">
+                      Cơ quan biên mục: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="catalogingAgency"
+                      value={currentBook.catalogingAgency}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="block mb-1 text-sm">
+                      Kho lưu trữ: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="storageLocation"
+                      value={currentBook.storageLocation}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="block mb-1 text-sm">
+                      Loại tài liệu: <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="documentType"
+                      value={currentBook.documentType}
+                      onChange={handleChange}
+                      className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
             <div className="flex justify-end mt-4 space-x-2">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="px-3 py-1 bg-gray-400 text-white rounded-lg text-base font-semibold transform transition-transform duration-300 hover:scale-105"
+                className="px-9 py-2 bg-[#EBEBEB] text-[#757575] rounded-lg text-sm font-semibold transform transition-transform duration-300 hover:scale-105"
               >
                 Huỷ
               </button>
               <button
                 onClick={handleSaveModal}
-                className="px-3 py-1 bg-[#002147] text-white rounded-lg text-base font-semibold transform transition-transform duration-300 hover:scale-105"
+                className="px-5 py-2 bg-[#F05023] text-white rounded-lg text-sm font-semibold transform transition-transform duration-300 hover:scale-105"
               >
-                Lưu
+                Thêm mới
               </button>
             </div>
           </div>
