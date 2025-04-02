@@ -1,11 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useSearchParams, useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import MyImageFlipBook from "../components/flippage/MyImageFlipBook";
 import { API_URL } from "../config";
-import {
-  FaRegArrowAltCircleLeft,
-  FaRegArrowAltCircleRight,
-} from "react-icons/fa";
 
 function FlipViewPage() {
   const { customName } = useParams();

@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
-import MicrosoftAuthSuccess from "./pages/MicrosoftAuthSuccess";
+import MicrosoftAuthSuccess from "./components/MicrosoftAuthSuccess";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
@@ -19,6 +19,7 @@ import "./i18n";
 import FlipViewPage from "./pages/FlipViewPage";
 import HallofFame from "./pages/HallOfFame-homepage";
 import HallOfFamePublicPage from "./pages/HallOfFame-detail";
+import Library from "./pages/Library";
 
 // PublicRoute: Nếu người dùng đã đăng nhập, chuyển hướng về Dashboard
 function PublicRoute({ children }) {
@@ -28,7 +29,9 @@ function PublicRoute({ children }) {
   // Chỉ chuyển hướng nếu user đã đăng nhập và có role hợp lệ
   if (
     isAuthenticated &&
-    ["admin", "superadmin", "technical", "marcom", "hr"].includes(userRole)
+    ["admin", "superadmin", "technical", "marcom", "hr", "bos"].includes(
+      userRole
+    )
   ) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -88,6 +91,7 @@ function App() {
             path="/hall-of-honor/detail"
             element={<HallOfFamePublicPage />}
           />
+          <Route path="/library" element={<Library />} />
           <Route path="/:customName" element={<FlipViewPage />} />
           {/* Trang Login */}
           <Route
@@ -114,6 +118,7 @@ function App() {
                   "technical",
                   "marcom",
                   "hr",
+                  "bos",
                 ]}
               >
                 <Dashboard />

@@ -3,22 +3,25 @@ const mongoose = require('mongoose');
 
 const DocumentTypeSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  code: { type: String, required: true, unique: true },
+  code: { type: String, required: true },
 });
 const DocumentType = mongoose.model("DocumentType", DocumentTypeSchema);
 
 const SeriesNameSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  code: { type: String, required: true, unique: true },
 });
 const SeriesName = mongoose.model("SeriesName", SeriesNameSchema);
 
 const SpecialCodeSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  code: { type: String, required: true, unique: true },
+  code: { type: String, required: true },
 });
 const SpecialCode = mongoose.model("SpecialCode", SpecialCodeSchema);
 
+const AuthorSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+});
+const Author = mongoose.model("Author", AuthorSchema);
 
 const IntroductionSchema = new mongoose.Schema(
   {
@@ -116,12 +119,44 @@ const BookDetailSchema = new mongoose.Schema(
       default: '',
     },
     specialCode: {
-      // Đăng ký cá biệt
+      // Đăng ký cá biệt của sách (ví dụ: BV1)
       type: String,
       default: '',
+    },
+    generatedCode: {
+      // Mã tự động sinh ra cho sách: <specialCode>.<số thứ tự 4 chữ số>
+      type: String,
+      required: true,
       unique: true,
     },
+      // Trạng thái mượn sách
+   status: {
+     type: String,
+     enum: ["Sẵn sàng", "Đang mượn", "Quá hạn", "Đã đặt trước"],
+     default: "Sẵn sàng",
+   },
 
+   // Học sinh đang mượn (nếu có Student model)
+   borrowedBy: {
+     type: mongoose.Schema.Types.ObjectId,
+     ref: "Student", 
+     default: null
+   },
+
+   // Ngày mượn
+   borrowedDate: {
+     type: Date,
+     default: null   
+    },
+   // Ngày trả
+   returnDate: {
+     type: Date,
+     default: null
+   },
+   borrowCount: {
+   type: Number,
+   default: 0,
+ },
   },
   { _id: false } // Không tạo _id riêng cho mỗi BookDetail
 );
@@ -129,6 +164,12 @@ const BookDetailSchema = new mongoose.Schema(
 // Schema chính
 const LibrarySchema = new mongoose.Schema(
   {
+    libraryCode: {
+      // Mã định danh của Library, bắt đầu từ "0001"
+      type: String,
+      required: true,
+      unique: true,
+    },
     authors: {
       // Tác giả (có thể có nhiều)
       type: [String],
@@ -149,6 +190,14 @@ const LibrarySchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    documentType: { 
+      // Phân loại tài liệu
+      type: String, 
+      default: '' },
+    
+    seriesName: { 
+      type: String, 
+      default: '' },
     language: {
       // Ngôn ngữ (tổng quát)
       type: String,
@@ -159,7 +208,7 @@ const LibrarySchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-
+    
     // Giới thiệu sách thường
     normalIntroduction: {
       type: IntroductionSchema,
@@ -183,9 +232,11 @@ const LibrarySchema = new mongoose.Schema(
   }
 );
 
+
 module.exports = {
   DocumentType,
   SeriesName,
   SpecialCode,
+  Author,
   Library: mongoose.model('Library', LibrarySchema),
 };

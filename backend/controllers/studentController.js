@@ -3,7 +3,8 @@
 const Student = require("../models/Students");
 const Family = require("../models/Family");
 const StudentClassEnrollment = require("../models/StudentClassEnrollment");
-const ClassModel = require("../models/Class");
+const SchoolYear = require("../models/SchoolYear");
+const Photo = require("../models/Photo");
 const xlsx = require("xlsx");
 const fs = require("fs");
 
@@ -161,3 +162,76 @@ function parseExcelDate(value) {
   }
   return null;
 }
+
+exports.searchStudents = async (req, res) => {
+  try {
+    const q = req.query.q?.trim() || "";
+    if (!q) {
+      return res.json([]); // Trả về mảng rỗng nếu query trống
+    }
+
+    // 1) Tìm students
+    const students = await Student.find({
+      $or: [
+        { studentCode: { $regex: q, $options: "i" } },
+        { name: { $regex: q, $options: "i" } },
+      ],
+    })
+      .limit(20)
+      .lean();
+
+    if (!students.length) {
+      return res.json([]); // Trả về mảng rỗng nếu không tìm thấy
+    }
+
+    // 2) Lấy current school year
+    const now = new Date();
+    let currentSchoolYear = await SchoolYear.findOne({
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).sort({ startDate: -1 }).lean();
+
+    if (!currentSchoolYear) {
+      currentSchoolYear = await SchoolYear.findOne().sort({ startDate: -1 }).lean();
+    }
+
+    if (!currentSchoolYear) {
+      return res.status(500).json({ error: "No school year found" });
+    }
+
+    // 3) Tối ưu hóa: Query enrollment và photo cùng lúc
+    const studentIds = students.map((s) => s._id);
+    const [enrollments, photos] = await Promise.all([
+      StudentClassEnrollment.find({
+        student: { $in: studentIds },
+        schoolYear: currentSchoolYear._id,
+      })
+        .populate("class")
+        .lean(),
+      Photo.find({
+        student: { $in: studentIds },
+        schoolYear: currentSchoolYear._id,
+      }).lean(),
+    ]);
+
+    // 4) Map dữ liệu
+    const results = students.map((s) => {
+      const enrollment = enrollments.find((e) => e.student.toString() === s._id.toString());
+      const photo = photos.find((p) => p.student.toString() === s._id.toString());
+
+      return {
+        _id: s._id,
+        studentId: s.studentCode || "",
+        fullName: s.name || "",
+        email: s.email || "",
+        className: enrollment?.class?.className || "",
+        photoUrl: photo?.photoUrl || "",
+      };
+    });
+
+    return res.json(results);
+  } catch (err) {
+    console.error("Error searching students:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};

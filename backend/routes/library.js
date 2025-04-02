@@ -21,11 +21,24 @@ router.get("/special-codes", libraryController.getAllSpecialCodes);
 router.post("/special-codes", libraryController.createSpecialCode);
 router.put("/special-codes/:id", libraryController.updateSpecialCode);
 router.delete("/special-codes/:id", libraryController.deleteSpecialCode);
+
+// -------------------- Special Code APIs -------------------- //
+router.get("/authors", libraryController.getAllAuthors);
+router.post("/authors", libraryController.createAuthor);
+router.put("/authors/:id", libraryController.updateAuthor);
+router.delete("/authors/:id", libraryController.deleteAuthor);
+
+
 // -------------------- Add Book APIs -------------------- //
 router.post('/:libraryId/books', libraryController.addBookToLibrary);
 router.put('/:libraryId/books/:bookIndex', libraryController.updateBookInLibrary);
-router.delete('/:libraryId/books/:bookIndex', libraryController.deleteBookFromLibrary);
+router.delete("/books/:bookCode", libraryController.deleteBookByCode);
 router.get('/:libraryId/books', libraryController.getBooksFromLibrary);
+// -------------------- Borrows Books APIs -------------------- //
+router.post("/:libraryId/books/:bookIndex/borrow", libraryController.borrowBook);
+router.post("/:libraryId/books/:bookIndex/return", libraryController.returnBook);
+router.get("/full-libraries", libraryController.getAllLibrariesFull);
+router.post("/borrow-multiple", libraryController.borrowMultipleBooks);
 
 router.get('/books', libraryController.getAllBooks);
 
@@ -50,7 +63,18 @@ router.get("/", libraryController.getAllLibraries);
 router.get("/:id", libraryController.getLibraryById);
 
 // Cập nhật Library
-router.put("/:id", libraryController.updateLibrary);
+router.put("/:id", uploadLibraryImage.upload.single("file"), async (req, res) => {
+  try {
+    if (req.file) {
+      const filePath = await uploadLibraryImage.convertToWebp(req.file.buffer, req.file.originalname);
+      req.body.coverImage = filePath;
+    }
+    libraryController.updateLibrary(req, res);
+  } catch (error) {
+    console.error("Error updating library:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // Xóa Library
 router.delete("/:id", libraryController.deleteLibrary);

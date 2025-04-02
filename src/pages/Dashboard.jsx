@@ -1,8 +1,6 @@
 // Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Routes, Route } from "react-router-dom";
-
 // Import các component nội dung (điều chỉnh đường dẫn nếu cần)
 import LaptopTable from "../components/inventory/LaptopTable";
 import MonitorTable from "../components/inventory/MonitorTable";
@@ -71,7 +69,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("");
 
   // --- Cập nhật giao diện khi sidebar thay đổi
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false); // NEW
 
   // Định nghĩa cấu hình các tab cho một số mục

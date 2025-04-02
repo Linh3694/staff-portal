@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { API_URL, BASE_URL } from "../../config";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
+import { toast } from "react-toastify";
 
 // ------------------- CÁC SUB-COMPONENT ------------------- //
 
@@ -52,7 +53,7 @@ function DocumentType() {
       })
       .catch((error) => {
         console.error("Error updating document type:", error);
-        alert(error.message);
+        toast.error(error.message);
       });
   };
 
@@ -83,7 +84,7 @@ function DocumentType() {
       })
       .catch((error) => {
         console.error("Error creating document type:", error);
-        alert(error.message);
+        toast.error(error.message);
       });
   };
 
@@ -101,7 +102,7 @@ function DocumentType() {
       .then(fetchData)
       .catch((error) => {
         console.error("Error deleting document type:", error);
-        alert(error.message);
+        toast.error(error.message);
       });
   };
 
@@ -156,9 +157,7 @@ function DocumentType() {
             return (
               <tr key={item._id}>
                 <td className="max-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">
-                    {idx + 1}
-                  </p>
+                  <p className="text-sm font-bold text-navy-700">{idx + 1}</p>
                 </td>
                 <td className="min-w-[150px] border-white/0 py-3 pr-4">
                   {isEditing ? (
@@ -168,7 +167,7 @@ function DocumentType() {
                       onChange={(e) => setEditName(e.target.value)}
                     />
                   ) : (
-                    <p className="text-sm font-semibold text-navy-700">
+                    <p className="text-sm font-bold text-navy-700">
                       {item.name}
                     </p>
                   )}
@@ -181,7 +180,7 @@ function DocumentType() {
                       onChange={(e) => setEditCode(e.target.value)}
                     />
                   ) : (
-                    <p className="text-sm font-semibold text-navy-700">
+                    <p className="text-sm font-bold text-navy-700">
                       {item.code}
                     </p>
                   )}
@@ -233,14 +232,13 @@ function DocumentType() {
 
 // ------------------- COMPONENT SeriesName ------------------- //
 
+// Updated SeriesName Component
 function SeriesName() {
   const [data, setData] = useState([]);
   const [name, setName] = useState("");
-  const [code, setCode] = useState("");
   // Dùng để edit inline
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
-  const [editCode, setEditCode] = useState("");
 
   const fetchData = () => {
     fetch(`${API_URL}/libraries/series-names`)
@@ -254,11 +252,11 @@ function SeriesName() {
   useEffect(fetchData, []);
 
   const handleCreate = () => {
-    if (!name || !code) return;
+    if (!name) return;
     fetch(`${API_URL}/libraries/series-names`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, code }),
+      body: JSON.stringify({ name }),
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -269,28 +267,24 @@ function SeriesName() {
       })
       .then(() => {
         setName("");
-        setCode("");
         fetchData();
       })
       .catch((error) => {
         console.error("Error creating series name:", error);
-        alert(error.message);
+        toast.error(error.message);
       });
   };
 
-  // Edit
   const handleEdit = (item) => {
     setEditingId(item._id);
     setEditName(item.name);
-    setEditCode(item.code);
   };
 
-  // Save
   const handleSaveEdit = (id) => {
     fetch(`${API_URL}/libraries/series-names/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName, code: editCode }),
+      body: JSON.stringify({ name: editName }),
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -305,11 +299,10 @@ function SeriesName() {
       })
       .catch((error) => {
         console.error("Error updating series name:", error);
-        alert(error.message);
+        toast.error(error.message);
       });
   };
 
-  // Cancel
   const handleCancelEdit = () => {
     setEditingId(null);
   };
@@ -328,7 +321,7 @@ function SeriesName() {
       .then(fetchData)
       .catch((error) => {
         console.error("Error deleting series name:", error);
-        alert(error.message);
+        toast.error(error.message);
       });
   };
 
@@ -344,14 +337,6 @@ function SeriesName() {
             placeholder="Nhập tên tùng thư..."
             className="border border-gray-200 px-2 py-1 rounded-2xl text-sm"
           />
-
-          <label className="text-sm">Mã:</label>
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Nhập mã tùng thư..."
-            className="border border-gray-200 px-2 py-1 rounded-2xl text-sm"
-          />
           <button
             onClick={handleCreate}
             className="px-3 py-1 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635]"
@@ -363,16 +348,13 @@ function SeriesName() {
       <table className="w-full">
         <thead>
           <tr>
-            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+            <th className="border-b border-gray-200 pt-4 pb-2 pr-4 text-start">
               <p className="text-sm font-bold text-gray-600">STT</p>
             </th>
-            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+            <th className="border-b border-gray-200 pt-4 pb-2 pr-4 text-start">
               <p className="text-sm font-bold text-gray-600">TÊN TÙNG THƯ</p>
             </th>
-            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-              <p className="text-sm font-bold text-gray-600">MÃ</p>
-            </th>
-            <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-end">
+            <th className="border-b border-gray-200 pt-4 pb-2 pr-4 text-end">
               <p className="text-sm font-bold text-gray-600">HÀNH ĐỘNG</p>
             </th>
           </tr>
@@ -382,12 +364,10 @@ function SeriesName() {
             const isEditing = editingId === item._id;
             return (
               <tr key={item._id}>
-                <td className="max-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">
-                    {idx + 1}
-                  </p>
+                <td className="py-3 pr-4">
+                  <p className="text-sm font-bold text-navy-700">{idx + 1}</p>
                 </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <td className="py-3 pr-4">
                   {isEditing ? (
                     <input
                       className="border border-gray-300 px-2 py-1 rounded-xl text-sm"
@@ -395,37 +375,24 @@ function SeriesName() {
                       onChange={(e) => setEditName(e.target.value)}
                     />
                   ) : (
-                    <p className="text-sm font-semibold text-navy-700">
+                    <p className="text-sm font-bold text-navy-700">
                       {item.name}
                     </p>
                   )}
                 </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  {isEditing ? (
-                    <input
-                      className="border border-gray-300 px-2 py-1 rounded-xl text-sm"
-                      value={editCode}
-                      onChange={(e) => setEditCode(e.target.value)}
-                    />
-                  ) : (
-                    <p className="text-sm font-semibold text-navy-700">
-                      {item.code}
-                    </p>
-                  )}
-                </td>
-                <td className="max-w-[150px] border-white/0 py-3 pr-4 justify-end">
+                <td className="py-3 pr-4 text-right">
                   <div className="flex justify-end space-x-2">
                     {isEditing ? (
                       <>
                         <button
                           onClick={() => handleSaveEdit(item._id)}
-                          className="flex items-center justify-center px-2 py-1 text-sm text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                          className="px-2 py-1 text-sm text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
                         >
                           Lưu
                         </button>
                         <button
                           onClick={handleCancelEdit}
-                          className="flex items-center justify-center px-2 py-1 text-sm text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                          className="px-2 py-1 text-sm text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
                         >
                           Huỷ
                         </button>
@@ -434,13 +401,13 @@ function SeriesName() {
                       <>
                         <button
                           onClick={() => handleEdit(item)}
-                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                          className="w-7 h-7 flex items-center justify-center text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
                         >
                           <FiEdit size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(item)}
-                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                          className="w-7 h-7 flex items-center justify-center text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
                         >
                           <FiTrash2 size={14} />
                         </button>
@@ -504,7 +471,7 @@ function SpecialCode() {
       })
       .catch((error) => {
         console.error("Error creating special code:", error);
-        alert(error.message);
+        toast.error(error.message);
       });
   };
 
@@ -535,7 +502,7 @@ function SpecialCode() {
       })
       .catch((error) => {
         console.error("Error updating special code:", error);
-        alert(error.message);
+        toast.error(error.message);
       });
   };
 
@@ -561,7 +528,7 @@ function SpecialCode() {
       })
       .catch((error) => {
         console.error("Error deleting special code:", error);
-        alert(error.message);
+        toast.error(error.message);
       });
   };
 
@@ -616,19 +583,17 @@ function SpecialCode() {
             return (
               <tr key={item._id}>
                 <td className="max-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">
-                    {idx + 1}
-                  </p>
+                  <p className="text-sm font-bold text-navy-700">{idx + 1}</p>
                 </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <td className="min-w-[150px] font-bold border-white/0 py-3 pr-4">
                   {isEditing ? (
                     <input
-                      className="border border-gray-300 px-2 py-1 rounded-2xl text-sm"
+                      className="border border-gray-300 px-2 py-1 font-bold rounded-2xl text-sm"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                     />
                   ) : (
-                    <p className="text-sm font-semibold text-navy-700">
+                    <p className="text-sm font-bold  text-navy-700">
                       {item.name}
                     </p>
                   )}
@@ -641,7 +606,7 @@ function SpecialCode() {
                       onChange={(e) => setEditCode(e.target.value)}
                     />
                   ) : (
-                    <p className="text-sm font-semibold text-navy-700">
+                    <p className="text-sm font-bold text-navy-700">
                       {item.code}
                     </p>
                   )}
@@ -697,12 +662,15 @@ function LibraryInformation() {
   const [modalMode, setModalMode] = useState("create"); // "create" hoặc "edit"
 
   const [currentLibrary, setCurrentLibrary] = useState({
-    authors: "",
+    authors: [],
     title: "",
     coverImage: "",
     category: "",
     language: "",
     description: "",
+    documentType: "",
+    specialCode: "",
+    seriesName: "",
   });
 
   // Quản lý file ảnh bìa
@@ -726,12 +694,15 @@ function LibraryInformation() {
   const openCreateModal = () => {
     setModalMode("create");
     setCurrentLibrary({
-      authors: "",
+      authors: [],
       title: "",
       coverImage: "",
       category: "",
       language: "",
       description: "",
+      documentType: "",
+      specialCode: "",
+      seriesName: "",
     });
     setCoverImageFile(null);
     setCoverImagePreview(null);
@@ -741,10 +712,12 @@ function LibraryInformation() {
   const openEditModal = (library) => {
     setModalMode("edit");
     // Gộp authors[] -> authors string
-    const authorsString = library.authors?.join(", ") || "";
     setCurrentLibrary({
       ...library,
-      authors: authorsString,
+      authors: library.authors || [],
+      documentType: library.documentType || "",
+      specialCode: library.specialCode || "",
+      seriesName: library.seriesName || "",
     });
     if (library.coverImage) {
       // Hiển thị ảnh bìa cũ
@@ -767,80 +740,93 @@ function LibraryInformation() {
   // ========================= Lưu (Create/Update) =========================
   const handleModalSave = async () => {
     try {
-      // FormData để gửi file + các trường text
+      // Chuẩn bị FormData cho các trường dữ liệu cần gửi (chỉ cho upload file)
       const formData = new FormData();
-
-      // authors: chuyển chuỗi -> cắt -> gộp
-      const authorsArr = currentLibrary.authors
-        .split(",")
-        .map((a) => a.trim())
-        .filter(Boolean);
-
-      formData.append("authors", authorsArr.join(",")); // backend sẽ tách lại
-      formData.append("title", currentLibrary.title);
-      formData.append("category", currentLibrary.category);
-      formData.append("language", currentLibrary.language);
-      formData.append("description", currentLibrary.description);
-
       if (coverImageFile) {
         formData.append("file", coverImageFile);
       }
 
       if (modalMode === "create") {
-        // Tạo mới
+        // Nếu ở chế độ tạo mới, gửi tất cả dữ liệu (có FormData nếu có file ảnh)
+        // Bạn có thể giữ nguyên branch này nếu nó hoạt động đúng
+        // Lưu ý: Khi tạo mới, dữ liệu được gửi dưới dạng FormData
+        // Nếu bạn đã đảm bảo backend nhận FormData cho tạo mới, thì không cần thay đổi gì.
+        // Ví dụ:
+        formData.append(
+          "authors",
+          Array.isArray(currentLibrary.authors)
+            ? currentLibrary.authors.join(",")
+            : currentLibrary.authors
+        );
+        formData.append("title", currentLibrary.title);
+        formData.append("category", currentLibrary.category);
+        formData.append("language", currentLibrary.language);
+        formData.append("documentType", currentLibrary.documentType);
+        formData.append("specialCode", currentLibrary.specialCode);
+        formData.append("seriesName", currentLibrary.seriesName);
+        formData.append("description", currentLibrary.description);
+
         const res = await fetch(`${API_URL}/libraries`, {
           method: "POST",
           body: formData,
         });
         const data = await res.json();
         if (!res.ok) {
-          alert(data.error || "Error creating library");
+          toast.error(data.error || "Error creating library");
           return;
         }
       } else {
-        // Chỉnh sửa
-        // Cách 1: Gửi PUT multipart => Cần route PUT multipart
-        // Cách 2: Tạm upload file nếu có => Lấy filePath => Gửi PUT JSON
-        // Tạm dùng Cách 2:
-
-        // 1) Lấy library gốc
+        // Chế độ edit: cập nhật record cũ
+        // 1) Lấy Library gốc để biết giá trị hiện tại của coverImage
         const oldLibRes = await fetch(
           `${API_URL}/libraries/${currentLibrary._id}`
         );
         const oldLib = await oldLibRes.json();
         if (!oldLibRes.ok) {
-          alert("Không tìm thấy Library cần sửa");
+          toast.error("Không tìm thấy Library cần sửa");
           return;
         }
-
         let updatedCover = oldLib.coverImage || "";
 
-        // 2) Nếu có file ảnh => upload => lấy filePath
+        // 2) Nếu có file ảnh mới, gọi endpoint upload riêng (chỉ upload file, không tạo record mới)
         if (coverImageFile) {
-          const uploadRes = await fetch(`${API_URL}/libraries`, {
-            method: "POST",
-            body: formData,
-          });
+          const uploadRes = await fetch(
+            `${API_URL}/libraries/${currentLibrary._id}`,
+            {
+              method: "PUT",
+              body: formData,
+            }
+          );
           const uploadData = await uploadRes.json();
-          if (uploadRes.ok) {
+          if (uploadRes.ok && uploadData.filePath) {
             updatedCover = uploadData.filePath;
           } else {
-            alert("Upload coverImage thất bại!");
+            toast.error("Upload coverImage thất bại!");
             return;
           }
         }
 
-        // 3) Tạo payload JSON
+        // 3) Chuẩn bị payload JSON cho PUT (các trường text)
+        // Chuyển authors về dạng mảng
+        const authorsArr = Array.isArray(currentLibrary.authors)
+          ? currentLibrary.authors
+          : currentLibrary.authors
+              .split(",")
+              .map((a) => a.trim())
+              .filter(Boolean);
         const payload = {
           authors: authorsArr,
           title: currentLibrary.title,
           category: currentLibrary.category,
           language: currentLibrary.language,
           description: currentLibrary.description,
+          documentType: currentLibrary.documentType,
+          specialCode: currentLibrary.specialCode,
+          seriesName: currentLibrary.seriesName,
           coverImage: updatedCover,
         };
 
-        // 4) Gửi PUT JSON
+        // 4) Gửi PUT request cập nhật Library record cũ
         const updateRes = await fetch(
           `${API_URL}/libraries/${currentLibrary._id}`,
           {
@@ -851,17 +837,17 @@ function LibraryInformation() {
         );
         const updateData = await updateRes.json();
         if (!updateRes.ok) {
-          alert(updateData.error || "Error updating library");
+          toast.error(updateData.error || "Error updating library");
           return;
         }
       }
 
-      // Xong
       setIsModalOpen(false);
       fetchLibraries();
+      toast.success("Lưu library thành công!");
     } catch (err) {
       console.error("Error saving library:", err);
-      alert("Error saving library");
+      toast.error("Error saving library");
     }
   };
 
@@ -873,7 +859,7 @@ function LibraryInformation() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Error deleting library");
+        toast.error(data.error || "Error deleting library");
       } else {
         fetchLibraries();
       }
@@ -900,7 +886,7 @@ function LibraryInformation() {
         <thead>
           <tr>
             <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
-              STT
+              Mã định danh
             </th>
             <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
               Tên sách
@@ -925,13 +911,36 @@ function LibraryInformation() {
         <tbody>
           {libraries.map((lib, idx) => (
             <tr key={lib._id}>
-              <td className="py-2 px-3 text-sm">{idx + 1}</td>
-              <td className="py-2 px-3 text-sm">{lib.title}</td>
-              <td className="py-2 px-3 text-sm">{lib.authors?.join(", ")}</td>
-              <td className="py-2 px-3 text-sm">{lib.category}</td>
-              <td className="py-2 px-3 text-sm">{lib.language}</td>
-              <td className="py-2 px-3 text-sm">{lib.description}</td>
-              <td className="py-2 px-3 text-right">
+              <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <p className="text-sm font-bold text-navy-700">
+                  {" "}
+                  {lib.libraryCode}
+                </p>
+              </td>
+              <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <p className="text-sm font-bold text-navy-700">{lib.title}</p>
+              </td>
+              <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <p className="text-sm font-bold text-navy-700">
+                  {lib.authors?.join(", ")}
+                </p>
+              </td>
+              <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <p className="text-sm font-bold text-navy-700">
+                  {lib.category}
+                </p>
+              </td>
+              <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <p className="text-sm font-bold text-navy-700">
+                  {lib.language}
+                </p>
+              </td>
+              <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <p className="text-sm font-bold text-navy-700">
+                  {lib.description}
+                </p>
+              </td>
+              <td className="py-2 px-3 font-semibold text-right">
                 <div className="flex justify-end space-x-2">
                   <button
                     onClick={() => openEditModal(lib)}
@@ -978,6 +987,18 @@ function LibraryInformation() {
                   />
                 </div>
                 <div className="mb-3">
+                  <label className="block mb-1">Tác giả:</label>
+                  <AuthorSelector
+                    selectedAuthors={currentLibrary.authors}
+                    onChange={(newAuthors) =>
+                      setCurrentLibrary((prev) => ({
+                        ...prev,
+                        authors: newAuthors,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="mb-3">
                   <label className="block mb-1">Thể loại:</label>
                   <input
                     type="text"
@@ -1013,15 +1034,51 @@ function LibraryInformation() {
               </div>
               {/* Right Column */}
               <div className="flex-1">
+                {" "}
+                {/* Các trường mới */}
                 <div className="mb-3">
-                  <label className="block mb-1">Tác giả:</label>
-                  <input
-                    type="text"
-                    name="authors"
-                    placeholder="Nhập tên tác giả, cách nhau dấu phẩy..."
-                    value={currentLibrary.authors}
-                    onChange={handleModalChange}
-                    className="w-full border border-gray-300 px-2 py-1 rounded-xl"
+                  <AutoCompleteSelect
+                    label="Phân loại tài liệu:"
+                    name="documentType"
+                    selectedValue={currentLibrary.documentType}
+                    onChange={(val) =>
+                      setCurrentLibrary((prev) => ({
+                        ...prev,
+                        documentType: val,
+                      }))
+                    }
+                    fetchUrl={`${API_URL}/libraries/document-types`}
+                    placeholder="Chọn phân loại tài liệu..."
+                  />
+                </div>
+                <div className="mb-3">
+                  <AutoCompleteSelect
+                    label="Quy ước sách:"
+                    name="specialCode"
+                    selectedValue={currentLibrary.specialCode}
+                    onChange={(val) =>
+                      setCurrentLibrary((prev) => ({
+                        ...prev,
+                        specialCode: val,
+                      }))
+                    }
+                    fetchUrl={`${API_URL}/libraries/special-codes`}
+                    placeholder="Chọn quy ước sách..."
+                  />
+                </div>
+                <div className="mb-3">
+                  <AutoCompleteSelect
+                    label="Tùng thư:"
+                    name="seriesName"
+                    selectedValue={currentLibrary.seriesName}
+                    onChange={(val) =>
+                      setCurrentLibrary((prev) => ({
+                        ...prev,
+                        seriesName: val,
+                      }))
+                    }
+                    fetchUrl={`${API_URL}/libraries/series-names`}
+                    placeholder="Chọn tùng thư..."
                   />
                 </div>
                 <div>
@@ -1083,6 +1140,195 @@ function LibraryInformation() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+// ------------------- COMPONENT Authors ------------------- //
+
+function AuthorList() {
+  const [data, setData] = useState([]);
+  const [name, setName] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+
+  const fetchData = () => {
+    fetch(`${API_URL}/libraries/authors`)
+      .then((res) => res.json())
+      .then(setData)
+      .catch((error) => {
+        console.error("Error fetching authors:", error);
+      });
+  };
+
+  useEffect(fetchData, []);
+
+  const handleCreate = () => {
+    if (!name) return;
+    fetch(`${API_URL}/libraries/authors`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Lỗi khi tạo tác giả");
+        }
+        return res.json();
+      })
+      .then(() => {
+        setName("");
+        fetchData();
+      })
+      .catch((error) => {
+        console.error("Error creating author:", error);
+        toast.error(error.message);
+      });
+  };
+
+  const handleEdit = (item) => {
+    setEditingId(item._id);
+    setEditName(item.name);
+  };
+
+  const handleSaveEdit = (id) => {
+    fetch(`${API_URL}/libraries/authors/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Lỗi khi cập nhật tác giả");
+        }
+        return res.json();
+      })
+      .then(() => {
+        setEditingId(null);
+        fetchData();
+      })
+      .catch((error) => {
+        console.error("Error updating author:", error);
+        toast.error(error.message);
+      });
+  };
+
+  const handleDelete = (item) => {
+    fetch(`${API_URL}/libraries/authors/${item._id}`, {
+      method: "DELETE",
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Lỗi khi xóa tác giả");
+        }
+        return res.json();
+      })
+      .then(fetchData)
+      .catch((error) => {
+        console.error("Error deleting author:", error);
+        toast.error(error.message);
+      });
+  };
+
+  return (
+    <div>
+      <div className="flex flex-row items-center justify-between mb-4">
+        <h2 className="text-[24px] font-bold">Danh sách tác giả</h2>
+        <div className="flex gap-2 items-center justify-center text-sm">
+          <label className="text-sm">Tên:</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nhập tên tác giả..."
+            className="border border-gray-200 px-2 py-1 rounded-2xl text-sm"
+          />
+          <button
+            onClick={handleCreate}
+            className="px-3 py-1 bg-[#002147] text-sm font-bold text-white rounded-lg hover:bg-[#001635]"
+          >
+            Thêm mới
+          </button>
+        </div>
+      </div>
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th className="border-b border-gray-200 pt-4 pb-2 pr-4 text-start">
+              <p className="text-sm font-bold text-gray-600">STT</p>
+            </th>
+            <th className="border-b border-gray-200 pt-4 pb-2 pr-4 text-start">
+              <p className="text-sm font-bold text-gray-600">TÊN TÁC GIẢ</p>
+            </th>
+            <th className="border-b border-gray-200 pt-4 pb-2 pr-4 text-end">
+              <p className="text-sm font-bold text-gray-600">HÀNH ĐỘNG</p>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((item, idx) => {
+            const isEditing = editingId === item._id;
+            return (
+              <tr key={item._id}>
+                <td className="py-3 pr-4">
+                  <p className="text-sm font-semibold text-navy-700">
+                    {idx + 1}
+                  </p>
+                </td>
+                <td className="py-3 pr-4">
+                  {isEditing ? (
+                    <input
+                      className="border border-gray-300 px-2 py-1 rounded-2xl text-sm"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                    />
+                  ) : (
+                    <p className="text-sm font-semibold text-navy-700">
+                      {item.name}
+                    </p>
+                  )}
+                </td>
+                <td className="py-3 pr-4 text-right">
+                  <div className="flex justify-end space-x-2">
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={() => handleSaveEdit(item._id)}
+                          className="px-2 py-1 text-sm text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          Lưu
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="px-2 py-1 text-sm text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          Huỷ
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="w-7 h-7 flex items-center justify-center text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiEdit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item)}
+                          className="w-7 h-7 flex items-center justify-center text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -1215,7 +1461,7 @@ function BookDetail() {
   // Tạo/sửa 1 book
   const handleSaveModal = async () => {
     if (!selectedLibrary) {
-      alert("Vui lòng chọn Library trước!");
+      toast.error("Vui lòng chọn Library trước!");
       return;
     }
 
@@ -1253,7 +1499,7 @@ function BookDetail() {
         );
         const data = await res.json();
         if (!res.ok) {
-          alert(data.error || "Error adding new book");
+          toast.error(data.error || "Error adding new book");
           return;
         }
         setSelectedLibrary(data); // data = library sau khi thêm book
@@ -1261,7 +1507,7 @@ function BookDetail() {
         // Chỉnh sửa (PUT /libraries/:libraryId/books/:bookIndex)
         const bookIndex = currentBook._index;
         if (bookIndex == null) {
-          alert("Không xác định index của book để sửa");
+          toast.error("Không xác định index của book để sửa");
           return;
         }
 
@@ -1275,45 +1521,48 @@ function BookDetail() {
         );
         const data = await res.json();
         if (!res.ok) {
-          alert(data.error || "Error updating book");
+          toast.error(data.error || "Error updating book");
           return;
         }
         setSelectedLibrary(data); // data = library sau khi update
       }
 
       setIsModalOpen(false);
-      alert("Lưu sách thành công!");
+      toast.success("Lưu sách thành công!");
+      fetchAllBooks(); // Cập nhật lại danh sách books
     } catch (err) {
       console.error("Error saving book:", err);
-      alert("Error saving book");
+      toast.error("Error saving book");
     }
   };
 
   // ============== Xoá Book ==============
   const handleDelete = async (idx) => {
-    if (!selectedLibrary) {
-      alert("Vui lòng chọn Library trước!");
+    const book = allBooks[idx];
+    if (!book || !book.generatedCode) {
+      toast.error("Không tìm thấy mã sách để xoá");
       return;
     }
+
     try {
-      // Xoá 1 book (DELETE /libraries/:libraryId/books/:bookIndex)
+      // Xoá 1 book theo mã (DELETE /libraries/books/:bookCode)
       const res = await fetch(
-        `${API_URL}/libraries/${selectedLibrary._id}/books/${idx}`,
+        `${API_URL}/libraries/books/${book.generatedCode}`,
         {
           method: "DELETE",
         }
       );
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Error deleting book");
+        toast.error(data.error || "Lỗi khi xoá sách");
         return;
       }
 
-      setSelectedLibrary(data); // data = library sau khi xoá book
-      alert("Xoá sách thành công!");
+      toast.success("Xoá sách thành công!");
+      fetchAllBooks(); // Reload lại danh sách
     } catch (err) {
-      console.error("Error deleting book:", err);
-      alert("Error deleting book");
+      console.error("Lỗi khi xoá sách:", err);
+      toast.error("Lỗi khi xoá sách");
     }
   };
 
@@ -1334,7 +1583,7 @@ function BookDetail() {
         <thead>
           <tr>
             <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
-              STT
+              Mã sách
             </th>
             <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
               ISBN
@@ -1342,8 +1591,11 @@ function BookDetail() {
             <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
               Tên Sách
             </th>
-            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-start text-sm font-bold text-gray-600">
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-center text-sm font-bold text-gray-600">
               Năm XB
+            </th>
+            <th className="border-b-[1px] border-gray-200 py-2 px-3 text-center text-sm font-bold text-gray-600">
+              Tình trạng
             </th>
             <th className="border-b-[1px] border-gray-200 py-2 px-3 text-end text-sm font-bold text-gray-600">
               HÀNH ĐỘNG
@@ -1353,14 +1605,39 @@ function BookDetail() {
         <tbody>
           {allBooks.map((b, idx) => (
             <tr key={idx}>
-              <td className="py-2 px-3 text-sm">{idx + 1}</td>
-              <td className="py-2 px-3 text-sm">{b.isbn}</td>
-              <td className="py-2 px-3 text-sm">{b.bookTitle}</td>
-              <td className="py-2 px-3 text-sm">{b.publishYear}</td>
-              <td className="py-2 px-3 text-right">
+              <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <p className="text-sm font-bold text-navy-700">
+                  {b.generatedCode}
+                </p>
+              </td>
+              <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <p className="text-sm font-bold text-navy-700">{b.isbn}</p>
+              </td>
+              <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                <p className="text-sm font-bold text-navy-700">{b.bookTitle}</p>
+              </td>
+              <td className="min-w-[150px] border-white/0 py-3 pr-4 text-center">
+                <p className="text-sm font-bold text-navy-700">
+                  {b.publishYear}
+                </p>
+              </td>
+              <td className="min-w-[150px] border-white/0 py-3 pr-4 text-center">
+                <p className="text-sm font-bold text-navy-700">{b.status}</p>
+              </td>
+              <td className="py-2 px-3 font-semibold text-right">
                 <div className="flex justify-end space-x-2">
-                  {/* tuỳ bạn muốn xử lý nút Sửa/Xoá thế nào,
-              vì giờ mỗi book có 1 libraryId riêng */}
+                  <button
+                    onClick={() => openEditModal(b, idx)}
+                    className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                  >
+                    <FiEdit size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(idx)}
+                    className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
+                  >
+                    <FiTrash2 size={14} />
+                  </button>
                 </div>
               </td>
             </tr>
@@ -1382,36 +1659,56 @@ function BookDetail() {
             <h3 className="text-xl font-bold mb-4">
               {modalMode === "create" ? "Thêm sách mới" : "Chỉnh sửa sách"}
             </h3>
-            <div className="w-full">
-              <label className="block mb-1">
-                Chọn Đầu Sách <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                className="w-[48%] border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
-                placeholder="Nhập đầu sách..."
-                value={librarySearchTerm}
-                onChange={(e) => handleLibrarySearch(e.target.value)}
-                disabled={modalMode === "edit"}
-              />
-              {searchResults.length > 0 && (
-                <div className="border border-gray-200 mt-1 rounded bg-white shadow-md">
-                  {searchResults.map((lib) => (
-                    <div
-                      key={lib._id}
-                      className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => handleSelectLibrary(lib)}
-                    >
-                      {lib.title}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedLibrary && (
-                <div className="mt-2 text-sm text-gray-600">
-                  Đã chọn: <b>{selectedLibrary.title}</b>
-                </div>
-              )}
+            <div className="w-full flex flex-row items-start gap-4">
+              <div className="flex-1">
+                <label className="block mb-1">
+                  Chọn Đầu Sách <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                  placeholder="Nhập đầu sách..."
+                  value={librarySearchTerm}
+                  onChange={(e) => handleLibrarySearch(e.target.value)}
+                  disabled={modalMode === "edit"}
+                />
+                {searchResults.length > 0 && (
+                  <div className="border border-gray-200 mt-1 rounded bg-white shadow-md">
+                    {searchResults.map((lib) => (
+                      <div
+                        key={lib._id}
+                        className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleSelectLibrary(lib)}
+                      >
+                        {lib.title}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedLibrary && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    Đã chọn: <b>{selectedLibrary.title}</b>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <label className="block mb-1">
+                  Chọn Quy ước sách <span className="text-red-500">*</span>
+                </label>
+                <AutoCompleteSelect
+                  name="specialCode"
+                  selectedValue={currentBook.specialCode || ""}
+                  onChange={(val) =>
+                    setCurrentBook((prev) => ({
+                      ...prev,
+                      specialCode: val,
+                    }))
+                  }
+                  fetchUrl={`${API_URL}/libraries/special-codes`}
+                  placeholder="Chọn quy ước sách..."
+                  className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+                />
+              </div>
             </div>
             <div className="flex gap-4">
               <div className="flex-1">
@@ -1639,7 +1936,7 @@ function BookDetail() {
 
 function LibraryData() {
   // State xác định đang xem tab nào
-  const [activeTab, setActiveTab] = useState("");
+  const [activeTab, setActiveTab] = useState("bookDetail");
 
   return (
     <div className="flex">
@@ -1656,7 +1953,12 @@ function LibraryData() {
           </li>
           <li className="mt-6">
             <button onClick={() => setActiveTab("specialCode")}>
-              Đăng kí cá biệt
+              Mã quy ước
+            </button>
+          </li>
+          <li className="mt-6">
+            <button onClick={() => setActiveTab("authorList")}>
+              Danh sách tác giả
             </button>
           </li>
           <li className="mt-6">Dữ liệu sách</li>
@@ -1678,6 +1980,7 @@ function LibraryData() {
         {activeTab === "documentType" && <DocumentType />}
         {activeTab === "seriesName" && <SeriesName />}
         {activeTab === "specialCode" && <SpecialCode />}
+        {activeTab === "authorList" && <AuthorList />}
         {activeTab === "bookInformation" && <LibraryInformation />}
         {activeTab === "bookDetail" && <BookDetail />}
       </main>
@@ -1686,3 +1989,228 @@ function LibraryData() {
 }
 
 export default LibraryData;
+
+// ------------------- COMPONENT AuthorSelector ------------------- //
+function AuthorSelector({ selectedAuthors, onChange }) {
+  const [allAuthors, setAllAuthors] = useState([]);
+  const [inputValue, setInputValue] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [focused, setFocused] = useState(false);
+
+  // Thêm dòng này để khai báo ref
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/libraries/authors`)
+      .then((res) => res.json())
+      .then((data) => setAllAuthors(data))
+      .catch((error) => console.error("Error fetching authors:", error));
+  }, []);
+
+  const tokens = inputValue
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const currentToken = inputValue.endsWith(",")
+    ? ""
+    : tokens[tokens.length - 1] || "";
+
+  useEffect(() => {
+    if (!focused) {
+      setSuggestions([]);
+      return;
+    }
+    if (!currentToken.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    const existingNames = new Set(selectedAuthors.map((t) => t.toLowerCase()));
+    const filtered = allAuthors.filter(
+      (author) =>
+        author.name.toLowerCase().includes(currentToken.toLowerCase()) &&
+        !existingNames.has(author.name.toLowerCase())
+    );
+    if (filtered.length === 0) {
+      setSuggestions([{ name: currentToken, isNew: true }]);
+    } else {
+      const exactMatch = filtered.find(
+        (author) => author.name.toLowerCase() === currentToken.toLowerCase()
+      );
+      if (!exactMatch) {
+        filtered.push({ name: currentToken, isNew: true });
+      }
+      setSuggestions(filtered);
+    }
+  }, [currentToken, selectedAuthors, allAuthors, focused]);
+
+  const handleSelect = (name) => {
+    onChange([...selectedAuthors, name]);
+    setInputValue("");
+    setSuggestions([]);
+  };
+
+  const handleChange = (e) => {
+    setInputValue(e.target.value);
+  };
+
+  // Click ngoài component để ẩn gợi ý
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <div className="flex flex-wrap items-center gap-2 border border-gray-300 px-2 py-1 rounded-xl min-h-[42px] cursor-text">
+        {selectedAuthors.map((author, idx) => (
+          <span
+            key={idx}
+            className="flex items-center bg-[#002855] text-white px-2 py-1 rounded-2xl text-sm"
+          >
+            {author}
+            <button
+              onClick={() =>
+                onChange(selectedAuthors.filter((a) => a !== author))
+              }
+              className="ml-1 text-white font-bold"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={inputValue}
+          onFocus={() => setFocused(true)}
+          onChange={handleChange}
+          placeholder="Thêm tác giả..."
+          className="flex-1 border-none focus:outline-none bg-transparent text-base"
+        />
+      </div>
+      {focused && suggestions.length > 0 && (
+        <div className="absolute z-10 w-full bg-white border border-gray-300 mt-1 rounded max-h-60 overflow-y-auto">
+          {suggestions.map((suggestion, idx) => (
+            <div
+              key={idx}
+              className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelect(suggestion.name);
+              }}
+            >
+              {suggestion.isNew
+                ? `Thêm mới "${suggestion.name}"`
+                : suggestion.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AutoCompleteSelect({
+  label,
+  name,
+  selectedValue,
+  onChange,
+  fetchUrl,
+  placeholder,
+}) {
+  const [options, setOptions] = useState([]);
+  const [inputValue, setInputValue] = useState(selectedValue || "");
+  const [suggestions, setSuggestions] = useState([]);
+  const [focused, setFocused] = useState(false); // Xác định ô input có đang focus hay không
+
+  const containerRef = useRef(null);
+
+  // Lấy dữ liệu (DocumentType, SpecialCode, SeriesName...) từ backend
+  useEffect(() => {
+    fetch(fetchUrl)
+      .then((res) => res.json())
+      .then(setOptions)
+      .catch((err) => console.error("Error fetching options:", err));
+  }, [fetchUrl]);
+
+  // Cập nhật suggestions mỗi khi inputValue, options hoặc focus thay đổi
+  useEffect(() => {
+    // Nếu ô input chưa focus, ta ẩn gợi ý
+    if (!focused) {
+      setSuggestions([]);
+      return;
+    }
+
+    // Nếu người dùng chưa nhập gì, hiển thị toàn bộ options
+    if (!inputValue.trim()) {
+      setSuggestions(options);
+      return;
+    }
+
+    // Nếu có nhập, lọc danh sách
+    const filtered = options.filter((opt) =>
+      opt.name.toLowerCase().includes(inputValue.toLowerCase())
+    );
+    setSuggestions(filtered);
+  }, [inputValue, options, focused]);
+
+  // Khi chọn 1 gợi ý
+  const handleSelect = (val) => {
+    setInputValue(val);
+    onChange(val);
+    setSuggestions([]);
+  };
+
+  // Ẩn gợi ý nếu click ra ngoài component
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <label className="block mb-1">{label}</label>
+      <input
+        type="text"
+        name={name}
+        value={inputValue}
+        // Chỉ khi người dùng focus ô input, ta mới bật cờ focus
+        onFocus={() => setFocused(true)}
+        onChange={(e) => {
+          setInputValue(e.target.value);
+          onChange(e.target.value); // Báo ngược lên cha
+        }}
+        placeholder={placeholder}
+        className="w-full border-none bg-[#f8f8f8] px-2 py-2 rounded-xl text-sm"
+      />
+
+      {/* Chỉ hiển thị suggestions nếu đang focus và mảng suggestions có dữ liệu */}
+      {focused && suggestions.length > 0 && (
+        <div className="absolute z-10 w-full bg-white border border-gray-300 mt-1  max-h-60 overflow-y-auto">
+          {suggestions.map((s) => (
+            <div
+              key={s._id}
+              className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+              onClick={() => handleSelect(s.name)}
+            >
+              {s.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

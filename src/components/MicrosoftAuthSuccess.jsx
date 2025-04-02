@@ -34,7 +34,7 @@ function MicrosoftAuthSuccess() {
       } else {
         // Nếu từ web, điều hướng bình thường
         if (
-          ["admin", "superadmin", "technical", "marcom", "hr"].includes(
+          ["admin", "superadmin", "technical", "marcom", "hr", "bos"].includes(
             userRole
           )
         ) {

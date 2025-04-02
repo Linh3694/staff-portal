@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   FiUser,
-  FiChevronLeft,
-  FiChevronRight,
   FiMonitor,
   FiClipboard,
   FiUsers,
@@ -38,7 +36,7 @@ const Sidebar = ({
 }) => {
   const navigate = useNavigate();
 
-  const [isPinned, setIsPinned] = useState(true);
+  const [isPinned, setIsPinned] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const effectiveCollapsed = isPinned ? false : !isHovered;
   const role = currentUser.role?.toLowerCase();
@@ -167,6 +165,23 @@ const Sidebar = ({
       ],
     },
     {
+      title: "Workspace",
+      allowedRoles: ["bos"],
+      subItems: [
+        {
+          label: "Tickets",
+          icon: <LuTicketSlash size={16} />,
+          link: "/dashboard/ticket",
+        },
+        {
+          label: "Quản lý vinh danh",
+          icon: <FaUserGraduate size={16} />,
+          link: "/dashboard/halloffame",
+          allowedRoles: ["superadmin", "admin", "bos"],
+        },
+      ],
+    },
+    {
       title: "Settings",
       allowedRoles: ["superadmin", "admin"],
       subItems: [
@@ -184,6 +199,17 @@ const Sidebar = ({
           label: "Quản lý phòng học",
           icon: <FiHome size={16} />,
           link: "/dashboard/rooms",
+        },
+      ],
+    },
+    {
+      title: "Settings",
+      allowedRoles: ["bos"],
+      subItems: [
+        {
+          label: "Quản lý học sinh",
+          icon: <FiUsers size={16} />,
+          link: "/dashboard/students",
         },
       ],
     },
@@ -228,7 +254,7 @@ const Sidebar = ({
           )}
         </div>
         {/* Nút toggle: chuyển đổi giữa trạng thái pinned và unpinned */}
-        <button
+        {/* <button
           onClick={() => {
             setIsPinned(!isPinned);
             setIsSidebarOpen(!isPinned);
@@ -247,7 +273,7 @@ const Sidebar = ({
           ) : (
             <FiChevronLeft size={16} />
           )}
-        </button>
+        </button> */}
       </div>
 
       {/* MENU */}
