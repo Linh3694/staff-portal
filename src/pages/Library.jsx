@@ -87,12 +87,12 @@ const Library = () => {
       </section>
 
       {/* Section: Sách Mới */}
-      <section className="w-full h-screen px-20 py-16 bg-white">
+      <section className="w-full h-screen py-16 pl-20 bg-white">
         <div className="flex items-center gap-4 mb-10">
           <div className="w-4 h-4 bg-yellow-400 rounded-full"></div>
           <h2 className="text-4xl font-extrabold text-[#002855]">SÁCH MỚI</h2>
         </div>
-        <div className="border-l-2 border-y-2 border-[#DDDDDD] rounded-l-full py-10 pl-24 ml-20 flex justify-center gap-6">
+        <div className="border-l-2 border-y-2 border-[#DDDDDD] rounded-l-full py-10 pl-20 flex justify-center gap-6 overflow-x-hidden">
           {libraries.map((lib) => (
             <div
               key={lib._id}

@@ -414,6 +414,7 @@ const Profile = ({ userId, onBack }) => {
                         >
                           <option value="user">User</option>
                           <option value="marcom">Marcom</option>
+                          <option value="bos">BOS</option>
                           <option value="hr">HR</option>
                           <option value="technical">Technical</option>
                           <option value="admin">Admin</option>
