@@ -48,8 +48,19 @@ const ticketSchema = new mongoose.Schema(
         default: 0,
       },
       feedback: {
-        rating: { type: Number, min: 1, max: 5 }, // Đánh giá của user
+        assignedTo: { 
+          type: mongoose.Schema.Types.ObjectId, 
+          ref: "User",
+        },
+        rating: { type: Number, min: 1, max: 5 },
         comment: String,
+        badges: [
+          {
+            type: String, 
+            enum: ["Nhiệt Huyết", "Chu Đáo", "Vui Vẻ", "Tận Tình", "Chuyên Nghiệp"], 
+            // bạn có thể liệt kê thêm
+          }
+        ],
       },
       //trao đổi thông tin
       messages: [
@@ -75,6 +86,10 @@ const ticketSchema = new mongoose.Schema(
         },
       ],
       subTasks: [subTaskSchema], // ✅ Thêm sub-tasks vào ticket
+      notes:{
+        type: String,
+        default: "",
+      }
 
     },
     { timestamps: true }

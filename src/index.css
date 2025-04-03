@@ -369,3 +369,15 @@ code {
   animation: fadeRight 2s ease  forwards;
   /* Delay 0.4s */
 }
+
+.filter-green {
+  filter: brightness(0) saturate(100%) invert(47%) sepia(98%) saturate(497%) hue-rotate(86deg) brightness(92%) contrast(89%);
+}
+
+.filter-yellow {
+  filter: brightness(0) saturate(100%) invert(84%) sepia(19%) saturate(2593%) hue-rotate(337deg) brightness(102%) contrast(98%);
+}
+
+.filter-gray {
+  filter: brightness(0) saturate(100%) invert(76%) sepia(0%) saturate(2%) hue-rotate(198deg) brightness(92%) contrast(87%);
+}

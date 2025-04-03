@@ -615,12 +615,12 @@ const HallofFame = () => {
                   <div className="flex flex-row h-auto items-start">
                     {/* Ảnh nền chìm phía sau */}
                     <img
-                      src="/halloffame/vector-section2.png"
+                      src={`${CDN_URL}/HallOfFame/vector-section2.png`}
                       alt="vector-section2"
                       className="hidden md:block absolute xll:-right-12 xll:w-[1000px] xll:-bottom-24 lg:w-[900px] xl:-right-28 xl:-bottom-24 lg:-right-36 lg:-bottom-20 md:w-[800px] md:-bottom-24 md:-right-32 w-[700px] -bottom-8 -right-16 h-auto object-cover pointer-events-none opacity-30"
                     />
                     <img
-                      src="/halloffame/ngon-duoc.png"
+                      src={`${CDN_URL}/HallOfFame/ngon-duoc.png`}
                       alt="ngon-duoc"
                       className="w-auto h-[700px] absolute -bottom-[300px] md:h-[700px] md:-bottom-[400px] pointer-events-none opacity-20 xll:h-[900px] lg:h-[800px] lg:-bottom-[400px] lg:left-10 xl:left-32"
                     />
@@ -699,7 +699,7 @@ const HallofFame = () => {
       {isMobileView ? (
         <section
           className="flex relative w-full h-screen flex-col items-center justify-center bg-cover bg-center overflow-hidden "
-          style={{ backgroundImage: "url(/halloffame/section3.png)" }}
+          style={{ backgroundImage: `url(${CDN_URL}/HallOfFame/section3.png)` }}
         >
           {/* Tiêu đề Section 3 */}
           <div className="text-center mb-12">
@@ -708,7 +708,7 @@ const HallofFame = () => {
             </h2>
             <div className="flex justify-center my-5">
               <img
-                src="/halloffame/vector.png"
+                src={`${CDN_URL}/HallOfFame/vector.png`}
                 alt="Divider"
                 className="w-[500px] md:w-[500px] h-auto"
               />
@@ -740,7 +740,7 @@ const HallofFame = () => {
                       {/* Frame Avatar */}
                       <div className="absolute inset-0 pointer-events-none z-50">
                         <img
-                          src="/halloffame/frameavatar.png"
+                          src={`${CDN_URL}/HallOfFame/frameavatar.png`}
                           alt="Avatar Frame"
                           className="w-full h-full object-cover"
                         />
@@ -792,7 +792,7 @@ const HallofFame = () => {
                       {/* Frame Avatar */}
                       <div className="absolute inset-0 pointer-events-none z-50">
                         <img
-                          src="/halloffame/frameavatar.png"
+                          src={`${CDN_URL}/HallOfFame/frameavatar.png`}
                           alt="Avatar Frame"
                           className="w-full h-full object-cover"
                         />
@@ -822,7 +822,7 @@ const HallofFame = () => {
       ) : (
         <section
           className="flex relative w-full h-[720px] flex-col items-center justify-center bg-cover bg-center overflow-hidden"
-          style={{ backgroundImage: "url(/halloffame/section3.png)" }}
+          style={{ backgroundImage: `url(${CDN_URL}/HallOfFame/section3.png)` }}
         >
           {/* Tiêu đề Section 3 */}
           <div className="text-center mb-12">
@@ -831,7 +831,7 @@ const HallofFame = () => {
             </h2>
             <div className="flex justify-center my-5">
               <img
-                src="/halloffame/vector.png"
+                src={`${CDN_URL}/HallOfFame/vector.png`}
                 alt="Divider"
                 className="w-[200px] md:w-[500px] h-auto"
               />
@@ -871,7 +871,7 @@ const HallofFame = () => {
                       {!isActive && (
                         <div className="absolute inset-0 lg:w-[420px] lg:h-[420px] w-[200px] h-[250px] pointer-events-none z-50">
                           <img
-                            src="/halloffame/frameavatar.png"
+                            src={`${CDN_URL}/HallOfFame/frameavatar.png`}
                             alt="Avatar Frame"
                             className="w-full h-full object-cover"
                           />
@@ -880,7 +880,7 @@ const HallofFame = () => {
                       {isActive && (
                         <div className="absolute inset-0 lg:w-[840px] w-[500px] h-full pointer-events-none z-50 flex items-stretch">
                           <img
-                            src="/halloffame/framequote.png"
+                            src={`${CDN_URL}/HallOfFame/framequote.png`}
                             alt="Quote Frame"
                             className="w-full h-full object-cover"
                           />
@@ -917,7 +917,10 @@ const HallofFame = () => {
                             </p>
                           </div>
                           <div className="my-5">
-                            <img src={`/halloffame/vector.png`} alt="Cover" />
+                            <img
+                              src={`${CDN_URL}/HallOfFame/vector.png`}
+                              alt="Cover"
+                            />
                           </div>
                           <p className="text-white md:text-[14px]">
                             "
@@ -943,8 +946,8 @@ const HallofFame = () => {
             style={{
               backgroundImage: `url(${
                 window.innerWidth >= 1024
-                  ? "/halloffame/studentcard-desktop.png"
-                  : "/halloffame/studentcard-mobile.png"
+                  ? `${CDN_URL}/HallOfFame/studentcard-desktop.png`
+                  : `${CDN_URL}/HallOfFame/studentcard-mobile.png`
               })`,
               backgroundSize: "cover",
               backgroundPosition: "center",
@@ -956,7 +959,7 @@ const HallofFame = () => {
               <div className="w-full relative flex-shrink-0 px-[25px] lg:px-0">
                 {selectedStudent.image ? (
                   <img
-                    src={selectedStudent.image}
+                    src={`${CDN_URL}/Students/${selectedStudent.image}`}
                     alt="Student"
                     className="relative z-10 w-full h-[300px] md:h-[500px] items-center object-cover object-top  rounded-[15px] shadow-md"
                   />
@@ -1020,7 +1023,9 @@ const HallofFame = () => {
         {/* Ảnh nền chìm */}
         <div
           className="lg:w-[1075px] w-[500px] lg:h-[1075px] h-[500px] absolute -right-44 -bottom-[200px] bg-no-repeat bg-contain"
-          style={{ backgroundImage: "url('/halloffame/WS-opacity-20.png')" }}
+          style={{
+            backgroundImage: `url(${CDN_URL}/HallOfFame/WS-opacity-20.png)`,
+          }}
         />
 
         {/* Tiêu đề */}
@@ -1110,7 +1115,7 @@ const HallofFame = () => {
               Khám phá
             </h3>
             <img
-              src="/halloffame/HOH-gold.png"
+              src={`${CDN_URL}/HallOfFame/HOH-gold.png`}
               alt="Hall of Honor"
               className="shimmer-text 2xl:w-[550px] xl:w-[400px] w-[300px] mb-8"
             />
@@ -1131,7 +1136,7 @@ const HallofFame = () => {
               Khám phá
             </h3>
             <img
-              src="/halloffame/HOH-gold.png"
+              src={`${CDN_URL}/HallOfFame/HOH-gold.png`}
               alt="Hall of Honor"
               className="shimmer-text 2xl:w-[550px] xl:w-[400px] w-[300px] mb-8"
             />
@@ -1149,14 +1154,14 @@ const HallofFame = () => {
       {/* Footer */}
       <div className="hidden lg:block w-full">
         <img
-          src="/halloffame/footer.svg"
+          src={`${CDN_URL}/HallOfFame/footer.svg`}
           alt="Footer"
           className="w-full object-cover"
         />
       </div>
       <div className="lg:hidden w-full h-full">
         <img
-          src="/halloffame/Footer_mobile.png"
+          src={`${CDN_URL}/HallOfFame/Footer_mobile.png`}
           alt="Footer"
           className="w-full object-cover"
         />

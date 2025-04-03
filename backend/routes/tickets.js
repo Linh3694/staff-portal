@@ -8,7 +8,7 @@ const upload = require("../middleware/uploadTicket");
 
 // a) Tạo ticket
 router.post("/", authenticate, upload.array("attachments", 15), ticketController.createTicket);
-
+router.get("/technical-stats/:userId", ticketController.getTechnicalStats);
 // b) Lấy danh sách tickets
 router.get("/", authenticate, ticketController.getTickets);
 router.get("/:ticketId", authenticate, ticketController.getTicketById);

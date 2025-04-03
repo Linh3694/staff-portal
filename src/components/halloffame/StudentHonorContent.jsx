@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { API_URL, BASE_URL } from "../../config";
+import { CDN_URL } from "../../config";
 import { FaAngleDown, FaAngleRight } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
@@ -529,7 +530,7 @@ const StudentHonorContent = ({
               </div>
             );
           })}
-          <img src={`/halloffame/vector.png`} alt="Cover" />
+          <img src={`${CDN_URL}/HallOfFame/vector.png`} alt="Cover" />
         </div>
         <div className="lg:w-[900px] w-full mx-auto text-left mt-4 mb-4">
           <div className="mb-4 text-[#002855] text-justify font-semibold lg:text-[18px] text-[15px]">
@@ -548,7 +549,7 @@ const StudentHonorContent = ({
             />
             {/* Lớp giữa: khung frame-cover.png đè lên */}
             <img
-              src="/halloffame/frame-cover.png"
+              src={`${CDN_URL}/HallOfFame/frame-cover.png`}
               alt="Frame Cover"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none"
             />
@@ -815,8 +816,8 @@ const StudentHonorContent = ({
             style={{
               backgroundImage: `url(${
                 window.innerWidth >= 1024
-                  ? "/halloffame/studentcard-desktop.png"
-                  : "/halloffame/studentcard-mobile.png"
+                  ? `${CDN_URL}/HallOfFame/studentcard-desktop.png`
+                  : `${CDN_URL}/HallOfFame/studentcard-mobile.png`
               })`,
               backgroundSize: "cover",
               backgroundPosition: "center",

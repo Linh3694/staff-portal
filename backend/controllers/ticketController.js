@@ -3,7 +3,7 @@ const User = require("../models/Users"); // Import model User nếu chưa import
 
 // a) Tạo ticket
 exports.createTicket = async (req, res) => {
-  const { title, description, priority, creator } = req.body;
+  const { title, description, priority, creator, notes } = req.body;
   console.log("Dữ liệu nhận được từ frontend:", req.body); // ✅ Kiểm tra dữ liệu đầu vào
   if (!creator) {
     return res.status(400).json({ success: false, message: "Thiếu thông tin creator" });
@@ -100,6 +100,7 @@ exports.createTicket = async (req, res) => {
       description,
       priority,
       creator, 
+      notes,
       sla: slaPhase1Deadline, // SLA Phase 1
       attachments, // Thêm attachments
       assignedTo: leastAssignedUser._id, // Gán cho người dùng ít được gán nhất
@@ -239,7 +240,7 @@ exports.updateTicket = async (req, res) => {
 // d) Thêm phản hồi
 exports.addFeedback = async (req, res) => {
   const { ticketId } = req.params;
-  const { rating, comment } = req.body;
+  const { rating, comment, badges } = req.body; // thêm badges
 
   try {
     const ticket = await Ticket.findById(ticketId);
@@ -259,8 +260,10 @@ exports.addFeedback = async (req, res) => {
 
       // Gán giá trị feedback
       ticket.feedback = {
+        assignedTo: ticket.assignedTo, 
         rating,
         comment: comment || "", // comment không bắt buộc, nếu không có thì lưu chuỗi rỗng
+        badges: badges || [], // Gán mảng huy hiệu
       };
 
       ticket.history.push({
@@ -287,8 +290,10 @@ exports.addFeedback = async (req, res) => {
       }
 
       const oldRating = ticket.feedback.rating;
+      ticket.feedback.assignedTo = ticket.assignedTo;
       ticket.feedback.rating = rating;
       ticket.feedback.comment = comment;
+      ticket.feedback.badges = badges || [];
 
       ticket.history.push({
         timestamp: new Date(),
@@ -307,6 +312,53 @@ exports.addFeedback = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+exports.getTechnicalStats = async (req, res) => {
+  try {
+    // Giả sử req.params.userId là ID của technical ta muốn xem thống kê
+    const { userId } = req.params;
+
+    // Tìm tất cả ticket có assignedTo = userId, feedback.rating tồn tại
+    const tickets = await Ticket.find({
+      assignedTo: userId,
+      "feedback.rating": { $exists: true }
+    });
+
+    if (!tickets.length) {
+      return res.status(200).json({
+        success: true,
+        averageRating: 0,
+        totalFeedbacks: 0,
+        badgesCount: {}
+      });
+    }
+
+    // 1) Tính trung bình rating
+    const totalFeedbacks = tickets.length;
+    const sumRating = tickets.reduce((sum, t) => sum + t.feedback.rating, 0);
+    const averageRating = sumRating / totalFeedbacks;
+
+    // 2) Thống kê huy hiệu
+    // feedback.badges là 1 mảng, ta gộp tất cả mảng -> count frequency
+    const badgesCount = {}; // { 'Nhiệt Huyết': 2, 'Chu Đáo': 3, ... }
+    tickets.forEach(t => {
+      if (t.feedback.badges && Array.isArray(t.feedback.badges)) {
+        t.feedback.badges.forEach(badge => {
+          badgesCount[badge] = (badgesCount[badge] || 0) + 1;
+        });
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      averageRating,
+      totalFeedbacks,
+      badgesCount
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

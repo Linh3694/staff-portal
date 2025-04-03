@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import i18n from "../i18n";
+import { CDN_URL } from "../config";
 import Sidebar from "../components/halloffame/Sidebar";
 import StudentHonorContent from "../components/halloffame/StudentHonorContent";
 import ClassHonorContent from "../components/halloffame/ClassHonorContent";
@@ -33,12 +34,6 @@ function HallOfFamePublicPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   // Giả sử bạn có hàm trả về tên danh mục dựa trên selectedCategoryId
   const categoryTitleRef = useRef(null);
-  const getCategoryName = () => {
-    // Ví dụ: trả về tên dựa vào selectedCategoryId hoặc từ API / state
-    return selectedCategoryId === "67df88144651c845d0bec3dc"
-      ? t("student_honor", "Học sinh Danh dự")
-      : t("class_honor", "Lớp Danh dự");
-  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -155,14 +150,14 @@ function HallOfFamePublicPage() {
           </button>
           <button onClick={() => navigate("/hall-of-honor")}>
             <img
-              src="/halloffame/HOH-gold.png"
+              src={`${CDN_URL}/HallOfFame/HOH-gold.png`}
               className="h-10"
               alt="Wellspring Logo"
             />
           </button>
           <a href="https://wellspring.edu.vn">
             <img
-              src="/halloffame/WS-white.png"
+              src={`${CDN_URL}/HallOfFame/WS-white.png`}
               className="h-16"
               alt="Wellspring Logo"
             />
@@ -170,7 +165,7 @@ function HallOfFamePublicPage() {
         </div>
         <div className="flex flex-row gap-10 items-center">
           <img
-            src="/halloffame/HJ-white.png"
+            src={`${CDN_URL}/HallOfFame/HJ-white.png`}
             className="h-12 hidden xl:block"
             alt="Happy Journey"
           />
@@ -181,8 +176,8 @@ function HallOfFamePublicPage() {
             <img
               src={
                 i18n.language === "vi"
-                  ? "/icons/flag-vi.png"
-                  : "/icons/flag-en.png"
+                  ? `${CDN_URL}/Public/icons/flag-vi.png`
+                  : `${CDN_URL}/Public/icons/flag-en.png`
               }
               alt={t("language", "Language")}
               className="w-full h-full rounded-full object-cover"
@@ -222,11 +217,15 @@ function HallOfFamePublicPage() {
       </div>
       {/* Footer */}
       <footer className="hidden lg:block w-full">
-        <img src="/halloffame/footer.svg" alt="Footer" className="w-full" />
+        <img
+          src={`${CDN_URL}/HallOfFame/footer.svg`}
+          alt="Footer"
+          className="w-full"
+        />
       </footer>
       <footer className="lg:hidden w-full">
         <img
-          src="/halloffame/Footer_mobile.png"
+          src={`${CDN_URL}/HallOfFame/Footer_mobile.png`}
           alt="Footer"
           className="w-full"
         />

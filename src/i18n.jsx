@@ -1,5 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { CDN_URL } from "./config";
 
 const resources = {
   en: {
@@ -100,7 +101,7 @@ const resources = {
             vi: "Học bổng Tài năng (50%-100%) trong 07 năm học liên tiếp (kể từ năm học 2017-2018). \n\nSinh viên ngành Sociology, Rutgers University–New Brunswick (New Jersey), Hoa Kỳ",
             en: "50%-100% Talent Scholarship for 07 school year (2017-2024). \n\nCurrently a Sociology student at Rutgers University–New Brunswick (New Jersey, USA)",
           },
-          image: "/halloffame/student1.webp",
+          image: `${CDN_URL}/HallOfFame/student1.webp`,
         },
         {
           name: {
@@ -119,7 +120,7 @@ const resources = {
             vi: "Học bổng Tài năng (50%) trong 07 năm học liên tiếp (kể từ năm học 2018-2019)",
             en: "50% Talent Scholarship for 07 school years (from 2018 to 2025)",
           },
-          image: "/halloffame/student5.jpg",
+          image: `${CDN_URL}/HallOfFame/student5.jpg`,
         },
         {
           name: {
@@ -138,7 +139,7 @@ const resources = {
             vi: "Học bổng Tài năng (25%-50%) trong 03 năm học liên tiếp (kể từ năm học 2022-2023)",
             en: "25%-50% Talent Scholarship for 03 school years (from 2022 to 2025)",
           },
-          image: "/halloffame/student2.jpg",
+          image: `${CDN_URL}/HallOfFame/student2.jpg`,
         },
         {
           name: {
@@ -157,7 +158,7 @@ const resources = {
             vi: "FCE 186/190, học sinh danh dự HKI",
             en: "Achieved 186/190 on the FCE Exam \n\nHonor Student of the Semester",
           },
-          image: "/halloffame/student6.jpg",
+          image: `${CDN_URL}/HallOfFame/student6.jpg`,
         },
         {
           name: {
@@ -176,7 +177,7 @@ const resources = {
             vi: "Học bổng Tài năng 50% (năm học 2024-2025)",
             en: "The 50% Talent Scholarship (SY 2024-2025)",
           },
-          image: "/halloffame/student3.jpg",
+          image: `${CDN_URL}/HallOfFame/student3.jpg`,
         },
         {
           name: {
@@ -195,7 +196,7 @@ const resources = {
             vi: "Học bổng Tài năng (25%-50%) trong 02 năm học liên tiếp (kể từ năm học 2023-2024)",
             en: "25%-50% Talent Scholarship for 02 school years (from 2023 to 2025)",
           },
-          image: "/halloffame/student7.jpg",
+          image: `${CDN_URL}/HallOfFame/student7.jpg`,
         },
         {
           name: {
@@ -214,7 +215,7 @@ const resources = {
             vi: "Học bổng Tài năng 50% (năm học 2024-2025)",
             en: "The 50% Talent Scholarship (SY 2024-2025)",
           },
-          image: "/halloffame/student4.jpg",
+          image: `${CDN_URL}/HallOfFame/student4.jpg`,
         },
       ],
     },
@@ -317,7 +318,7 @@ const resources = {
             vi: "Học bổng Tài năng (50%-100%) trong 07 năm học liên tiếp (kể từ năm học 2017-2018). \n\nSinh viên ngành Sociology, Rutgers University–New Brunswick (New Jersey), Hoa Kỳ",
             en: "50%-100% Talent Scholarship for 07 school year (2017-2024). \n\nCurrently a Sociology student at Rutgers University–New Brunswick (New Jersey, USA)",
           },
-          image: "/halloffame/student1.webp",
+          image: `${CDN_URL}/HallOfFame/student1.webp`,
         },
         {
           name: {
@@ -336,7 +337,7 @@ const resources = {
             vi: "Học bổng Tài năng (50%) trong 07 năm học liên tiếp (kể từ năm học 2018-2019)",
             en: "50% Talent Scholarship for 07 school years (from 2018 to 2025)",
           },
-          image: "/halloffame/student5.jpg",
+          image: `${CDN_URL}/HallOfFame/student5.jpg`,
         },
         {
           name: {
@@ -355,7 +356,7 @@ const resources = {
             vi: "Học bổng Tài năng (25%-50%) trong 03 năm học liên tiếp (kể từ năm học 2022-2023)",
             en: "25%-50% Talent Scholarship for 03 school years (from 2022 to 2025)",
           },
-          image: "/halloffame/student2.jpg",
+          image: `${CDN_URL}/HallOfFame/student2.jpg`,
         },
         {
           name: {
@@ -374,7 +375,7 @@ const resources = {
             vi: "FCE 186/190, học sinh danh dự HKI",
             en: "Achieved 186/190 on the FCE Exam \n\nHonor Student of the Semester",
           },
-          image: "/halloffame/student6.jpg",
+          image: `${CDN_URL}/HallOfFame/student6.jpg`,
         },
         {
           name: {
@@ -393,7 +394,7 @@ const resources = {
             vi: "Học bổng Tài năng 50% (năm học 2024-2025)",
             en: "The 50% Talent Scholarship (SY 2024-2025)",
           },
-          image: "/halloffame/student3.jpg",
+          image: `${CDN_URL}/HallOfFame/student3.jpg`,
         },
         {
           name: {
@@ -412,7 +413,7 @@ const resources = {
             vi: "Học bổng Tài năng (25%-50%) trong 02 năm học liên tiếp (kể từ năm học 2023-2024)",
             en: "25%-50% Talent Scholarship for 02 school years (from 2023 to 2025)",
           },
-          image: "/halloffame/student7.jpg",
+          image: `${CDN_URL}/HallOfFame/student7.jpg`,
         },
         {
           name: {
@@ -431,7 +432,7 @@ const resources = {
             vi: "Học bổng Tài năng 50% (năm học 2024-2025)",
             en: "The 50% Talent Scholarship (SY 2024-2025)",
           },
-          image: "/halloffame/student4.jpg",
+          image: `${CDN_URL}/HallOfFame/student4.jpg`,
         },
       ],
     },
