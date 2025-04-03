@@ -58,6 +58,10 @@ function HallOfFamePublicPage() {
     };
   }, []);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
+
   // Hàm cuộn lên đầu trang
   const scrollToTop = () => {
     window.scrollTo({
