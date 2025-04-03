@@ -873,6 +873,33 @@ const ProjectorTable = () => {
     }
   };
 
+  const handleExportReport = () => {
+    const exportData = (
+      filteredData.length > 0 ? filteredData : originalData
+    ).map((projector) => ({
+      "Tên thiết bị": projector.name,
+      Loại: projector.type,
+      Serial: projector.serial,
+      "Năm sản xuất": projector.releaseYear,
+      "Người sử dụng":
+        Array.isArray(projector.assigned) && projector.assigned.length > 0
+          ? projector.assigned.map((user) => user.label).join(", ")
+          : "Chưa bàn giao",
+      "Bộ phận của người sử dụng":
+        Array.isArray(projector.assigned) && projector.assigned.length > 0
+          ? projector.assigned
+              .map((user) => user.department || "Không xác định")
+              .join(", ")
+          : "",
+      "Nơi sử dụng": projector.room ? projector.room.label : "Không xác định",
+      "Trạng thái": statusLabels[projector.status] || projector.status,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Báo Cáo");
+    XLSX.writeFile(workbook, "Báo Cáo.xlsx");
+  };
+
   // useEffect #1: fetch toàn bộ dữ liệu
   useEffect(() => {
     const fetchData = async () => {
@@ -913,116 +940,124 @@ const ProjectorTable = () => {
   // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
 
   return (
-    <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
-      {/* Header */}
-      <div className="flex flex-col justify-between items-start mb-2">
-        {/* Search Input */}
-        <div className="flex items-center justify-between w-full mb-4">
-          <div className="relative w-1/3">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm projector..."
-              className="pl-10 pr-4 py-2 rounded-md w-2/3"
-              value={searchTerm}
-              onChange={handleSearchChange}
-            />
+    <div className="p-8">
+      <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
+        {/* Header */}
+        <div className="flex flex-col justify-between items-start mb-2">
+          {/* Search Input */}
+          <div className="flex items-center justify-between w-full mb-4">
+            <div className="relative w-1/3">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm projector..."
+                className="pl-10 pr-4 py-2 rounded-md w-2/3"
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
 
-            {/* Hiển thị suggestions (nếu có) */}
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => {
-                setNewProjector({
-                  name: "",
-                  manufacturer: "",
-                  serial: "",
-                  assigned: [],
-                });
-                setShowAddModal(true);
-              }}
-              className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
-            >
-              Thêm mới
-            </button>
-            <button
-              className="px-3 py-2 bg-[#FF5733] text-white text-sm font-bold  rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
-              onClick={() => setShowUploadModal(true)}
-            >
-              Upload
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-start w-full space-x-4 mb-4">
-          <Dropdown
-            button={
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">
-                {selectedOption === "Tất cả"
-                  ? "Trạng thái: Tất cả trạng thái"
-                  : `Trạng thái: ${selectedOption}`}
+              {/* Hiển thị suggestions (nếu có) */}
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => {
+                  setNewProjector({
+                    name: "",
+                    manufacturer: "",
+                    serial: "",
+                    assigned: [],
+                  });
+                  setShowAddModal(true);
+                }}
+                className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
+              >
+                Thêm mới
               </button>
-            }
-            children={
-              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                {/* Option "Tất cả trạng thái" */}
-                <button
-                  key="all"
-                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                  onClick={() => {
-                    setSelectedOption("Tất cả");
-                    applyFilters({ status: "Tất cả" });
-                  }}
-                >
-                  Tất cả trạng thái
-                </button>
+              <button
+                className="px-3 py-2 bg-[#FF5733] text-white text-sm font-bold  rounded-lg shadow-2xl hover:bg-[#cc4529]transform transition-transform duration-300 hover:scale-105 "
+                onClick={() => setShowUploadModal(true)}
+              >
+                Upload
+              </button>
+              <button
+                onClick={handleExportReport}
+                className="px-3 py-2 bg-[#009483] text-white text-sm font-bold rounded-lg shadow-2xl hover:bg-[#1aa192] transform transition-transform duration-300 hover:scale-105"
+              >
+                Tải Báo Cáo
+              </button>
+            </div>
+          </div>
 
-                {/* Các trạng thái */}
-                {[
-                  { value: "Active", label: "Đang sử dụng" },
-                  { value: "Standby", label: "Chờ Cấp Phát" },
-                  { value: "Broken", label: "Hỏng" },
-                  {
-                    value: "PendingDocumentation",
-                    label: "Đã bàn giao - Chưa có biên bản",
-                  },
-                ].map((option) => (
+          <div className="flex items-center justify-start w-full space-x-4 mb-4">
+            <Dropdown
+              button={
+                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">
+                  {selectedOption === "Tất cả"
+                    ? "Trạng thái: Tất cả trạng thái"
+                    : `Trạng thái: ${selectedOption}`}
+                </button>
+              }
+              children={
+                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                  {/* Option "Tất cả trạng thái" */}
                   <button
-                    key={option.value}
+                    key="all"
                     className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                     onClick={() => {
-                      setSelectedOption(option.label);
-                      applyFilters({ status: option.value });
+                      setSelectedOption("Tất cả");
+                      applyFilters({ status: "Tất cả" });
                     }}
                   >
-                    {option.label}
+                    Tất cả trạng thái
                   </button>
-                ))}
-              </div>
-            }
-          />
-          <Dropdown
-            button={
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                {selectedType === "Tất cả"
-                  ? "Loại: Tất cả"
-                  : `Loại: ${selectedType}`}
-              </button>
-            }
-            children={
-              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                <button
-                  key="all"
-                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                  onClick={() => {
-                    setSelectedType("Tất cả");
-                    applyFilters({ type: "Tất cả" });
-                  }}
-                >
-                  Tất cả
+
+                  {/* Các trạng thái */}
+                  {[
+                    { value: "Active", label: "Đang sử dụng" },
+                    { value: "Standby", label: "Chờ Cấp Phát" },
+                    { value: "Broken", label: "Hỏng" },
+                    {
+                      value: "PendingDocumentation",
+                      label: "Đã bàn giao - Chưa có biên bản",
+                    },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                      onClick={() => {
+                        setSelectedOption(option.label);
+                        applyFilters({ status: option.value });
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              }
+            />
+            <Dropdown
+              button={
+                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                  {selectedType === "Tất cả"
+                    ? "Loại: Tất cả"
+                    : `Loại: ${selectedType}`}
                 </button>
-                {Array.from(new Set(originalData.map((item) => item.type))).map(
-                  (type) => (
+              }
+              children={
+                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                  <button
+                    key="all"
+                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                    onClick={() => {
+                      setSelectedType("Tất cả");
+                      applyFilters({ type: "Tất cả" });
+                    }}
+                  >
+                    Tất cả
+                  </button>
+                  {Array.from(
+                    new Set(originalData.map((item) => item.type))
+                  ).map((type) => (
                     <button
                       key={type}
                       className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
@@ -1033,1131 +1068,1142 @@ const ProjectorTable = () => {
                     >
                       {type}
                     </button>
-                  )
-                )}
-              </div>
-            }
-          />
-          <Dropdown
-            button={
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                {selectedDepartment === "Tất cả"
-                  ? "Phòng ban: Tất cả phòng ban"
-                  : `Phòng ban: ${selectedDepartment}`}
-              </button>
-            }
-            children={
-              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                <button
-                  key="all"
-                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                  onClick={() => {
-                    setSelectedDepartment("Tất cả");
-                    applyFilters({ department: "Tất cả" });
-                  }}
-                >
-                  Tất cả phòng ban
+                  ))}
+                </div>
+              }
+            />
+            <Dropdown
+              button={
+                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                  {selectedDepartment === "Tất cả"
+                    ? "Phòng ban: Tất cả phòng ban"
+                    : `Phòng ban: ${selectedDepartment}`}
                 </button>
-                {Array.from(
-                  new Set(
-                    originalData.flatMap((item) =>
-                      item.assigned.map((user) => user.department)
+              }
+              children={
+                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                  <button
+                    key="all"
+                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                    onClick={() => {
+                      setSelectedDepartment("Tất cả");
+                      applyFilters({ department: "Tất cả" });
+                    }}
+                  >
+                    Tất cả phòng ban
+                  </button>
+                  {Array.from(
+                    new Set(
+                      originalData.flatMap((item) =>
+                        item.assigned.map((user) => user.department)
+                      )
                     )
-                  )
-                ).map((department) => (
-                  <button
-                    key={department}
-                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                    onClick={() => {
-                      setSelectedDepartment(department);
-                      applyFilters({ department });
-                    }}
-                  >
-                    {department}
-                  </button>
-                ))}
-              </div>
-            }
-          />
-          <Dropdown
-            button={
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                {selectedManufacturer === "Tất cả"
-                  ? "Nhà sản xuất: Tất cả nhà sản xuất"
-                  : `Nhà sản xuất: ${selectedManufacturer}`}
-              </button>
-            }
-            children={
-              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                <button
-                  key="all"
-                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                  onClick={() => {
-                    setSelectedManufacturer("Tất cả");
-                    applyFilters({ manufacturer: "Tất cả" });
-                  }}
-                >
-                  Tất cả nhà sản xuất
-                </button>
-                {Array.from(
-                  new Set(originalData.map((item) => item.manufacturer))
-                ).map((manufacturer) => (
-                  <button
-                    key={manufacturer}
-                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                    onClick={() => {
-                      setSelectedManufacturer(manufacturer);
-                      applyFilters({ manufacturer });
-                    }}
-                  >
-                    {manufacturer}
-                  </button>
-                ))}
-              </div>
-            }
-          />
-          <Dropdown
-            button={
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                {selectedYear === "Tất cả"
-                  ? "Năm sản xuất: Tất cả năm sản xuất"
-                  : `Năm sản xuất: ${selectedYear}`}
-              </button>
-            }
-            children={
-              <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                <button
-                  key="all"
-                  className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                  onClick={() => {
-                    setSelectedYear("Tất cả");
-                    applyFilters({ releaseYear: "Tất cả" });
-                  }}
-                >
-                  Tất cả năm sản xuất
-                </button>
-                {Array.from(
-                  new Set(originalData.map((item) => item.releaseYear))
-                )
-                  .sort()
-                  .map((year) => (
+                  ).map((department) => (
                     <button
-                      key={year}
+                      key={department}
                       className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                       onClick={() => {
-                        setSelectedYear(year);
-                        applyFilters({ releaseYear: year });
+                        setSelectedDepartment(department);
+                        applyFilters({ department });
                       }}
                     >
-                      {year}
+                      {department}
                     </button>
                   ))}
-              </div>
-            }
-          />
-        </div>
-      </div>
-
-      {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
-      <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
-        <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="!border-px !border-gray-400">
-                <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">
-                    TÊN THIẾT BỊ
-                  </p>
-                </th>
-                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">LOẠI</p>
-                </th>
-                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">SERIAL</p>
-                </th>
-                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">
-                    NGƯỜI SỬ DỤNG
-                  </p>
-                </th>
-                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">NƠI SỬ DỤNG</p>
-                </th>
-                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">TRẠNG THÁI</p>
-                </th>
-                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">HÀNH ĐỘNG</p>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((item, index) => (
-                <tr key={index} className="border-b border-gray-200">
-                  <td
-                    onClick={() => handleViewDetails(item)}
-                    className="cursor-pointer text-[#002147] min-w-[150px] border-white/0 py-3 pr-4 "
+                </div>
+              }
+            />
+            <Dropdown
+              button={
+                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                  {selectedManufacturer === "Tất cả"
+                    ? "Nhà sản xuất: Tất cả nhà sản xuất"
+                    : `Nhà sản xuất: ${selectedManufacturer}`}
+                </button>
+              }
+              children={
+                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                  <button
+                    key="all"
+                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                    onClick={() => {
+                      setSelectedManufacturer("Tất cả");
+                      applyFilters({ manufacturer: "Tất cả" });
+                    }}
                   >
-                    <p className="text-sm font-bold text-navy-700">
-                      {item.name}
-                    </p>
-                    <span className="text-sm italic bold text-gray-500">
-                      {item.manufacturer || "Không xác định"} -{" "}
-                      {item.releaseYear || "N/A"}
-                    </span>
-                  </td>
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                    <p className="text-sm font-bold text-navy-700">
-                      {item.type}
-                    </p>
-                  </td>
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                    <p className="text-sm font-bold text-navy-700">
-                      {item.serial}
-                    </p>
-                  </td>
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
-                    {Array.isArray(item.assigned) &&
-                    item.assigned.length > 0 ? (
-                      item.assigned.map((user) => (
-                        <div key={user.value || user._id}>
-                          <p className="font-bold">{user.label}</p>
-                          <span className="italic text-gray-400">
-                            {user.department
-                              ? user.department
-                              : "Không xác định"}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <div>
-                        <p className="font-bold">Chưa bàn giao</p>
-                      </div>
-                    )}
-                  </td>
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
-                    {item.room ? (
-                      <div>
-                        <p className="font-bold">{item.room.label}</p>
-                        {Array.isArray(item.room.location) &&
-                        item.room.location.length > 0 ? (
-                          item.room.location.map((loc, idx) => {
-                            if (
-                              typeof loc === "string" &&
-                              loc.includes(", tầng ")
-                            ) {
-                              const [building, floor] = loc.split(", tầng ");
-                              return (
-                                <p key={idx} className="italic text-gray-400">
-                                  Tòa nhà: {building.trim() || "Không xác định"}{" "}
-                                  | Tầng: {floor.trim() || "Không rõ"}
-                                </p>
-                              );
-                            }
-                            return "";
-                          })
-                        ) : (
-                          <p className="italic text-gray-400">Không xác định</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="font-bold">Không xác định</p>
-                    )}
-                  </td>
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                    <div className="flex items-center">
-                      {item.status === "Active" ? (
-                        <MdCheckCircle className="text-[#009483] me-1" />
-                      ) : item.status === "Broken" ? (
-                        <MdCancel className="text-orange-red me-1" />
-                      ) : item.status === "Standby" ? (
-                        <MdOutlineError className="text-amber-500 me-1" />
-                      ) : item.status === "PendingDocumentation" ? (
-                        <MdOutlineError className="text-[#FFC107] me-1" />
-                      ) : null}
-                      <p className="text-sm font-bold text-navy-700">
-                        {statusLabels[item.status] || "Không xác định"}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                    <div className="flex space-x-2">
+                    Tất cả nhà sản xuất
+                  </button>
+                  {Array.from(
+                    new Set(originalData.map((item) => item.manufacturer))
+                  ).map((manufacturer) => (
+                    <button
+                      key={manufacturer}
+                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                      onClick={() => {
+                        setSelectedManufacturer(manufacturer);
+                        applyFilters({ manufacturer });
+                      }}
+                    >
+                      {manufacturer}
+                    </button>
+                  ))}
+                </div>
+              }
+            />
+            <Dropdown
+              button={
+                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
+                  {selectedYear === "Tất cả"
+                    ? "Năm sản xuất: Tất cả năm sản xuất"
+                    : `Năm sản xuất: ${selectedYear}`}
+                </button>
+              }
+              children={
+                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
+                  <button
+                    key="all"
+                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                    onClick={() => {
+                      setSelectedYear("Tất cả");
+                      applyFilters({ releaseYear: "Tất cả" });
+                    }}
+                  >
+                    Tất cả năm sản xuất
+                  </button>
+                  {Array.from(
+                    new Set(originalData.map((item) => item.releaseYear))
+                  )
+                    .sort()
+                    .map((year) => (
                       <button
-                        onClick={() => handleEdit(item)}
-                        className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        key={year}
+                        className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
+                        onClick={() => {
+                          setSelectedYear(year);
+                          applyFilters({ releaseYear: year });
+                        }}
                       >
-                        <FiEdit size={14} />
+                        {year}
                       </button>
-                      <button
-                        onClick={() => confirmDelete(item)}
-                        className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleClone(item)}
-                        className="flex items-center justify-center w-7 h-7 text-white bg-[#009483] rounded-lg  transform transition-transform duration-300 hover:scale-105"
-                      >
-                        <FiCopy size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {/* Phân trang */}
-          <div className="flex justify-end items-center mt-4">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => handlePageChange(currentPage - 1)}
-              className="px-3 py-1 bg-[#FF5733] text-white text-sm  font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
-            >
-              Trước
-            </button>
-            <span className="mx-4 text-xs font-bold">
-              {currentPage} / {totalPages}
-            </span>
-            <button
-              disabled={currentPage === totalPages}
-              onClick={() => handlePageChange(currentPage + 1)}
-              className="px-3 py-1 bg-[#FF5733] text-white text-sm font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
-            >
-              Sau
-            </button>
+                    ))}
+                </div>
+              }
+            />
           </div>
         </div>
-      </div>
 
-      {/* {-----------------------------------------/* Modal thêm mới /-----------------------------------------} */}
-      {showAddModal &&
-        ReactDOM.createPortal(
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 space-y-6 z-1000"
-            onClick={() => setShowAddModal(false)}
-          >
-            <div
-              className="bg-white rounded-lg shadow-lg p-6 w-[50%]"
-              onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
-            >
-              <h3 className="text-2xl font-bold mb-6 text-[#002147]">
-                Thêm mới projector
-              </h3>
-              <form onSubmit={handleAddProjector}>
-                {/* Thông tin chung */}
-                <div
-                  className="border rounded-lg p-4 mb-4 relative"
-                  style={{
-                    position: "relative",
-                    padding: "16px",
-                    marginBottom: "30px",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: "-12px",
-                      left: "16px",
-                      backgroundColor: "#fff",
-                      padding: "0 8px",
-                      fontWeight: "bold",
-                      color: "#002147",
-                    }}
-                  >
-                    Thông tin chung
-                  </span>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Tên thiết bị
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập tên thiết bị"
-                        value={newProjector.name}
-                        onChange={(e) =>
-                          setNewProjector({
-                            ...newProjector,
-                            name: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Phân loại
-                      </label>
-                      <select
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        value={newProjector.type}
-                        onChange={(e) =>
-                          setNewProjector({
-                            ...newProjector,
-                            type: e.target.value,
-                          })
-                        }
-                      >
-                        <option value="Máy chiếu">Máy chiếu</option>
-                        <option value="Tivi">Tivi</option>
-                        <option value="Màn hình tương tác">
-                          Màn hình tương tác
-                        </option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Nhà sản xuất
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập nhà sản xuất"
-                        value={newProjector.manufacturer}
-                        onChange={(e) =>
-                          setNewProjector({
-                            ...newProjector,
-                            manufacturer: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Serial
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập số serial"
-                        value={newProjector.serial}
-                        onChange={(e) =>
-                          setNewProjector({
-                            ...newProjector,
-                            serial: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Năm sản xuất
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập năm sản xuất"
-                        value={newProjector.releaseYear}
-                        onChange={(e) =>
-                          setNewProjector({
-                            ...newProjector,
-                            releaseYear: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="border rounded-lg p-4 mb-4 relative"
-                  style={{
-                    position: "relative",
-                    padding: "16px",
-                    marginBottom: "30px",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: "-12px",
-                      left: "16px",
-                      backgroundColor: "#fff",
-                      padding: "0 8px",
-                      fontWeight: "bold",
-                      color: "#002147",
-                      marginBottom: "16px",
-                    }}
-                  >
-                    Cấu hình
-                  </span>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Processor
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập bộ xử lý"
-                        value={newProjector.specs?.processor || ""}
-                        onChange={(e) =>
-                          setNewProjector({
-                            ...newProjector,
-                            specs: {
-                              ...newProjector.specs,
-                              processor: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        RAM
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập dung lượng RAM"
-                        value={newProjector.specs?.ram || ""}
-                        onChange={(e) =>
-                          setNewProjector({
-                            ...newProjector,
-                            specs: {
-                              ...newProjector.specs,
-                              ram: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Bộ Nhớ
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập dung lượng Bộ nhớ"
-                        value={newProjector.specs?.storage || ""}
-                        onChange={(e) =>
-                          setNewProjector({
-                            ...newProjector,
-                            specs: {
-                              ...newProjector.specs,
-                              storage: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Màn hình
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập kích thước màn hình"
-                        value={newProjector.specs?.display || ""}
-                        onChange={(e) =>
-                          setNewProjector({
-                            ...newProjector,
-                            specs: {
-                              ...newProjector.specs,
-                              display: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-[#002147] text-white rounded"
-                  >
-                    Lưu
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body
-        )}
-
-      {/* {-----------------------------------------/* Modal upload /-----------------------------------------} */}
-      {showUploadModal &&
-        ReactDOM.createPortal(
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-9999"
-            style={{ zIndex: 1050 }}
-          >
-            <div
-              className="bg-white p-6 rounded-md shadow-md w-1/3 relative z-9999"
-              style={{ zIndex: 1050 }}
-            >
-              <h2 className="text-2xl font-bold mb-4 text-center text-[#002147]">
-                Cập nhật dữ liệu
-              </h2>
-              <form>
-                {/* Input chọn file */}
-                <div className="mb-4">
-                  <label className="block text-base font-medium mb-2">
-                    Chọn file Excel
-                  </label>
-                  <input
-                    type="file"
-                    accept=".xlsx, .xls"
-                    className="block w-full text-sm text-gray-900 border border-gray-300 cursor-pointer bg-gray-50 focus:outline-none"
-                    onChange={handleFileChange}
-                  />
-                </div>
-
-                {/* Trạng thái tải */}
-                {isUploading && (
-                  <div className="text-blue-500 text-center mb-4">
-                    Đang xử lý tệp, vui lòng chờ...
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center">
-                  {/* Nút tải file mẫu */}
-                  <a
-                    href="/projector-sample-upload.xlsx"
-                    download
-                    className="bg-[#009483] text-white px-4 py-2 rounded-md hover:bg-[#001635]"
-                  >
-                    Tải file mẫu
-                  </a>
-                  <div className="flex space-x-2">
-                    {/* Nút hủy */}
-                    <button
-                      type="button"
-                      className="bg-[#FF5733] text-white px-4 py-2 rounded-md"
-                      onClick={() => setShowUploadModal(false)}
+        {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
+        <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
+          <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="!border-px !border-gray-400">
+                  <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                    <p className="text-sm font-bold text-gray-500">
+                      TÊN THIẾT BỊ
+                    </p>
+                  </th>
+                  <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                    <p className="text-sm font-bold text-gray-500">LOẠI</p>
+                  </th>
+                  <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                    <p className="text-sm font-bold text-gray-500">SERIAL</p>
+                  </th>
+                  <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                    <p className="text-sm font-bold text-gray-500">
+                      NGƯỜI SỬ DỤNG
+                    </p>
+                  </th>
+                  <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                    <p className="text-sm font-bold text-gray-500">
+                      NƠI SỬ DỤNG
+                    </p>
+                  </th>
+                  <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                    <p className="text-sm font-bold text-gray-500">
+                      TRẠNG THÁI
+                    </p>
+                  </th>
+                  <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                    <p className="text-sm font-bold text-gray-500">HÀNH ĐỘNG</p>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((item, index) => (
+                  <tr key={index} className="border-b border-gray-200">
+                    <td
+                      onClick={() => handleViewDetails(item)}
+                      className="cursor-pointer text-[#002147] min-w-[150px] border-white/0 py-3 pr-4 "
                     >
-                      Hủy
-                    </button>
-                    {/* Nút xác nhận */}
-                    <button
-                      type="button"
-                      className={`px-4 py-2 rounded-md text-white ${
-                        isUploading
-                          ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-[#002147] hover:bg-[#001635]"
-                      }`}
-                      onClick={handleConfirmUpload}
-                      disabled={isUploading}
-                    >
-                      Xác nhận
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body
-        )}
-      {/* {-----------------------------------------/* Modal cập nhật thông tin /-----------------------------------------} */}
-      {showEditModal &&
-        ReactDOM.createPortal(
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 space-y-6 z-1000"
-            style={{ zIndex: 1050 }}
-            onClick={() => setShowEditModal(false)}
-          >
-            <div
-              className="bg-white rounded-lg shadow-lg p-6 w-[50%]"
-              onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
-              style={{ zIndex: 1050 }}
-            >
-              <h3 className="text-2xl font-semibold mb-8 text-[#002147]">
-                Cập nhật thông tin Projector
-              </h3>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  try {
-                    const payload = {
-                      ...editingProjector,
-                      releaseYear: editingProjector.releaseYear || "",
-                      type: editingProjector.type || "Projector",
-                      reason: editingProjector.reason || "",
-                      specs: {
-                        processor: editingProjector.specs?.processor || "",
-                        ram: editingProjector.specs?.ram || "",
-                        storage: editingProjector.specs?.storage || "",
-                        display: editingProjector.specs?.display || "",
-                      },
-                      assigned: Array.isArray(editingProjector.assigned)
-                        ? editingProjector.assigned
-                            .filter((user) => user.value) // Lọc bỏ user không có ID
-                            .map((user) => user.value) // Chỉ lấy ID
-                        : [],
-                      room: editingProjector.room?.value || null, // Chỉ lấy ID phòng
-                    };
-
-                    await axios.put(
-                      `${API_URL}/projectors/${editingProjector._id}`,
-                      payload,
-                      {
-                        headers: {
-                          Authorization: `Bearer ${localStorage.getItem(
-                            "authToken"
-                          )}`,
-                        },
-                      }
-                    );
-                    setShowEditModal(false);
-                    fetchProjectors(); // Làm mới danh sách sau khi lưu
-                    toast.success("Cập nhật projector thành công!");
-                  } catch (error) {
-                    console.error("Error updating projector:", error);
-                    toast.error("Không thể cập nhật projector!");
-                  }
-                }}
-              >
-                {/* Thông tin chung */}
-                <div
-                  className="border rounded-lg p-4 mb-4 relative"
-                  style={{
-                    position: "relative",
-                    padding: "16px",
-                    marginBottom: "30px",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: "-12px",
-                      left: "16px",
-                      backgroundColor: "#fff",
-                      padding: "0 8px",
-                      fontWeight: "bold",
-                      color: "#002147",
-                    }}
-                  >
-                    Thông tin chung
-                  </span>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Tên thiết bị
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập tên thiết bị"
-                        value={editingProjector.name}
-                        onChange={(e) =>
-                          setEditingProjector({
-                            ...editingProjector,
-                            name: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Nhà sản xuất
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập nhà sản xuất"
-                        value={editingProjector.manufacturer}
-                        onChange={(e) =>
-                          setEditingProjector({
-                            ...editingProjector,
-                            manufacturer: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Phân loại
-                      </label>
-                      <select
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        value={editingProjector.type}
-                        onChange={(e) =>
-                          setEditingProjector({
-                            ...editingProjector,
-                            type: e.target.value,
-                          })
-                        }
-                      >
-                        <option value="Máy chiếu">Máy chiếu</option>
-                        <option value="Tivi">Tivi</option>
-                        <option value="Màn hình tương tác">
-                          Màn hình tương tác
-                        </option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Serial
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập số serial"
-                        value={editingProjector.serial}
-                        onChange={(e) =>
-                          setEditingProjector({
-                            ...editingProjector,
-                            serial: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Năm sản xuất
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập năm sản xuất"
-                        value={editingProjector.releaseYear}
-                        onChange={(e) =>
-                          setEditingProjector({
-                            ...editingProjector,
-                            releaseYear: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cấu hình */}
-                <div
-                  className="border rounded-lg p-4 mb-4 relative"
-                  style={{
-                    position: "relative",
-                    padding: "16px",
-                    marginBottom: "30px",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: "-12px",
-                      left: "16px",
-                      backgroundColor: "#fff",
-                      padding: "0 8px",
-                      fontWeight: "bold",
-                      color: "#002147",
-                    }}
-                  >
-                    Cấu hình
-                  </span>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Processor
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập bộ xử lý"
-                        value={editingProjector.specs?.processor || ""}
-                        onChange={(e) =>
-                          setEditingProjector({
-                            ...editingProjector,
-                            specs: {
-                              ...editingProjector.specs,
-                              processor: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        RAM
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập dung lượng RAM"
-                        value={editingProjector.specs?.ram || ""}
-                        onChange={(e) =>
-                          setEditingProjector({
-                            ...editingProjector,
-                            specs: {
-                              ...editingProjector.specs,
-                              ram: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Bộ Nhớ
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập dung lượng bộ nhớ"
-                        value={editingProjector.specs?.storage || ""}
-                        onChange={(e) =>
-                          setEditingProjector({
-                            ...editingProjector,
-                            specs: {
-                              ...editingProjector.specs,
-                              storage: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-600 font-medium mb-2">
-                        Màn hình
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập kích thước màn hình"
-                        value={editingProjector.specs?.display || ""}
-                        onChange={(e) =>
-                          setEditingProjector({
-                            ...editingProjector,
-                            specs: {
-                              ...editingProjector.specs,
-                              display: e.target.value,
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trạng thái */}
-                <div
-                  className="border rounded-lg p-4 mb-4 relative justify-between"
-                  style={{
-                    position: "relative",
-                    padding: "16px",
-                    marginBottom: "30px",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: "-12px",
-                      left: "16px",
-                      backgroundColor: "#fff",
-                      padding: "0 8px",
-                      fontWeight: "bold",
-                      color: "#002147",
-                    }}
-                  >
-                    Trạng thái
-                  </span>
-                  <div className="grid grid-cols-2 gap-4 items-center">
-                    <div>
-                      <select
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        value={editingProjector.status}
-                        onChange={(e) =>
-                          setEditingProjector({
-                            ...editingProjector,
-                            status: e.target.value,
-                          })
-                        }
-                      >
-                        <option value="Active">Đang sử dụng</option>
-                        <option value="Standby">Chờ Cấp Phát</option>
-                        <option value="Broken">Hỏng</option>
-                      </select>
-                    </div>
-
-                    {/* Ô người sử dụng khi trạng thái là "Đang sử dụng" */}
-                    {editingProjector.status === "Active" && (
-                      <div>
-                        <input
-                          type="text"
-                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                          placeholder="Nhập tên người sử dụng"
-                          value={editingProjector.assigned[0]?.label || ""}
-                          onChange={(e) => {
-                            const query = e.target.value.toLowerCase();
-
-                            // Lọc danh sách người dùng phù hợp
-                            const filtered = users.filter(
-                              (user) =>
-                                user.label.toLowerCase().includes(query) ||
-                                user.emailAddress.toLowerCase().includes(query)
-                            );
-
-                            setFilteredUsers(filtered);
-                            setShowSuggestions(true);
-
-                            // Tạm thời gắn giá trị nhập vào assigned
-                            setEditingProjector({
-                              ...editingProjector,
-                              assigned: [
-                                { label: e.target.value, value: null },
-                              ],
-                            });
-                          }}
-                          onBlur={() =>
-                            setTimeout(() => setShowSuggestions(false), 200)
-                          } // Đợi người dùng chọn gợi ý
-                        />
-                        {showSuggestions && filteredUsers.length > 0 && (
-                          <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
-                            {filteredUsers.map((user) => (
-                              <li
-                                key={user.value}
-                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                                onClick={() => {
-                                  setEditingProjector({
-                                    ...editingProjector,
-                                    assigned: [user],
-                                  });
-                                  setShowSuggestions(false);
-                                }}
-                              >
-                                <span className="font-bold">{user.label}</span>
-                                <br />
-                                <span className="italic text-gray-500">
-                                  {user.emailAddress}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                      <p className="text-sm font-bold text-navy-700">
+                        {item.name}
+                      </p>
+                      <span className="text-sm italic bold text-gray-500">
+                        {item.manufacturer || "Không xác định"} -{" "}
+                        {item.releaseYear || "N/A"}
+                      </span>
+                    </td>
+                    <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                      <p className="text-sm font-bold text-navy-700">
+                        {item.type}
+                      </p>
+                    </td>
+                    <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                      <p className="text-sm font-bold text-navy-700">
+                        {item.serial}
+                      </p>
+                    </td>
+                    <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
+                      {Array.isArray(item.assigned) &&
+                      item.assigned.length > 0 ? (
+                        item.assigned.map((user) => (
+                          <div key={user.value || user._id}>
+                            <p className="font-bold">{user.label}</p>
+                            <span className="italic text-gray-400">
+                              {user.department
+                                ? user.department
+                                : "Không xác định"}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div>
+                          <p className="font-bold">Chưa bàn giao</p>
+                        </div>
+                      )}
+                    </td>
+                    <td className="min-w-[150px] border-white/0 py-3 pr-4 text-sm font-bold text-navy-700">
+                      {item.room ? (
+                        <div>
+                          <p className="font-bold">{item.room.label}</p>
+                          {Array.isArray(item.room.location) &&
+                          item.room.location.length > 0 ? (
+                            item.room.location.map((loc, idx) => {
+                              if (
+                                typeof loc === "string" &&
+                                loc.includes(", tầng ")
+                              ) {
+                                const [building, floor] = loc.split(", tầng ");
+                                return (
+                                  <p key={idx} className="italic text-gray-400">
+                                    Tòa nhà:{" "}
+                                    {building.trim() || "Không xác định"} |
+                                    Tầng: {floor.trim() || "Không rõ"}
+                                  </p>
+                                );
+                              }
+                              return "";
+                            })
+                          ) : (
+                            <p className="italic text-gray-400">
+                              Không xác định
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="font-bold">Không xác định</p>
+                      )}
+                    </td>
+                    <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                      <div className="flex items-center">
+                        {item.status === "Active" ? (
+                          <MdCheckCircle className="text-[#009483] me-1" />
+                        ) : item.status === "Broken" ? (
+                          <MdCancel className="text-orange-red me-1" />
+                        ) : item.status === "Standby" ? (
+                          <MdOutlineError className="text-amber-500 me-1" />
+                        ) : item.status === "PendingDocumentation" ? (
+                          <MdOutlineError className="text-[#FFC107] me-1" />
+                        ) : null}
+                        <p className="text-sm font-bold text-navy-700">
+                          {statusLabels[item.status] || "Không xác định"}
+                        </p>
                       </div>
-                    )}
+                    </td>
+                    <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiEdit size={14} />
+                        </button>
+                        <button
+                          onClick={() => confirmDelete(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleClone(item)}
+                          className="flex items-center justify-center w-7 h-7 text-white bg-[#009483] rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                        >
+                          <FiCopy size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {/* Phân trang */}
+            <div className="flex justify-end items-center mt-4">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+                className="px-3 py-1 bg-[#FF5733] text-white text-sm  font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
+              >
+                Trước
+              </button>
+              <span className="mx-4 text-xs font-bold">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(currentPage + 1)}
+                className="px-3 py-1 bg-[#FF5733] text-white text-sm font-bold rounded-lg hover:bg-[#ff6b4a] disabled:bg-[#002147] disabled:cursor-not-allowed"
+              >
+                Sau
+              </button>
+            </div>
+          </div>
+        </div>
 
-                    {/* Ô lý do hỏng khi trạng thái là "Hỏng" */}
-                    {editingProjector.status === "Broken" && (
+        {/* {-----------------------------------------/* Modal thêm mới /-----------------------------------------} */}
+        {showAddModal &&
+          ReactDOM.createPortal(
+            <div
+              className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 space-y-6 z-1000"
+              onClick={() => setShowAddModal(false)}
+            >
+              <div
+                className="bg-white rounded-lg shadow-lg p-6 w-[50%]"
+                onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
+              >
+                <h3 className="text-2xl font-bold mb-6 text-[#002147]">
+                  Thêm mới projector
+                </h3>
+                <form onSubmit={handleAddProjector}>
+                  {/* Thông tin chung */}
+                  <div
+                    className="border rounded-lg p-4 mb-4 relative"
+                    style={{
+                      position: "relative",
+                      padding: "16px",
+                      marginBottom: "30px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-12px",
+                        left: "16px",
+                        backgroundColor: "#fff",
+                        padding: "0 8px",
+                        fontWeight: "bold",
+                        color: "#002147",
+                      }}
+                    >
+                      Thông tin chung
+                    </span>
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Tên thiết bị
+                        </label>
                         <input
                           type="text"
                           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                          placeholder="Nhập lý do hỏng"
-                          value={editingProjector.reason || ""}
+                          placeholder="Nhập tên thiết bị"
+                          value={newProjector.name}
                           onChange={(e) =>
-                            setEditingProjector({
-                              ...editingProjector,
-                              reason: e.target.value,
+                            setNewProjector({
+                              ...newProjector,
+                              name: e.target.value,
                             })
                           }
                         />
                       </div>
-                    )}
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Phân loại
+                        </label>
+                        <select
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          value={newProjector.type}
+                          onChange={(e) =>
+                            setNewProjector({
+                              ...newProjector,
+                              type: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="Máy chiếu">Máy chiếu</option>
+                          <option value="Tivi">Tivi</option>
+                          <option value="Màn hình tương tác">
+                            Màn hình tương tác
+                          </option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Nhà sản xuất
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập nhà sản xuất"
+                          value={newProjector.manufacturer}
+                          onChange={(e) =>
+                            setNewProjector({
+                              ...newProjector,
+                              manufacturer: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Serial
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập số serial"
+                          value={newProjector.serial}
+                          onChange={(e) =>
+                            setNewProjector({
+                              ...newProjector,
+                              serial: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Năm sản xuất
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập năm sản xuất"
+                          value={newProjector.releaseYear}
+                          onChange={(e) =>
+                            setNewProjector({
+                              ...newProjector,
+                              releaseYear: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex justify-end space-x-4">
+                  <div
+                    className="border rounded-lg p-4 mb-4 relative"
+                    style={{
+                      position: "relative",
+                      padding: "16px",
+                      marginBottom: "30px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-12px",
+                        left: "16px",
+                        backgroundColor: "#fff",
+                        padding: "0 8px",
+                        fontWeight: "bold",
+                        color: "#002147",
+                        marginBottom: "16px",
+                      }}
+                    >
+                      Cấu hình
+                    </span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Processor
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập bộ xử lý"
+                          value={newProjector.specs?.processor || ""}
+                          onChange={(e) =>
+                            setNewProjector({
+                              ...newProjector,
+                              specs: {
+                                ...newProjector.specs,
+                                processor: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          RAM
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập dung lượng RAM"
+                          value={newProjector.specs?.ram || ""}
+                          onChange={(e) =>
+                            setNewProjector({
+                              ...newProjector,
+                              specs: {
+                                ...newProjector.specs,
+                                ram: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Bộ Nhớ
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập dung lượng Bộ nhớ"
+                          value={newProjector.specs?.storage || ""}
+                          onChange={(e) =>
+                            setNewProjector({
+                              ...newProjector,
+                              specs: {
+                                ...newProjector.specs,
+                                storage: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Màn hình
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập kích thước màn hình"
+                          value={newProjector.specs?.display || ""}
+                          onChange={(e) =>
+                            setNewProjector({
+                              ...newProjector,
+                              specs: {
+                                ...newProjector.specs,
+                                display: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-[#002147] text-white rounded"
+                    >
+                      Lưu
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>,
+            document.body
+          )}
+
+        {/* {-----------------------------------------/* Modal upload /-----------------------------------------} */}
+        {showUploadModal &&
+          ReactDOM.createPortal(
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-9999"
+              style={{ zIndex: 1050 }}
+            >
+              <div
+                className="bg-white p-6 rounded-md shadow-md w-1/3 relative z-9999"
+                style={{ zIndex: 1050 }}
+              >
+                <h2 className="text-2xl font-bold mb-4 text-center text-[#002147]">
+                  Cập nhật dữ liệu
+                </h2>
+                <form>
+                  {/* Input chọn file */}
+                  <div className="mb-4">
+                    <label className="block text-base font-medium mb-2">
+                      Chọn file Excel
+                    </label>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      className="block w-full text-sm text-gray-900 border border-gray-300 cursor-pointer bg-gray-50 focus:outline-none"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+
+                  {/* Trạng thái tải */}
+                  {isUploading && (
+                    <div className="text-blue-500 text-center mb-4">
+                      Đang xử lý tệp, vui lòng chờ...
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center">
+                    {/* Nút tải file mẫu */}
+                    <a
+                      href="/projector-sample-upload.xlsx"
+                      download
+                      className="bg-[#009483] text-white px-4 py-2 rounded-md hover:bg-[#001635]"
+                    >
+                      Tải file mẫu
+                    </a>
+                    <div className="flex space-x-2">
+                      {/* Nút hủy */}
+                      <button
+                        type="button"
+                        className="bg-[#FF5733] text-white px-4 py-2 rounded-md"
+                        onClick={() => setShowUploadModal(false)}
+                      >
+                        Hủy
+                      </button>
+                      {/* Nút xác nhận */}
+                      <button
+                        type="button"
+                        className={`px-4 py-2 rounded-md text-white ${
+                          isUploading
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-[#002147] hover:bg-[#001635]"
+                        }`}
+                        onClick={handleConfirmUpload}
+                        disabled={isUploading}
+                      >
+                        Xác nhận
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>,
+            document.body
+          )}
+        {/* {-----------------------------------------/* Modal cập nhật thông tin /-----------------------------------------} */}
+        {showEditModal &&
+          ReactDOM.createPortal(
+            <div
+              className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 space-y-6 z-1000"
+              style={{ zIndex: 1050 }}
+              onClick={() => setShowEditModal(false)}
+            >
+              <div
+                className="bg-white rounded-lg shadow-lg p-6 w-[50%]"
+                onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
+                style={{ zIndex: 1050 }}
+              >
+                <h3 className="text-2xl font-semibold mb-8 text-[#002147]">
+                  Cập nhật thông tin Projector
+                </h3>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    try {
+                      const payload = {
+                        ...editingProjector,
+                        releaseYear: editingProjector.releaseYear || "",
+                        type: editingProjector.type || "Projector",
+                        reason: editingProjector.reason || "",
+                        specs: {
+                          processor: editingProjector.specs?.processor || "",
+                          ram: editingProjector.specs?.ram || "",
+                          storage: editingProjector.specs?.storage || "",
+                          display: editingProjector.specs?.display || "",
+                        },
+                        assigned: Array.isArray(editingProjector.assigned)
+                          ? editingProjector.assigned
+                              .filter((user) => user.value) // Lọc bỏ user không có ID
+                              .map((user) => user.value) // Chỉ lấy ID
+                          : [],
+                        room: editingProjector.room?.value || null, // Chỉ lấy ID phòng
+                      };
+
+                      await axios.put(
+                        `${API_URL}/projectors/${editingProjector._id}`,
+                        payload,
+                        {
+                          headers: {
+                            Authorization: `Bearer ${localStorage.getItem(
+                              "authToken"
+                            )}`,
+                          },
+                        }
+                      );
+                      setShowEditModal(false);
+                      fetchProjectors(); // Làm mới danh sách sau khi lưu
+                      toast.success("Cập nhật projector thành công!");
+                    } catch (error) {
+                      console.error("Error updating projector:", error);
+                      toast.error("Không thể cập nhật projector!");
+                    }
+                  }}
+                >
+                  {/* Thông tin chung */}
+                  <div
+                    className="border rounded-lg p-4 mb-4 relative"
+                    style={{
+                      position: "relative",
+                      padding: "16px",
+                      marginBottom: "30px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-12px",
+                        left: "16px",
+                        backgroundColor: "#fff",
+                        padding: "0 8px",
+                        fontWeight: "bold",
+                        color: "#002147",
+                      }}
+                    >
+                      Thông tin chung
+                    </span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Tên thiết bị
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập tên thiết bị"
+                          value={editingProjector.name}
+                          onChange={(e) =>
+                            setEditingProjector({
+                              ...editingProjector,
+                              name: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Nhà sản xuất
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập nhà sản xuất"
+                          value={editingProjector.manufacturer}
+                          onChange={(e) =>
+                            setEditingProjector({
+                              ...editingProjector,
+                              manufacturer: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Phân loại
+                        </label>
+                        <select
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          value={editingProjector.type}
+                          onChange={(e) =>
+                            setEditingProjector({
+                              ...editingProjector,
+                              type: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="Máy chiếu">Máy chiếu</option>
+                          <option value="Tivi">Tivi</option>
+                          <option value="Màn hình tương tác">
+                            Màn hình tương tác
+                          </option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Serial
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập số serial"
+                          value={editingProjector.serial}
+                          onChange={(e) =>
+                            setEditingProjector({
+                              ...editingProjector,
+                              serial: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Năm sản xuất
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập năm sản xuất"
+                          value={editingProjector.releaseYear}
+                          onChange={(e) =>
+                            setEditingProjector({
+                              ...editingProjector,
+                              releaseYear: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cấu hình */}
+                  <div
+                    className="border rounded-lg p-4 mb-4 relative"
+                    style={{
+                      position: "relative",
+                      padding: "16px",
+                      marginBottom: "30px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-12px",
+                        left: "16px",
+                        backgroundColor: "#fff",
+                        padding: "0 8px",
+                        fontWeight: "bold",
+                        color: "#002147",
+                      }}
+                    >
+                      Cấu hình
+                    </span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Processor
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập bộ xử lý"
+                          value={editingProjector.specs?.processor || ""}
+                          onChange={(e) =>
+                            setEditingProjector({
+                              ...editingProjector,
+                              specs: {
+                                ...editingProjector.specs,
+                                processor: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          RAM
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập dung lượng RAM"
+                          value={editingProjector.specs?.ram || ""}
+                          onChange={(e) =>
+                            setEditingProjector({
+                              ...editingProjector,
+                              specs: {
+                                ...editingProjector.specs,
+                                ram: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Bộ Nhớ
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập dung lượng bộ nhớ"
+                          value={editingProjector.specs?.storage || ""}
+                          onChange={(e) =>
+                            setEditingProjector({
+                              ...editingProjector,
+                              specs: {
+                                ...editingProjector.specs,
+                                storage: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Màn hình
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập kích thước màn hình"
+                          value={editingProjector.specs?.display || ""}
+                          onChange={(e) =>
+                            setEditingProjector({
+                              ...editingProjector,
+                              specs: {
+                                ...editingProjector.specs,
+                                display: e.target.value,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Trạng thái */}
+                  <div
+                    className="border rounded-lg p-4 mb-4 relative justify-between"
+                    style={{
+                      position: "relative",
+                      padding: "16px",
+                      marginBottom: "30px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-12px",
+                        left: "16px",
+                        backgroundColor: "#fff",
+                        padding: "0 8px",
+                        fontWeight: "bold",
+                        color: "#002147",
+                      }}
+                    >
+                      Trạng thái
+                    </span>
+                    <div className="grid grid-cols-2 gap-4 items-center">
+                      <div>
+                        <select
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          value={editingProjector.status}
+                          onChange={(e) =>
+                            setEditingProjector({
+                              ...editingProjector,
+                              status: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="Active">Đang sử dụng</option>
+                          <option value="Standby">Chờ Cấp Phát</option>
+                          <option value="Broken">Hỏng</option>
+                        </select>
+                      </div>
+
+                      {/* Ô người sử dụng khi trạng thái là "Đang sử dụng" */}
+                      {editingProjector.status === "Active" && (
+                        <div>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                            placeholder="Nhập tên người sử dụng"
+                            value={editingProjector.assigned[0]?.label || ""}
+                            onChange={(e) => {
+                              const query = e.target.value.toLowerCase();
+
+                              // Lọc danh sách người dùng phù hợp
+                              const filtered = users.filter(
+                                (user) =>
+                                  user.label.toLowerCase().includes(query) ||
+                                  user.emailAddress
+                                    .toLowerCase()
+                                    .includes(query)
+                              );
+
+                              setFilteredUsers(filtered);
+                              setShowSuggestions(true);
+
+                              // Tạm thời gắn giá trị nhập vào assigned
+                              setEditingProjector({
+                                ...editingProjector,
+                                assigned: [
+                                  { label: e.target.value, value: null },
+                                ],
+                              });
+                            }}
+                            onBlur={() =>
+                              setTimeout(() => setShowSuggestions(false), 200)
+                            } // Đợi người dùng chọn gợi ý
+                          />
+                          {showSuggestions && filteredUsers.length > 0 && (
+                            <ul className="border rounded-lg mt-2 bg-white shadow-lg max-h-40 overflow-y-auto">
+                              {filteredUsers.map((user) => (
+                                <li
+                                  key={user.value}
+                                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                  onClick={() => {
+                                    setEditingProjector({
+                                      ...editingProjector,
+                                      assigned: [user],
+                                    });
+                                    setShowSuggestions(false);
+                                  }}
+                                >
+                                  <span className="font-bold">
+                                    {user.label}
+                                  </span>
+                                  <br />
+                                  <span className="italic text-gray-500">
+                                    {user.emailAddress}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Ô lý do hỏng khi trạng thái là "Hỏng" */}
+                      {editingProjector.status === "Broken" && (
+                        <div>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                            placeholder="Nhập lý do hỏng"
+                            value={editingProjector.reason || ""}
+                            onChange={(e) =>
+                              setEditingProjector({
+                                ...editingProjector,
+                                reason: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowEditModal(false)}
+                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-[#002147] text-white rounded"
+                    >
+                      Lưu
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>,
+            document.body
+          )}
+        {/* {-----------------------------------------/* Modal confirm /-----------------------------------------} */}
+        {showConfirmModal &&
+          ReactDOM.createPortal(
+            <div
+              className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center"
+              style={{ zIndex: 1050 }}
+            >
+              <div
+                className="bg-white rounded-lg shadow-lg p-6 w-96"
+                style={{ zIndex: 1050 }}
+              >
+                <h3 className="text-lg text-center font-semibold mb-4 text-[#002147]">
+                  Xác nhận xóa
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Bạn có chắc chắn muốn xóa projector{" "}
+                  <strong>{projectorToDelete?.name}</strong> không?
+                </p>
+                <div className="flex justify-end space-x-2">
                   <button
-                    type="button"
-                    onClick={() => setShowEditModal(false)}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded"
+                    onClick={() => setShowConfirmModal(false)}
+                    className="px-4 py-2 bg-[#002147] text-white rounded hover:bg-gray-400"
                   >
                     Hủy
                   </button>
                   <button
-                    type="submit"
-                    className="px-4 py-2 bg-[#002147] text-white rounded"
+                    onClick={handleDelete}
+                    className="px-4 py-2 bg-[#FF5733] text-white rounded hover:bg-[#cc4529] transition"
                   >
-                    Lưu
+                    Xóa
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>,
-          document.body
-        )}
-      {/* {-----------------------------------------/* Modal confirm /-----------------------------------------} */}
-      {showConfirmModal &&
-        ReactDOM.createPortal(
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center"
-            style={{ zIndex: 1050 }}
-          >
-            <div
-              className="bg-white rounded-lg shadow-lg p-6 w-96"
-              style={{ zIndex: 1050 }}
-            >
-              <h3 className="text-lg text-center font-semibold mb-4 text-[#002147]">
-                Xác nhận xóa
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Bạn có chắc chắn muốn xóa projector{" "}
-                <strong>{projectorToDelete?.name}</strong> không?
-              </p>
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={() => setShowConfirmModal(false)}
-                  className="px-4 py-2 bg-[#002147] text-white rounded hover:bg-gray-400"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 bg-[#FF5733] text-white rounded hover:bg-[#cc4529] transition"
-                >
-                  Xóa
-                </button>
               </div>
-            </div>
-          </div>,
-          document.body
-        )}
-      {/* {-----------------------------------------/* Modal click thiết bị /-----------------------------------------} */}
-      {showDetailModal &&
-        selectedProjector &&
-        ReactDOM.createPortal(
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-            style={{ zIndex: 1050 }}
-            onClick={(e) => {
-              // Đóng modal nếu người dùng nhấp ra ngoài modal
-              if (e.target === e.currentTarget) {
-                setSelectedProjector(null);
-              }
-            }}
-          >
+            </div>,
+            document.body
+          )}
+        {/* {-----------------------------------------/* Modal click thiết bị /-----------------------------------------} */}
+        {showDetailModal &&
+          selectedProjector &&
+          ReactDOM.createPortal(
             <div
-              className="  w-4/5 max-w-7xl rounded-lg shadow-lg relative overflow-y-auto max-h-[90vh]"
-              style={{ zIndex: 1990 }}
-              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+              style={{ zIndex: 1050 }}
+              onClick={(e) => {
+                // Đóng modal nếu người dùng nhấp ra ngoài modal
+                if (e.target === e.currentTarget) {
+                  setSelectedProjector(null);
+                }
+              }}
             >
-              <ProjectorProductCard
-                key={refreshKey} // Force re-render khi refreshKey thay đổi
-                projectorData={{
-                  ...selectedProjector,
-                  releaseYear: selectedProjector.releaseYear,
-                }}
-                setSelectedProjector={setSelectedProjector}
-                onUpdateSpecs={handleUpdateSpecs} // Bổ sung prop này
-                onCloseModal={() => {
-                  setSelectedProjector(null); // Reset projector đã chọn
-                  setShowDetailModal(false); // Đóng modal
-                  fetchProjectors(); // refresh sau khi thao tác
-                }} // Truyền hàm đóng modal
-                // Truyền vào 2 hàm thu hồi / bàn giao
-                onRevoke={handleRevokeProjector}
-                onAssign={handleAssignProjector}
-                fetchProjectorDetails={fetchProjectorDetails}
-                onUpdateProjector={updateProjectorState}
-                onUpdateRoom={handleUpdateRoom}
-                refetchProjectors={fetchProjectors}
-              />
-            </div>
-          </div>,
-          document.body
-        )}
+              <div
+                className="  w-4/5 max-w-7xl rounded-lg shadow-lg relative overflow-y-auto max-h-[90vh]"
+                style={{ zIndex: 1990 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ProjectorProductCard
+                  key={refreshKey} // Force re-render khi refreshKey thay đổi
+                  projectorData={{
+                    ...selectedProjector,
+                    releaseYear: selectedProjector.releaseYear,
+                  }}
+                  setSelectedProjector={setSelectedProjector}
+                  onUpdateSpecs={handleUpdateSpecs} // Bổ sung prop này
+                  onCloseModal={() => {
+                    setSelectedProjector(null); // Reset projector đã chọn
+                    setShowDetailModal(false); // Đóng modal
+                    fetchProjectors(); // refresh sau khi thao tác
+                  }} // Truyền hàm đóng modal
+                  // Truyền vào 2 hàm thu hồi / bàn giao
+                  onRevoke={handleRevokeProjector}
+                  onAssign={handleAssignProjector}
+                  fetchProjectorDetails={fetchProjectorDetails}
+                  onUpdateProjector={updateProjectorState}
+                  onUpdateRoom={handleUpdateRoom}
+                  refetchProjectors={fetchProjectors}
+                />
+              </div>
+            </div>,
+            document.body
+          )}
+      </div>
     </div>
   );
 };
