@@ -209,9 +209,9 @@ function LibraryManagement() {
 
   // ============== Render Giao Diện =================
   return (
-    <div className="flex w-full h-full">
+    <div className="flex w-full h-full p-8">
       {/* Cột bên trái: Danh sách Library + sách */}
-      <div className="flex-1 w-full p-4">
+      <div className="flex-1 w-full">
         {/* Ô tìm kiếm */}
         <div className="mb-4">
           <input

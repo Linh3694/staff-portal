@@ -108,7 +108,7 @@ function DocumentType() {
 
   return (
     <div>
-      <div className="flex flex-row items-center justify-between mb-4">
+      <div className="flex flex-row items-center justify-between mb-4 border">
         <h2 className="text-[24px] font-bold">Phân loại tài liệu</h2>
         <div className="flex gap-2 items-center justify-center text-sm">
           <label className="text-sm">Tên:</label>
@@ -1939,7 +1939,7 @@ function LibraryData() {
   const [activeTab, setActiveTab] = useState("bookDetail");
 
   return (
-    <div className="flex">
+    <div className="flex p-8">
       {/* Sidebar bên trái */}
       <aside className="w-[15%] h-[20%] bg-white rounded-2xl p-6 font-bold mr-4">
         <ul>

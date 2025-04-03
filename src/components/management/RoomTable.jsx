@@ -385,194 +385,612 @@ const RoomTable = () => {
   }, [rooms, searchTerm]);
 
   return (
-    <div className="w-full h-full px-6 pb-6 border sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
-      <div className="flex justify-between items-center mb-4 mt-3">
-        <div className="text-2xl font-bold text-navy-700">Danh sách phòng</div>
-      </div>
+    <div className="p-8">
+      <div className="w-full h-full px-6 pb-6 border sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
+        <div className="flex justify-between items-center mb-4 mt-3">
+          <div className="text-2xl font-bold text-navy-700">
+            Danh sách phòng
+          </div>
+        </div>
 
-      <div className="flex justify-between items-center mb-2 mt-1">
-        <div className="relative w-1/3 rounded-lg">
-          <input
-            type="text"
-            placeholder="Tìm kiếm phòng..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            onFocus={() => {
-              if (searchTerm && suggestions.length > 0) {
-                setSuggestions(suggestions);
-              }
-            }}
-            className="border border-gray-300 rounded-md px-4 py-2 w-[300px]"
-          />
-        </div>
-        <div className="flex justify-between items-right space-x-2 ">
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
-          >
-            Thêm mới
-          </button>
-          {/* Thêm nút Upload Excel */}
-          <input
-            type="file"
-            accept=".xlsx, .xls"
-            className="hidden"
-            id="upload-excel"
-            onChange={handleUploadExcel}
-          />
-          <label
-            htmlFor="upload-excel"
-            className="px-3 py-2 bg-[#FF5733] text-sm font-bold text-white rounded-lg shadow-md  cursor-pointer transform transition-transform duration-300 hover:scale-105"
-          >
-            Tải lên Excel
-          </label>
-          <a
-            href="/room-template.xlsx"
-            download
-            className="px-3 py-2  bg-[#009483] text-sm font-bold text-white rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105"
-          >
-            Tải file mẫu
-          </a>
-        </div>
-      </div>
-      <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-600">TÊN PHÒNG</p>
-              </th>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-600">ĐỊA ĐIỂM</p>
-              </th>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-600">SỨC CHỨA</p>
-              </th>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-600">CÔNG NĂNG</p>
-              </th>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
-                <p className="text-sm font-bold text-gray-600">HÀNH ĐỘNG</p>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRooms.map((room) => (
-              <tr
-                key={room._id}
-                className="border-b border-gray-200 hover:bg-gray-50"
-              >
-                <td className="min-w-[150px] border-white/0 py-3 pr-4 cursor-pointer">
-                  <p
-                    className="text-sm font-bold text-[#002147] hover:underline"
-                    onClick={() => fetchDevicesByRoom(room._id)} // Gọi API
-                  >
-                    {room.name || "Chưa xác định"}
-                  </p>
-                </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  {room.location && room.location.length > 0 ? (
-                    <>
-                      <p className="text-sm font-semibold text-navy-700">
-                        Toà Nhà : {room.location[0].building}
-                      </p>
-                      <p className="text-xs italic text-gray-500">
-                        Tầng : {room.location[0].floor}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-500">Chưa xác định</p>
-                  )}
-                </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">
-                    {room.capacity || "Not Provided"}
-                  </p>
-                </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">
-                    {room.status || "Not Provided"}
-                  </p>
-                </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4 text-center">
-                  <div className="flex justify-center space-x-2">
-                    {/* Nút Edit */}
-                    <button
-                      onClick={() => {
-                        setSelectedRoom(room);
-                        setIsEditModalOpen(true);
-                      }}
-                      className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
-                    >
-                      <FiEdit size={14} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedRoom(room);
-                        setIsDeleteModalOpen(true);
-                      }}
-                      className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
-                    >
-                      <FiTrash2 size={14} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {isAddModalOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 space-y-6 z-1000"
-            onClick={() => setIsAddModalOpen(false)}
-          >
-            <div
-              className="bg-white rounded-lg shadow-lg p-6 w-[50%]"
-              onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
+        <div className="flex justify-between items-center mb-2 mt-1">
+          <div className="relative w-1/3 rounded-lg">
+            <input
+              type="text"
+              placeholder="Tìm kiếm phòng..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              onFocus={() => {
+                if (searchTerm && suggestions.length > 0) {
+                  setSuggestions(suggestions);
+                }
+              }}
+              className="border border-gray-300 rounded-md px-4 py-2 w-[300px]"
+            />
+          </div>
+          <div className="flex justify-between items-right space-x-2 ">
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
             >
-              <h3 className="text-2xl font-bold mb-6 text-[#002147]">
-                Thêm mới phòng
-              </h3>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault(); // Ngăn chặn reload trang
-                  handleAddRoom(); // Gọi hàm thêm phòng
-                }}
+              Thêm mới
+            </button>
+            {/* Thêm nút Upload Excel */}
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              className="hidden"
+              id="upload-excel"
+              onChange={handleUploadExcel}
+            />
+            <label
+              htmlFor="upload-excel"
+              className="px-3 py-2 bg-[#FF5733] text-sm font-bold text-white rounded-lg shadow-md  cursor-pointer transform transition-transform duration-300 hover:scale-105"
+            >
+              Tải lên Excel
+            </label>
+            <a
+              href="/room-template.xlsx"
+              download
+              className="px-3 py-2  bg-[#009483] text-sm font-bold text-white rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105"
+            >
+              Tải file mẫu
+            </a>
+          </div>
+        </div>
+        <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-600">TÊN PHÒNG</p>
+                </th>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-600">ĐỊA ĐIỂM</p>
+                </th>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-600">SỨC CHỨA</p>
+                </th>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-600">CÔNG NĂNG</p>
+                </th>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
+                  <p className="text-sm font-bold text-gray-600">HÀNH ĐỘNG</p>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRooms.map((room) => (
+                <tr
+                  key={room._id}
+                  className="border-b border-gray-200 hover:bg-gray-50"
+                >
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4 cursor-pointer">
+                    <p
+                      className="text-sm font-bold text-[#002147] hover:underline"
+                      onClick={() => fetchDevicesByRoom(room._id)} // Gọi API
+                    >
+                      {room.name || "Chưa xác định"}
+                    </p>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    {room.location && room.location.length > 0 ? (
+                      <>
+                        <p className="text-sm font-semibold text-navy-700">
+                          Toà Nhà : {room.location[0].building}
+                        </p>
+                        <p className="text-xs italic text-gray-500">
+                          Tầng : {room.location[0].floor}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500">Chưa xác định</p>
+                    )}
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <p className="text-sm font-semibold text-navy-700">
+                      {room.capacity || "Not Provided"}
+                    </p>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <p className="text-sm font-semibold text-navy-700">
+                      {room.status || "Not Provided"}
+                    </p>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4 text-center">
+                    <div className="flex justify-center space-x-2">
+                      {/* Nút Edit */}
+                      <button
+                        onClick={() => {
+                          setSelectedRoom(room);
+                          setIsEditModalOpen(true);
+                        }}
+                        className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                      >
+                        <FiEdit size={14} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedRoom(room);
+                          setIsDeleteModalOpen(true);
+                        }}
+                        className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {isAddModalOpen && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 space-y-6 z-1000"
+              onClick={() => setIsAddModalOpen(false)}
+            >
+              <div
+                className="bg-white rounded-lg shadow-lg p-6 w-[50%]"
+                onClick={(e) => e.stopPropagation()} // Prevent close when clicking inside modal
               >
-                {/* Thông tin chung */}
-                <div
-                  className="border rounded-lg p-4 mb-4 relative"
-                  style={{
-                    position: "relative",
-                    padding: "16px",
-                    marginBottom: "30px",
+                <h3 className="text-2xl font-bold mb-6 text-[#002147]">
+                  Thêm mới phòng
+                </h3>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault(); // Ngăn chặn reload trang
+                    handleAddRoom(); // Gọi hàm thêm phòng
                   }}
                 >
-                  <span
+                  {/* Thông tin chung */}
+                  <div
+                    className="border rounded-lg p-4 mb-4 relative"
                     style={{
-                      position: "absolute",
-                      top: "-12px",
-                      left: "16px",
-                      backgroundColor: "#fff",
-                      padding: "0 8px",
-                      fontWeight: "bold",
-                      color: "#002147",
+                      position: "relative",
+                      padding: "16px",
+                      marginBottom: "30px",
                     }}
                   >
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-12px",
+                        left: "16px",
+                        backgroundColor: "#fff",
+                        padding: "0 8px",
+                        fontWeight: "bold",
+                        color: "#002147",
+                      }}
+                    >
+                      Thông tin chung
+                    </span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Tên phòng
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập tên phòng"
+                          value={newRoom.name}
+                          onChange={(e) =>
+                            setNewRoom({ ...newRoom, name: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Toà Nhà
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập tên toà nhà"
+                          value={newRoom.location[0]?.building || ""}
+                          onChange={(e) =>
+                            setNewRoom((prev) => ({
+                              ...prev,
+                              location: [
+                                {
+                                  ...prev.location[0],
+                                  building: e.target.value,
+                                },
+                              ],
+                            }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Tầng{" "}
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập tầng"
+                          value={newRoom.location[0]?.floor || ""}
+                          onChange={(e) =>
+                            setNewRoom((prev) => ({
+                              ...prev,
+                              location: [
+                                { ...prev.location[0], floor: e.target.value },
+                              ],
+                            }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Công Năng{" "}
+                        </label>
+                        <select
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          value={newRoom.status || ""}
+                          onChange={(e) =>
+                            setNewRoom({ ...newRoom, status: e.target.value })
+                          }
+                        >
+                          <option value="Lớp học">Lớp học</option>
+                          <option value="Phòng chức năng">
+                            Phòng chức năng
+                          </option>
+                          <option value="Phòng họp">Phòng họp</option>
+                          <option value="Phòng máy">Phòng máy ICT</option>
+                          <option value="Phòng giáo viên">
+                            Phòng giáo viên
+                          </option>
+                          <option value="Khác">Phòng làm việc</option>
+                          <option value="Khác">Khác</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-2">
+                          Công suất
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                          placeholder="Nhập công suất"
+                          value={newRoom.capacity}
+                          onChange={(e) =>
+                            setNewRoom({ ...newRoom, capacity: e.target.value })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddModalOpen(false)}
+                      className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-md transform transition-transform duration-300 hover:scale-105"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit" // Loại bỏ onClick tại đây
+                      className={`px-3 py-2 rounded-md text-white text-sm font-bold ${
+                        isUploading
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-[#002147] hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
+                      }`}
+                    >
+                      Lưu
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {isDeviceModalOpen && selectedRoom && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+              onClick={() => setIsDeviceModalOpen(false)}
+            >
+              <div
+                className="bg-white rounded-lg shadow-lg p-6 w-[500px] max-h-[70%] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-2xl font-bold mb-6 text-[#002147]">
+                  Phòng: {selectedRoom?.name || "Không xác định"}
+                </h3>
+
+                {/* Hiển thị thông tin phòng */}
+                <h5 className=" font-bold mb-2 text-[#002147]">
+                  {" "}
+                  Thông tin phòng
+                </h5>
+                <div className="bg-gray-100 text-[#002147] rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 p-4 mb-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center space-x-4">
+                      <IoLocationOutline size={24} className="text-[#002147]" />
+                      <div>
+                        <p className="font-bold text-base">
+                          {selectedRoom?.name || "Không xác định"}
+                        </p>
+                        {Array.isArray(selectedRoom?.location) &&
+                        selectedRoom.location.length > 0 ? (
+                          selectedRoom.location.map((loc, index) => (
+                            <div key={index}>
+                              Toà nhà: {loc.building || "Không xác định"} ||
+                              Tầng: {loc.floor || "Không xác định"}
+                            </div>
+                          ))
+                        ) : (
+                          <div>Không có thông tin vị trí</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <hr className="my-2 border-t border-gray-300" />
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-2">
+                      <p>Công năng hiện tại:</p>
+                      <span className="px-3 py-1 bg-[#002147] text-white text-sm rounded-full">
+                        {selectedRoom?.status || "Không xác định trạng thái"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hiển thị danh sách thiết bị */}
+                <h5 className="font-bold mb-4 text-[#002147]">
+                  Thiết bị sử dụng
+                </h5>
+                <div className="max-h-60 overflow-y-auto px-3 py-2 border rounded-lg bg-gray-50">
+                  {/* Laptops */}
+                  {selectedRoomDevices.laptops?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#002147] mb-2">
+                        Máy tính
+                      </h4>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {selectedRoomDevices.laptops.map((laptop) => (
+                          <div
+                            key={laptop._id}
+                            className="bg-[#002147] text-white rounded-lg px-3 py-1 text-sm font-bold cursor-pointer hover:opacity-90"
+                            onClick={() => handleOpenModal("Laptop", laptop)}
+                          >
+                            {laptop.name} (SN: {laptop.serial || "N/A"})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Monitors */}
+                  {selectedRoomDevices.monitors?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#009483] mb-1">
+                        Màn hình
+                      </h4>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {selectedRoomDevices.monitors.map((monitor) => (
+                          <div
+                            key={monitor._id}
+                            className="bg-[#009483] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
+                            onClick={() => handleOpenModal("Monitor", monitor)}
+                          >
+                            {monitor.name} (SN: {monitor.serial || "N/A"})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Các loại thiết bị khác */}
+                  {/* Printers */}
+                  {selectedRoomDevices.printers?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#FF5733] mb-1">Máy in</h4>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {selectedRoomDevices.printers.map((printer) => (
+                          <div
+                            key={printer._id}
+                            className="bg-[#FF5733] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
+                            onClick={() => handleOpenModal("Printer", printer)}
+                          >
+                            {printer.name} (SN: {printer.serial || "N/A"})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Projectors */}
+                  {selectedRoomDevices.projectors?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#F39C12] mb-1">
+                        Thiết bị trình chiếu
+                      </h4>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {selectedRoomDevices.projectors.map((projector) => (
+                          <div
+                            key={projector._id}
+                            className="bg-[#F39C12] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
+                            onClick={() =>
+                              handleOpenModal("Projector", projector)
+                            }
+                          >
+                            {projector.name} (SN: {projector.serial || "N/A"})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tools */}
+                  {selectedRoomDevices.tools?.length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-[#6A1B9A] mb-1">
+                        Công cụ khác
+                      </h4>
+                      <div className="flex flex-wrap gap-2 mb-3 ">
+                        {selectedRoomDevices.tools.map((tool) => (
+                          <div
+                            key={tool._id}
+                            className="bg-[#6A1B9A] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
+                            onClick={() => handleOpenModal("Tool", tool)}
+                          >
+                            {tool.name} (SN: {tool.serial || "N/A"})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => setIsDeviceModalOpen(false)}
+                    className="px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isLaptopModalOpen && selectedLaptopData && (
+            <div
+              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+              onClick={() => setIsLaptopModalOpen(false)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <LaptopProductCard
+                  laptopData={selectedLaptopData}
+                  onAddRepair={() => {}}
+                  onDeleteRepair={() => {}}
+                  onCloseModal={() => setIsLaptopModalOpen(false)}
+                  fetchLaptopDetails={fetchLaptopDetails}
+                />
+              </div>
+            </div>
+          )}
+          {isMonitorModalOpen && selectedMonitorData && (
+            <div
+              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+              onClick={() => setIsMonitorModalOpen(false)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <MonitorProductCard
+                  monitorData={selectedMonitorData}
+                  onCloseModal={() => setIsMonitorModalOpen(false)}
+                  fetchMonitorDetails={fetchMonitorDetails}
+                />
+              </div>
+            </div>
+          )}
+          {isPrinterModalOpen && selectedPrinterData && (
+            <div
+              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+              onClick={() => setIsPrinterModalOpen(false)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <PrinterProductCard
+                  printerData={selectedPrinterData}
+                  onCloseModal={() => setIsPrinterModalOpen(false)}
+                  fetchPrinterDetails={fetchPrinterDetails}
+                />
+              </div>
+            </div>
+          )}
+          {isProjectorModalOpen && selectedProjectorData && (
+            <div
+              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+              onClick={() => setIsProjectorModalOpen(false)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <ProjectorProductCard
+                  projectorData={selectedProjectorData}
+                  onCloseModal={() => setIsProjectorModalOpen(false)}
+                  fetchProjectorDetails={fetchProjectorDetails}
+                />
+              </div>
+            </div>
+          )}
+          {isToolModalOpen && selectedToolData && (
+            <div
+              className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+              onClick={() => setIsToolModalOpen(false)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <ToolProductCard
+                  toolData={selectedToolData}
+                  onCloseModal={() => setIsToolModalOpen(false)}
+                  fetchToolDetails={fetchToolDetails}
+                />
+              </div>
+            </div>
+          )}
+
+          {isDeleteModalOpen && (
+            <div className="fixed inset-0 flex items-center justify-center bg-gray-600 bg-opacity-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg">
+                <h2 className="text-lg font-bold mb-4">Xác nhận xóa phòng</h2>
+                <p>
+                  Bạn có chắc chắn muốn xóa phòng{" "}
+                  <strong>{selectedRoom?.name}</strong> không?
+                </p>
+                <div className="flex justify-end space-x-4 mt-4 gap-2">
+                  <button
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
+                    onClick={() => setIsDeleteModalOpen(false)}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-[#FF5733] text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
+                    onClick={async () => {
+                      await fetch(`${API_URL}/rooms/${selectedRoom?._id}`, {
+                        method: "DELETE",
+                      });
+                      toast.success("Xóa phòng thành công!");
+                      fetchRooms(); // Cập nhật danh sách sau khi xóa
+                      setIsDeleteModalOpen(false);
+                    }}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isEditModalOpen && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+              onClick={() => setIsEditModalOpen(false)}
+            >
+              <div
+                className="bg-white rounded-lg shadow-lg p-8 w-[50%]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-2xl font-bold mb-6 text-[#002147]">
+                  Chỉnh sửa phòng
+                </h3>
+                <div className="border rounded-lg p-6 mb-2 relative">
+                  <span className="absolute -top-3 left-4 bg-white px-2 text-[#002147] font-bold">
                     Thông tin chung
                   </span>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-gray-600 font-medium mb-2">
                         Tên phòng
                       </label>
                       <input
                         type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập tên phòng"
-                        value={newRoom.name}
+                        className="border px-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Tên phòng"
+                        value={selectedRoom?.name || ""}
                         onChange={(e) =>
-                          setNewRoom({ ...newRoom, name: e.target.value })
+                          setSelectedRoom({
+                            ...selectedRoom,
+                            name: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -582,14 +1000,17 @@ const RoomTable = () => {
                       </label>
                       <input
                         type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập tên toà nhà"
-                        value={newRoom.location[0]?.building || ""}
+                        className="border px-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Toà nhà"
+                        value={selectedRoom?.location?.[0]?.building || ""}
                         onChange={(e) =>
-                          setNewRoom((prev) => ({
+                          setSelectedRoom((prev) => ({
                             ...prev,
                             location: [
-                              { ...prev.location[0], building: e.target.value },
+                              {
+                                ...prev.location?.[0],
+                                building: e.target.value,
+                              },
                             ],
                           }))
                         }
@@ -597,18 +1018,21 @@ const RoomTable = () => {
                     </div>
                     <div>
                       <label className="block text-gray-600 font-medium mb-2">
-                        Tầng{" "}
+                        Tầng
                       </label>
                       <input
                         type="number"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập tầng"
-                        value={newRoom.location[0]?.floor || ""}
+                        className="border px-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Tầng"
+                        value={selectedRoom?.location?.[0]?.floor || ""}
                         onChange={(e) =>
-                          setNewRoom((prev) => ({
+                          setSelectedRoom((prev) => ({
                             ...prev,
                             location: [
-                              { ...prev.location[0], floor: e.target.value },
+                              {
+                                ...prev.location?.[0],
+                                floor: e.target.value,
+                              },
                             ],
                           }))
                         }
@@ -616,21 +1040,23 @@ const RoomTable = () => {
                     </div>
                     <div>
                       <label className="block text-gray-600 font-medium mb-2">
-                        Công Năng{" "}
+                        Công năng
                       </label>
                       <select
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        value={newRoom.status || ""}
+                        className="border px-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        value={selectedRoom?.status || ""}
                         onChange={(e) =>
-                          setNewRoom({ ...newRoom, status: e.target.value })
+                          setSelectedRoom({
+                            ...selectedRoom,
+                            status: e.target.value,
+                          })
                         }
                       >
                         <option value="Lớp học">Lớp học</option>
                         <option value="Phòng chức năng">Phòng chức năng</option>
                         <option value="Phòng họp">Phòng họp</option>
-                        <option value="Phòng máy">Phòng máy ICT</option>
+                        <option value="Phòng máy">Phòng máy</option>
                         <option value="Phòng giáo viên">Phòng giáo viên</option>
-                        <option value="Khác">Phòng làm việc</option>
                         <option value="Khác">Khác</option>
                       </select>
                     </div>
@@ -639,449 +1065,38 @@ const RoomTable = () => {
                         Công suất
                       </label>
                       <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                        placeholder="Nhập công suất"
-                        value={newRoom.capacity}
+                        type="number"
+                        className="border px-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#002147]"
+                        placeholder="Công suất"
+                        value={selectedRoom?.capacity || ""}
                         onChange={(e) =>
-                          setNewRoom({ ...newRoom, capacity: e.target.value })
+                          setSelectedRoom({
+                            ...selectedRoom,
+                            capacity: e.target.value,
+                          })
                         }
                       />
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-end space-x-2">
+                <div className="flex justify-end space-x-4">
                   <button
-                    type="button"
-                    onClick={() => setIsAddModalOpen(false)}
-                    className="bg-[#FF5733] text-white text-sm font-bold px-3 py-2 rounded-md transform transition-transform duration-300 hover:scale-105"
+                    className="px-4 py-2 bg-orange-red text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
+                    onClick={() => setIsEditModalOpen(false)}
                   >
                     Hủy
                   </button>
                   <button
-                    type="submit" // Loại bỏ onClick tại đây
-                    className={`px-3 py-2 rounded-md text-white text-sm font-bold ${
-                      isUploading
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-[#002147] hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
-                    }`}
+                    className="px-4 py-2 bg-[#002147] text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
+                    onClick={handleEditRoom}
                   >
                     Lưu
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {isDeviceModalOpen && selectedRoom && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
-            onClick={() => setIsDeviceModalOpen(false)}
-          >
-            <div
-              className="bg-white rounded-lg shadow-lg p-6 w-[500px] max-h-[70%] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-2xl font-bold mb-6 text-[#002147]">
-                Phòng: {selectedRoom?.name || "Không xác định"}
-              </h3>
-
-              {/* Hiển thị thông tin phòng */}
-              <h5 className=" font-bold mb-2 text-[#002147]">
-                {" "}
-                Thông tin phòng
-              </h5>
-              <div className="bg-gray-100 text-[#002147] rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 p-4 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center space-x-4">
-                    <IoLocationOutline size={24} className="text-[#002147]" />
-                    <div>
-                      <p className="font-bold text-base">
-                        {selectedRoom?.name || "Không xác định"}
-                      </p>
-                      {Array.isArray(selectedRoom?.location) &&
-                      selectedRoom.location.length > 0 ? (
-                        selectedRoom.location.map((loc, index) => (
-                          <div key={index}>
-                            Toà nhà: {loc.building || "Không xác định"} || Tầng:{" "}
-                            {loc.floor || "Không xác định"}
-                          </div>
-                        ))
-                      ) : (
-                        <div>Không có thông tin vị trí</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <hr className="my-2 border-t border-gray-300" />
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-2">
-                    <p>Công năng hiện tại:</p>
-                    <span className="px-3 py-1 bg-[#002147] text-white text-sm rounded-full">
-                      {selectedRoom?.status || "Không xác định trạng thái"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Hiển thị danh sách thiết bị */}
-              <h5 className="font-bold mb-4 text-[#002147]">
-                Thiết bị sử dụng
-              </h5>
-              <div className="max-h-60 overflow-y-auto px-3 py-2 border rounded-lg bg-gray-50">
-                {/* Laptops */}
-                {selectedRoomDevices.laptops?.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-[#002147] mb-2">Máy tính</h4>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {selectedRoomDevices.laptops.map((laptop) => (
-                        <div
-                          key={laptop._id}
-                          className="bg-[#002147] text-white rounded-lg px-3 py-1 text-sm font-bold cursor-pointer hover:opacity-90"
-                          onClick={() => handleOpenModal("Laptop", laptop)}
-                        >
-                          {laptop.name} (SN: {laptop.serial || "N/A"})
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Monitors */}
-                {selectedRoomDevices.monitors?.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-[#009483] mb-1">Màn hình</h4>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {selectedRoomDevices.monitors.map((monitor) => (
-                        <div
-                          key={monitor._id}
-                          className="bg-[#009483] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
-                          onClick={() => handleOpenModal("Monitor", monitor)}
-                        >
-                          {monitor.name} (SN: {monitor.serial || "N/A"})
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Các loại thiết bị khác */}
-                {/* Printers */}
-                {selectedRoomDevices.printers?.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-[#FF5733] mb-1">Máy in</h4>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {selectedRoomDevices.printers.map((printer) => (
-                        <div
-                          key={printer._id}
-                          className="bg-[#FF5733] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
-                          onClick={() => handleOpenModal("Printer", printer)}
-                        >
-                          {printer.name} (SN: {printer.serial || "N/A"})
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Projectors */}
-                {selectedRoomDevices.projectors?.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-[#F39C12] mb-1">
-                      Thiết bị trình chiếu
-                    </h4>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {selectedRoomDevices.projectors.map((projector) => (
-                        <div
-                          key={projector._id}
-                          className="bg-[#F39C12] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
-                          onClick={() =>
-                            handleOpenModal("Projector", projector)
-                          }
-                        >
-                          {projector.name} (SN: {projector.serial || "N/A"})
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Tools */}
-                {selectedRoomDevices.tools?.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-[#6A1B9A] mb-1">
-                      Công cụ khác
-                    </h4>
-                    <div className="flex flex-wrap gap-2 mb-3 ">
-                      {selectedRoomDevices.tools.map((tool) => (
-                        <div
-                          key={tool._id}
-                          className="bg-[#6A1B9A] text-white rounded-lg px-3 py-2 text-sm font-bold cursor-pointer hover:opacity-90"
-                          onClick={() => handleOpenModal("Tool", tool)}
-                        >
-                          {tool.name} (SN: {tool.serial || "N/A"})
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={() => setIsDeviceModalOpen(false)}
-                  className="px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600"
-                >
-                  Đóng
-                </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {isLaptopModalOpen && selectedLaptopData && (
-          <div
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-            onClick={() => setIsLaptopModalOpen(false)}
-          >
-            <div onClick={(e) => e.stopPropagation()}>
-              <LaptopProductCard
-                laptopData={selectedLaptopData}
-                onAddRepair={() => {}}
-                onDeleteRepair={() => {}}
-                onCloseModal={() => setIsLaptopModalOpen(false)}
-                fetchLaptopDetails={fetchLaptopDetails}
-              />
-            </div>
-          </div>
-        )}
-        {isMonitorModalOpen && selectedMonitorData && (
-          <div
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-            onClick={() => setIsMonitorModalOpen(false)}
-          >
-            <div onClick={(e) => e.stopPropagation()}>
-              <MonitorProductCard
-                monitorData={selectedMonitorData}
-                onCloseModal={() => setIsMonitorModalOpen(false)}
-                fetchMonitorDetails={fetchMonitorDetails}
-              />
-            </div>
-          </div>
-        )}
-        {isPrinterModalOpen && selectedPrinterData && (
-          <div
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-            onClick={() => setIsPrinterModalOpen(false)}
-          >
-            <div onClick={(e) => e.stopPropagation()}>
-              <PrinterProductCard
-                printerData={selectedPrinterData}
-                onCloseModal={() => setIsPrinterModalOpen(false)}
-                fetchPrinterDetails={fetchPrinterDetails}
-              />
-            </div>
-          </div>
-        )}
-        {isProjectorModalOpen && selectedProjectorData && (
-          <div
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-            onClick={() => setIsProjectorModalOpen(false)}
-          >
-            <div onClick={(e) => e.stopPropagation()}>
-              <ProjectorProductCard
-                projectorData={selectedProjectorData}
-                onCloseModal={() => setIsProjectorModalOpen(false)}
-                fetchProjectorDetails={fetchProjectorDetails}
-              />
-            </div>
-          </div>
-        )}
-        {isToolModalOpen && selectedToolData && (
-          <div
-            className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-            onClick={() => setIsToolModalOpen(false)}
-          >
-            <div onClick={(e) => e.stopPropagation()}>
-              <ToolProductCard
-                toolData={selectedToolData}
-                onCloseModal={() => setIsToolModalOpen(false)}
-                fetchToolDetails={fetchToolDetails}
-              />
-            </div>
-          </div>
-        )}
-
-        {isDeleteModalOpen && (
-          <div className="fixed inset-0 flex items-center justify-center bg-gray-600 bg-opacity-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg">
-              <h2 className="text-lg font-bold mb-4">Xác nhận xóa phòng</h2>
-              <p>
-                Bạn có chắc chắn muốn xóa phòng{" "}
-                <strong>{selectedRoom?.name}</strong> không?
-              </p>
-              <div className="flex justify-end space-x-4 mt-4 gap-2">
-                <button
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
-                  onClick={() => setIsDeleteModalOpen(false)}
-                >
-                  Hủy
-                </button>
-                <button
-                  className="px-4 py-2 bg-[#FF5733] text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
-                  onClick={async () => {
-                    await fetch(`${API_URL}/rooms/${selectedRoom?._id}`, {
-                      method: "DELETE",
-                    });
-                    toast.success("Xóa phòng thành công!");
-                    fetchRooms(); // Cập nhật danh sách sau khi xóa
-                    setIsDeleteModalOpen(false);
-                  }}
-                >
-                  Xóa
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isEditModalOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
-            onClick={() => setIsEditModalOpen(false)}
-          >
-            <div
-              className="bg-white rounded-lg shadow-lg p-8 w-[50%]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-2xl font-bold mb-6 text-[#002147]">
-                Chỉnh sửa phòng
-              </h3>
-              <div className="border rounded-lg p-6 mb-2 relative">
-                <span className="absolute -top-3 left-4 bg-white px-2 text-[#002147] font-bold">
-                  Thông tin chung
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-2">
-                      Tên phòng
-                    </label>
-                    <input
-                      type="text"
-                      className="border px-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                      placeholder="Tên phòng"
-                      value={selectedRoom?.name || ""}
-                      onChange={(e) =>
-                        setSelectedRoom({
-                          ...selectedRoom,
-                          name: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-2">
-                      Toà Nhà
-                    </label>
-                    <input
-                      type="text"
-                      className="border px-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                      placeholder="Toà nhà"
-                      value={selectedRoom?.location?.[0]?.building || ""}
-                      onChange={(e) =>
-                        setSelectedRoom((prev) => ({
-                          ...prev,
-                          location: [
-                            {
-                              ...prev.location?.[0],
-                              building: e.target.value,
-                            },
-                          ],
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-2">
-                      Tầng
-                    </label>
-                    <input
-                      type="number"
-                      className="border px-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                      placeholder="Tầng"
-                      value={selectedRoom?.location?.[0]?.floor || ""}
-                      onChange={(e) =>
-                        setSelectedRoom((prev) => ({
-                          ...prev,
-                          location: [
-                            {
-                              ...prev.location?.[0],
-                              floor: e.target.value,
-                            },
-                          ],
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-2">
-                      Công năng
-                    </label>
-                    <select
-                      className="border px-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                      value={selectedRoom?.status || ""}
-                      onChange={(e) =>
-                        setSelectedRoom({
-                          ...selectedRoom,
-                          status: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="Lớp học">Lớp học</option>
-                      <option value="Phòng chức năng">Phòng chức năng</option>
-                      <option value="Phòng họp">Phòng họp</option>
-                      <option value="Phòng máy">Phòng máy</option>
-                      <option value="Phòng giáo viên">Phòng giáo viên</option>
-                      <option value="Khác">Khác</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-2">
-                      Công suất
-                    </label>
-                    <input
-                      type="number"
-                      className="border px-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#002147]"
-                      placeholder="Công suất"
-                      value={selectedRoom?.capacity || ""}
-                      onChange={(e) =>
-                        setSelectedRoom({
-                          ...selectedRoom,
-                          capacity: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end space-x-4">
-                <button
-                  className="px-4 py-2 bg-orange-red text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
-                  onClick={() => setIsEditModalOpen(false)}
-                >
-                  Hủy
-                </button>
-                <button
-                  className="px-4 py-2 bg-[#002147] text-white rounded-lg transform transition-transform duration-300 hover:scale-105"
-                  onClick={handleEditRoom}
-                >
-                  Lưu
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

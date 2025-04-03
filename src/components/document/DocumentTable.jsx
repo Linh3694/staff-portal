@@ -208,417 +208,424 @@ const DocumentTable = () => {
     }
   };
   return (
-    <div className="w-full h-full px-6 pb-6 border sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
-      <div className="flex justify-between items-center mb-4 mt-3">
-        <div className="text-2xl font-bold text-navy-700">
-          Danh sách tài liệu
+    <div className="p-8">
+      <div className="w-full h-full px-6 pb-6 border sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
+        <div className="flex justify-between items-center mb-4 mt-3">
+          <div className="text-2xl font-bold text-navy-700">
+            Danh sách tài liệu
+          </div>
+          {/* Nút thêm mới */}
+          <button
+            onClick={openCreateModal}
+            className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
+          >
+            Thêm mới
+          </button>
         </div>
-        {/* Nút thêm mới */}
-        <button
-          onClick={openCreateModal}
-          className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-2xl hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105 "
-        >
-          Thêm mới
-        </button>
-      </div>
 
-      {/* Thanh tìm kiếm */}
-      <div className="flex flex-row justify-start gap-4 mb-4">
-        <div className="flex justify-between items-center">
-          <input
-            type="text"
-            placeholder="Tìm kiếm tài liệu..."
-            className="border border-gray-300 rounded-md px-4 py-1 w-[300px]"
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center space-x-2">
-          {["Tất cả", "Tờ Trình/PR", "Biên bản", "Hợp đồng", "Hoàn công"].map(
-            (type) => (
-              <button
-                key={type}
-                onClick={() =>
-                  setSelectedFilter(type === selectedFilter ? null : type)
-                }
-                className={`px-4 py-2 text-sm font-bold rounded-lg transition ${
-                  selectedFilter === type
-                    ? "bg-[#002147] text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              >
-                {type}
-              </button>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* Bảng tài liệu */}
-      <div className="mt-1 p-3 overflow-x-scroll xl:overflow-x-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="!border-px !border-gray-400">
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p
-                  className="text-sm font-bold text-gray-600 cursor-pointer"
+        {/* Thanh tìm kiếm */}
+        <div className="flex flex-row justify-start gap-4 mb-4">
+          <div className="flex justify-between items-center">
+            <input
+              type="text"
+              placeholder="Tìm kiếm tài liệu..."
+              className="border border-gray-300 rounded-md px-4 py-1 w-[300px]"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            {["Tất cả", "Tờ Trình/PR", "Biên bản", "Hợp đồng", "Hoàn công"].map(
+              (type) => (
+                <button
+                  key={type}
                   onClick={() =>
-                    setSortConfig((prev) => ({
-                      key: "ten",
-                      direction:
-                        prev.key === "ten" && prev.direction === "asc"
-                          ? "desc"
-                          : "asc",
-                    }))
+                    setSelectedFilter(type === selectedFilter ? null : type)
                   }
+                  className={`px-4 py-2 text-sm font-bold rounded-lg transition ${
+                    selectedFilter === type
+                      ? "bg-[#002147] text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
                 >
-                  TÊN TÀI LIỆU
-                </p>
-              </th>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-600">LOẠI</p>
-              </th>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-600">PHÒNG BAN</p>
-              </th>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-600">NGÀY TẠO</p>
-              </th>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-600">THÁNG SỬ DỤNG</p>
-              </th>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                <p className="text-sm font-bold text-gray-600">TỔNG TIỀN</p>
-              </th>
-              <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
-                <p className="text-sm font-bold text-gray-600">HÀNH ĐỘNG</p>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedDocuments.map((doc) => (
-              <tr key={doc._id} className="border-b hover:bg-gray-50">
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  {doc.file ? (
-                    <a
-                      href={`${BASE_URL}/${doc.file}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-md  font-bold text-[#002147] "
-                    >
-                      {doc.ten}
-                    </a>
-                  ) : (
-                    <p className="text-sm font-semibold text-navy-700">
-                      {doc.ten}
-                    </p>
-                  )}
-                </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">
-                    {doc.loai || "Không có"}
+                  {type}
+                </button>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* Bảng tài liệu */}
+        <div className="mt-1 p-3 overflow-x-scroll xl:overflow-x-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="!border-px !border-gray-400">
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p
+                    className="text-sm font-bold text-gray-600 cursor-pointer"
+                    onClick={() =>
+                      setSortConfig((prev) => ({
+                        key: "ten",
+                        direction:
+                          prev.key === "ten" && prev.direction === "asc"
+                            ? "desc"
+                            : "asc",
+                      }))
+                    }
+                  >
+                    TÊN TÀI LIỆU
                   </p>
-                </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">
-                    {doc.phongBan || "Không có"}
+                </th>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-600">LOẠI</p>
+                </th>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-600">PHÒNG BAN</p>
+                </th>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-600">NGÀY TẠO</p>
+                </th>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-600">
+                    THÁNG SỬ DỤNG
                   </p>
-                </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">
-                    {doc.ngayTao
-                      ? new Date(doc.ngayTao).toLocaleDateString("vi-VN")
-                      : "Không có"}
-                  </p>
-                </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">
-                    {doc.thangSuDung || "Chưa cập nhật"}
-                  </p>
-                </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                  <p className="text-sm font-semibold text-navy-700">
-                    {formatChiPhi(doc.chiPhi)}
-                  </p>
-                </td>
-                <td className="min-w-[150px] border-white/0 py-3 pr-4 text-center">
-                  <div className="flex justify-center space-x-2">
-                    <button
-                      onClick={() => handleEditDocument(doc)}
-                      className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
-                    >
-                      <FiEdit size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteDocument(doc._id)}
-                      className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
-                  </div>
-                </td>
+                </th>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-600">TỔNG TIỀN</p>
+                </th>
+                <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
+                  <p className="text-sm font-bold text-gray-600">HÀNH ĐỘNG</p>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex justify-between items-center mt-4">
-        <div>
-          <button
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-            className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147]"
-          >
-            Trước
-          </button>
-          <span className="text-xs px-4 py-2">
-            {currentPage} / {totalPages}
-          </span>
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-            className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147]"
-          >
-            Tiếp
-          </button>
+            </thead>
+            <tbody>
+              {paginatedDocuments.map((doc) => (
+                <tr key={doc._id} className="border-b hover:bg-gray-50">
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    {doc.file ? (
+                      <a
+                        href={`${BASE_URL}/${doc.file}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-md  font-bold text-[#002147] "
+                      >
+                        {doc.ten}
+                      </a>
+                    ) : (
+                      <p className="text-sm font-semibold text-navy-700">
+                        {doc.ten}
+                      </p>
+                    )}
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <p className="text-sm font-semibold text-navy-700">
+                      {doc.loai || "Không có"}
+                    </p>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <p className="text-sm font-semibold text-navy-700">
+                      {doc.phongBan || "Không có"}
+                    </p>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <p className="text-sm font-semibold text-navy-700">
+                      {doc.ngayTao
+                        ? new Date(doc.ngayTao).toLocaleDateString("vi-VN")
+                        : "Không có"}
+                    </p>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <p className="text-sm font-semibold text-navy-700">
+                      {doc.thangSuDung || "Chưa cập nhật"}
+                    </p>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                    <p className="text-sm font-semibold text-navy-700">
+                      {formatChiPhi(doc.chiPhi)}
+                    </p>
+                  </td>
+                  <td className="min-w-[150px] border-white/0 py-3 pr-4 text-center">
+                    <div className="flex justify-center space-x-2">
+                      <button
+                        onClick={() => handleEditDocument(doc)}
+                        className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                      >
+                        <FiEdit size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDocument(doc._id)}
+                        className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
 
-      {/* Modal CREATE (Thêm tài liệu) */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-md shadow-lg w-[500px]">
-            <h3 className="text-xl font-bold mb-4">Thêm tài liệu mới</h3>
-
-            {/* TÊN */}
-            <label className="block mb-2">Tên tài liệu</label>
-            <input
-              type="text"
-              placeholder="Tên tài liệu"
-              value={newDocument.ten}
-              onChange={(e) =>
-                setNewDocument({ ...newDocument, ten: e.target.value })
-              }
-              className="border p-2 rounded-md w-full mb-4"
-            />
-
-            {/* LOẠI */}
-            <label className="block mb-2">Loại tài liệu</label>
-            <select
-              value={newDocument.loai}
-              onChange={(e) =>
-                setNewDocument({ ...newDocument, loai: e.target.value })
-              }
-              className="border p-2 rounded-md w-full mb-4"
+        {/* Pagination */}
+        <div className="flex justify-between items-center mt-4">
+          <div>
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+              className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147]"
             >
-              <option value="">Chọn loại tài liệu</option>
-              <option value="Tờ Trình/PR">Tờ Trình/PR</option>
-              <option value="Biên bản">Biên bản</option>
-              <option value="Hợp đồng">Hợp đồng</option>
-              <option value="Hoàn công">Hoàn công</option>
-            </select>
-
-            {/* THÁNG SỬ DỤNG */}
-            <label className="block mb-2">Tháng sử dụng</label>
-            <input
-              type="month"
-              value={newDocument.thangSuDung}
-              onChange={(e) =>
-                setNewDocument({ ...newDocument, thangSuDung: e.target.value })
-              }
-              className="border p-2 rounded-md w-full mb-4"
-            />
-
-            {/* PHÒNG BAN */}
-            <label className="block mb-2">Phòng ban</label>
-            <input
-              type="text"
-              placeholder="Phòng ban"
-              value={newDocument.phongBan}
-              onChange={(e) =>
-                setNewDocument({ ...newDocument, phongBan: e.target.value })
-              }
-              className="border p-2 rounded-md w-full mb-4"
-            />
-
-            {/* CHI PHÍ */}
-            <label className="block mb-2">Chi phí</label>
-            <input
-              type="number"
-              placeholder="Chi phí"
-              value={newDocument.chiPhi}
-              onChange={(e) =>
-                setNewDocument({ ...newDocument, chiPhi: e.target.value })
-              }
-              className="border p-2 rounded-md w-full mb-4"
-            />
-
-            {/* INPUT chọn file */}
-            <label className="block mb-2">File đính kèm</label>
-            <input
-              type="file"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setSelectedFileCreate(e.target.files[0]);
-                }
-              }}
-              className="mb-4"
-            />
-
-            <div className="mt-6 flex justify-end space-x-2">
-              <button
-                onClick={() => setIsCreateModalOpen(false)}
-                className="px-4 py-2 bg-gray-400 text-white rounded"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleCreateDocument}
-                className="px-4 py-2 bg-blue-500 text-white rounded"
-              >
-                Thêm mới
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal EDIT (Chỉnh sửa tài liệu) */}
-      {isModalOpen && selectedDocument && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-md shadow-lg w-[500px]">
-            <h3 className="text-xl font-bold mb-4">Chỉnh sửa tài liệu</h3>
-
-            {/* TÊN */}
-            <label className="block mb-2">Tên tài liệu</label>
-            <input
-              type="text"
-              value={selectedDocument.ten}
-              onChange={(e) =>
-                setSelectedDocument({
-                  ...selectedDocument,
-                  ten: e.target.value,
-                })
-              }
-              className="border p-2 rounded-md w-full mb-4"
-            />
-
-            {/* LOẠI (Select Dropdown) */}
-            <label className="block mb-2">Loại tài liệu</label>
-            <select
-              value={selectedDocument.loai}
-              onChange={(e) =>
-                setSelectedDocument({
-                  ...selectedDocument,
-                  loai: e.target.value,
-                })
-              }
-              className="border p-2 rounded-md w-full mb-4"
+              Trước
+            </button>
+            <span className="text-xs px-4 py-2">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147]"
             >
-              <option value="">Chọn loại tài liệu</option>
-              <option value="Tờ Trình/PR">Tờ Trình/PR</option>
-              <option value="Biên bản">Biên bản</option>
-              <option value="Hợp đồng">Hợp đồng</option>
-              <option value="Hoàn công">Hoàn công</option>
-            </select>
+              Tiếp
+            </button>
+          </div>
+        </div>
 
-            {/* THÁNG SỬ DỤNG */}
-            <label className="block mb-2">Tháng sử dụng</label>
-            <input
-              type="month"
-              value={selectedDocument.thangSuDung}
-              onChange={(e) =>
-                setSelectedDocument({
-                  ...selectedDocument,
-                  thangSuDung: e.target.value,
-                })
-              }
-              className="border p-2 rounded-md w-full mb-4"
-            />
+        {/* Modal CREATE (Thêm tài liệu) */}
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white p-6 rounded-md shadow-lg w-[500px]">
+              <h3 className="text-xl font-bold mb-4">Thêm tài liệu mới</h3>
 
-            {/* PHÒNG BAN */}
-            <label className="block mb-2">Phòng ban</label>
-            <input
-              type="text"
-              value={selectedDocument.phongBan || ""}
-              onChange={(e) =>
-                setSelectedDocument({
-                  ...selectedDocument,
-                  phongBan: e.target.value,
-                })
-              }
-              className="border p-2 rounded-md w-full mb-4"
-            />
-
-            {/* CHI PHÍ */}
-            <label className="block mb-2">Chi phí</label>
-            <input
-              type="number"
-              value={selectedDocument.chiPhi} // là string tạm thời
-              onChange={(e) =>
-                setSelectedDocument({
-                  ...selectedDocument,
-                  chiPhi: e.target.value,
-                })
-              }
-              className="border p-2 rounded-md w-full mb-4"
-            />
-
-            {/* INPUT chọn file (edit) */}
-            <label className="block mb-2">File (nếu muốn cập nhật)</label>
-            <input
-              type="file"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setSelectedFileEdit(e.target.files[0]);
+              {/* TÊN */}
+              <label className="block mb-2">Tên tài liệu</label>
+              <input
+                type="text"
+                placeholder="Tên tài liệu"
+                value={newDocument.ten}
+                onChange={(e) =>
+                  setNewDocument({ ...newDocument, ten: e.target.value })
                 }
-              }}
-              className="mb-4"
-            />
+                className="border p-2 rounded-md w-full mb-4"
+              />
 
-            <div className="mt-6 flex justify-end space-x-2">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 bg-gray-400 text-white rounded"
+              {/* LOẠI */}
+              <label className="block mb-2">Loại tài liệu</label>
+              <select
+                value={newDocument.loai}
+                onChange={(e) =>
+                  setNewDocument({ ...newDocument, loai: e.target.value })
+                }
+                className="border p-2 rounded-md w-full mb-4"
               >
-                Hủy
-              </button>
-              <button
-                onClick={handleSaveDocument}
-                className="px-4 py-2 bg-blue-500 text-white rounded"
-              >
-                Lưu thay đổi
-              </button>
+                <option value="">Chọn loại tài liệu</option>
+                <option value="Tờ Trình/PR">Tờ Trình/PR</option>
+                <option value="Biên bản">Biên bản</option>
+                <option value="Hợp đồng">Hợp đồng</option>
+                <option value="Hoàn công">Hoàn công</option>
+              </select>
+
+              {/* THÁNG SỬ DỤNG */}
+              <label className="block mb-2">Tháng sử dụng</label>
+              <input
+                type="month"
+                value={newDocument.thangSuDung}
+                onChange={(e) =>
+                  setNewDocument({
+                    ...newDocument,
+                    thangSuDung: e.target.value,
+                  })
+                }
+                className="border p-2 rounded-md w-full mb-4"
+              />
+
+              {/* PHÒNG BAN */}
+              <label className="block mb-2">Phòng ban</label>
+              <input
+                type="text"
+                placeholder="Phòng ban"
+                value={newDocument.phongBan}
+                onChange={(e) =>
+                  setNewDocument({ ...newDocument, phongBan: e.target.value })
+                }
+                className="border p-2 rounded-md w-full mb-4"
+              />
+
+              {/* CHI PHÍ */}
+              <label className="block mb-2">Chi phí</label>
+              <input
+                type="number"
+                placeholder="Chi phí"
+                value={newDocument.chiPhi}
+                onChange={(e) =>
+                  setNewDocument({ ...newDocument, chiPhi: e.target.value })
+                }
+                className="border p-2 rounded-md w-full mb-4"
+              />
+
+              {/* INPUT chọn file */}
+              <label className="block mb-2">File đính kèm</label>
+              <input
+                type="file"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSelectedFileCreate(e.target.files[0]);
+                  }
+                }}
+                className="mb-4"
+              />
+
+              <div className="mt-6 flex justify-end space-x-2">
+                <button
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2 bg-gray-400 text-white rounded"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleCreateDocument}
+                  className="px-4 py-2 bg-blue-500 text-white rounded"
+                >
+                  Thêm mới
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Modal DELETE (Xác nhận xoá) */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-md shadow-lg w-[400px]">
-            <h3 className="text-xl font-bold mb-4">Xác nhận xóa</h3>
-            <p className="mb-4">Bạn có chắc chắn muốn xóa tài liệu này?</p>
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 bg-gray-400 text-white rounded"
+        {/* Modal EDIT (Chỉnh sửa tài liệu) */}
+        {isModalOpen && selectedDocument && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white p-6 rounded-md shadow-lg w-[500px]">
+              <h3 className="text-xl font-bold mb-4">Chỉnh sửa tài liệu</h3>
+
+              {/* TÊN */}
+              <label className="block mb-2">Tên tài liệu</label>
+              <input
+                type="text"
+                value={selectedDocument.ten}
+                onChange={(e) =>
+                  setSelectedDocument({
+                    ...selectedDocument,
+                    ten: e.target.value,
+                  })
+                }
+                className="border p-2 rounded-md w-full mb-4"
+              />
+
+              {/* LOẠI (Select Dropdown) */}
+              <label className="block mb-2">Loại tài liệu</label>
+              <select
+                value={selectedDocument.loai}
+                onChange={(e) =>
+                  setSelectedDocument({
+                    ...selectedDocument,
+                    loai: e.target.value,
+                  })
+                }
+                className="border p-2 rounded-md w-full mb-4"
               >
-                Hủy
-              </button>
-              <button
-                onClick={confirmDeleteDocument}
-                className="px-4 py-2 bg-red-600 text-white rounded"
-              >
-                Xóa
-              </button>
+                <option value="">Chọn loại tài liệu</option>
+                <option value="Tờ Trình/PR">Tờ Trình/PR</option>
+                <option value="Biên bản">Biên bản</option>
+                <option value="Hợp đồng">Hợp đồng</option>
+                <option value="Hoàn công">Hoàn công</option>
+              </select>
+
+              {/* THÁNG SỬ DỤNG */}
+              <label className="block mb-2">Tháng sử dụng</label>
+              <input
+                type="month"
+                value={selectedDocument.thangSuDung}
+                onChange={(e) =>
+                  setSelectedDocument({
+                    ...selectedDocument,
+                    thangSuDung: e.target.value,
+                  })
+                }
+                className="border p-2 rounded-md w-full mb-4"
+              />
+
+              {/* PHÒNG BAN */}
+              <label className="block mb-2">Phòng ban</label>
+              <input
+                type="text"
+                value={selectedDocument.phongBan || ""}
+                onChange={(e) =>
+                  setSelectedDocument({
+                    ...selectedDocument,
+                    phongBan: e.target.value,
+                  })
+                }
+                className="border p-2 rounded-md w-full mb-4"
+              />
+
+              {/* CHI PHÍ */}
+              <label className="block mb-2">Chi phí</label>
+              <input
+                type="number"
+                value={selectedDocument.chiPhi} // là string tạm thời
+                onChange={(e) =>
+                  setSelectedDocument({
+                    ...selectedDocument,
+                    chiPhi: e.target.value,
+                  })
+                }
+                className="border p-2 rounded-md w-full mb-4"
+              />
+
+              {/* INPUT chọn file (edit) */}
+              <label className="block mb-2">File (nếu muốn cập nhật)</label>
+              <input
+                type="file"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSelectedFileEdit(e.target.files[0]);
+                  }
+                }}
+                className="mb-4"
+              />
+
+              <div className="mt-6 flex justify-end space-x-2">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 bg-gray-400 text-white rounded"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSaveDocument}
+                  className="px-4 py-2 bg-blue-500 text-white rounded"
+                >
+                  Lưu thay đổi
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Modal DELETE (Xác nhận xoá) */}
+        {isDeleteModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white p-6 rounded-md shadow-lg w-[400px]">
+              <h3 className="text-xl font-bold mb-4">Xác nhận xóa</h3>
+              <p className="mb-4">Bạn có chắc chắn muốn xóa tài liệu này?</p>
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="px-4 py-2 bg-gray-400 text-white rounded"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmDeleteDocument}
+                  className="px-4 py-2 bg-red-600 text-white rounded"
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

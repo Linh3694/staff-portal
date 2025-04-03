@@ -535,371 +535,535 @@ const UserTable = ({ handleSyncClients }) => {
   };
 
   return (
-    <div className="w-full h-full px-6 pb-6 border sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
-      {!isProfileView ? (
-        <>
-          <div className="flex justify-between items-center mb-4 mt-3">
-            <div className="text-2xl font-bold text-navy-700">
-              Danh sách người dùng
+    <div className="p-8">
+      <div className="w-full h-full px-6 pb-6 border sm:overflow-x-auto bg-white rounded-2xl shadow-xl">
+        {!isProfileView ? (
+          <>
+            <div className="flex justify-between items-center mb-4 mt-3">
+              <div className="text-2xl font-bold text-navy-700">
+                Danh sách người dùng
+              </div>
             </div>
-          </div>
 
-          {/* Thanh tìm kiếm */}
-          <div className="flex justify-between items-center mb-2 mt-1">
-            <input
-              type="text"
-              placeholder="Tìm kiếm người dùng..."
-              className="border border-gray-300 rounded-md px-4 py-2 w-[300px]"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              onFocus={() => {
-                // Khi focus, nếu searchTerm đã có thì hiển thị suggestions
-                if (searchTerm && suggestions.length > 0) {
-                  setSuggestions(suggestions);
-                }
-              }}
-            />
-            <div className="flex justify-between items-right space-x-2 ">
-              <button
-                onClick={() => setIsAddUserModalOpen(true)}
-                className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-md hover:bg-orange-red-dark transform transition-transform duration-300 hover:scale-105"
-              >
-                Tạo mới
-              </button>
-              <button
-                onClick={handleExportToExcel}
-                className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
-              >
-                Xuất Excel
-              </button>
-              {/* Thêm nút Upload Excel */}
+            {/* Thanh tìm kiếm */}
+            <div className="flex justify-between items-center mb-2 mt-1">
               <input
-                type="file"
-                accept=".xlsx, .xls"
-                className="hidden"
-                id="upload-excel"
-                onChange={handleUploadExcel}
+                type="text"
+                placeholder="Tìm kiếm người dùng..."
+                className="border border-gray-300 rounded-md px-4 py-2 w-[300px]"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                onFocus={() => {
+                  // Khi focus, nếu searchTerm đã có thì hiển thị suggestions
+                  if (searchTerm && suggestions.length > 0) {
+                    setSuggestions(suggestions);
+                  }
+                }}
               />
-              <label
-                htmlFor="upload-excel"
-                className="px-3 py-2 bg-[#009483] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#196619] cursor-pointer transform transition-transform duration-300 hover:scale-105"
-              >
-                Edit Excel
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                id="bulk-avatar-upload"
-                onChange={handleBulkAvatarUpload}
-              />
-              <label
-                htmlFor="bulk-avatar-upload"
-                className="px-3 py-2 bg-[#009483] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#45A049] cursor-pointer transform transition-transform duration-300 hover:scale-105"
-              >
-                Cập nhật Avatar
-              </label>
+              <div className="flex justify-between items-right space-x-2 ">
+                <button
+                  onClick={() => setIsAddUserModalOpen(true)}
+                  className="px-3 py-2 bg-orange-red text-sm font-bold text-white rounded-lg shadow-md hover:bg-orange-red-dark transform transition-transform duration-300 hover:scale-105"
+                >
+                  Tạo mới
+                </button>
+                <button
+                  onClick={handleExportToExcel}
+                  className="px-3 py-2 bg-[#002147] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#001635] transform transition-transform duration-300 hover:scale-105"
+                >
+                  Xuất Excel
+                </button>
+                {/* Thêm nút Upload Excel */}
+                <input
+                  type="file"
+                  accept=".xlsx, .xls"
+                  className="hidden"
+                  id="upload-excel"
+                  onChange={handleUploadExcel}
+                />
+                <label
+                  htmlFor="upload-excel"
+                  className="px-3 py-2 bg-[#009483] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#196619] cursor-pointer transform transition-transform duration-300 hover:scale-105"
+                >
+                  Edit Excel
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  id="bulk-avatar-upload"
+                  onChange={handleBulkAvatarUpload}
+                />
+                <label
+                  htmlFor="bulk-avatar-upload"
+                  className="px-3 py-2 bg-[#009483] text-sm font-bold text-white rounded-lg shadow-md hover:bg-[#45A049] cursor-pointer transform transition-transform duration-300 hover:scale-105"
+                >
+                  Cập nhật Avatar
+                </label>
+              </div>
             </div>
-          </div>
 
-          {/* Bảng */}
-          <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="!border-px !border-gray-400">
-                  <th
-                    className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start cursor-pointer"
-                    onClick={() =>
-                      setSortConfig({
-                        key: "fullname",
-                        direction:
-                          sortConfig.direction === "asc" ? "desc" : "asc",
-                      })
-                    }
-                  >
-                    <p className="text-sm font-bold text-gray-600">
-                      TÊN{" "}
-                      {sortConfig.key === "fullname"
-                        ? sortConfig.direction === "asc"
-                          ? "↑"
-                          : "↓"
-                        : ""}
-                    </p>
-                  </th>
-                  <th
-                    className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start cursor-pointer"
-                    onClick={() =>
-                      setSortConfig({
-                        key: "employeeCode",
-                        direction:
-                          sortConfig.direction === "asc" ? "desc" : "asc",
-                      })
-                    }
-                  >
-                    <p className="text-sm font-bold text-gray-600">
-                      MÃ NHÂN VIÊN{" "}
-                      {sortConfig.key === "employeeCode"
-                        ? sortConfig.direction === "asc"
-                          ? "↑"
-                          : "↓"
-                        : ""}
-                    </p>
-                  </th>
-                  <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                    <p className="text-sm font-bold text-gray-600">CHỨC VỤ</p>
-                  </th>
-                  <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                    <p className="text-sm font-bold text-gray-600">QUYỀN</p>
-                  </th>
-                  <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                    <p className="text-sm font-bold text-gray-600">
-                      TÌNH TRẠNG
-                    </p>
-                  </th>
-                  <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
-                    <p className="text-sm font-bold text-gray-600">HÀNH ĐỘNG</p>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedClients.map((client) => (
-                  <tr
-                    key={client.id}
-                    className="border-b border-gray-200 hover:bg-gray-50"
-                  >
-                    <td className="flex items-center space-x-2 mt-2">
-                      <img
-                        src={
-                          client.avatarUrl
-                            ? `${BASE_URL}/uploads/Avatar/${client.avatarUrl}`
-                            : "/bigwell.png"
-                        }
-                        alt="Avatar"
-                        className="w-10 h-10 rounded-full border object-cover object-top"
-                      />
-                      <div>
-                        <button
-                          className="font-bold text-navy-700 hover:text-navy-900"
-                          onClick={() => handleShowProfile(client._id)}
-                        >
-                          {client.fullname}
-                        </button>
-                        <br />
-                        <span className="text-gray-500 italic text-sm">
-                          {client.email || "Not Provided"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                      <p className="text-sm font-semibold text-navy-700">
-                        {client.employeeCode || "Chưa có"}
+            {/* Bảng */}
+            <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="!border-px !border-gray-400">
+                    <th
+                      className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start cursor-pointer"
+                      onClick={() =>
+                        setSortConfig({
+                          key: "fullname",
+                          direction:
+                            sortConfig.direction === "asc" ? "desc" : "asc",
+                        })
+                      }
+                    >
+                      <p className="text-sm font-bold text-gray-600">
+                        TÊN{" "}
+                        {sortConfig.key === "fullname"
+                          ? sortConfig.direction === "asc"
+                            ? "↑"
+                            : "↓"
+                          : ""}
                       </p>
-                    </td>
-                    <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                      <p className="text-sm font-semibold text-navy-700">
-                        {client.jobTitle || "Not Provided"}
+                    </th>
+                    <th
+                      className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start cursor-pointer"
+                      onClick={() =>
+                        setSortConfig({
+                          key: "employeeCode",
+                          direction:
+                            sortConfig.direction === "asc" ? "desc" : "asc",
+                        })
+                      }
+                    >
+                      <p className="text-sm font-bold text-gray-600">
+                        MÃ NHÂN VIÊN{" "}
+                        {sortConfig.key === "employeeCode"
+                          ? sortConfig.direction === "asc"
+                            ? "↑"
+                            : "↓"
+                          : ""}
                       </p>
-                      <p className="text-sm font-semibold italic text-gray-600">
-                        {client.department || "Not Provided"}
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                      <p className="text-sm font-bold text-gray-600">CHỨC VỤ</p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                      <p className="text-sm font-bold text-gray-600">QUYỀN</p>
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                      <p className="text-sm font-bold text-gray-600">
+                        TÌNH TRẠNG
                       </p>
-                    </td>
-                    <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                      <p className="text-sm font-semibold text-navy-700">
-                        {client.role}
+                    </th>
+                    <th className="border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
+                      <p className="text-sm font-bold text-gray-600">
+                        HÀNH ĐỘNG
                       </p>
-                    </td>
-                    <td className="min-w-[150px] border-white/0 py-3 pr-4">
-                      <div
-                        className={
-                          statusClasses[client.disabled ? "Inactive" : "Active"]
-                        }
-                      >
-                        {client.disabled ? (
-                          <MdCancel className="mr-1" />
-                        ) : (
-                          <MdCheckCircle className="mr-1" />
-                        )}
-                        <p className="text-sm font-bold">
-                          {
-                            statusLabels[
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedClients.map((client) => (
+                    <tr
+                      key={client.id}
+                      className="border-b border-gray-200 hover:bg-gray-50"
+                    >
+                      <td className="flex items-center space-x-2 mt-2">
+                        <img
+                          src={
+                            client.avatarUrl
+                              ? `${BASE_URL}/uploads/Avatar/${client.avatarUrl}`
+                              : "/bigwell.png"
+                          }
+                          alt="Avatar"
+                          className="w-10 h-10 rounded-full border object-cover object-top"
+                        />
+                        <div>
+                          <button
+                            className="font-bold text-navy-700 hover:text-navy-900"
+                            onClick={() => handleShowProfile(client._id)}
+                          >
+                            {client.fullname}
+                          </button>
+                          <br />
+                          <span className="text-gray-500 italic text-sm">
+                            {client.email || "Not Provided"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                        <p className="text-sm font-semibold text-navy-700">
+                          {client.employeeCode || "Chưa có"}
+                        </p>
+                      </td>
+                      <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                        <p className="text-sm font-semibold text-navy-700">
+                          {client.jobTitle || "Not Provided"}
+                        </p>
+                        <p className="text-sm font-semibold italic text-gray-600">
+                          {client.department || "Not Provided"}
+                        </p>
+                      </td>
+                      <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                        <p className="text-sm font-semibold text-navy-700">
+                          {client.role}
+                        </p>
+                      </td>
+                      <td className="min-w-[150px] border-white/0 py-3 pr-4">
+                        <div
+                          className={
+                            statusClasses[
                               client.disabled ? "Inactive" : "Active"
                             ]
                           }
-                        </p>
-                      </div>
-                    </td>
-                    <td className="min-w-[150px] border-white/0 py-3 pr-4 text-center">
-                      <div className="flex justify-center space-x-2">
-                        {/* Nút Edit */}
-                        <button
-                          onClick={() => handleEditUser(client)}
-                          className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
                         >
-                          <FiEdit size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(client._id)}
-                          className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
-                        >
-                          <FiTrash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex justify-between items-center mt-4">
-            <div>
-              <button
-                disabled={currentPage === 1}
-                onClick={() => handlePageChange(currentPage - 1)}
-                className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147] disabled:bg-[#002147] disabled:cursor-not-allowed"
-              >
-                Trước
-              </button>
-              <span className="text-xs px-4 py-2">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => handlePageChange(currentPage + 1)}
-                className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147] disabled:bg-[#002147] disabled:cursor-not-allowed"
-              >
-                Tiếp
-              </button>
+                          {client.disabled ? (
+                            <MdCancel className="mr-1" />
+                          ) : (
+                            <MdCheckCircle className="mr-1" />
+                          )}
+                          <p className="text-sm font-bold">
+                            {
+                              statusLabels[
+                                client.disabled ? "Inactive" : "Active"
+                              ]
+                            }
+                          </p>
+                        </div>
+                      </td>
+                      <td className="min-w-[150px] border-white/0 py-3 pr-4 text-center">
+                        <div className="flex justify-center space-x-2">
+                          {/* Nút Edit */}
+                          <button
+                            onClick={() => handleEditUser(client)}
+                            className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg transform transition-transform duration-300 hover:scale-105"
+                          >
+                            <FiEdit size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(client._id)}
+                            className="flex items-center justify-center w-7 h-7 text-white bg-orange-red rounded-lg  transform transition-transform duration-300 hover:scale-105"
+                          >
+                            <FiTrash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="flex items-center space-x-2">
-              <select
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
-                className="border border-gray-300 font-semibold rounded-md px-5 py-1 text-sm"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span className="text-sm">Users/Page</span>
+            <div className="flex justify-between items-center mt-4">
+              <div>
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147] disabled:bg-[#002147] disabled:cursor-not-allowed"
+                >
+                  Trước
+                </button>
+                <span className="text-xs px-4 py-2">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className="px-2 py-1 text-xs font-semibold text-white border rounded bg-[#FF5733] hover:bg-[#002147] disabled:bg-[#002147] disabled:cursor-not-allowed"
+                >
+                  Tiếp
+                </button>
+              </div>
+              <div className="flex items-center space-x-2">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
+                  className="border border-gray-300 font-semibold rounded-md px-5 py-1 text-sm"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-sm">Users/Page</span>
+              </div>
             </div>
-          </div>
-        </>
-      ) : (
-        <Profile
-          userId={selectedUser._id} // <= chỉ cần ID
-          onBack={() => setIsProfileView(false)}
-        />
-      )}
+          </>
+        ) : (
+          <Profile
+            userId={selectedUser._id} // <= chỉ cần ID
+            onBack={() => setIsProfileView(false)}
+          />
+        )}
 
-      {/* ------------------------------------------------------------------------------- Modal delete -------------------------------------------------------- */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-[400px]">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">
-              Xác nhận xóa
-            </h3>
-            <p className="text-gray-600">
-              Bạn có chắc chắn muốn xóa người dùng này không?
-            </p>
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 mr-2 bg-gray-300 text-gray-800 rounded shadow hover:bg-gray-400"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={confirmDeleteUser}
-                className="px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600"
-              >
-                Xóa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* ------------------------------------------------------------------------------- Modal cập nhật thông tin -------------------------------------------------------- */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-[500px]">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">
-                Cập nhật thông tin người dùng
+        {/* ------------------------------------------------------------------------------- Modal delete -------------------------------------------------------- */}
+        {isDeleteModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-[400px]">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">
+                Xác nhận xóa
               </h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                &times;
-              </button>
+              <p className="text-gray-600">
+                Bạn có chắc chắn muốn xóa người dùng này không?
+              </p>
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="px-4 py-2 mr-2 bg-gray-300 text-gray-800 rounded shadow hover:bg-gray-400"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmDeleteUser}
+                  className="px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600"
+                >
+                  Xóa
+                </button>
+              </div>
             </div>
+          </div>
+        )}
+        {/* ------------------------------------------------------------------------------- Modal cập nhật thông tin -------------------------------------------------------- */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-[500px]">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-800">
+                  Cập nhật thông tin người dùng
+                </h3>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  &times;
+                </button>
+              </div>
 
-            <form onSubmit={(e) => e.preventDefault()}>
-              <label className="block mt-4">
-                Họ và tên:
-                <input
-                  type="text"
-                  value={selectedUser.fullname}
-                  onChange={(e) =>
-                    setSelectedUser({
-                      ...selectedUser,
-                      fullname: e.target.value,
-                    })
-                  }
-                  className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                />
-                {/* Thêm input Mã nhân viên */}
+              <form onSubmit={(e) => e.preventDefault()}>
+                <label className="block mt-4">
+                  Họ và tên:
+                  <input
+                    type="text"
+                    value={selectedUser.fullname}
+                    onChange={(e) =>
+                      setSelectedUser({
+                        ...selectedUser,
+                        fullname: e.target.value,
+                      })
+                    }
+                    className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                  />
+                  {/* Thêm input Mã nhân viên */}
+                  <label className="block mt-4">
+                    Mã nhân viên:
+                    <input
+                      type="text"
+                      value={selectedUser.employeeCode || ""}
+                      onChange={(e) =>
+                        setSelectedUser({
+                          ...selectedUser,
+                          employeeCode: e.target.value,
+                        })
+                      }
+                      className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                    />
+                  </label>
+                  <label className="block mt-4">
+                    Chức vụ:
+                    <input
+                      type="text"
+                      value={selectedUser.jobTitle || ""}
+                      onChange={(e) =>
+                        setSelectedUser({
+                          ...selectedUser,
+                          jobTitle: e.target.value,
+                        })
+                      }
+                      className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                    />
+                  </label>
+                  <label className="block mt-4">
+                    Phòng ban:
+                    <input
+                      type="text"
+                      value={selectedUser.department || ""}
+                      onChange={(e) =>
+                        setSelectedUser({
+                          ...selectedUser,
+                          department: e.target.value,
+                        })
+                      }
+                      className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                    />
+                  </label>
+                  {/* Thêm trường chọn Role */}
+                  <label className="block mt-4">
+                    Vai trò:
+                    <select
+                      value={selectedUser.role}
+                      onChange={(e) =>
+                        setSelectedUser({
+                          ...selectedUser,
+                          role: e.target.value,
+                        })
+                      }
+                      className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                    >
+                      <option value="user">Người dùng</option>
+                      <option value="admin">Quản trị viên</option>
+                    </select>
+                  </label>
+                </label>
+                <div>
+                  Ảnh đại diện (Avatar):
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                  />
+                </div>
+                {avatarUrl && (
+                  <div className="mt-4">
+                    <img
+                      src={avatarUrl}
+                      alt="Avatar Preview"
+                      className="w-32 h-32 rounded-full"
+                    />
+                  </div>
+                )}
+                <button
+                  onClick={handleAvatarUpload}
+                  className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md"
+                >
+                  Upload Avatar
+                </button>
+
+                <div className="flex items-center justify-between mt-4">
+                  <label
+                    htmlFor="activateAccount"
+                    className="text-sm font-bold"
+                  >
+                    Kích hoạt tài khoản
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="activateAccount"
+                    checked={!selectedUser.disabled}
+                    onChange={(e) =>
+                      setSelectedUser({
+                        ...selectedUser,
+                        disabled: !e.target.checked,
+                      })
+                    }
+                    className="toggle-switch"
+                  />
+                </div>
+
+                {!selectedUser.disabled && (
+                  <label className="block mt-4">
+                    Mật khẩu mới:
+                    <input
+                      type="password"
+                      placeholder="Nhập mật khẩu mới"
+                      onChange={(e) =>
+                        setSelectedUser({
+                          ...selectedUser,
+                          newPassword: e.target.value,
+                        })
+                      }
+                      className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                      required
+                    />
+                  </label>
+                )}
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 mr-2 bg-gray-300 text-gray-800 rounded shadow hover:bg-gray-400"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={() => handleSaveUser(selectedUser)}
+                    className="px-4 py-2 bg-[#002147] text-white rounded shadow hover:bg-blue-600"
+                  >
+                    Lưu thay đổi
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {isAddUserModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-[500px]">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-800">
+                  Tạo người dùng mới
+                </h3>
+                <button
+                  onClick={() => setIsAddUserModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  &times;
+                </button>
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCreateUser();
+                }}
+              >
+                <label className="block mt-4">
+                  Tên:
+                  <input
+                    type="text"
+                    value={newUser.fullname}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, fullname: e.target.value })
+                    }
+                    className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                    required
+                    placeholder="Nhập tên đầy đủ"
+                  />
+                </label>
+                <label className="block mt-4">
+                  Email:
+                  <input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, email: e.target.value })
+                    }
+                    className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                    required
+                    placeholder="Nhập địa chỉ email"
+                  />
+                </label>
                 <label className="block mt-4">
                   Mã nhân viên:
                   <input
                     type="text"
-                    value={selectedUser.employeeCode || ""}
+                    value={newUser.employeeCode}
                     onChange={(e) =>
-                      setSelectedUser({
-                        ...selectedUser,
-                        employeeCode: e.target.value,
-                      })
+                      setNewUser({ ...newUser, employeeCode: e.target.value })
                     }
                     className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                    required
+                    placeholder="Nhập mã nhân viên"
                   />
                 </label>
-                <label className="block mt-4">
-                  Chức vụ:
-                  <input
-                    type="text"
-                    value={selectedUser.jobTitle || ""}
-                    onChange={(e) =>
-                      setSelectedUser({
-                        ...selectedUser,
-                        jobTitle: e.target.value,
-                      })
-                    }
-                    className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                  />
-                </label>
-                <label className="block mt-4">
-                  Phòng ban:
-                  <input
-                    type="text"
-                    value={selectedUser.department || ""}
-                    onChange={(e) =>
-                      setSelectedUser({
-                        ...selectedUser,
-                        department: e.target.value,
-                      })
-                    }
-                    className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                  />
-                </label>
-                {/* Thêm trường chọn Role */}
                 <label className="block mt-4">
                   Vai trò:
                   <select
-                    value={selectedUser.role}
+                    value={newUser.role || "user"}
                     onChange={(e) =>
-                      setSelectedUser({ ...selectedUser, role: e.target.value })
+                      setNewUser({ ...newUser, role: e.target.value })
                     }
                     className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
                   >
@@ -907,208 +1071,59 @@ const UserTable = ({ handleSyncClients }) => {
                     <option value="admin">Quản trị viên</option>
                   </select>
                 </label>
-              </label>
-              <div>
-                Ảnh đại diện (Avatar):
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                />
-              </div>
-              {avatarUrl && (
-                <div className="mt-4">
-                  <img
-                    src={avatarUrl}
-                    alt="Avatar Preview"
-                    className="w-32 h-32 rounded-full"
+                <div className="flex items-center justify-between mt-4">
+                  <label
+                    htmlFor="activateAccount"
+                    className="text-sm font-bold"
+                  >
+                    Kích hoạt tài khoản
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="activateAccount"
+                    checked={newUser.active || false}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, active: e.target.checked })
+                    }
+                    className="toggle-switch"
                   />
                 </div>
-              )}
-              <button
-                onClick={handleAvatarUpload}
-                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md"
-              >
-                Upload Avatar
-              </button>
-
-              <div className="flex items-center justify-between mt-4">
-                <label htmlFor="activateAccount" className="text-sm font-bold">
-                  Kích hoạt tài khoản
-                </label>
-                <input
-                  type="checkbox"
-                  id="activateAccount"
-                  checked={!selectedUser.disabled}
-                  onChange={(e) =>
-                    setSelectedUser({
-                      ...selectedUser,
-                      disabled: !e.target.checked,
-                    })
-                  }
-                  className="toggle-switch"
-                />
-              </div>
-
-              {!selectedUser.disabled && (
-                <label className="block mt-4">
-                  Mật khẩu mới:
-                  <input
-                    type="password"
-                    placeholder="Nhập mật khẩu mới"
-                    onChange={(e) =>
-                      setSelectedUser({
-                        ...selectedUser,
-                        newPassword: e.target.value,
-                      })
-                    }
-                    className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                    required
-                  />
-                </label>
-              )}
-
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 mr-2 bg-gray-300 text-gray-800 rounded shadow hover:bg-gray-400"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={() => handleSaveUser(selectedUser)}
-                  className="px-4 py-2 bg-[#002147] text-white rounded shadow hover:bg-blue-600"
-                >
-                  Lưu thay đổi
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {isAddUserModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-[500px]">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">
-                Tạo người dùng mới
-              </h3>
-              <button
-                onClick={() => setIsAddUserModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                &times;
-              </button>
+                {newUser.active && (
+                  <label className="block mt-4">
+                    Mật khẩu:
+                    <input
+                      type="password"
+                      value={newUser.password || ""}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, password: e.target.value })
+                      }
+                      className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
+                      placeholder="Nhập mật khẩu"
+                      required
+                    />
+                  </label>
+                )}
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={() => setIsAddUserModalOpen(false)}
+                    className="px-4 py-2 mr-2 bg-gray-300 text-gray-800 rounded shadow hover:bg-gray-400"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600"
+                  >
+                    Tạo
+                  </button>
+                </div>
+              </form>
             </div>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleCreateUser();
-              }}
-            >
-              <label className="block mt-4">
-                Tên:
-                <input
-                  type="text"
-                  value={newUser.fullname}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, fullname: e.target.value })
-                  }
-                  className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                  required
-                  placeholder="Nhập tên đầy đủ"
-                />
-              </label>
-              <label className="block mt-4">
-                Email:
-                <input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, email: e.target.value })
-                  }
-                  className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                  required
-                  placeholder="Nhập địa chỉ email"
-                />
-              </label>
-              <label className="block mt-4">
-                Mã nhân viên:
-                <input
-                  type="text"
-                  value={newUser.employeeCode}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, employeeCode: e.target.value })
-                  }
-                  className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                  required
-                  placeholder="Nhập mã nhân viên"
-                />
-              </label>
-              <label className="block mt-4">
-                Vai trò:
-                <select
-                  value={newUser.role || "user"}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, role: e.target.value })
-                  }
-                  className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                >
-                  <option value="user">Người dùng</option>
-                  <option value="admin">Quản trị viên</option>
-                </select>
-              </label>
-              <div className="flex items-center justify-between mt-4">
-                <label htmlFor="activateAccount" className="text-sm font-bold">
-                  Kích hoạt tài khoản
-                </label>
-                <input
-                  type="checkbox"
-                  id="activateAccount"
-                  checked={newUser.active || false}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, active: e.target.checked })
-                  }
-                  className="toggle-switch"
-                />
-              </div>
-              {newUser.active && (
-                <label className="block mt-4">
-                  Mật khẩu:
-                  <input
-                    type="password"
-                    value={newUser.password || ""}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, password: e.target.value })
-                    }
-                    className="border border-gray-300 rounded-md px-4 py-2 w-full mt-1"
-                    placeholder="Nhập mật khẩu"
-                    required
-                  />
-                </label>
-              )}
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={() => setIsAddUserModalOpen(false)}
-                  className="px-4 py-2 mr-2 bg-gray-300 text-gray-800 rounded shadow hover:bg-gray-400"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600"
-                >
-                  Tạo
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Pagination Buttons */}
+        {/* Pagination Buttons */}
+      </div>
     </div>
   );
 };

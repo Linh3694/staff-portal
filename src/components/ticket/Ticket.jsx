@@ -302,10 +302,10 @@ const Ticket = ({ currentUser }) => {
   }, [searchTerm, filterStatus]);
 
   return (
-    <div className="max-h-screen flex justify-center">
-      <div className="w-full max-h-screen flex flex-row gap-6 ">
+    <div className="h-screen p-8 flex justify-center overflow-y-hidden">
+      <div className="w-full h-full flex flex-row gap-6">
         {/* Bên trái - Danh sách ticket */}
-        <div className="w-1/2 px-6 py-4 bg-white rounded-2xl shadow-lg">
+        <div className="w-1/2 h-full px-6 py-4 bg-white rounded-2xl shadow-lg">
           <div className="flex flex-row items-center justify-between mb-4">
             <span className="text-2xl font-bold text-gray-800">
               Danh sách Ticket
@@ -405,7 +405,7 @@ const Ticket = ({ currentUser }) => {
             </div>
           </div>
 
-          <div className="mt-3 flex flex-col gap-4 max-h-[500px] overflow-hidden hover:overflow-y-auto">
+          <div className="mt-3 flex flex-col gap-4 h-[63%] overflow-hidden hover:overflow-y-auto">
             {userTickets.length === 0 ? (
               <p className="text-gray-500">Không có ticket nào.</p>
             ) : (
@@ -459,7 +459,7 @@ const Ticket = ({ currentUser }) => {
 
         {/* Bên phải - Tạo ticket */}
         {showCreateTicket && !selectedTicket && (
-          <div className="w-[1100px] max-h-[900px] p-6 bg-white rounded-2xl shadow-lg relative">
+          <div className="w-full h-full p-6 bg-white rounded-2xl shadow-lg relative">
             {/* Icon góc dưới phải */}
             <img
               src="/ticket/icon3.png"
@@ -471,7 +471,7 @@ const Ticket = ({ currentUser }) => {
             <img
               src="/ticket/icon1.png"
               alt="Corner Right"
-              className="absolute top-2 right-0 w-[120px]"
+              className="absolute top-0 right-0 w-[120px]"
             />
 
             {/* Icon góc dưới trái */}
@@ -482,25 +482,27 @@ const Ticket = ({ currentUser }) => {
             />
 
             {/* Container chính */}
-            <div className="w-full p-6">
+            <div className="w-full h-full p-6">
               {/* Nội dung từng Step */}
-              <div className="w-full flex flex-col items-center justify-start pt-5">
+              <div className="w-full h-full flex flex-col items-center justify-between pt-5">
                 {step === 1 && (
-                  <div>
-                    <h1 className="text-center text-2xl font-bold text-gray-800 mb-5">
-                      Xin chào WISer{" "}
-                      <span className="text-[#FF5733] font-semibold">
-                        {currentUser?.fullname}
-                      </span>
-                      , bạn cần chúng tớ{" "}
-                      <span className="text-[#002147] font-semibold">
-                        hỗ trợ
-                      </span>{" "}
-                      gì ạ ^^
-                    </h1>
-                    <h1 className="text-center text-[#FF5733] text-md font-bold underline">
-                      Hướng dẫn tạo ticket trên 360° WISers
-                    </h1>
+                  <div className="w-full h-full flex flex-col items-center justify-center pb-[20%]">
+                    <div>
+                      <h1 className="text-center text-2xl font-bold text-gray-800 mb-5">
+                        Xin chào WISer{" "}
+                        <span className="text-[#FF5733] font-semibold">
+                          {currentUser?.fullname}
+                        </span>
+                        , bạn cần chúng tớ{" "}
+                        <span className="text-[#002147] font-semibold">
+                          hỗ trợ
+                        </span>{" "}
+                        gì ạ ^^
+                      </h1>
+                      <h1 className="text-center text-[#FF5733] text-md font-bold underline">
+                        Hướng dẫn tạo ticket trên 360° WISers
+                      </h1>
+                    </div>
                     {/* Các lựa chọn */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16">
                       {[
@@ -838,7 +840,7 @@ const Ticket = ({ currentUser }) => {
               </div>
 
               {/* Nút điều hướng (CỐ ĐỊNH) */}
-              <div className="absolute bottom-10 left-0 right-0 flex justify-center gap-4">
+              <div className="absolute bottom-[10%] left-0 right-0 flex justify-center gap-4">
                 {step > 1 && (
                   <button
                     className="px-6 py-2 bg-gray-300 text-black rounded-md hover:bg-gray-400 transition"
@@ -891,7 +893,7 @@ const Ticket = ({ currentUser }) => {
         )}
         {/* Khi xem chi tiết ticket */}
         {selectedTicket && (
-          <div className="bg-white w-full max-h-screen rounded-xl shadow-xl p-6">
+          <div className="bg-white w-full h-full rounded-xl shadow-xl p-6">
             <h1 className="text-start text-2xl font-bold text-[#002147] mb-5">
               {selectedTicket.title || "Chưa có tiêu đề"}
             </h1>

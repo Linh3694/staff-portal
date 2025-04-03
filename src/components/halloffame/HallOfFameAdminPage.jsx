@@ -3,8 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { API_URL, BASE_URL } from "../../config";
 import * as XLSX from "xlsx";
-import { FaPen, FaTrashCan } from "react-icons/fa6";
-import { FaSave } from "react-icons/fa";
+import { FaTrashCan } from "react-icons/fa6";
 
 function HallOfFameAdminPage() {
   const [activeTab, setActiveTab] = useState("categories");
@@ -515,31 +514,6 @@ function HallOfFameAdminPage() {
     }
   };
 
-  const handleRecordSubAwardChange = (indexString) => {
-    const idx = parseInt(indexString, 10);
-    setRecordFormData((prev) => {
-      const selectedCategory = categories.find(
-        (cat) => cat._id === editingCategory
-      );
-
-      let newSubAward = {};
-      if (
-        selectedCategory &&
-        selectedCategory.subAwards &&
-        idx >= 0 &&
-        idx < selectedCategory.subAwards.length
-      ) {
-        newSubAward = selectedCategory.subAwards[idx];
-      }
-
-      return {
-        ...prev,
-        subAwardSelectedIndex: idx,
-        subAward: newSubAward,
-      };
-    });
-  };
-
   const handleRecordSubmit = async (e) => {
     e.preventDefault();
     // Gộp danh sách học sinh
@@ -701,13 +675,6 @@ function HallOfFameAdminPage() {
     const updated = [...recordFormData.students];
     updated[index] = { ...updated[index], [field]: value };
     setRecordFormData({ ...recordFormData, students: updated });
-  };
-
-  const handleAddStudent = () => {
-    setRecordFormData({
-      ...recordFormData,
-      students: [...recordFormData.students, { student: "", note: "" }],
-    });
   };
 
   const handleRemoveStudent = (index) => {
@@ -984,10 +951,10 @@ function HallOfFameAdminPage() {
 
   // ----------------- RENDER -----------------
   return (
-    <div className="p-6">
+    <div className="p-8">
       {/* Tab Quản lý Category */}
       {activeTab === "categories" && (
-        <div className="w-full rounded-2xl bg-white p-8 shadow-md mt-4">
+        <div className="w-full rounded-2xl bg-white p-8 shadow-md mt-4 border">
           <div className="w-full flex items-center justify-between">
             <h1 className="text-xl font-bold mb-4">Quản lý Hall of Fame</h1>
             <div className="flex gap-2">

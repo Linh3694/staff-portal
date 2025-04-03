@@ -225,7 +225,7 @@ const DocumentDashboard = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-8">
       {/* Header: Tiêu đề bên trái và dropdown chọn năm tài khoá bên phải */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-[#002147]">Báo cáo tài liệu</h2>

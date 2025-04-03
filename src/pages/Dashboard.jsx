@@ -280,7 +280,7 @@ const Dashboard = () => {
       </div>
       {/* Nội dung chính */}
       <div
-        className={`h-full p-8 transition-all duration-300 z-20 ${
+        className={`h-full  transition-all duration-300 z-20 ${
           isSidebarOpen || isSidebarHovered ? "ml-64" : "ml-24"
         }`}
       >

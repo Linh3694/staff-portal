@@ -292,7 +292,7 @@ const StudentStudent = () => {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-8">
       <h1 className="text-2xl font-bold mb-6">Quản lý Học sinh</h1>
       <div className="flex items-center gap-2 mb-4">
         <label className="font-bold text-sm">Chọn Năm học:</label>

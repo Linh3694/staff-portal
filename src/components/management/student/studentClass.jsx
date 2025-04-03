@@ -511,7 +511,7 @@ const StudentClass = () => {
   // RENDER UI
   // -----------------------------------
   return (
-    <div className="p-4">
+    <div className="p-8">
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold mb-6">Quản lý Lớp</h1>

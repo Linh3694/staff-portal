@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { API_URL, BASE_URL } from "../../config"; // import từ file config
-import { FaUpload, FaXmark, FaPlus } from "react-icons/fa6";
+import { FaXmark, FaPlus } from "react-icons/fa6";
 import ReactDOM from "react-dom";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -9,7 +9,6 @@ import Switch from "react-switch";
 function FlippageAdmin({ currentUser }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileList, setFileList] = useState([]);
-  const [editingId, setEditingId] = useState(null);
   const [newCustomName, setNewCustomName] = useState("");
   const [editingFile, setEditingFile] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -26,16 +25,6 @@ function FlippageAdmin({ currentUser }) {
   const [editBookmarks, setEditBookmarks] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-
-  function decodeLatin1(str) {
-    if (!str) return str;
-    // Tách từng ký tự thành mã charCode
-    const bytes = new Uint8Array([...str].map((ch) => ch.charCodeAt(0)));
-    // Giải mã byte[] theo windows-1252 (latin1)
-    const decoded = new TextDecoder("windows-1252").decode(bytes);
-    // Sau đó normalize về NFC (gộp dấu)
-    return decoded.normalize("NFC");
-  }
 
   // Định nghĩa hàm fetchFileList (bạn có thể chuyển đoạn này lên trên cùng, bên cạnh useEffect)
   const fetchFileList = () => {
@@ -478,7 +467,7 @@ function FlippageAdmin({ currentUser }) {
   });
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-8">
       <div className="w-full h-full p-6 bg-white rounded-xl shadow-md border">
         <h2 className="font-bold text-lg mb-4">Danh sách PDF đã upload</h2>
 

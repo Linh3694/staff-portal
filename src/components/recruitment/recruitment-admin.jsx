@@ -117,7 +117,7 @@ function RecruitmentAdmin({ currentUser }) {
   };
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-8">
       <div className="w-full h-full p-6 bg-white rounded-xl shadow-md border">
         <div className="flex flex-row justify-between items-center">
           <h2 className="font-bold text-lg mb-4">Danh sách CV đã upload</h2>

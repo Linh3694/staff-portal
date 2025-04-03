@@ -567,7 +567,7 @@ const StudentManagement = () => {
   // 4. GIAO DIỆN CHÍNH (render)
   // -----------------------------
   return (
-    <div className="p-4 bg-white min-h-screen">
+    <div className="p-8 bg-white min-h-screen">
       <h1 className="text-2xl font-bold mb-6">Quản lý học sinh</h1>
 
       {/* Thanh tab */}
