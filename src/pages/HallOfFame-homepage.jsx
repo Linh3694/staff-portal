@@ -1149,7 +1149,7 @@ const HallofFame = () => {
       {/* Footer */}
       <div className="hidden lg:block w-full">
         <img
-          src="/halloffame/Footer.svg"
+          src="/halloffame/footer.svg"
           alt="Footer"
           className="w-full object-cover"
         />

@@ -142,14 +142,13 @@ function HallOfFamePublicPage() {
   return (
     <div className="h-screen w-full">
       <header className="fixed top-0 left-0 w-full h-[80px] bg-[#002855] text-white flex items-center lg:shadow-none justify-between xll:px-20 px-6 shadow-md z-50">
-        
         <div className="flex flex-row gap-7 items-center">
-        <button
-          className="xll:hidden mr-4"
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        >
-          <FaBars size={24} />
-        </button>
+          <button
+            className="xll:hidden mr-4"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          >
+            <FaBars size={24} />
+          </button>
           <button onClick={() => navigate("/hall-of-honor")}>
             <img
               src="/halloffame/HOH-gold.png"
@@ -197,9 +196,7 @@ function HallOfFamePublicPage() {
           closeSidebar={() => setIsSidebarOpen(false)}
         />
 
-        <div className="flex-1 xll:pl-16">
-          {renderMainContent()}
-        </div>
+        <div className="flex-1 xll:pl-16">{renderMainContent()}</div>
 
         {/* 2 nút Lên/Xuống ở góc phải */}
         <div className="hidden md:flex fixed bottom-10 right-3 flex-col space-y-5 z-50">
@@ -221,7 +218,7 @@ function HallOfFamePublicPage() {
       </div>
       {/* Footer */}
       <footer className="hidden lg:block w-full">
-        <img src="/halloffame/Footer.svg" alt="Footer" className="w-full" />
+        <img src="/halloffame/footer.svg" alt="Footer" className="w-full" />
       </footer>
       <footer className="lg:hidden w-full">
         <img
