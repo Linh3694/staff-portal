@@ -19,6 +19,11 @@ export default function TicketDetail(props) {
     handleFeedback,
     selectedBadges,
     setSelectedBadges,
+    handleReopenTicket,
+    handleFeedbackAndClose,
+    handleCancelTicket,
+    handleUrgent,
+    setShowCancelModal,
   } = props;
 
   const [detailTab, setDetailTab] = useState("request");
@@ -77,7 +82,21 @@ export default function TicketDetail(props) {
               <RequestTab selectedTicket={selectedTicket} />
             )}
             {detailTab === "progress" && (
-              <ProgressTab selectedTicket={selectedTicket} />
+              <ProgressTab
+                selectedTicket={selectedTicket}
+                rating={rating}
+                setRating={setRating}
+                review={review}
+                setReview={setReview}
+                handleFeedback={handleFeedback}
+                selectedBadges={selectedBadges}
+                setSelectedBadges={setSelectedBadges}
+                handleReopenTicket={handleReopenTicket}
+                handleFeedbackAndClose={handleFeedbackAndClose}
+                handleCancelTicket={handleCancelTicket}
+                handleUrgent={handleUrgent}
+                setShowCancelModal={setShowCancelModal}
+              />
             )}
             {detailTab === "discussion" && (
               <DiscussionTab
@@ -93,14 +112,22 @@ export default function TicketDetail(props) {
       </div>
 
       {/* CỘT PHẢI - THÔNG TIN TICKET (CỐ ĐỊNH) */}
-      <div className="w-1/4 h-full overflow-y-hidden hover:overflow-y-auto flex-shrink-0 border rounded-2xl p-4">
-        <div className="p-2 text-[#002147] space-y-4 flex flex-col justify-between h-full">
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-[#757575]">Mã yêu cầu</p>
-              <p className="text-base font-semibold">
-                {selectedTicket.ticketCode || "N/A"}
-              </p>
+      <div className="w-1/4 max-h-fit overflow-y-hidden hover:overflow-y-auto flex-shrink-0 border rounded-2xl p-4">
+        <div className="p-2 text-[#002147] space-y-4 flex flex-col">
+          <div className="h-full space-y-4">
+            <div className="flex-row flex items-center justify-between">
+              <div className="flex flex-col">
+                <p className="text-sm text-[#757575]">Mã yêu cầu</p>
+                <p className="text-base font-semibold">
+                  {selectedTicket.ticketCode || "N/A"}
+                </p>
+              </div>
+              <button
+                className="flex px-4 py-2 bg-orange-red text-white text-sm font-semibold rounded-lg"
+                onClick={handleUrgent}
+              >
+                Báo Gấp
+              </button>
             </div>
             <div>
               <p className="text-sm text-[#757575]">Loại yêu cầu</p>
@@ -152,15 +179,11 @@ export default function TicketDetail(props) {
             <div>
               <p className="text-sm text-[#757575]">Ngày hoàn thành dự kiến</p>
               <p className="text-base font-semibold">
-                {selectedTicket.expectedDate
-                  ? new Date(selectedTicket.expectedDate).toLocaleDateString(
-                      "vi-VN"
-                    )
-                  : "N/A"}
+                {new Date(selectedTicket.sla).toLocaleString()}
               </p>
             </div>
 
-            <div>
+            <div className="pb-2">
               <p className="text-sm text-[#757575]">Người thực hiện</p>
               {/* Avatar + Tên + Chức vụ */}
               <div className="flex items-center gap-2 mt-3">
@@ -185,75 +208,83 @@ export default function TicketDetail(props) {
                 </div>
               </div>
             </div>
+            {(selectedTicket.status === "Assigned" ||
+              selectedTicket.status === "Processing" ||
+              selectedTicket.status === "Done") && (
+              <div className="flex flex-row items-center gap-6">
+                <div className="w-full flex flex-row gap-4 items-center justify-center">
+                  <button
+                    className="w-full flex-1 px-4 py-2 bg-[#002855] text-white text-sm font-semibold rounded-lg"
+                    onClick={() => setDetailTab("discussion")}
+                  >
+                    Trao đổi
+                  </button>
+                </div>
+                <div className="w-full">
+                  <button
+                    className="w-full flex-1 px-4 py-2 bg-red-600 hover:bg-orange-red text-white text-sm font-semibold rounded-lg"
+                    onClick={() => setShowCancelModal(true)}
+                  >
+                    Huỷ Ticket
+                  </button>
+                </div>{" "}
+              </div>
+            )}
           </div>
 
           {/* Đánh giá */}
-          {/* <div className="border-t pt-3 space-y-4">
-            <div className="flex items-center justify-center mb-2">
-              {[...Array(5)].map((_, i) => (
-                <FaStar
-                  key={i}
-                  className={`cursor-pointer text-3xl mx-1 ${
-                    i < props.rating ? "text-yellow-400" : "text-gray-300"
-                  }`}
-                  onClick={() => props.setRating(i + 1)}
-                />
-              ))}
-            </div>
-            <textarea
-              placeholder={
-                selectedTicket.feedback?.rating
-                  ? "Hãy viết nhận xét của bạn..."
-                  : "Vui lòng đánh giá chất lượng dịch vụ của chúng tôi..."
-              }
-              value={props.review}
-              onChange={(e) => props.setReview(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-            />
-            <div className="flex flex-wrap gap-2 my-2">
-              {[
-                "Nhiệt Huyết",
-                "Chu Đáo",
-                "Vui Vẻ",
-                "Tận Tình",
-                "Chuyên Nghiệp",
-              ].map((badge) => {
-                const isSelected = props.selectedBadges?.includes(badge);
-                return (
-                  <span
-                    key={badge}
-                    onClick={() => {
-                      if (isSelected) {
-                        props.setSelectedBadges((prev) =>
-                          prev.filter((b) => b !== badge)
-                        );
-                      } else {
-                        props.setSelectedBadges((prev) => [...prev, badge]);
-                      }
-                    }}
-                    className={`cursor-pointer text-xs font-semibold px-3 py-1 rounded-full ${
-                      isSelected
-                        ? "bg-[#002855] text-white"
-                        : "bg-gray-100 text-gray-700"
+          {(selectedTicket.status === "Closed" ||
+            selectedTicket.status === "Cancelled") && (
+            <div className="border-t pt-3 space-y-4">
+              <div className="flex items-center justify-center mb-2">
+                {[...Array(5)].map((_, i) => (
+                  <FaStar
+                    key={i}
+                    className={`text-3xl mx-1 ${
+                      i < props.rating ? "text-yellow-400" : "text-gray-300"
                     }`}
-                  >
-                    {badge}
-                  </span>
-                );
-              })}
+                  />
+                ))}
+              </div>
+              <textarea
+                placeholder="Hãy viết nhận xét của bạn..."
+                value={props.review}
+                disabled
+                className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+              />
+              <div className="flex flex-wrap gap-2 my-2">
+                {[
+                  "Nhiệt Huyết",
+                  "Chu Đáo",
+                  "Vui Vẻ",
+                  "Tận Tình",
+                  "Chuyên Nghiệp",
+                ].map((badge) => {
+                  const isSelected = props.selectedBadges?.includes(badge);
+                  return (
+                    <span
+                      key={badge}
+                      className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                        isSelected
+                          ? "bg-[#002855] text-white"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {badge}
+                    </span>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-center">
+                <button
+                  disabled
+                  className="mt-2 px-3 py-1 bg-gray-300 text-white text-sm font-semibold rounded-lg transition w-full cursor-not-allowed"
+                >
+                  Đã đánh giá
+                </button>
+              </div>
             </div>
-
-            <div className="flex items-center justify-center">
-              <button
-                onClick={props.handleFeedback}
-                className="mt-2 px-3 py-1 bg-[#002855] text-white text-sm font-semibold rounded-lg transition w-full "
-              >
-                {selectedTicket.feedback?.rating
-                  ? "Cập nhật đánh giá"
-                  : "Gửi đánh giá"}
-              </button>
-            </div>
-          </div> */}
+          )}
         </div>
       </div>
     </div>
@@ -318,6 +349,10 @@ function ProgressTab({
   handleFeedback,
   selectedBadges,
   setSelectedBadges,
+  handleReopenTicket,
+  handleFeedbackAndClose,
+  handleCancelTicket,
+  handleUrgent,
 }) {
   const statuses = [
     { key: "Assigned", label: "Đã tiếp nhận", icon: "/ticket/tickets.svg" },
@@ -325,6 +360,7 @@ function ProgressTab({
     { key: "Done", label: "Hoàn thành", icon: "/ticket/done.svg" },
     { key: "Cancelled", label: "Hủy", icon: "/ticket/cancelled.svg" },
   ];
+  const [doneOption, setDoneOption] = useState(null);
 
   return (
     <div className="bg-white w-full p-4 flex gap-6">
@@ -476,6 +512,7 @@ function ProgressTab({
           </>
         )}
 
+        {/* Phần Done */}
         {selectedTicket.status === "Done" && (
           <div className="space-y-4">
             <p className="text-sm text-[#757575] font-semibold">
@@ -483,88 +520,118 @@ function ProgressTab({
               lượng phục vụ
             </p>
 
+            {/* Chọn kết quả */}
             <div className="flex flex-col gap-2">
-              <div className="bg-[#E6EEF6] text-[#002855] font-semibold rounded-xl px-6 py-3 cursor-pointer">
-                Chấp nhận kết quả
-              </div>
-              <div className="bg-[#EBEBEB] text-[#757575] font-semibold rounded-xl px-6 py-3 cursor-pointer">
-                Chưa đạt yêu cầu, cần xử lý lại
-              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="doneOption"
+                  value="accepted"
+                  checked={doneOption === "accepted"}
+                  onChange={(e) => setDoneOption(e.target.value)}
+                  className="form-radio text-[#002855]"
+                />
+                <span className="text-base font-semibold text-[#002855]">
+                  Chấp nhận kết quả
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="doneOption"
+                  value="rejected"
+                  checked={doneOption === "rejected"}
+                  onChange={(e) => setDoneOption(e.target.value)}
+                  className="form-radio text-[#002855]"
+                />
+                <span className="text-base font-semibold text-[#757575]">
+                  Chưa đạt yêu cầu, cần xử lý lại
+                </span>
+              </label>
             </div>
 
-            {/* Đánh giá */}
-            <div className="w-[50%] mx-auto pt-5 space-y-4">
-              {/* Dải sao */}
-              <div className="flex items-center justify-center mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <FaStar
-                    key={i}
-                    className={`cursor-pointer text-3xl mx-1 ${
-                      i < rating ? "text-yellow-400" : "text-gray-300"
-                    }`}
-                    onClick={() => setRating(i + 1)}
-                  />
-                ))}
-              </div>
-
-              {/* Textarea review */}
-              <textarea
-                placeholder={
-                  selectedTicket.feedback?.rating
-                    ? "Hãy viết nhận xét của bạn..."
-                    : "Vui lòng đánh giá chất lượng dịch vụ của chúng tôi..."
-                }
-                value={review}
-                onChange={(e) => setReview(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-              />
-
-              {/* Chọn huy hiệu */}
-              <div className="flex flex-wrap gap-2 my-2">
-                {[
-                  "Nhiệt Huyết",
-                  "Chu Đáo",
-                  "Vui Vẻ",
-                  "Tận Tình",
-                  "Chuyên Nghiệp",
-                ].map((badge) => {
-                  const isSelected = selectedBadges?.includes(badge);
-                  return (
-                    <span
-                      key={badge}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedBadges((prev) =>
-                            prev.filter((b) => b !== badge)
-                          );
-                        } else {
-                          setSelectedBadges((prev) => [...prev, badge]);
-                        }
-                      }}
-                      className={`cursor-pointer text-xs font-semibold px-3 py-1 rounded-full ${
-                        isSelected
-                          ? "bg-[#002855] text-white"
-                          : "bg-gray-100 text-gray-700"
+            {/* Nếu chọn "Chấp nhận kết quả" thì hiển thị bảng feedback */}
+            {doneOption === "accepted" && (
+              <div className="w-[50%] mx-auto pt-5 space-y-4">
+                {/* Dải sao */}
+                <div className="flex items-center justify-center mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    <FaStar
+                      key={i}
+                      className={`cursor-pointer text-3xl mx-1 ${
+                        i < rating ? "text-yellow-400" : "text-gray-300"
                       }`}
-                    >
-                      {badge}
-                    </span>
-                  );
-                })}
-              </div>
+                      onClick={() => setRating(i + 1)}
+                    />
+                  ))}
+                </div>
 
-              {/* Nút gửi */}
-              <div className="flex items-center justify-center">
+                {/* Textarea review */}
+                <textarea
+                  placeholder="Hãy viết nhận xét của bạn"
+                  value={review}
+                  onChange={(e) => setReview(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg text-sm"
+                  rows={4}
+                />
+
+                {/* Chọn huy hiệu */}
+                <div className="flex flex-wrap gap-2 my-2">
+                  {[
+                    "Nhiệt Huyết",
+                    "Chu Đáo",
+                    "Vui Vẻ",
+                    "Tận Tình",
+                    "Chuyên Nghiệp",
+                  ].map((badge) => {
+                    const isSelected = selectedBadges?.includes(badge);
+                    return (
+                      <span
+                        key={badge}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedBadges((prev) =>
+                              prev.filter((b) => b !== badge)
+                            );
+                          } else {
+                            setSelectedBadges((prev) => [...prev, badge]);
+                          }
+                        }}
+                        className={`cursor-pointer text-xs font-semibold px-3 py-1 rounded-full ${
+                          isSelected
+                            ? "bg-[#002855] text-white"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {badge}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                {/* Nút gửi feedback */}
+                <div className="flex items-center justify-center">
+                  <button
+                    onClick={handleFeedbackAndClose}
+                    className="mt-2 px-6 py-2 bg-[#FF5733] text-white rounded-lg text-sm font-semibold"
+                  >
+                    Xác nhận
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Nếu chọn "Chưa đạt yêu cầu, cần xử lý lại" thì hiển thị nút mở lại ticket */}
+            {doneOption === "rejected" && (
+              <div className="flex items-center justify-center pt-5">
                 <button
-                  onClick={handleFeedback}
-                  className="mt-2 px-3 py-1 bg-[#002855] text-white text-sm font-semibold rounded-lg transition w-full"
+                  onClick={handleReopenTicket}
+                  className="px-6 py-2 bg-[#FF5733] text-white rounded-lg text-sm font-semibold"
                 >
-                  {selectedTicket.feedback?.rating
-                    ? "Cập nhật đánh giá"
-                    : "Gửi đánh giá"}
+                  Mở lại ticket
                 </button>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
@@ -581,7 +648,6 @@ function DiscussionTab({
 }) {
   return (
     <div className="bg-white w-full h-full p-4 flex flex-col">
-      <h2 className="text-lg font-semibold text-[#002147] mb-4">Trao đổi</h2>
       <div className="flex-1 mt-2 mb-4 overflow-auto space-y-4">
         {messages.map((m, idx) => (
           <div

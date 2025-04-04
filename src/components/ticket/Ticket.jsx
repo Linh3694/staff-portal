@@ -3,6 +3,7 @@ import axios from "axios";
 import { FiSearch } from "react-icons/fi";
 import { FaFilter } from "react-icons/fa6";
 import { API_URL } from "../../config";
+import { toast } from "react-toastify";
 
 // Import 2 file tách riêng
 import TicketCreate from "./TicketCreate";
@@ -41,6 +42,9 @@ const Ticket = ({ currentUser }) => {
   const [selectedBadges, setSelectedBadges] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState([]);
+
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   // ---------------------- API CALLS ----------------------
   const fetchUserTickets = async () => {
@@ -144,39 +148,129 @@ const Ticket = ({ currentUser }) => {
       if (!hasPreviousRating) {
         // Lần đầu
         if (!rating) {
-          alert("Vui lòng chọn số sao trước khi gửi.");
+          toast.error("Vui lòng chọn số sao trước khi gửi.");
           return;
         }
       } else {
         // Đã có rating => phải có comment
         if (!rating) {
-          alert("Vui lòng chọn số sao để cập nhật đánh giá.");
+          toast.error("Vui lòng chọn số sao để cập nhật đánh giá.");
           return;
         }
         if (!review.trim()) {
-          alert("Bạn cần nhập nhận xét khi thay đổi đánh giá.");
+          toast.error("Bạn cần nhập nhận xét khi thay đổi đánh giá.");
           return;
         }
       }
 
       const res = await axios.post(
         `${API_URL}/tickets/${selectedTicket._id}/feedback`,
-        { rating, comment: review },
+        {
+          rating,
+          comment: review,
+          badges: selectedBadges, // ✅ Thêm dòng này
+        },
+
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       if (res.data.success) {
-        alert("Đánh giá thành công!");
+        toast.success("Đánh giá thành công!");
         // load lại ticket
         await fetchTicketById(selectedTicket._id);
       } else {
-        alert("Có lỗi xảy ra khi gửi đánh giá.");
+        toast.error("Có lỗi xảy ra khi gửi đánh giá.");
       }
     } catch (error) {
       console.error("Error feedback:", error);
-      alert("Không thể gửi đánh giá. Vui lòng thử lại sau.");
+      toast.error("Không thể gửi đánh giá. Vui lòng thử lại sau.");
+    }
+  };
+
+  const handleReopenTicket = async () => {
+    try {
+      const res = await axios.put(
+        `${API_URL}/tickets/${selectedTicket._id}`,
+        { status: "Processing" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.success) {
+        toast.success("Ticket đã được mở lại, vui lòng chờ kỹ thuật xử lý.");
+        fetchTicketById(selectedTicket._id);
+      } else {
+        toast.error("Lỗi khi mở lại ticket");
+      }
+    } catch (error) {
+      console.error("Error reopening ticket:", error);
+    }
+  };
+
+  const handleFeedbackAndClose = async () => {
+    // Gửi feedback
+    await handleFeedback();
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await axios.put(
+        `${API_URL}/tickets/${selectedTicket._id}`,
+        { status: "Closed" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.success) {
+        toast.success("Ticket đã được cập nhật sang trạng thái Closed.");
+        fetchTicketById(selectedTicket._id);
+      } else {
+        toast.error("Lỗi khi cập nhật trạng thái ticket.");
+      }
+    } catch (error) {
+      console.error("Error updating ticket status:", error);
+      toast.error("Lỗi khi cập nhật trạng thái ticket.");
+    }
+  };
+
+  const handleUrgent = async () => {
+    try {
+      const res = await axios.put(
+        `${API_URL}/tickets/${selectedTicket._id}`,
+        { priority: "High" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.success) {
+        toast.success("Ticket priority updated to High.");
+        fetchTicketById(selectedTicket._id);
+      } else {
+        toast.error("Error updating priority.");
+      }
+    } catch (error) {
+      console.error("Error updating priority:", error);
+      toast.error("Error updating priority.");
+    }
+  };
+
+  // Hàm xử lý huỷ ticket với lý do nhập vào
+  const handleCancelTicket = async () => {
+    if (!cancelReason.trim()) {
+      toast.error("Vui lòng nhập lý do huỷ ticket.");
+      return;
+    }
+    try {
+      const res = await axios.put(
+        `${API_URL}/tickets/${selectedTicket._id}`,
+        { status: "Cancelled", cancellationReason: cancelReason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.success) {
+        toast.success("Ticket đã được huỷ.");
+        fetchTicketById(selectedTicket._id);
+        setShowCancelModal(false);
+        setCancelReason("");
+      } else {
+        toast.error("Lỗi khi huỷ ticket.");
+      }
+    } catch (error) {
+      console.error("Error cancelling ticket:", error);
+      toast.error("Error cancelling ticket.");
     }
   };
 
@@ -213,6 +307,7 @@ const Ticket = ({ currentUser }) => {
     if (selectedTicket?._id) {
       setRating(selectedTicket.feedback?.rating || 0);
       setReview(selectedTicket.feedback?.comment || "");
+      setSelectedBadges(selectedTicket.feedback?.badges || []); // ✅ Gán lại badge nếu đã có
     }
   }, [selectedTicket?._id]);
 
@@ -382,9 +477,43 @@ const Ticket = ({ currentUser }) => {
             handleFeedback={handleFeedback}
             selectedBadges={selectedBadges}
             setSelectedBadges={setSelectedBadges}
+            handleReopenTicket={handleReopenTicket}
+            handleFeedbackAndClose={handleFeedbackAndClose}
+            handleUrgent={handleUrgent}
+            handleCancelTicket={handleCancelTicket}
+            setShowCancelModal={setShowCancelModal}
           />
         )}
       </div>
+      {/* Modal huỷ ticket */}
+      {showCancelModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h3 className="text-lg font-bold mb-4">Huỷ Ticket</h3>
+            <textarea
+              placeholder="Nhập lý do huỷ ticket"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg text-sm mb-4"
+              rows={3}
+            />
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 bg-gray-300 text-black rounded-lg"
+                onClick={() => setShowCancelModal(false)}
+              >
+                Huỷ bỏ
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg"
+                onClick={handleCancelTicket}
+              >
+                Xác nhận huỷ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

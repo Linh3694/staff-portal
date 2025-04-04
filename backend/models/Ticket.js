@@ -39,7 +39,12 @@ const ticketSchema = new mongoose.Schema(
       },
       creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
       assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Nhân viên hỗ trợ
-      team: { type: mongoose.Schema.Types.ObjectId, ref: "SupportTeam" }, // Đội hỗ trợ (nếu có)
+      supportTeam: { 
+        name: { type: String, default: "IT Support Team" },
+        members: [
+        { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+      ],
+      }, 
       sla: {
         type: Date, // Hạn chót (deadline) dựa trên priority
       },
@@ -85,12 +90,14 @@ const ticketSchema = new mongoose.Schema(
           url: { type: String },
         },
       ],
+          cancellationReason: { type: String, default: "" },
+
       subTasks: [subTaskSchema], // ✅ Thêm sub-tasks vào ticket
       notes:{
         type: String,
         default: "",
       }
-
+      
     },
     { timestamps: true }
   );

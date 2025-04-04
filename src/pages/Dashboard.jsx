@@ -8,7 +8,9 @@ import PrinterTable from "../components/inventory/PrinterTable";
 import ProjectorTable from "../components/inventory/ProjectorTable";
 import ToolTable from "../components/inventory/ToolTable";
 import Ticket from "../components/ticket/Ticket";
+import TicketTeam from "../components/ticket/TicketTeam";
 import TicketAdminTable from "../components/ticket/TicketAdminTable";
+import EmailIntegration from "../components/ticket/EmailIntegration";
 import StudentClass from "../components/management/student/studentClass";
 import StudentSchoolYear from "../components/management/student/studentSchoolYear";
 import StudentStudent from "../components/management/student/studentStudent";
@@ -176,6 +178,10 @@ const Dashboard = () => {
       case "Quản lý Tickets":
         if (activeTab === "Ticket lists")
           return <TicketAdminTable currentUser={currentUser} />;
+        if (activeTab === "Teams")
+          return <TicketTeam currentUser={currentUser} />;
+        if (activeTab === "Reports")
+          return <EmailIntegration currentUser={currentUser} />;
         break;
 
       case "Quản lý người dùng":

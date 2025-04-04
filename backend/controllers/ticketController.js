@@ -3,122 +3,21 @@ const User = require("../models/Users"); // Import model User nếu chưa import
 
 // a) Tạo ticket
 exports.createTicket = async (req, res) => {
-  const { title, description, priority, creator, notes } = req.body;
-  console.log("Dữ liệu nhận được từ frontend:", req.body); // ✅ Kiểm tra dữ liệu đầu vào
-  if (!creator) {
-    return res.status(400).json({ success: false, message: "Thiếu thông tin creator" });
-  }
   try {
-    // SLA Phase 1: 4 giờ, chỉ tính trong khoảng 08:00 đến 17:00
-    const phase1Duration = 4; // Số giờ trong Phase 1
-    const startHour = 8; // Bắt đầu tính giờ từ 8:00 sáng
-    const endHour = 17; // Kết thúc tính giờ trong ngày
+    const { title, description, priority, creator, notes } = req.body;
 
-    let slaDeadline = new Date(); // Lấy thời gian hiện tại
-    const currentHour = slaDeadline.getHours();
-    const currentMinute = slaDeadline.getMinutes();
+   const newTicket = await createTicketHelper({
+     title,
+     description,
+     priority,
+     creatorId: creator,
+     files: req.files || [],
+   });
+    // notes
+   newTicket.notes = notes || "";
+   await newTicket.save();
 
-    if (currentHour < startHour || (currentHour === startHour && currentMinute === 0)) {
-      // Nếu thời gian hiện tại trước 8:00 sáng, bắt đầu từ 8:00 sáng
-      slaDeadline.setHours(startHour, 0, 0, 0);
-    } else if (currentHour >= endHour || (currentHour === endHour && currentMinute > 0)) {
-      // Nếu thời gian hiện tại sau 17:00, chuyển sang 8:00 sáng ngày hôm sau
-      slaDeadline.setDate(slaDeadline.getDate() + 1);
-      slaDeadline.setHours(startHour, 0, 0, 0);
-    }
-
-    let remainingMinutes = phase1Duration * 60; // Tính tổng số phút còn lại
-    while (remainingMinutes > 0) {
-
-      // Tính số phút có thể sử dụng trong ngày hiện tại
-      const availableMinutesInDay = endHour * 60 - (slaDeadline.getHours() * 60 + slaDeadline.getMinutes());
-      const availableMinutes = Math.min(remainingMinutes, availableMinutesInDay);
-
-      // Nếu không còn phút nào trong ngày, chuyển sang ngày hôm sau
-      if (availableMinutes <= 0) {
-        slaDeadline.setDate(slaDeadline.getDate() + 1);
-        slaDeadline.setHours(startHour, 0, 0, 0);
-        continue; // Quay lại vòng lặp để tính toán lại
-      }
-
-      // Cập nhật deadline và giảm số phút còn lại
-      slaDeadline.setMinutes(slaDeadline.getMinutes() + availableMinutes);
-      remainingMinutes -= availableMinutes;
-
-    }
-
-    // SLA Phase 1 chi tiết đến phút
-    const slaPhase1Deadline = slaDeadline;
-
-    // Lấy ticket gần nhất để tạo ticketCode
-    const lastTicket = await Ticket.findOne().sort({ createdAt: -1 });
-    let ticketCode = "IT-01"; // Mã mặc định nếu chưa có ticket nào
-
-    if (lastTicket && lastTicket.ticketCode) {
-      const lastCode = parseInt(lastTicket.ticketCode.split("-")[1], 10);
-      const nextCode = (lastCode + 1).toString().padStart(2, "0");
-      ticketCode = `IT-${nextCode}`;
-    }
-
-    // Lấy danh sách user có role "technical"
-    const technicalUsers = await User.find({ role: "technical" });
-
-    if (!technicalUsers.length) {
-      return res.status(400).json({
-        success: false,
-        message: "Không có người dùng nào với vai trò 'technical'.",
-      });
-    }
-    
-    // Tìm user ít được gán ticket nhất
-    const userTicketCounts = await Promise.all(
-      technicalUsers.map(async (user) => {
-        const count = await Ticket.countDocuments({ assignedTo: user._id });
-        return { user, count };
-      })
-    );
-
-    // Sắp xếp danh sách theo số lượng ticket đã được gán
-    userTicketCounts.sort((a, b) => a.count - b.count);
-
-    // Lấy user ít được gán nhất
-    const leastAssignedUser = userTicketCounts[0].user;
-    console.log(
-  "🟢 Tạo ticket: Người có ít ticket nhất:",
-  leastAssignedUser._id,
-  leastAssignedUser.fullname
-);
-    const attachments = req.files.map((file) => ({
-      filename: file.originalname,
-      url: `${req.protocol}://${req.get("host")}/uploads/Tickets/${file.filename}`,
-    }));
-
-    // Tạo ticket mới
-    const ticket = await Ticket.create({
-      ticketCode, // Mã ticket
-      title,
-      description,
-      priority,
-      creator, 
-      notes,
-      sla: slaPhase1Deadline, // SLA Phase 1
-      attachments, // Thêm attachments
-      assignedTo: leastAssignedUser._id, // Gán cho người dùng ít được gán nhất
-      history: [
-        {
-          timestamp: new Date(),
-          action: `Ticket created and assigned to ${leastAssignedUser.fullname}`,
-          user: creator,
-        },
-      ],
-    });
-
-    console.log("🟢 Ticket mới được tạo:", {
-  ticketCode: ticket.ticketCode,
-  assignedTo: ticket.assignedTo,
-});
-    
-    res.status(201).json({ success: true, ticket });
+    res.status(201).json({ success: true, ticket: newTicket });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -367,7 +266,7 @@ exports.escalateTicket = async (req, res) => {
   const { ticketId } = req.params;
 
   try {
-    if (req.user.role !== "admin" && req.user.role !== "manager") {
+    if (req.user.role !== "admin" && req.user.role !== "superadmin") {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
@@ -576,3 +475,199 @@ exports.getSubTasksByTicket = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// Lấy supportTeam (sử dụng ticket đầu tiên)
+exports.getSupportTeam = async (req, res) => {
+  try {
+    const ticket = await Ticket.findOne({}).populate("supportTeam.members", "fullname jobTitle avatarUrl");
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: "Chưa có ticket nào!" });
+    }
+
+    // Tính rating và huy hiệu cho từng thành viên trong team
+    const membersWithStats = [];
+    for (const member of ticket.supportTeam.members) {
+      // Tìm tất cả ticket có assignedTo bằng member._id và feedback.rating tồn tại
+      const tickets = await Ticket.find({
+  assignedTo: member._id,
+        "feedback.rating": { $exists: true },
+      });
+      let sumRating = 0;
+      let totalFeedbacks = 0;
+      const badgesCount = {};
+
+      tickets.forEach((tk) => {
+        if (tk.feedback && tk.feedback.rating) {
+          sumRating += tk.feedback.rating;
+          totalFeedbacks += 1;
+        }
+        if (tk.feedback && Array.isArray(tk.feedback.badges)) {
+          tk.feedback.badges.forEach((b) => {
+            badgesCount[b] = (badgesCount[b] || 0) + 1;
+          });
+        }
+      });
+
+      const averageRating = totalFeedbacks ? sumRating / totalFeedbacks : 0;
+      membersWithStats.push({
+        _id: member._id,
+        fullname: member.fullname,
+        jobTitle: member.jobTitle,
+        avatarUrl: member.avatarUrl,
+        averageRating,
+        badgesCount,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      teamName: ticket.supportTeam.name,
+      members: membersWithStats,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Thêm user vào supportTeam
+exports.addUserToSupportTeam = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    // Kiểm tra tính hợp lệ của userId
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin userId" });
+    }
+
+    // Tìm ticket đầu tiên (vì chỉ có 1 team duy nhất)
+    const ticket = await Ticket.findOne({});
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: "Chưa có ticket nào!" });
+    }
+
+    // Kiểm tra user có tồn tại
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User không tồn tại!" });
+    }
+
+    // Kiểm tra nếu user đã có trong team
+    if (ticket.supportTeam.members.some((m) => m.toString() === userId)) {
+      return res.status(400).json({ success: false, message: "User đã có trong team!" });
+    }
+
+    ticket.supportTeam.members.push(userId);
+    await ticket.save();
+
+    res.status(200).json({ success: true, message: "Đã thêm user vào supportTeam" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// (Tuỳ chọn) Xoá user khỏi supportTeam
+exports.removeUserFromSupportTeam = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const ticket = await Ticket.findOne({});
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: "Chưa có ticket nào!" });
+    }
+
+    ticket.supportTeam.members = ticket.supportTeam.members.filter(
+      (m) => m.toString() !== userId
+    );
+    await ticket.save();
+
+    res.status(200).json({ success: true, message: "Đã xoá user khỏi team" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+async function createTicketHelper({ title, description, creatorId, priority, files = [] }) {
+  // 1) Tính SLA Phase 1 (4h, 8:00 - 17:00)
+  const phase1Duration = 4; 
+  const startHour = 8;
+  const endHour = 17;
+
+  let slaDeadline = new Date();
+  const currentHour = slaDeadline.getHours();
+  const currentMinute = slaDeadline.getMinutes();
+
+  if (currentHour < startHour || (currentHour === startHour && currentMinute === 0)) {
+    slaDeadline.setHours(startHour, 0, 0, 0);
+  } else if (currentHour >= endHour || (currentHour === endHour && currentMinute > 0)) {
+    slaDeadline.setDate(slaDeadline.getDate() + 1);
+    slaDeadline.setHours(startHour, 0, 0, 0);
+  }
+
+  let remainingMinutes = phase1Duration * 60;
+  while (remainingMinutes > 0) {
+    const availableMinutesInDay = endHour * 60 - (slaDeadline.getHours() * 60 + slaDeadline.getMinutes());
+    const availableMinutes = Math.min(remainingMinutes, availableMinutesInDay);
+    if (availableMinutes <= 0) {
+      slaDeadline.setDate(slaDeadline.getDate() + 1);
+      slaDeadline.setHours(startHour, 0, 0, 0);
+      continue;
+    }
+    slaDeadline.setMinutes(slaDeadline.getMinutes() + availableMinutes);
+    remainingMinutes -= availableMinutes;
+  }
+
+  const slaPhase1Deadline = slaDeadline;
+
+  // 2) Tạo ticketCode
+  const lastTicket = await Ticket.findOne().sort({ createdAt: -1 });
+  let ticketCode = "IT-01";
+  if (lastTicket && lastTicket.ticketCode) {
+    const lastCode = parseInt(lastTicket.ticketCode.split("-")[1], 10);
+    const nextCode = (lastCode + 1).toString().padStart(2, "0");
+    ticketCode = `IT-${nextCode}`;
+  }
+
+  // 3) Tìm user technical ít ticket nhất
+  const technicalUsers = await User.find({ role: "technical" });
+  if (!technicalUsers.length) {
+    throw new Error("Không có user technical nào để gán!");
+  }
+  const userTicketCounts = await Promise.all(
+    technicalUsers.map(async (u) => {
+      const count = await Ticket.countDocuments({ assignedTo: u._id });
+      return { user: u, count };
+    })
+  );
+  userTicketCounts.sort((a, b) => a.count - b.count);
+  const leastAssignedUser = userTicketCounts[0].user;
+
+  // 4) Tạo attachments
+  const attachments = files.map((file) => ({
+    filename: file.originalname,
+    url: `${process.env.BASE_URL}/uploads/Tickets/${file.filename}`,
+  }));
+
+  // 5) Tạo ticket
+  const newTicket = new Ticket({
+    ticketCode,
+    title,
+    description,
+    priority,
+    creator: creatorId,
+    sla: slaPhase1Deadline,
+    assignedTo: leastAssignedUser._id,
+    attachments,
+    status: "Assigned",
+    history: [
+      {
+        timestamp: new Date(),
+        action: `Ticket created and assigned to ${leastAssignedUser.fullname}`,
+        user: creatorId,
+      },
+    ],
+  });
+
+  await newTicket.save();
+  return newTicket;
+}
+exports.createTicketHelper = createTicketHelper;

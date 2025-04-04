@@ -46,6 +46,22 @@ function TechnicalRating({ technicalId }) {
     }
     return stars;
   };
+  const renderBadges = () => {
+    if (!stats.badgesCount || Object.keys(stats.badgesCount).length === 0)
+      return null;
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {Object.entries(stats.badgesCount).map(([badge, count]) => (
+          <span
+            key={badge}
+            className="bg-[#002855] text-white text-xs px-2 py-1 rounded-full"
+          >
+            {badge} ({count})
+          </span>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="flex items-center gap-2">
@@ -53,9 +69,6 @@ function TechnicalRating({ technicalId }) {
         {averageRating.toFixed(1)}
       </span>
       <span className="flex items-center font-bold">{renderStars()}</span>
-      {/* <span className="text-sm text-gray-600">
-        (Dựa trên {totalFeedbacks} đánh giá)
-      </span> */}
     </div>
   );
 }

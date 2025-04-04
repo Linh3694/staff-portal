@@ -10,6 +10,8 @@ const upload = require("../middleware/uploadTicket");
 router.post("/", authenticate, upload.array("attachments", 15), ticketController.createTicket);
 router.get("/technical-stats/:userId", ticketController.getTechnicalStats);
 // b) Lấy danh sách tickets
+router.get("/support-team", ticketController.getSupportTeam);
+
 router.get("/", authenticate, ticketController.getTickets);
 router.get("/:ticketId", authenticate, ticketController.getTicketById);
 
@@ -32,5 +34,8 @@ router.get("/:ticketId/subtasks", authenticate, ticketController.getSubTasksByTi
 router.put("/:ticketId/subtasks/:subTaskId", authenticate, ticketController.updateSubTaskStatus);
 
 router.delete("/:ticketId/subtasks/:subTaskId", authenticate, ticketController.deleteSubTask);
+
+router.post("/support-team/add-user", ticketController.addUserToSupportTeam);
+router.post("/support-team/remove-user", ticketController.removeUserFromSupportTeam);
 
 module.exports = router;
