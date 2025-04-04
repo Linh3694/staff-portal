@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const passport = require("passport");
 const session = require("express-session");
+
 require("dotenv").config();
 
 // Import các route
@@ -99,7 +100,6 @@ app.use("/api/tools", toolRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/inspects", inspectRoutes);
-app.use("/api/students", studentRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/flippage", pdfRoutes);
 app.use("/api/network-devices", networkDevicesRoutes);
@@ -120,12 +120,14 @@ app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/trips", tripRoutes);
 app.use("/api/daily-trips", dailyTripRoutes);
 app.use("/api/libraries", libraryRoutes);
-
+app.use("/api/email", require("./routes/emailRoutes"));
 
 // Khởi động server
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+require("./cronEmail");
 
 module.exports = app;
