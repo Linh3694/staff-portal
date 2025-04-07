@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { FiEdit, FiTrash2, FiCopy } from "react-icons/fi";
 import { FaSearch } from "react-icons/fa";
@@ -10,9 +10,12 @@ import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
 import Dropdown from "../function/dropdown";
 import { API_URL } from "../../config"; // import từ file config
 import _ from "lodash"; // hoặc import debounce trực tiếp: import { debounce } from 'lodash';
+import { FaFilter, FaAngleLeft, FaAngleRight } from "react-icons/fa6";
+import { useSearchParams } from "react-router-dom";
 
 const LaptopTable = () => {
   const [data, setData] = useState([]); // State cho danh sách laptops
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState([]); // Lưu danh sách users từ API
   const [showAddModal, setShowAddModal] = useState(false); // State để điều khiển modal
   const [newLaptop, setNewLaptop] = useState({
@@ -75,6 +78,79 @@ const LaptopTable = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState([]); // Lưu danh sách gợi ý
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [activeSubFilter, setActiveSubFilter] = useState(null);
+  const [filters, setFilters] = useState({
+    type: "All", // hoặc "Laptop", "Desktop", ...
+    status: "All",
+    year: "All",
+    manufacturer: "All",
+    department: "All",
+  });
+  const filterPanelRef = useRef(null);
+
+  //// Filter releaseYear
+  const [availableYears, setAvailableYears] = useState([]);
+  const [selectedYears, setSelectedYears] = useState([]);
+  const [searchYear, setSearchYear] = useState("");
+  //// Filter manufacturer
+  const [availableManufacturers, setAvailableManufacturers] = useState([]);
+  const [selectedManufacturers, setSelectedManufacturers] = useState([]);
+  const [searchManufacturer, setSearchManufacturer] = useState("");
+  ///filter Department
+  const [availableDepartments, setAvailableDepartments] = useState([]);
+  const [selectedDepartments, setSelectedDepartments] = useState([]);
+  const [searchDepartment, setSearchDepartment] = useState("");
+
+  useEffect(() => {
+    applyFilters(filters);
+  }, [filters]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        filterPanelRef.current &&
+        !filterPanelRef.current.contains(event.target)
+      ) {
+        setShowFilterPanel(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const oldParams = Object.fromEntries(searchParams.entries());
+    const newParams = { ...oldParams };
+
+    // Cập nhật newParams dựa trên filters
+    Object.keys(filters).forEach((key) => {
+      const value = filters[key];
+      if (Array.isArray(value)) {
+        if (value.length && value.join(",") !== "All") {
+          newParams[key] = value.join(",");
+        } else {
+          delete newParams[key];
+        }
+      } else {
+        if (value && value !== "All" && value !== "Tất cả") {
+          newParams[key] = value;
+        } else {
+          delete newParams[key];
+        }
+      }
+    });
+
+    // So sánh oldParams và newParams trước khi cập nhật
+    const isParamsChanged =
+      JSON.stringify(oldParams) !== JSON.stringify(newParams);
+    if (isParamsChanged) {
+      setSearchParams(newParams);
+    }
+  }, [filters, setSearchParams /* BỎ searchParams */]);
 
   const statusLabels = {
     Active: "Đang sử dụng",
@@ -174,6 +250,27 @@ const LaptopTable = () => {
       setCurrentPage(1);
       // Hiển thị trước 30 items
       setData(laptops.slice(0, 30));
+      const years = [
+        ...new Set(laptops.map((l) => l.releaseYear).filter(Boolean)),
+      ];
+      setAvailableYears(years.sort((a, b) => b - a));
+      const manufacturers = [
+        ...new Set(laptops.map((l) => l.manufacturer).filter(Boolean)),
+      ];
+      setAvailableManufacturers(manufacturers.sort());
+      const departments = [
+        ...new Set(
+          laptops
+            .flatMap((l) => {
+              const userDepts =
+                l.assigned?.map((u) => u.department).filter(Boolean) || [];
+              const roomLocs = l.room?.location || [];
+              return [...userDepts, ...roomLocs];
+            })
+            .filter(Boolean)
+        ),
+      ];
+      setAvailableDepartments(departments.sort());
     } catch (error) {
       console.error("Error fetching laptops:", error);
     }
@@ -186,34 +283,52 @@ const LaptopTable = () => {
   const applyFilters = (filters = {}) => {
     let filtered = [...originalData];
 
-    // Lọc theo trạng thái
-    if (filters.status && filters.status !== "Tất cả") {
+    if (filters.status && filters.status !== "All") {
       filtered = filtered.filter((item) => item.status === filters.status);
     }
 
-    // Lọc theo loại
-    if (filters.type && filters.type !== "Tất cả") {
+    if (filters.type && filters.type !== "All" && filters.type !== "All") {
       filtered = filtered.filter((item) => item.type === filters.type);
     }
 
     // Lọc theo nhà sản xuất
-    if (filters.manufacturer && filters.manufacturer !== "Tất cả") {
-      filtered = filtered.filter(
-        (item) => item.manufacturer === filters.manufacturer
+    if (
+      filters.manufacturer &&
+      filters.manufacturer !== "All" &&
+      Array.isArray(filters.manufacturer) &&
+      filters.manufacturer.length > 0
+    ) {
+      filtered = filtered.filter((item) =>
+        filters.manufacturer.includes(item.manufacturer)
       );
     }
 
-    // Lọc theo năm sản xuất
-    if (filters.releaseYear && filters.releaseYear !== "Tất cả") {
-      filtered = filtered.filter(
-        (item) => item.releaseYear === filters.releaseYear
+    if (
+      filters.year &&
+      filters.year !== "All" &&
+      Array.isArray(filters.year) &&
+      filters.year.length > 0
+    ) {
+      filtered = filtered.filter((item) =>
+        filters.year.includes(item.releaseYear)
       );
     }
 
     // Lọc theo phòng ban
-    if (filters.department && filters.department !== "Tất cả") {
-      filtered = filtered.filter((item) =>
-        item.assigned.some((user) => user.department === filters.department)
+    if (
+      filters.department &&
+      filters.department !== "All" &&
+      Array.isArray(filters.department) &&
+      filters.department.length > 0
+    ) {
+      filtered = filtered.filter(
+        (item) =>
+          item.assigned.some((user) =>
+            filters.department.includes(user.department)
+          ) ||
+          (item.room?.location || []).some((loc) =>
+            filters.department.includes(loc)
+          )
       );
     }
     setFilteredData(filtered);
@@ -922,23 +1037,494 @@ const LaptopTable = () => {
   // useEffect #5: Log ra Original / Filtered / Displayed data (nếu muốn debug)
 
   return (
-    <div className="p-8">
+    <div className="h-screen p-8">
       <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto rounded-2xl">
         {/* Header */}
-        <div className="flex flex-col justify-between items-start mb-2">
+        <div className="w-full flex flex-col justify-between items-start mb-2">
           {/* Search Input */}
-          <div className="flex items-center justify-between w-full mb-4">
-            <div className="relative w-1/3">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Tìm kiếm laptop..."
-                className="pl-10 pr-4 py-2 rounded-md w-2/3"
-                value={searchTerm}
-                onChange={handleSearchChange}
-              />
+          <div className="w-full flex items-center justify-between mb-4">
+            <div className="relative w-[25%]">
+              <div className="w-full flex items-center space-x-3 max-w-md">
+                <div className="relative flex-grow">
+                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm laptop..."
+                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#002855]"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                  />
+                </div>
+                <button
+                  onClick={() => setShowFilterPanel((prev) => !prev)}
+                  className="p-2  bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-300"
+                >
+                  <FaFilter size={20} className="text-gray-600" />
+                </button>
+              </div>
 
-              {/* Hiển thị suggestions (nếu có) */}
+              {/* Dropdown filter chính */}
+              {showFilterPanel && (
+                <div
+                  ref={filterPanelRef}
+                  className="absolute top-0 left-full ml-2 w-full bg-white shadow-xl p-4 z-[9999] rounded-2xl border gap-10"
+                >
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">Bộ lọc</h2>
+                    <button
+                      onClick={() => {
+                        setFilters({
+                          type: "All",
+                          status: "All",
+                          year: "All",
+                          manufacturer: "All",
+                          department: "All",
+                        });
+                        setSelectedYears([]);
+                        setSelectedManufacturers([]);
+                        setSelectedDepartments([]);
+                      }}
+                      className="font-bold text-[#002855] text-sm hover:text-gray-900"
+                    >
+                      Bỏ lọc
+                    </button>
+                  </div>
+                  <div className="space-y-10 mt-4">
+                    <div
+                      onClick={() => setActiveSubFilter("type")}
+                      className="flex items-center justify-between cursor-pointer hover:text-[#002855]"
+                    >
+                      <div className="w-full flex flex-row items-center justify-between text-sm">
+                        <span className="font-medium text-gray-700">
+                          Loại thiết bị
+                        </span>
+                        <span className="font-semibold text-gray-500">
+                          {filters.type === "All" ? "Tất cả" : filters.type}
+                        </span>
+                      </div>
+                      <FaAngleRight className="ml-2 text-gray-300" />
+                    </div>
+                    <div
+                      onClick={() => setActiveSubFilter("status")}
+                      className="flex items-center justify-between cursor-pointer hover:text-[#002855]"
+                    >
+                      <div className="w-full flex flex-row items-center justify-between text-sm">
+                        <span className="font-medium text-[#4b4b4b]">
+                          Tình trạng
+                        </span>
+                        <span className="font-semibold text-gray-500">
+                          {filters.status === "All"
+                            ? "Tất cả"
+                            : statusLabels[filters.status] || filters.status}
+                        </span>
+                      </div>
+                      <FaAngleRight className="ml-2 text-gray-300" />
+                    </div>
+
+                    <div
+                      onClick={() => setActiveSubFilter("year")}
+                      className="flex items-center justify-between cursor-pointer hover:text-[#002855]"
+                    >
+                      <div className="w-full flex flex-row items-center justify-between text-sm">
+                        <span className="font-medium text-[#4b4b4b]">
+                          Năm sản xuất
+                        </span>
+                        <span className="font-semibold text-gray-500">
+                          {Array.isArray(filters.year) &&
+                          filters.year.length > 0
+                            ? `${filters.year.slice(0, 2).join(", ")}${
+                                filters.year.length > 2
+                                  ? `, +${filters.year.length - 2}`
+                                  : ""
+                              }`
+                            : "Tất cả"}
+                        </span>
+                      </div>
+                      <FaAngleRight className="ml-2 text-gray-300" />
+                    </div>
+
+                    <div
+                      onClick={() => setActiveSubFilter("manufacturer")}
+                      className="flex items-center justify-between cursor-pointer hover:text-[#002855]"
+                    >
+                      <div className="w-full flex flex-row items-center justify-between text-sm">
+                        <span className="font-medium text-[#4b4b4b]">
+                          Nhà sản xuất
+                        </span>
+                        <span className="font-semibold text-gray-500">
+                          {Array.isArray(filters.manufacturer) &&
+                          filters.manufacturer.length > 0
+                            ? `${filters.manufacturer.slice(0, 2).join(", ")}${
+                                filters.manufacturer.length > 2
+                                  ? `, +${filters.manufacturer.length - 2}`
+                                  : ""
+                              }`
+                            : "Tất cả"}
+                        </span>
+                      </div>
+                      <FaAngleRight className="ml-2 text-gray-300" />
+                    </div>
+
+                    <div
+                      onClick={() => setActiveSubFilter("department")}
+                      className="flex items-center justify-between cursor-pointer hover:text-[#002855]"
+                    >
+                      <div className="w-full flex flex-row   items-center justify-between text-sm">
+                        <span className="font-medium text-[#4b4b4b]">
+                          Phòng ban
+                        </span>
+                        <span className="font-semibold text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px] inline-block">
+                          {Array.isArray(filters.department) &&
+                          filters.department.length > 0
+                            ? `${filters.department[0]}${
+                                filters.department.length > 1
+                                  ? `, +${filters.department.length - 1}`
+                                  : ""
+                              }`
+                            : "Tất cả"}
+                        </span>
+                      </div>
+                      <FaAngleRight className="ml-2 text-gray-300" />
+                    </div>
+                  </div>
+
+                  {/* Sub-dropdown: Loại thiết bị */}
+                  {activeSubFilter === "type" && (
+                    <div className="absolute top-0 left-full ml-4 w-64 bg-white shadow-xl p-4 z-[9999] border rounded-xl">
+                      <button
+                        onClick={() => setActiveSubFilter(null)}
+                        className="text-gray-600 hover:text-gray-900 mb-3 flex items-center gap-2"
+                      >
+                        <FaAngleLeft />
+                        Loại thiết bị
+                      </button>
+                      <div className="space-y-3">
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="deviceType"
+                            value="All"
+                            checked={filters.type === "All"}
+                            onChange={() =>
+                              setFilters({ ...filters, type: "All" })
+                            }
+                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                          />
+                          <span>Tất cả</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="deviceType"
+                            value="Laptop"
+                            checked={filters.type === "Laptop"}
+                            onChange={() =>
+                              setFilters({ ...filters, type: "Laptop" })
+                            }
+                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                          />
+                          <span>Laptop</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="deviceType"
+                            value="Desktop"
+                            checked={filters.type === "Desktop"}
+                            onChange={() =>
+                              setFilters({ ...filters, type: "Desktop" })
+                            }
+                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                          />
+                          <span>Desktop</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sub-dropdown: Tình trạng */}
+                  {activeSubFilter === "status" && (
+                    <div className="absolute top-0 left-full ml-4 w-64 bg-white shadow-xl p-4 z-[9999] border rounded-xl">
+                      <button
+                        onClick={() => setActiveSubFilter(null)}
+                        className="text-gray-600 hover:text-gray-900 mb-3 flex items-center gap-2"
+                      >
+                        <FaAngleLeft />
+                        Tình trạng
+                      </button>
+                      <div className="space-y-3">
+                        <label className="flex items-center space-x-2 font-semibold">
+                          <input
+                            type="radio"
+                            name="statusFilter"
+                            value="All"
+                            checked={filters.status === "All"}
+                            onChange={() =>
+                              setFilters({ ...filters, status: "All" })
+                            }
+                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                          />
+                          <span>Tất cả</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="statusFilter"
+                            value="Active"
+                            checked={filters.status === "Active"}
+                            onChange={() =>
+                              setFilters({ ...filters, status: "Active" })
+                            }
+                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                          />
+                          <span>Đang sử dụng</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="statusFilter"
+                            value="PendingDocumentation"
+                            checked={filters.status === "PendingDocumentation"}
+                            onChange={() =>
+                              setFilters({
+                                ...filters,
+                                status: "PendingDocumentation",
+                              })
+                            }
+                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                          />
+                          <span>Chưa có biên bản</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="statusFilter"
+                            value="Standby"
+                            checked={filters.status === "Standby"}
+                            onChange={() =>
+                              setFilters({ ...filters, status: "Standby" })
+                            }
+                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                          />
+                          <span>Chờ cấp phát</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="statusFilter"
+                            value="Broken"
+                            checked={filters.status === "Broken"}
+                            onChange={() =>
+                              setFilters({ ...filters, status: "Broken" })
+                            }
+                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                          />
+                          <span>Hỏng</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                  {activeSubFilter === "year" && (
+                    <div className="absolute top-0 left-full ml-4 w-64 bg-white shadow-xl p-4 z-[9999] border rounded-xl">
+                      <div className="flex items-center justify-between mb-3">
+                        <button
+                          onClick={() => setActiveSubFilter(null)}
+                          className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+                        >
+                          <FaAngleLeft />
+                          Năm sản xuất
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedYears([]);
+                            setFilters({ ...filters, year: "All" });
+                          }}
+                          className="text-sm font-semibold text-[#002855] hover:text-[#003455]"
+                        >
+                          Bỏ chọn
+                        </button>
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm..."
+                        value={searchYear}
+                        onChange={(e) => setSearchYear(e.target.value)}
+                        className="w-full px-3 py-1 border-none bg-[#f8f8f8] text-[#757575  ] rounded mb-3 text-sm"
+                      />
+
+                      <div className="max-h-40 overflow-y-auto space-y-2">
+                        {availableYears
+                          .filter((year) =>
+                            String(year)
+                              .toLowerCase()
+                              .includes(searchYear.toLowerCase())
+                          )
+                          .map((year) => (
+                            <label
+                              key={year}
+                              className="flex items-center justify-between cursor-pointer"
+                            >
+                              <span>{year}</span>
+                              <input
+                                type="checkbox"
+                                checked={selectedYears.includes(year)}
+                                className="w-5 h-5 rounded-md text-[#002855] focus:ring-0 transition-all duration-300 items-start"
+                                onChange={(e) => {
+                                  const newSelected = e.target.checked
+                                    ? [...selectedYears, year]
+                                    : selectedYears.filter((y) => y !== year);
+                                  setSelectedYears(newSelected);
+                                  setFilters({
+                                    ...filters,
+                                    year:
+                                      newSelected.length === 0
+                                        ? "All"
+                                        : newSelected,
+                                  });
+                                }}
+                              />
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                  {activeSubFilter === "manufacturer" && (
+                    <div className="absolute top-0 left-full ml-4 w-64 bg-white shadow-xl p-4 z-[9999] border rounded-xl">
+                      <div className="flex items-center justify-between mb-3">
+                        <button
+                          onClick={() => setActiveSubFilter(null)}
+                          className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+                        >
+                          <FaAngleLeft />
+                          Nhà sản xuất
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedManufacturers([]);
+                            setFilters({ ...filters, manufacturer: "All" });
+                          }}
+                          className="text-sm font-semibold text-[#002855] hover:text-[#003455]"
+                        >
+                          Bỏ chọn
+                        </button>
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm..."
+                        value={searchManufacturer}
+                        onChange={(e) => setSearchManufacturer(e.target.value)}
+                        className="w-full px-3 py-1 border-none bg-[#f8f8f8] text-[#757575] rounded mb-3 text-sm"
+                      />
+
+                      <div className="max-h-40 overflow-y-auto space-y-2">
+                        {availableManufacturers
+                          .filter((manu) =>
+                            manu
+                              .toLowerCase()
+                              .includes(searchManufacturer.toLowerCase())
+                          )
+                          .map((manu) => (
+                            <label
+                              key={manu}
+                              className="flex items-center justify-between cursor-pointer"
+                            >
+                              <span>{manu}</span>
+                              <input
+                                type="checkbox"
+                                checked={selectedManufacturers.includes(manu)}
+                                className="w-5 h-5 rounded-md text-[#002855] focus:ring-0 transition-all duration-300 items-start"
+                                onChange={(e) => {
+                                  const newSelected = e.target.checked
+                                    ? [...selectedManufacturers, manu]
+                                    : selectedManufacturers.filter(
+                                        (m) => m !== manu
+                                      );
+                                  setSelectedManufacturers(newSelected);
+                                  setFilters({
+                                    ...filters,
+                                    manufacturer:
+                                      newSelected.length === 0
+                                        ? "All"
+                                        : newSelected,
+                                  });
+                                }}
+                              />
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                  {activeSubFilter === "department" && (
+                    <div className="absolute top-0 left-full ml-4 w-64 bg-white shadow-xl p-4 z-[9999] border rounded-xl">
+                      <div className="flex items-center justify-between mb-3">
+                        <button
+                          onClick={() => setActiveSubFilter(null)}
+                          className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+                        >
+                          <FaAngleLeft />
+                          Phòng ban
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedDepartments([]);
+                            setFilters({ ...filters, department: "All" });
+                          }}
+                          className="text-sm font-semibold text-[#002855] hover:text-[#003455]"
+                        >
+                          Bỏ chọn
+                        </button>
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm..."
+                        value={searchDepartment}
+                        onChange={(e) => setSearchDepartment(e.target.value)}
+                        className="w-full px-3 py-1 border-none bg-[#f8f8f8] text-[#757575] rounded mb-3 text-sm"
+                      />
+
+                      <div className="max-h-40 overflow-y-auto space-y-2">
+                        {availableDepartments
+                          .filter((dept) =>
+                            dept
+                              .toLowerCase()
+                              .includes(searchDepartment.toLowerCase())
+                          )
+                          .map((dept) => (
+                            <label
+                              key={dept}
+                              className="flex items-center justify-between cursor-pointer"
+                            >
+                              <span>{dept}</span>
+                              <input
+                                type="checkbox"
+                                checked={selectedDepartments.includes(dept)}
+                                className="w-5 h-5 rounded-md text-[#002855] focus:ring-0 transition-all duration-300 items-start"
+                                onChange={(e) => {
+                                  const newSelected = e.target.checked
+                                    ? [...selectedDepartments, dept]
+                                    : selectedDepartments.filter(
+                                        (d) => d !== dept
+                                      );
+                                  setSelectedDepartments(newSelected);
+                                  setFilters({
+                                    ...filters,
+                                    department:
+                                      newSelected.length === 0
+                                        ? "All"
+                                        : newSelected,
+                                  });
+                                }}
+                              />
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex space-x-2">
               <button
@@ -969,213 +1555,10 @@ const LaptopTable = () => {
               </button>
             </div>
           </div>
-
-          <div className="flex items-center justify-start w-full space-x-4 mb-4">
-            <Dropdown
-              button={
-                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105 ">
-                  {selectedOption === "Tất cả"
-                    ? "Trạng thái: Tất cả trạng thái"
-                    : `Trạng thái: ${selectedOption}`}
-                </button>
-              }
-              children={
-                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                  {/* Option "Tất cả trạng thái" */}
-                  <button
-                    key="all"
-                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                    onClick={() => {
-                      setSelectedOption("Tất cả");
-                      applyFilters({ status: "Tất cả" });
-                    }}
-                  >
-                    Tất cả trạng thái
-                  </button>
-
-                  {/* Các trạng thái */}
-                  {[
-                    { value: "Active", label: "Đang sử dụng" },
-                    { value: "Standby", label: "Chờ Cấp Phát" },
-                    { value: "Broken", label: "Hỏng" },
-                    {
-                      value: "PendingDocumentation",
-                      label: "Đã bàn giao - Chưa có biên bản",
-                    },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                      onClick={() => {
-                        setSelectedOption(option.label);
-                        applyFilters({ status: option.value });
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              }
-            />
-            <Dropdown
-              button={
-                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                  {selectedType === "Tất cả"
-                    ? "Loại: Tất cả"
-                    : `Loại: ${selectedType}`}
-                </button>
-              }
-              children={
-                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                  <button
-                    key="all"
-                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                    onClick={() => {
-                      setSelectedType("Tất cả");
-                      applyFilters({ type: "Tất cả" });
-                    }}
-                  >
-                    Tất cả
-                  </button>
-                  {Array.from(
-                    new Set(originalData.map((item) => item.type))
-                  ).map((type) => (
-                    <button
-                      key={type}
-                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                      onClick={() => {
-                        setSelectedType(type);
-                        applyFilters({ type });
-                      }}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              }
-            />
-            <Dropdown
-              button={
-                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                  {selectedDepartment === "Tất cả"
-                    ? "Phòng ban: Tất cả phòng ban"
-                    : `Phòng ban: ${selectedDepartment}`}
-                </button>
-              }
-              children={
-                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                  <button
-                    key="all"
-                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                    onClick={() => {
-                      setSelectedDepartment("Tất cả");
-                      applyFilters({ department: "Tất cả" });
-                    }}
-                  >
-                    Tất cả phòng ban
-                  </button>
-                  {Array.from(
-                    new Set(
-                      originalData.flatMap((item) =>
-                        item.assigned.map((user) => user.department)
-                      )
-                    )
-                  ).map((department) => (
-                    <button
-                      key={department}
-                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                      onClick={() => {
-                        setSelectedDepartment(department);
-                        applyFilters({ department });
-                      }}
-                    >
-                      {department}
-                    </button>
-                  ))}
-                </div>
-              }
-            />
-            <Dropdown
-              button={
-                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                  {selectedManufacturer === "Tất cả"
-                    ? "Nhà sản xuất: Tất cả nhà sản xuất"
-                    : `Nhà sản xuất: ${selectedManufacturer}`}
-                </button>
-              }
-              children={
-                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                  <button
-                    key="all"
-                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                    onClick={() => {
-                      setSelectedManufacturer("Tất cả");
-                      applyFilters({ manufacturer: "Tất cả" });
-                    }}
-                  >
-                    Tất cả nhà sản xuất
-                  </button>
-                  {Array.from(
-                    new Set(originalData.map((item) => item.manufacturer))
-                  ).map((manufacturer) => (
-                    <button
-                      key={manufacturer}
-                      className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                      onClick={() => {
-                        setSelectedManufacturer(manufacturer);
-                        applyFilters({ manufacturer });
-                      }}
-                    >
-                      {manufacturer}
-                    </button>
-                  ))}
-                </div>
-              }
-            />
-            <Dropdown
-              button={
-                <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-md hover:bg-gray-50 focus:ring-2 focus:ring-[#002147] transform transition-transform duration-300 hover:scale-105">
-                  {selectedYear === "Tất cả"
-                    ? "Năm sản xuất: Tất cả năm sản xuất"
-                    : `Năm sản xuất: ${selectedYear}`}
-                </button>
-              }
-              children={
-                <div className="flex flex-col gap-2 mt-10 bg-white rounded-lg shadow-lg p-4">
-                  <button
-                    key="all"
-                    className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                    onClick={() => {
-                      setSelectedYear("Tất cả");
-                      applyFilters({ releaseYear: "Tất cả" });
-                    }}
-                  >
-                    Tất cả năm sản xuất
-                  </button>
-                  {Array.from(
-                    new Set(originalData.map((item) => item.releaseYear))
-                  )
-                    .sort()
-                    .map((year) => (
-                      <button
-                        key={year}
-                        className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
-                        onClick={() => {
-                          setSelectedYear(year);
-                          applyFilters({ releaseYear: year });
-                        }}
-                      >
-                        {year}
-                      </button>
-                    ))}
-                </div>
-              }
-            />
-          </div>
         </div>
 
         {/* {-----------------------------------------/* Bảng /-----------------------------------------} */}
-        <div className="w-full h-full px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
+        <div className="w-full h-full max-h-fit px-6 pb-6 sm:overflow-x-auto bg-white rounded-2xl shadow-xl border">
           <div className="mt-1 overflow-x-scroll xl:overflow-x-hidden">
             <table className="w-full">
               <thead>
@@ -2159,7 +2542,6 @@ const LaptopTable = () => {
                   onCloseModal={() => {
                     setSelectedLaptop(null); // Reset laptop đã chọn
                     setShowDetailModal(false); // Đóng modal
-                    fetchLaptops(); // refresh sau khi thao tác
                   }} // Truyền hàm đóng modal
                   // Truyền vào 2 hàm thu hồi / bàn giao
                   onRevoke={handleRevokeLaptop}

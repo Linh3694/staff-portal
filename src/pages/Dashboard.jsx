@@ -1,6 +1,7 @@
 // Dashboard.jsx
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+
 // Import các component nội dung (điều chỉnh đường dẫn nếu cần)
 import LaptopTable from "../components/inventory/LaptopTable";
 import MonitorTable from "../components/inventory/MonitorTable";
@@ -50,6 +51,7 @@ const urlToMenu = {
 
 const Dashboard = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   // --- State cho dữ liệu người dùng, thông báo, v.v.
   const [currentUser, setCurrentUser] = useState({
@@ -77,23 +79,34 @@ const Dashboard = () => {
   // Định nghĩa cấu hình các tab cho một số mục
   const tabMapping = {
     "Quản lý thiết bị": [
-      "Dashboard",
-      "Laptop || Desktop",
-      "Màn hình",
-      "Máy in",
-      "Thiết bị trình chiếu",
-      "Khác",
+      { label: "Dashboard", param: "dashboard" },
+      { label: "Laptop || Desktop", param: "laptop" },
+      { label: "Màn hình", param: "monitor" },
+      { label: "Máy in", param: "printer" },
+      { label: "Thiết bị trình chiếu", param: "projector" },
+      { label: "Khác", param: "other" },
     ],
-    "Quản lý Tickets": ["Ticket lists", "Teams", "Reports"],
-    "Quản lý tài liệu": ["Tài liệu", "Báo cáo"],
+    "Quản lý Tickets": [
+      { label: "Ticket lists", param: "ticket-lists" },
+      { label: "Teams", param: "teams" },
+      { label: "Reports", param: "reports" },
+    ],
     "Quản lý Bus": [
-      "Giám sát",
-      "Danh danh tuyến",
-      "Danh sách xe",
-      "Danh sách lịch trình",
+      { label: "Giám sát", param: "dashboard" },
+      { label: "Danh danh tuyến", param: "routes" },
+      { label: "Danh sách xe", param: "vehicles" },
+      { label: "Danh sách lịch trình", param: "trips" },
     ],
-    "Quản lý học sinh": ["Quản lý Năm học", "Quản lý Lớp", "Quản lý Học Sinh"],
-    "Quản lý Thư viện": ["Quản lý dữ liệu", "Quản lý Sách", "Báo Cáo"],
+    "Quản lý học sinh": [
+      { label: "Quản lý Năm học", param: "school-year" },
+      { label: "Quản lý Lớp", param: "class" },
+      { label: "Quản lý Học Sinh", param: "student" },
+    ],
+    "Quản lý Thư viện": [
+      { label: "Quản lý dữ liệu", param: "library-data" },
+      { label: "Quản lý Sách", param: "library-books" },
+      { label: "Báo Cáo", param: "library-report" },
+    ],
   };
 
   useEffect(() => {
@@ -103,22 +116,35 @@ const Dashboard = () => {
     };
   }, []);
 
-  // Lấy submenu từ URL
+  // Dashboard.jsx
+
   useEffect(() => {
-    const path = location.pathname.split("/")[2]; // Lấy đoạn sau `/dashboard/`
-    if (path && urlToMenu[path]) {
-      setSelectedSubMenu(urlToMenu[path]); // Chuyển đổi URL thành tên submenu
+    // Ví dụ /dashboard/devices/laptop
+    // parts[0] = '', parts[1] = 'dashboard', parts[2] = 'devices', parts[3] = 'laptop'
+    const parts = location.pathname.split("/");
+    const mainKey = parts[2]; // 'devices'
+    const subParam = parts[3]; // 'laptop'
+
+    if (mainKey && urlToMenu[mainKey]) {
+      setSelectedSubMenu(urlToMenu[mainKey]);
+    } else {
+      // Nếu không map được => submenu rỗng
+      setSelectedSubMenu("");
+    }
+
+    // Nếu URL có param
+    if (subParam) {
+      setActiveTab(subParam);
+    } else {
+      // Nếu thiếu param => gán tab đầu tiên (nếu có)
+      const menuName = urlToMenu[mainKey];
+      if (menuName && tabMapping[menuName]?.length) {
+        setActiveTab(tabMapping[menuName][0].param);
+      } else {
+        setActiveTab("");
+      }
     }
   }, [location]);
-
-  // Khi thay đổi submenu được chọn, nếu mục đó có tab thì mặc định chọn tab đầu tiên
-  useEffect(() => {
-    if (tabMapping[selectedSubMenu]) {
-      setActiveTab(tabMapping[selectedSubMenu][0]);
-    } else {
-      setActiveTab("");
-    }
-  }, [selectedSubMenu]);
 
   // --- Lấy dữ liệu người dùng hiện tại
   useEffect(() => {
@@ -167,20 +193,20 @@ const Dashboard = () => {
   const renderContent = () => {
     switch (selectedSubMenu) {
       case "Quản lý thiết bị":
-        if (activeTab === "Dashboard") return <DashboardInventory />;
-        if (activeTab === "Laptop || Desktop") return <LaptopTable />;
-        if (activeTab === "Màn hình") return <MonitorTable />;
-        if (activeTab === "Máy in") return <PrinterTable />;
-        if (activeTab === "Thiết bị trình chiếu") return <ProjectorTable />;
-        if (activeTab === "Khác") return <ToolTable />;
+        if (activeTab === "dashboard") return <DashboardInventory />;
+        if (activeTab === "laptop") return <LaptopTable />;
+        if (activeTab === "monitor") return <MonitorTable />;
+        if (activeTab === "printer") return <PrinterTable />;
+        if (activeTab === "projector") return <ProjectorTable />;
+        if (activeTab === "other") return <ToolTable />;
         break;
 
       case "Quản lý Tickets":
-        if (activeTab === "Ticket lists")
+        if (activeTab === "ticket-lists")
           return <TicketAdminTable currentUser={currentUser} />;
-        if (activeTab === "Teams")
+        if (activeTab === "teams")
           return <TicketTeam currentUser={currentUser} />;
-        if (activeTab === "Reports")
+        if (activeTab === "reports")
           return <EmailIntegration currentUser={currentUser} />;
         break;
 
@@ -188,18 +214,18 @@ const Dashboard = () => {
         return <UserTable />;
 
       case "Quản lý học sinh":
-        if (activeTab === "Quản lý Năm học") return <StudentSchoolYear />;
-        if (activeTab === "Quản lý Lớp") return <StudentClass />;
-        if (activeTab === "Quản lý Học Sinh") return <StudentStudent />;
+        if (activeTab === "school-year") return <StudentSchoolYear />;
+        if (activeTab === "class") return <StudentClass />;
+        if (activeTab === "student") return <StudentStudent />;
         break;
 
       case "Quản lý phòng học":
         return <RoomTable />;
 
       case "Quản lý Thư viện":
-        if (activeTab === "Quản lý dữ liệu") return <LibraryData />;
-        if (activeTab === "Quản lý Sách") return <LibraryManagement />;
-        if (activeTab === "Báo Cáo") return <LibraryReport />;
+        if (activeTab === "library-data") return <LibraryData />;
+        if (activeTab === "library-books") return <LibraryManagement />;
+        if (activeTab === "library-report") return <LibraryReport />;
         break;
 
       case "Phần mềm lật trang":
@@ -211,10 +237,10 @@ const Dashboard = () => {
       case "Quản lý vinh danh":
         return <HallOfFameAdminPage currentUser={currentUser} />;
       case "Quản lý Bus":
-        if (activeTab === "Giám sát") return <BusDashboard />;
-        if (activeTab === "Danh danh tuyến") return <BusRoutes />;
-        if (activeTab === "Danh sách xe") return <BusVehicles />;
-        if (activeTab === "Danh sách lịch trình") return <BusTrips />;
+        if (activeTab === "dashboard") return <BusDashboard />;
+        if (activeTab === "routes") return <BusRoutes />;
+        if (activeTab === "vehicles") return <BusVehicles />;
+        if (activeTab === "trips") return <BusTrips />;
         break;
 
       case "Hồ sơ cá nhân":
@@ -224,8 +250,8 @@ const Dashboard = () => {
           </div>
         );
       case "Quản lý tài liệu":
-        if (activeTab === "Tài liệu") return <DocumentTable />;
-        if (activeTab === "Báo cáo") return <DocumentDashboard />;
+        if (activeTab === "document") return <DocumentTable />;
+        if (activeTab === "report") return <DocumentDashboard />;
         break;
       default:
         return (
@@ -255,15 +281,21 @@ const Dashboard = () => {
                 <div className="flex items-center gap-1 h-[61px] bg-white p-4 rounded-full shadow-xl border">
                   {tabMapping[selectedSubMenu].map((tab) => (
                     <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
+                      key={tab.param}
+                      onClick={() => {
+                        setActiveTab(tab.param);
+                        const mainKey = Object.keys(urlToMenu).find(
+                          (k) => urlToMenu[k] === selectedSubMenu
+                        );
+                        navigate(`/dashboard/${mainKey}/${tab.param}`);
+                      }}
                       className={`flex font-bold items-center gap-2 px-4 py-2 rounded-full transform transition-colors transition-transform duration-300 hover:scale-105 ${
-                        activeTab === tab
+                        activeTab === tab.param
                           ? "bg-[#002147] text-white"
                           : "bg-transparent text-gray-600 hover:bg-gray-200 hover:text-gray-800"
                       }`}
                     >
-                      <span className="text-sm font-medium">{tab}</span>
+                      <span className="text-sm font-medium">{tab.label}</span>
                     </button>
                   ))}
                 </div>

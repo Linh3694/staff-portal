@@ -298,6 +298,7 @@ const Ticket = ({ currentUser }) => {
         senderAvatar: m.sender?.avatarUrl ? "" : "/default-avatar.png",
         time: new Date(m.timestamp).toLocaleString("vi-VN"),
         isSelf: m.sender?._id === currentUser?.id,
+        type: m.type || "text",
       }));
       setMessages(mapped);
     }
@@ -482,6 +483,7 @@ const Ticket = ({ currentUser }) => {
             handleUrgent={handleUrgent}
             handleCancelTicket={handleCancelTicket}
             setShowCancelModal={setShowCancelModal}
+            fetchTicketById={fetchTicketById}
           />
         )}
       </div>

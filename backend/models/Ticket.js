@@ -73,6 +73,8 @@ const ticketSchema = new mongoose.Schema(
           sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
           text: String,
           timestamp: { type: Date, default: Date.now },
+          type: { type: String, default: "text" },
+
         },
       ],
       // Lưu nhật ký xử lý

@@ -1,5 +1,40 @@
 const Ticket = require("../models/Ticket");
 const User = require("../models/Users"); // Import model User nếu chưa import
+function getVNTimeString() {
+  const now = new Date();
+  // Định dạng giờ, phút, ngày, tháng, năm theo múi giờ Việt Nam
+  const options = {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  };
+  // Kết quả dạng: dd/mm/yyyy, hh:mm:ss
+  // Ta chỉ lấy: hh:mm (GMT+7) dd/mm/yyyy
+  const formatted = new Intl.DateTimeFormat("vi-VN", options).format(now);
+  // Tuỳ vào cấu trúc trả về, có thể cần tách chuỗi, nhưng ở mức đơn giản, 
+  // bạn có thể thêm thủ công (GMT+7) vào sau:
+  return `${formatted}`;
+}
+
+function translateStatus(status) {
+  const statusMap = {
+    "Assigned": "Đã nhận",
+    "Processing": "Đang xử lý",
+    "In Progress": "Đang xử lý",
+    "Completed": "Hoàn thành",
+    "Done": "Hoàn thành",
+    "Cancelled": "Đã huỷ",
+    "Waiting for Customer": "Chờ phản hồi",
+    "Open": "Chưa nhận",
+    "Closed": "Đã đóng",
+  };
+
+  return statusMap[status] || status;
+}
+
 
 // a) Tạo ticket
 exports.createTicket = async (req, res) => {
@@ -85,54 +120,64 @@ exports.getTicketById = async (req, res) => {
 
 // c) Cập nhật ticket
 exports.updateTicket = async (req, res) => {
-  const { ticketId } = req.params; // ID ticket từ params
-  const updates = req.body; // Dữ liệu cập nhật từ request body
-  const userId = req.user.id; // ID user từ token
+  const { ticketId } = req.params;
+  const updates = req.body;
+  const userId = req.user.id; // user đang đăng nhập
 
   try {
-    const ticket = await Ticket.findById(ticketId); // Lấy ticket từ DB
+    const ticket = await Ticket.findById(ticketId);
 
     if (!ticket) {
       return res.status(404).json({ success: false, message: "Ticket không tồn tại" });
     }
 
     console.log("Ticket hiện tại:", ticket);
-    // Kiểm tra nếu trạng thái chuyển sang "processing"
     console.log("Received updates:", updates);
-    // Cập nhật các thông tin khác
-    Object.assign(ticket, updates);
 
-    if (updates.status === "Processing") {
-      console.log("Chuyển trạng thái sang 'processing', cập nhật SLA Phase 2");
-
-      // Thời gian SLA Phase 2 theo priority
-      const slaDurations = { Low: 72, Medium: 48, High: 24, Urgent: 4 }; // Đơn vị: giờ
-      const priority = updates.priority || ticket.priority; // Lấy priority mới hoặc giữ nguyên
-
-      let slaDeadline = new Date(); // Thời gian hiện tại
-
-      // Tính thời gian SLA Phase 2
-      slaDeadline.setHours(slaDeadline.getHours() + slaDurations[priority]);
-
-      ticket.sla = slaDeadline; // Gán giá trị SLA Phase 2 mới
+    // Ghi log nếu status thay đổi
+    if (updates.status && updates.status !== ticket.status) {
       ticket.history.push({
         timestamp: new Date(),
-        action: `Ticket moved to processing, SLA updated to ${slaDeadline}, priority=${priority}`,
-        user: req.user.id,
+        action: `Người dùng <strong>${req.user.fullname}</strong> đã thay đổi trạng thái ticket từ <strong>"${translateStatus(ticket.status)}"</strong> sang <strong>"${translateStatus(updates.status)}"</strong> vào lúc <strong>${getVNTimeString()}</strong>`,
+        user: req.user._id,
       });
-
-      console.log("SLA Phase 2 mới:", slaDeadline);
     }
 
-    // Lưu ticket vào DB
-    await ticket.save()
-    .then((result) => console.log("Kết quả lưu:", result))
-    .catch((err) => console.error("Lỗi khi lưu:", err));
+    // Nếu có cancelReason, ghi log
+    if (updates.status === "Cancelled" && updates.cancelReason) {
+      ticket.history.push({
+        timestamp: new Date(),
+        action: `Người dùng <strong>${req.user.fullname}</strong> đã huỷ ticket với lý do: <strong>"${updates.cancelReason}"</strong> vào lúc <strong>${getVNTimeString()}</strong>`,
+        user: req.user._id,
+      });
+    }
+
+    Object.assign(ticket, updates);
+
+    // Nếu chuyển sang Processing -> cập nhật SLA Phase 2
+    if (updates.status === "Processing") {
+      const slaDurations = { Low: 72, Medium: 48, High: 24, Urgent: 4 };
+      const priority = updates.priority || ticket.priority;
+      let slaDeadline = new Date();
+      slaDeadline.setHours(slaDeadline.getHours() + slaDurations[priority]);
+      ticket.sla = slaDeadline;
+      ticket.history.push({
+        timestamp: new Date(),
+        action: `Người dùng <strong>${req.user.fullname}</strong> đã chuyển ticket sang <strong>"Đang xử lý"</strong>  vào lúc <strong>${getVNTimeString()}</strong>`,
+        user: req.user._id,
+      });
+    }
+
+    await ticket.save();
     console.log("Ticket đã được lưu thành công:", ticket);
+
     res.status(200).json({ success: true, ticket });
   } catch (error) {
     console.error("Lỗi khi cập nhật ticket:", error);
-    res.status(500).json({ success: false, message: "Đã xảy ra lỗi khi cập nhật ticket" });
+    res.status(500).json({
+      success: false,
+      message: "Đã xảy ra lỗi khi cập nhật ticket",
+    });
   }
 };
 
@@ -167,11 +212,10 @@ exports.addFeedback = async (req, res) => {
 
       ticket.history.push({
         timestamp: new Date(),
-        action: `User added first rating=${rating}${
-          comment ? `, comment="${comment}"` : ""
-        }`,
-        user: req.user.id,
+        action: `Người dùng <strong>${req.user.fullname}</strong> đã đánh giá lần đầu (<strong>${rating}</strong> sao${comment ? `, nhận xét: "<strong>${comment}</strong>"` : ""}) vào lúc <strong>${getVNTimeString()}</strong>`,
+        user: req.user._id,
       });
+
     } else {
       // Đã có rating trước đó => cập nhật rating
       // - Bắt buộc phải có comment giải thích tại sao muốn đổi
@@ -195,10 +239,10 @@ exports.addFeedback = async (req, res) => {
       ticket.feedback.badges = badges || [];
 
       ticket.history.push({
-        timestamp: new Date(),
-        action: `User updated rating from ${oldRating} to ${rating}, comment="${comment}"`,
-        user: req.user.id,
-      });
+  timestamp: new Date(),
+  action: `Người dùng <strong>${req.user.fullname}</strong> đã cập nhật đánh giá từ <strong>${oldRating}</strong> lên <strong>${rating}</strong> sao, nhận xét: "<strong>${comment}</strong>" vào lúc <strong>${getVNTimeString()}</strong>`,
+  user: req.user._id,
+});
     }
 
     await ticket.save();
@@ -279,8 +323,8 @@ exports.escalateTicket = async (req, res) => {
     ticket.escalateLevel += 1;
     ticket.history.push({
       timestamp: new Date(),
-      action: `Ticket escalated to level ${ticket.escalateLevel}`,
-      user: req.user.id,
+      action: `Người dùng ${req.user.fullname} đã nâng cấp ticket lên mức ${ticket.escalateLevel} vào lúc ${getVNTimeString()}`,
+      user: req.user._id,
     });
 
     await ticket.save();
@@ -302,7 +346,7 @@ exports.checkSLA = async () => {
     ticket.escalateLevel += 1;
     ticket.history.push({
       timestamp: new Date(),
-      action: `SLA breached. Ticket escalated to level ${ticket.escalateLevel}`,
+      action: `Hết hạn SLA. Ticket đã được nâng cấp lên mức ${ticket.escalateLevel} vào lúc ${getVNTimeString()}`,
     });
 
     // Gửi email thông báo (có thể tích hợp sau)
@@ -318,21 +362,15 @@ exports.sendMessage = async (req, res) => {
   const { text } = req.body;
 
   try {
-    // Lấy ticket
     const ticket = await Ticket.findById(ticketId).populate("creator assignedTo");
     if (!ticket) {
-      return res.status(404).json({
-        success: false,
-        message: "Ticket không tồn tại",
-      });
+      return res.status(404).json({ success: false, message: "Ticket không tồn tại" });
     }
-    const creatorId = ticket.creator ? ticket.creator.toString() : null;
-    const assignedId = ticket.assignedTo ? ticket.assignedTo.toString() : null;
 
+    // Chỉ creator hoặc assignedTo mới được chat
     const isParticipant =
-    ticket.creator.equals(req.user._id) || 
-    (ticket.assignedTo && ticket.assignedTo.equals(req.user._id));
-
+      ticket.creator.equals(req.user._id) ||
+      (ticket.assignedTo && ticket.assignedTo.equals(req.user._id));
 
     if (!isParticipant) {
       return res.status(403).json({
@@ -341,26 +379,46 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // Thêm tin nhắn mới vào mảng messages
-    ticket.messages.push({
-      sender: req.user._id, // user đang đăng nhập
-      text,
-      timestamp: new Date(),
-    });
-
-    // Ghi nhật ký
-    ticket.history.push({
-      timestamp: new Date(),
-      action: `User ${req.user.id} sent a message`,
-      user: req.user.id,
-    });
+    // Nếu có file trong req.file => upload ảnh
+    if (req.file) {
+      // Tạo message kiểu ảnh
+      const fileUrl = `${process.env.BASE_URL || "http://localhost:5001"}/uploads/Messages/${req.file.filename}`;
+      ticket.messages.push({
+        sender: req.user._id,
+        text: fileUrl,      // Lưu đường dẫn vào text
+        timestamp: new Date(),
+        type: "image",      // Đánh dấu để frontend hiểu đây là ảnh
+      });
+    } else {
+      // Tin nhắn text
+      if (!text?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Nội dung tin nhắn trống!",
+        });
+      }
+      ticket.messages.push({
+        sender: req.user._id,
+        text,
+        timestamp: new Date(),
+        type: "text",
+      });
+    }
 
     await ticket.save();
+    // Re-fetch ticket để đảm bảo các trường, bao gồm messages với field type, được populate đầy đủ
+    const updatedTicket = await Ticket.findById(ticketId)
+      .populate("creator assignedTo")
+      .populate({
+        path: "messages.sender",
+        model: "User",
+        select: "fullname avatarUrl email",
+      });
 
     return res.status(200).json({
       success: true,
       message: "Gửi tin nhắn thành công",
-      ticket,
+      ticket: updatedTicket,
     });
   } catch (error) {
     console.error("Lỗi sendMessage:", error);
@@ -375,34 +433,47 @@ exports.addSubTask = async (req, res) => {
   try {
     const { ticketId } = req.params;
     const { title, assignedTo, status } = req.body;
+    const userId = req.user.id;
 
-    const ticket = await Ticket.findById(ticketId);
+    const ticket = await Ticket.findById(ticketId).populate("subTasks.assignedTo");
     if (!ticket) {
       return res.status(404).json({ success: false, message: "Ticket không tồn tại!" });
     }
 
-    // 🔍 Chuyển đổi `assignedTo` từ tên → ObjectId
+    // Tìm user qua fullname
     const assignedUser = await User.findOne({ fullname: assignedTo });
     if (!assignedUser) {
-      return res.status(400).json({ success: false, message: "Người dùng được giao không tồn tại!" });
+      return res.status(400).json({
+        success: false,
+        message: "Người dùng được giao không tồn tại!",
+      });
     }
 
-    // 🟡 Kiểm tra giá trị hợp lệ của `status`
     const validStatuses = ["In Progress", "Completed", "Cancelled"];
-    const finalStatus = validStatuses.includes(status) ? status : "In Progress"; // Mặc định In Progress nếu sai
+    const finalStatus = validStatuses.includes(status) ? status : "In Progress";
 
     const newSubTask = {
       title,
-      assignedTo: assignedUser._id, // ✅ Gán đúng ObjectId
+      assignedTo: assignedUser._id,
       status: finalStatus,
       createdAt: new Date(),
     };
 
     ticket.subTasks.push(newSubTask);
+
+    // Ghi log
+    ticket.history.push({
+      timestamp: new Date(),
+      action: `Người dùng <strong>${req.user.fullname}</strong> đã tạo subtask <strong>"${title}"</strong>(trạng thái: <strong>${finalStatus}</strong>) vào lúc <strong>${getVNTimeString()}</strong>`,
+      user: req.user._id,
+    });
+
     await ticket.save();
 
-    // 🔄 Fetch lại ticket ngay sau khi thêm subtask
-    const updatedTicket = await Ticket.findById(ticketId).populate("subTasks.assignedTo", "fullname email");
+    // Populate sau khi thêm
+    const updatedTicket = await Ticket.findById(ticketId)
+      .populate("creator assignedTo")
+      .populate("subTasks.assignedTo");
 
     res.status(201).json({ success: true, ticket: updatedTicket });
   } catch (error) {
@@ -414,8 +485,9 @@ exports.updateSubTaskStatus = async (req, res) => {
   try {
     const { ticketId, subTaskId } = req.params;
     const { status } = req.body;
+    const userId = req.user.id;
 
-    const ticket = await Ticket.findById(ticketId);
+    const ticket = await Ticket.findById(ticketId).populate("subTasks.assignedTo");
     if (!ticket) {
       return res.status(404).json({ success: false, message: "Ticket không tồn tại" });
     }
@@ -425,13 +497,23 @@ exports.updateSubTaskStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: "Sub-task không tồn tại" });
     }
 
-    // Kiểm tra trạng thái hợp lệ
     const validStatuses = ["In Progress", "Completed", "Cancelled"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ!" });
     }
 
-    // Cập nhật trạng thái subtask
+    // Ghi log nếu trạng thái thay đổi
+    if (subTask.status !== status) {
+      if (subTask.status !== status) {
+        ticket.history.push({
+          timestamp: new Date(),
+          action: `Người dùng <strong>${req.user.fullname}</strong> đã đổi trạng thái subtask <strong>${subTask.title}</strong> từ <strong>${translateStatus(subTask.status)}</strong> sang <strong>${translateStatus(status)}</strong> vào lúc ${getVNTimeString()}`,
+          user: req.user._id,
+        });
+      }
+    }
+
+    // Cập nhật subtask
     subTask.status = status;
     subTask.updatedAt = new Date();
 
@@ -446,13 +528,29 @@ exports.updateSubTaskStatus = async (req, res) => {
 exports.deleteSubTask = async (req, res) => {
   try {
     const { ticketId, subTaskId } = req.params;
+    const userId = req.user.id;
 
     const ticket = await Ticket.findById(ticketId);
     if (!ticket) {
       return res.status(404).json({ success: false, message: "Ticket không tồn tại" });
     }
 
-    ticket.subTasks = ticket.subTasks.filter(sub => sub._id.toString() !== subTaskId);
+    const subTask = ticket.subTasks.id(subTaskId);
+    if (!subTask) {
+      return res.status(404).json({ success: false, message: "Sub-task không tồn tại" });
+    }
+
+    // Ghi log trước khi xóa
+    ticket.history.push({
+      timestamp: new Date(),
+      action: `Người dùng <strong>${req.user.fullname}</strong> đã xoá subtask <strong>"${subTask.title}"</strong> vào lúc <strong>${getVNTimeString()}</strong>`,
+      user: req.user._id,
+    });
+
+    ticket.subTasks = ticket.subTasks.filter(
+      (s) => s._id.toString() !== subTaskId
+    );
+
     await ticket.save();
 
     res.status(200).json({ success: true, message: "Sub-task đã được xóa" });
@@ -577,8 +675,14 @@ exports.removeUserFromSupportTeam = async (req, res) => {
     ticket.supportTeam.members = ticket.supportTeam.members.filter(
       (m) => m.toString() !== userId
     );
+    const removedUser = await User.findById(userId);
+    ticket.history.push({
+      timestamp: new Date(),
+      action: `Người dùng ${req.user.fullname} đã xoá ${removedUser.fullname} khỏi nhóm hỗ trợ`,
+      user: req.user._id,
+    });
     await ticket.save();
-
+ 
     res.status(200).json({ success: true, message: "Đã xoá user khỏi team" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -661,7 +765,7 @@ async function createTicketHelper({ title, description, creatorId, priority, fil
     history: [
       {
         timestamp: new Date(),
-        action: `Ticket created and assigned to ${leastAssignedUser.fullname}`,
+        action: `Người dùng <strong>[ID: ${creatorId}]</strong> đã tạo ticket và chỉ định cho <strong>${leastAssignedUser.fullname}</strong> vào lúc <strong>${getVNTimeString()}</strong>`,
         user: creatorId,
       },
     ],

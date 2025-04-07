@@ -364,6 +364,7 @@ const LaptopProductCard = ({
 
     // Cập nhật state ngay lập tức để phản ánh trên UI (optimistic update)
     setLocalLaptop(updatedLaptop);
+    fetchLaptopDetails(laptopData._id);
     setEditField(null);
     setEditValue("");
 

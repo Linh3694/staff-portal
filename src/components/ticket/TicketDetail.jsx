@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FiSend } from "react-icons/fi";
 import { FaStar } from "react-icons/fa";
-import { BASE_URL } from "../../config";
+import { BASE_URL, API_URL } from "../../config";
 import TechnicalRating from "./TechnicalRating";
+import { FaCommentDots } from "react-icons/fa6";
+import { FaImage } from "react-icons/fa6";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 export default function TicketDetail(props) {
   const {
@@ -24,6 +28,7 @@ export default function TicketDetail(props) {
     handleCancelTicket,
     handleUrgent,
     setShowCancelModal,
+    fetchTicketById,
   } = props;
 
   const [detailTab, setDetailTab] = useState("request");
@@ -105,6 +110,8 @@ export default function TicketDetail(props) {
                 setNewMessage={setNewMessage}
                 handleSendMessage={handleSendMessage}
                 currentUser={currentUser}
+                selectedTicket={selectedTicket}
+                fetchTicketById={fetchTicketById} // hàm này được truyền từ component cha để refetch ticket sau khi gửi tin
               />
             )}
           </div>
@@ -193,9 +200,17 @@ export default function TicketDetail(props) {
                   className="w-20 h-20 rounded-xl object-cover border"
                 />
                 <div>
-                  <p className="text-base font-semibold">
-                    {selectedTicket.assignedTo?.fullname || "Chưa có"}
-                  </p>
+                  <div className="w-full flex flex-row gap-4 items-center justify-center">
+                    <p className="text-base font-semibold">
+                      {selectedTicket.assignedTo?.fullname || "Chưa có"}
+                    </p>
+                    <button
+                      className="w-full flex-1 px-2 py-1 bg-[#002855] text-white text-sm font-semibold rounded-lg"
+                      onClick={() => setDetailTab("discussion")}
+                    >
+                      <FaCommentDots />
+                    </button>
+                  </div>
                   <p className="text-xs text-gray-400">
                     {/* Hiển thị role, ví dụ: 'Kỹ thuật viên' */}
                     {selectedTicket.assignedTo?.jobTitle === "technical"
@@ -212,14 +227,6 @@ export default function TicketDetail(props) {
               selectedTicket.status === "Processing" ||
               selectedTicket.status === "Done") && (
               <div className="flex flex-row items-center gap-6">
-                <div className="w-full flex flex-row gap-4 items-center justify-center">
-                  <button
-                    className="w-full flex-1 px-4 py-2 bg-[#002855] text-white text-sm font-semibold rounded-lg"
-                    onClick={() => setDetailTab("discussion")}
-                  >
-                    Trao đổi
-                  </button>
-                </div>
                 <div className="w-full">
                   <button
                     className="w-full flex-1 px-4 py-2 bg-red-600 hover:bg-orange-red text-white text-sm font-semibold rounded-lg"
@@ -643,59 +650,235 @@ function DiscussionTab({
   messages,
   newMessage,
   setNewMessage,
-  handleSendMessage,
   currentUser,
+  selectedTicket,
+  fetchTicketById, // hàm này được truyền từ component cha để refetch ticket sau khi gửi tin
 }) {
+  // Ref cho input file, container chat, mỏ neo cuộn
+  const fileInputRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  // State để theo dõi trạng thái gửi và upload
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
+
+  // Hàm cuộn xuống đáy
+  const scrollToBottom = (smooth = true) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: smooth ? "smooth" : "auto",
+      });
+    }
+  };
+
+  // Cuộn xuống đáy khi mount
+  useEffect(() => {
+    scrollToBottom(false);
+  }, []);
+
+  // Cuộn xuống nếu autoScroll được bật
+  useEffect(() => {
+    if (autoScroll) {
+      scrollToBottom();
+    }
+  }, [messages, autoScroll]);
+
+  // Xử lý scroll để xác định người dùng có đang ở gần đáy không
+  const handleScroll = () => {
+    if (!chatContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+    if (scrollHeight - scrollTop - clientHeight < 80) {
+      setAutoScroll(true);
+    } else {
+      setAutoScroll(false);
+    }
+  };
+
+  // Hàm gửi tin nhắn text (với ngăn duplicate)
+  const localHandleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedTicket?._id || isSending) return;
+    setIsSending(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await axios.post(
+        `${API_URL}/tickets/${selectedTicket._id}/messages`,
+        { text: newMessage },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.success) {
+        setNewMessage("");
+        if (fetchTicketById) {
+          await fetchTicketById(selectedTicket._id);
+        }
+      } else {
+        toast.error("Không thể gửi tin nhắn.");
+      }
+    } catch (error) {
+      console.error("Lỗi khi gửi tin nhắn:", error);
+      toast.error("Lỗi khi gửi tin nhắn.");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Hàm mở file dialog
+  const openFileDialog = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Hàm upload file ảnh
+  const handleUploadFile = async (file) => {
+    if (!file || !selectedTicket?._id || isUploading) return;
+    setIsUploading(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await axios.post(
+        `${API_URL}/tickets/${selectedTicket._id}/messages`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.success) {
+        if (fetchTicketById) {
+          await fetchTicketById(selectedTicket._id);
+        }
+        toast.success("Đã upload ảnh!");
+      } else {
+        toast.error("Không thể upload ảnh.");
+      }
+    } catch (error) {
+      console.error("Lỗi upload file:", error);
+      toast.error("Lỗi khi upload file.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Khi người dùng chọn file từ input
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      handleUploadFile(file);
+    }
+  };
+
+  // Drag & Drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleUploadFile(file);
+    }
+  };
+
   return (
-    <div className="bg-white w-full h-full p-4 flex flex-col">
-      <div className="flex-1 mt-2 mb-4 overflow-auto space-y-4">
-        {messages.map((m, idx) => (
-          <div
-            key={idx}
-            className={`flex items-center gap-3 ${
-              m.isSelf ? "justify-end" : "justify-start"
-            }`}
-          >
-            {!m.isSelf && (
-              <img
-                src={m.senderAvatar || "/logo.png"}
-                alt="Avatar"
-                className="w-11 h-11 rounded-full border shadow-md object-cover"
-              />
-            )}
-            <div className="flex flex-col max-w-[70%]">
-              <div
-                className={`px-3 py-2 rounded-lg text-sm ${
-                  m.isSelf
-                    ? "bg-[#E4E9EF] text-[#002147]"
-                    : "bg-[#EBEBEB] text-[#757575]"
-                }`}
-              >
-                {m.text}
+    <div
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      className="bg-white w-full h-full p-4 flex flex-col"
+    >
+      {/* Danh sách tin nhắn */}
+      <div
+        className="flex-1 mt-2 mb-4 overflow-auto space-y-4"
+        ref={chatContainerRef}
+        onScroll={handleScroll}
+      >
+        {(Array.isArray(messages) ? messages : []).map((m, idx) => {
+          const isSelf = m.isSelf;
+          return (
+            <div
+              key={idx}
+              className={`flex items-center gap-3 ${
+                isSelf ? "justify-end" : "justify-start"
+              }`}
+            >
+              {!isSelf && (
+                <img
+                  src={m.senderAvatar || "/default-avatar.png"}
+                  alt="Avatar"
+                  className="w-11 h-11 rounded-full border shadow-md object-cover"
+                />
+              )}
+              <div className="flex flex-col max-w-[70%]">
+                {m.type === "image" ? (
+                  <img
+                    src={m.text}
+                    alt="Uploaded"
+                    className="max-w-xs rounded-lg border shadow-md"
+                  />
+                ) : (
+                  <div
+                    className={`px-3 py-2 rounded-lg text-sm ${
+                      isSelf
+                        ? "bg-[#E4E9EF] text-[#002147]"
+                        : "bg-[#EBEBEB] text-[#757575]"
+                    }`}
+                  >
+                    {m.text}
+                  </div>
+                )}
+                <div className="text-[11px] text-[#757575] mt-1">{m.time}</div>
               </div>
-              <div className="text-[11px] text-[#757575] mt-1">{m.time}</div>
+              {isSelf && (
+                <img
+                  src={m.senderAvatar || "/default-avatar.png"}
+                  alt="Avatar"
+                  className="w-11 h-11 rounded-full border shadow-md object-cover"
+                />
+              )}
             </div>
-            {m.isSelf && (
-              <img
-                src={currentUser?.avatarUrl || "/logo.png"}
-                alt="Avatar"
-                className="w-11 h-11 rounded-full border shadow-md object-cover"
-              />
-            )}
-          </div>
-        ))}
+          );
+        })}
+        <div ref={messagesEndRef} />
       </div>
 
+      {/* Thanh nhập tin nhắn + nút upload */}
       <div className="flex items-center gap-2 mt-auto">
+        {/* Nút Upload file */}
+        <button
+          onClick={openFileDialog}
+          className="bg-gray-200 text-gray-700 p-2 rounded-full flex items-center"
+        >
+          <FaImage size={16} />
+        </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+          accept="image/*"
+        />
+
+        {/* Input text */}
         <input
           type="text"
           placeholder="Nhập tin nhắn..."
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !isSending) {
+              e.preventDefault();
+              localHandleSendMessage();
+            }
+          }}
+          disabled={isSending}
           className="w-full p-2 border-none bg-[#EBEBEB] rounded-full text-sm"
         />
+
+        {/* Nút Gửi */}
         <button
-          onClick={handleSendMessage}
+          onClick={localHandleSendMessage}
           className="bg-[#FF5733] text-white p-2 rounded-full flex items-center"
         >
           <FiSend size={18} />
