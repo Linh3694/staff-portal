@@ -68,6 +68,7 @@ const Dashboard = () => {
   // Mặc định mở nhóm "Workspace" và submenu đầu tiên là "Quản lý thiết bị"
   const [selectedMainMenu, setSelectedMainMenu] = useState("Workspace");
   const [selectedSubMenu, setSelectedSubMenu] = useState("");
+  const [selectedSubMenu, setSelectedSubMenu] = useState("ticket");
 
   // --- State cho các tab con (cho các mục có nhiều tab, ví dụ: Quản lý thiết bị, Quản lý tickets)
   const [activeTab, setActiveTab] = useState("");
