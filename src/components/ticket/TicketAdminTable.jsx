@@ -57,6 +57,7 @@ const TicketAdminTable = ({ currentUser }) => {
 
   // Action user chọn bên trong modal: accept / cancel / transfer
   const [selectedAction, setSelectedAction] = useState("accept");
+  const [cancelReason, setCancelReason] = useState(""); // State for cancel reason
 
   // ---------------------------------------------------------
   // 4. Danh sách người dùng & phân loại
@@ -308,30 +309,39 @@ const TicketAdminTable = ({ currentUser }) => {
 
   // 16b) Hủy
   const handleCancel = async () => {
+    console.log("Hủy ticket:", assignedTicket);
     if (!assignedTicket) return;
+
+    // Kiểm tra nếu không nhập cancelReason
+    if (!cancelReason.trim()) {
+      toast.error("Vui lòng nhập lý do huỷ ticket!");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("authToken");
-      const updatedTicket = {
-        ...assignedTicket,
+      const payload = {
         status: "Cancelled",
-        cancelReason: assignedTicket.cancelReason || "",
+        cancelReason: cancelReason, // Sử dụng cancelReason từ state
       };
-      console.log("[Cancel] Gửi lên server:", updatedTicket);
+      console.log("[Cancel] Gửi lên server:", payload);
 
       const response = await axios.put(
         `${API_URL}/tickets/${assignedTicket._id}`,
-        updatedTicket,
+        payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       if (response.data.success) {
-        toast.success("Đã hủy yêu cầu!");
+        toast.success("Đã huỷ yêu cầu!");
         setAssignedTicket(null);
         fetchTickets();
       } else {
-        toast.error("Hủy yêu cầu thất bại!");
+        toast.error("Huỷ yêu cầu thất bại!");
       }
     } catch (error) {
-      toast.error("Có lỗi xảy ra khi hủy yêu cầu!");
+      console.error("Lỗi khi huỷ yêu cầu:", error);
+      toast.error("Có lỗi xảy ra khi huỷ yêu cầu!");
     }
   };
 

@@ -414,37 +414,40 @@ const Ticket = ({ currentUser }) => {
                     setShowCreateTicket(false);
                   }}
                 >
-                  <div>
+                  <div className="w-full flex-col">
                     <h3 className="text-[#002147] font-semibold">
                       {ticket.title || "Chưa có tiêu đề"}
                     </h3>
-                    <p className="text-[#757575] text-xs mt-2">
-                      {ticket.ticketCode}
-                    </p>
+
+                    <div className="flex flex-row items-center justify-between">
+                      <p className="text-[#757575] text-xs mt-2">
+                        {ticket.ticketCode}
+                      </p>
+                      <span
+                        className={`px-3 py-1 text-xs rounded-lg font-semibold mt-6 ${
+                          ticket.status === "Processing"
+                            ? "bg-[#F5AA1E] text-white"
+                            : ticket.status === "Waiting for Customer"
+                            ? "bg-[#F05023] text-white"
+                            : ticket.status === "Closed"
+                            ? "bg-[#3DB838] text-white"
+                            : "bg-[#002855] text-white"
+                        }`}
+                      >
+                        {ticket.status === "Open"
+                          ? "Chưa nhận"
+                          : ticket.status === "Processing"
+                          ? "Đang xử lý"
+                          : ticket.status === "Assigned"
+                          ? "Đã nhận"
+                          : ticket.status === "Waiting for Customer"
+                          ? "Chờ phản hồi"
+                          : ticket.status === "Closed"
+                          ? "Đóng"
+                          : ticket.status}
+                      </span>
+                    </div>
                   </div>
-                  <span
-                    className={`px-3 py-1 text-xs rounded-lg font-semibold mt-6 ${
-                      ticket.status === "Processing"
-                        ? "bg-[#F5AA1E] text-white"
-                        : ticket.status === "Waiting for Customer"
-                        ? "bg-[#F05023] text-white"
-                        : ticket.status === "Closed"
-                        ? "bg-[#3DB838] text-white"
-                        : "bg-[#002855] text-white"
-                    }`}
-                  >
-                    {ticket.status === "Open"
-                      ? "Chưa nhận"
-                      : ticket.status === "Processing"
-                      ? "Đang xử lý"
-                      : ticket.status === "Assigned"
-                      ? "Đã nhận"
-                      : ticket.status === "Waiting for Customer"
-                      ? "Chờ phản hồi"
-                      : ticket.status === "Closed"
-                      ? "Đóng"
-                      : ticket.status}
-                  </span>
                 </div>
               ))
             )}

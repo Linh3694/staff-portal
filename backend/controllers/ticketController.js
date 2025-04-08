@@ -667,7 +667,7 @@ async function createTicketHelper({ title, description, creatorId, priority, fil
   // 4) Tạo attachments
   const attachments = files.map((file) => ({
     filename: file.originalname,
-    url: `${process.env.BASE_URL}/uploads/Tickets/${file.filename}`,
+    url: `${file.filename}`,
   }));
 
   // 5) Tạo ticket

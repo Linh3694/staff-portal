@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { FiSend } from "react-icons/fi";
 import { FaStar } from "react-icons/fa";
 import { BASE_URL, API_URL } from "../../config";
+import Modal from "react-modal";
 import TechnicalRating from "./TechnicalRating";
 import { FaCommentDots } from "react-icons/fa6";
 import { FaImage } from "react-icons/fa6";
@@ -148,15 +149,15 @@ export default function TicketDetail(props) {
                 className={`text-sm font-semibold px-3 py-1 rounded-full inline-block mt-1 ${
                   selectedTicket.status === "Processing"
                     ? "bg-[#F5AA1E] text-white"
-                    : selectedTicket.status === "Waiting for Customer"
-                    ? "bg-orange-500 text-white"
                     : selectedTicket.status === "Closed"
                     ? "bg-[#3DB838] text-white"
                     : selectedTicket.status === "Assigned"
                     ? "bg-[#002855] text-white"
-                    : selectedTicket.status === "Open"
-                    ? "bg-gray-600 text-white"
-                    : "bg-gray-300 text-black"
+                    : selectedTicket.status === "Done"
+                    ? "bg-[#3DB838] text-white"
+                    : selectedTicket.status === "Cancelled"
+                    ? "bg-orange-red text-white"
+                    : "bg-[#b63737] text-white"
                 }`}
               >
                 {selectedTicket.status === "Open"
@@ -169,6 +170,8 @@ export default function TicketDetail(props) {
                   ? "Chờ phản hồi"
                   : selectedTicket.status === "Closed"
                   ? "Đóng"
+                  : selectedTicket.status === "Cancelled"
+                  ? "Đã huỷ"
                   : selectedTicket.status || "N/A"}
               </span>
             </div>
@@ -229,7 +232,7 @@ export default function TicketDetail(props) {
               <div className="flex flex-row items-center gap-6">
                 <div className="w-full">
                   <button
-                    className="w-full flex-1 px-4 py-2 bg-red-600 hover:bg-orange-red text-white text-sm font-semibold rounded-lg"
+                    className="w-full flex-1 px-4 py-2 bg-orange-red hover:bg-red-600 text-white text-sm font-semibold rounded-lg"
                     onClick={() => setShowCancelModal(true)}
                   >
                     Huỷ Ticket
@@ -243,53 +246,136 @@ export default function TicketDetail(props) {
           {(selectedTicket.status === "Closed" ||
             selectedTicket.status === "Cancelled") && (
             <div className="border-t pt-3 space-y-4">
-              <div className="flex items-center justify-center mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <FaStar
-                    key={i}
-                    className={`text-3xl mx-1 ${
-                      i < props.rating ? "text-yellow-400" : "text-gray-300"
-                    }`}
+              {/* Nếu đã đánh giá (đã có rating) => hiển thị đánh giá dưới dạng chỉ đọc */}
+              {selectedTicket.feedback?.rating ? (
+                <div>
+                  {/* Hiển thị số sao (chỉ đọc) */}
+                  <div className="flex items-center justify-center mb-2">
+                    {[...Array(5)].map((_, i) => (
+                      <FaStar
+                        key={i}
+                        className={`text-3xl mx-1 ${
+                          i < props.rating ? "text-yellow-400" : "text-gray-300"
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Comment (chỉ đọc) */}
+                  <textarea
+                    placeholder="Hãy viết nhận xét của bạn..."
+                    value={props.review}
+                    disabled
+                    className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
                   />
-                ))}
-              </div>
-              <textarea
-                placeholder="Hãy viết nhận xét của bạn..."
-                value={props.review}
-                disabled
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
-              />
-              <div className="flex flex-wrap gap-2 my-2">
-                {[
-                  "Nhiệt Huyết",
-                  "Chu Đáo",
-                  "Vui Vẻ",
-                  "Tận Tình",
-                  "Chuyên Nghiệp",
-                ].map((badge) => {
-                  const isSelected = props.selectedBadges?.includes(badge);
-                  return (
-                    <span
-                      key={badge}
-                      className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                        isSelected
-                          ? "bg-[#002855] text-white"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
+
+                  {/* Huy hiệu (chỉ xem) */}
+                  <div className="flex flex-wrap gap-2 my-2">
+                    {[
+                      "Nhiệt Huyết",
+                      "Chu Đáo",
+                      "Vui Vẻ",
+                      "Tận Tình",
+                      "Chuyên Nghiệp",
+                    ].map((badge) => {
+                      const isSelected = props.selectedBadges?.includes(badge);
+                      return (
+                        <span
+                          key={badge}
+                          className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                            isSelected
+                              ? "bg-[#002855] text-white"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {badge}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {/* Nút "Đã đánh giá" (chỉ đọc) */}
+                  <div className="flex items-center justify-center">
+                    <button
+                      disabled
+                      className="mt-2 px-3 py-1 bg-gray-300 text-white text-sm font-semibold rounded-lg transition w-full cursor-not-allowed"
                     >
-                      {badge}
-                    </span>
-                  );
-                })}
-              </div>
-              <div className="flex items-center justify-center">
-                <button
-                  disabled
-                  className="mt-2 px-3 py-1 bg-gray-300 text-white text-sm font-semibold rounded-lg transition w-full cursor-not-allowed"
-                >
-                  Đã đánh giá
-                </button>
-              </div>
+                      Đã đánh giá
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Chưa đánh giá => cho phép người dùng đánh giá */
+                <div>
+                  {/* Dải sao (clickable) */}
+                  <div className="flex items-center justify-center mb-2">
+                    {[...Array(5)].map((_, i) => (
+                      <FaStar
+                        key={i}
+                        onClick={() => props.setRating(i + 1)} // Cho phép click để setRating
+                        className={`cursor-pointer text-3xl mx-1 ${
+                          i < props.rating ? "text-yellow-400" : "text-gray-300"
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Textarea nhập nhận xét (có thể chỉnh sửa) */}
+                  <textarea
+                    placeholder="Hãy viết nhận xét của bạn..."
+                    value={props.review}
+                    onChange={(e) => props.setReview(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                  />
+
+                  {/* Chọn huy hiệu */}
+                  <div className="flex flex-wrap gap-2 my-2">
+                    {[
+                      "Nhiệt Huyết",
+                      "Chu Đáo",
+                      "Vui Vẻ",
+                      "Tận Tình",
+                      "Chuyên Nghiệp",
+                    ].map((badge) => {
+                      const isSelected = props.selectedBadges?.includes(badge);
+                      return (
+                        <span
+                          key={badge}
+                          onClick={() => {
+                            if (isSelected) {
+                              props.setSelectedBadges((prev) =>
+                                prev.filter((b) => b !== badge)
+                              );
+                            } else {
+                              props.setSelectedBadges((prev) => [
+                                ...prev,
+                                badge,
+                              ]);
+                            }
+                          }}
+                          className={`cursor-pointer text-xs font-semibold px-3 py-1 rounded-full ${
+                            isSelected
+                              ? "bg-[#002855] text-white"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {badge}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {/* Nút Gửi đánh giá */}
+                  <div className="flex items-center justify-center">
+                    <button
+                      onClick={props.handleFeedback}
+                      className="mt-2 px-3 py-1 bg-[#002855] text-white text-sm font-semibold rounded-lg transition w-full"
+                    >
+                      Gửi đánh giá
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -299,6 +385,7 @@ export default function TicketDetail(props) {
 }
 
 function RequestTab({ selectedTicket }) {
+  const [previewImage, setPreviewImage] = useState(null);
   return (
     <div className="w-full h-full p-4 flex flex-col gap-3">
       {/* Tiêu đề */}
@@ -325,9 +412,12 @@ function RequestTab({ selectedTicket }) {
             {selectedTicket.attachments.map((item, index) => (
               <img
                 key={index}
-                src={item.url}
+                src={`${BASE_URL}/uploads/Tickets/${item.url}`}
                 alt={item.filename || `attachment-${index}`}
-                className="w-[120px] h-[120px] object-cover rounded-lg border shadow-sm"
+                onClick={() =>
+                  setPreviewImage(`${BASE_URL}/uploads/Tickets/${item.url}`)
+                }
+                className="w-[120px] h-[120px] object-cover rounded-lg border shadow-sm cursor-pointer hover:opacity-80 transition"
               />
             ))}
           </div>
@@ -335,6 +425,22 @@ function RequestTab({ selectedTicket }) {
           <p className="text-gray-500 text-sm">Không có ảnh đính kèm.</p>
         )}
       </div>
+      {previewImage && (
+        <Modal
+          isOpen={!!previewImage}
+          onRequestClose={() => setPreviewImage(null)}
+          className="flex items-center justify-center p-4"
+          overlayClassName="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+        >
+          <div className="relative max-w-3xl max-h-[80vh] ">
+            <img
+              src={previewImage}
+              alt="Preview"
+              className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+            />
+          </div>
+        </Modal>
+      )}
 
       {/* Ghi chú */}
       <div className="h-1/4 overflow-y-hidden hover:overflow-y-auto">
@@ -381,10 +487,15 @@ function ProgressTab({
           let bg = "bg-[#757575]";
           let textColor = "text-gray-400";
 
-          if (index < currentIndex) {
+          // Nếu ticket đang ở trạng thái Huỷ và phần tử hiện tại chính là phần Huỷ, đặt màu đỏ.
+          if (selectedTicket.status === "Cancelled" && s.key === "Cancelled") {
+            bg = "bg-orange-red";
+            textColor = "text-red-500";
+          } else if (index < currentIndex) {
             bg = "bg-[#3DB838]";
             textColor = "text-green-700";
           } else if (index === currentIndex) {
+            // Nếu trạng thái hiện tại không phải Huỷ, dùng màu vàng như cũ
             bg = "bg-[#F5AA1E]";
             textColor = "text-[#F5AA1E]";
           }
@@ -398,7 +509,9 @@ function ProgressTab({
                 src={s.icon}
                 alt={s.label}
                 className={`w-6 h-6 ${
-                  textColor === "text-green-700"
+                  selectedTicket.status === "Cancelled" && s.key === "Cancelled"
+                    ? "filter-red"
+                    : textColor === "text-green-700"
                     ? "filter-green"
                     : textColor === "text-[#F5AA1E]"
                     ? "filter-yellow"
@@ -517,6 +630,18 @@ function ProgressTab({
               </p>
             )}
           </>
+        )}
+
+        {/* Phần hiển thị khi ticket bị huỷ */}
+        {selectedTicket.status === "Cancelled" && (
+          <div className="space-y-4">
+            <div className="bg-orange-red bg-opacity-10 p-4 rounded-xl">
+              <p className="text-red-500 font-bold mb-2">Lý do huỷ ticket:</p>
+              <p className="text-red-500">
+                {selectedTicket.cancellationReason}
+              </p>
+            </div>
+          </div>
         )}
 
         {/* Phần Done */}

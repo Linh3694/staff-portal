@@ -381,3 +381,7 @@ code {
 .filter-gray {
   filter: brightness(0) saturate(100%) invert(76%) sepia(0%) saturate(2%) hue-rotate(198deg) brightness(92%) contrast(87%);
 }
+
+.filter-red {
+  filter: invert(27%) sepia(97%) saturate(4992%) hue-rotate(350deg) brightness(80%) contrast(110%);
+}

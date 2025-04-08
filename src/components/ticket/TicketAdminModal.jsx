@@ -6,6 +6,7 @@ import { API_URL, BASE_URL } from "../../config";
 import { toast } from "react-toastify";
 import TechnicalRating from "./TechnicalRating";
 import { FaArrowRightArrowLeft, FaImage } from "react-icons/fa6";
+import Modal from "react-modal";
 
 export default function TicketAdminModal({
   ticket,
@@ -26,7 +27,7 @@ export default function TicketAdminModal({
     setTicketStatus(ticket.status);
   }, [ticket.status]);
   const [ticketStatus, setTicketStatus] = useState(ticket.status);
-  // Tab “Yêu cầu”
+  // Tab "Yêu cầu"
 
   // State cho swap
   const [showSwapModal, setShowSwapModal] = useState(false);
@@ -111,6 +112,8 @@ export default function TicketAdminModal({
   }, [ticket]);
 
   const RequestTab = () => {
+    const [previewImage, setPreviewImage] = useState(null);
+
     return (
       <div className="w-full h-full p-4 flex flex-col gap-3 overflow-y-auto">
         {/* Mô tả chi tiết */}
@@ -129,8 +132,11 @@ export default function TicketAdminModal({
               {ticket.attachments.map((item, index) => (
                 <img
                   key={index}
-                  src={item.url}
+                  src={`${BASE_URL}/uploads/Tickets/${item.url}`}
                   alt={item.filename || `attachment-${index}`}
+                  onClick={() =>
+                    setPreviewImage(`${BASE_URL}/uploads/Tickets/${item.url}`)
+                  }
                   className="w-[120px] h-[120px] object-cover rounded-lg border shadow-sm"
                 />
               ))}
@@ -139,6 +145,22 @@ export default function TicketAdminModal({
             <p className="text-gray-500 text-sm">Không có ảnh đính kèm.</p>
           )}
         </div>
+        {previewImage && (
+          <Modal
+            isOpen={!!previewImage}
+            onRequestClose={() => setPreviewImage(null)}
+            className="flex items-center justify-center p-4"
+            overlayClassName="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+          >
+            <div className="relative max-w-3xl max-h-[80vh] ">
+              <img
+                src={previewImage}
+                alt="Preview"
+                className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+              />
+            </div>
+          </Modal>
+        )}
 
         {/* Ghi chú */}
         <div>
@@ -335,13 +357,13 @@ export default function TicketAdminModal({
               className="w-full p-2 border-none bg-[#EBEBEB] rounded-xl"
             />
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (!cancelReason.trim()) {
                   toast.error("Vui lòng nhập lý do huỷ.");
                   return;
                 }
                 // Cập nhật trạng thái sang Cancelled
-                handleUpdateStatus("Cancelled", cancelReason);
+                await handleUpdateStatus("Cancelled", cancelReason);
                 setLocalTicketStatus("Cancelled");
                 setShowCancelReasonInput(false);
               }}
@@ -361,6 +383,16 @@ export default function TicketAdminModal({
             </button>
           </div>
         )}
+
+        {localTicketStatus === "Cancelled" &&
+          localTicket?.cancellationReason && (
+            <div className="bg-orange-red bg-opacity-10 p-3 rounded-xl mt-3">
+              <p className="text-red-500 font-bold">Lý do huỷ ticket:</p>
+              <p className="text-red-500 font-semiold">
+                {localTicket.cancellationReason}
+              </p>
+            </div>
+          )}
 
         {/* DANH SÁCH SUBTASK */}
         <div className="w-full flex flex-row items-start justify-start gap-2">
@@ -496,7 +528,7 @@ export default function TicketAdminModal({
 
   // ========== ProgressTab Code Kết Thúc ==========
 
-  // Tab “Trao đổi”
+  // Tab "Trao đổi"
   const DiscussionTab = ({ ticket, currentUser, messages, setMessages }) => {
     // Input text
     const [localMessage, setLocalMessage] = useState("");
@@ -732,6 +764,32 @@ export default function TicketAdminModal({
         </div>
       </div>
     );
+  };
+
+  // Thêm hàm xử lý huỷ ticket
+  const handleCancelTicketLocal = async () => {
+    if (!cancelReason.trim()) {
+      toast.error("Vui lòng nhập lý do huỷ ticket.");
+      return;
+    }
+    try {
+      const res = await axios.put(
+        `${API_URL}/tickets/${ticket._id}`,
+        { status: "Cancelled", cancellationReason: cancelReason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.success) {
+        toast.success("Ticket đã được huỷ.");
+        setShowCancelModal(false);
+        setCancelReason("");
+        await fetchTicketById(ticket._id);
+      } else {
+        toast.error("Lỗi khi huỷ ticket.");
+      }
+    } catch (error) {
+      console.error("Error cancelling ticket:", error);
+      toast.error("Lỗi khi huỷ ticket.");
+    }
   };
 
   return (
@@ -1043,7 +1101,7 @@ export default function TicketAdminModal({
                       </button>
                       <button
                         className="px-4 py-2 bg-red-600 text-white rounded-lg"
-                        onClick={handleCancelTicket}
+                        onClick={handleCancelTicketLocal}
                       >
                         Xác nhận huỷ
                       </button>

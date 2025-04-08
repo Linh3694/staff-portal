@@ -83,7 +83,7 @@ const Sidebar = ({
         {
           label: "Quản lý Tickets",
           icon: <FiClipboard size={16} />,
-          link: "/dashboard/tickets",
+          link: "/dashboard/ticketsadmin",
           allowedRoles: ["superadmin", "admin", "technical"],
         },
         {
@@ -113,7 +113,7 @@ const Sidebar = ({
         {
           label: "Quản lý Bus",
           icon: <FaBus size={16} />,
-          link: "/dashboard/bus-service",
+          link: "/dashboard/bus",
           allowedRoles: ["superadmin", "admin", "technical"],
         },
         {
