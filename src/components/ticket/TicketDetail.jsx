@@ -30,7 +30,7 @@ export default function TicketDetail(props) {
     setShowCancelModal,
     fetchTicketById,
   } = props;
-
+  console.log("selectedTicket", selectedTicket);
   const [detailTab, setDetailTab] = useState("request");
 
   useEffect(() => {
@@ -197,15 +197,15 @@ export default function TicketDetail(props) {
                 <img
                   src={`${BASE_URL}/uploads/Avatar/${selectedTicket.assignedTo?.avatarUrl}`}
                   alt="Avatar"
-                  className="w-20 h-20 rounded-xl object-cover border"
+                  className="w-20 h-20 rounded-xl object-cover object-top border"
                 />
                 <div>
-                  <div className="w-full flex flex-row gap-4 items-center justify-center">
+                  <div className="w-full flex flex-row gap-4 items-center justify-start">
                     <p className="text-base font-semibold">
                       {selectedTicket.assignedTo?.fullname || "Chưa có"}
                     </p>
                     <button
-                      className="w-full flex-1 px-2 py-1 bg-[#002855] text-white text-sm font-semibold rounded-lg"
+                      className="flex px-2 py-2 bg-[#002855] text-white text-sm font-semibold rounded-lg"
                       onClick={() => setDetailTab("discussion")}
                     >
                       <FaCommentDots />
@@ -805,9 +805,9 @@ function DiscussionTab({
             >
               {!isSelf && (
                 <img
-                  src={m.senderAvatar || "/default-avatar.png"}
+                  src={m.senderAvatar}
                   alt="Avatar"
-                  className="w-11 h-11 rounded-full border shadow-md object-cover"
+                  className="w-11 h-11 rounded-full border shadow-md object-cover object-top"
                 />
               )}
               <div className="flex flex-col max-w-[70%]">
@@ -834,7 +834,7 @@ function DiscussionTab({
                 <img
                   src={m.senderAvatar || "/default-avatar.png"}
                   alt="Avatar"
-                  className="w-11 h-11 rounded-full border shadow-md object-cover"
+                  className="w-11 h-11 rounded-full border shadow-md object-cover  object-top"
                 />
               )}
             </div>

@@ -36,7 +36,8 @@ import LibraryManagement from "../components/library/libraryManagement";
 
 const urlToMenu = {
   devices: "Quản lý thiết bị",
-  tickets: "Quản lý Tickets",
+  ticket: "Tickets",
+  ticketsadmin: "Quản lý Tickets",
   documents: "Quản lý tài liệu",
   flippageadmin: "Phần mềm lật trang",
   profile: "Hồ sơ cá nhân",
@@ -67,8 +68,7 @@ const Dashboard = () => {
   // --- State của Sidebar: menu chính và submenu được chọn
   // Mặc định mở nhóm "Workspace" và submenu đầu tiên là "Quản lý thiết bị"
   const [selectedMainMenu, setSelectedMainMenu] = useState("Workspace");
-  const [selectedSubMenu, setSelectedSubMenu] = useState("");
-  const [selectedSubMenu, setSelectedSubMenu] = useState("ticket");
+  const [selectedSubMenu, setSelectedSubMenu] = useState("Tickets");
 
   // --- State cho các tab con (cho các mục có nhiều tab, ví dụ: Quản lý thiết bị, Quản lý tickets)
   const [activeTab, setActiveTab] = useState("");
@@ -108,6 +108,10 @@ const Dashboard = () => {
       { label: "Quản lý Sách", param: "library-books" },
       { label: "Báo Cáo", param: "library-report" },
     ],
+    "Quản lý tài liệu": [
+      { label: "Tài liệu", param: "document" },
+      { label: "Báo cáo", param: "report" },
+    ],
   };
 
   useEffect(() => {
@@ -130,7 +134,7 @@ const Dashboard = () => {
       setSelectedSubMenu(urlToMenu[mainKey]);
     } else {
       // Nếu không map được => submenu rỗng
-      setSelectedSubMenu("");
+      setSelectedSubMenu("Tickets");
     }
 
     // Nếu URL có param

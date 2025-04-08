@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FiSearch } from "react-icons/fi";
 import { FaFilter } from "react-icons/fa6";
-import { API_URL } from "../../config";
+import { API_URL, BASE_URL } from "../../config";
 import { toast } from "react-toastify";
 
 // Import 2 file tách riêng
@@ -295,7 +295,9 @@ const Ticket = ({ currentUser }) => {
         text: m.text,
         sender: m.sender?.fullname || "N/A",
         senderId: m.sender?._id,
-        senderAvatar: m.sender?.avatarUrl ? "" : "/default-avatar.png",
+        senderAvatar: m.sender?.avatarUrl
+          ? `${BASE_URL}/uploads/Avatar/${m.sender.avatarUrl}`
+          : "/default-avatar.png",
         time: new Date(m.timestamp).toLocaleString("vi-VN"),
         isSelf: m.sender?._id === currentUser?.id,
         type: m.type || "text",
