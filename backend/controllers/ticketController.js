@@ -1,10 +1,6 @@
 const Ticket = require("../models/Ticket");
 const User = require("../models/Users"); // Import model User nếu chưa import
-const {
-  getSupportTeamMembers,
-  addMemberToSupportTeam,
-  removeMemberFromSupportTeam,
-} = require("../models/supportTeamService");
+const SupportTeam = require("../models/SupportTeam");
 
 
 function getVNTimeString() {
@@ -35,7 +31,6 @@ function translateStatus(status) {
     "Done": "Hoàn thành",
     "Cancelled": "Đã huỷ",
     "Waiting for Customer": "Chờ phản hồi",
-    "Open": "Chưa nhận",
     "Closed": "Đã đóng",
   };
 
@@ -345,7 +340,7 @@ exports.escalateTicket = async (req, res) => {
 // f) SLA checking (cron job)
 exports.checkSLA = async () => {
   const tickets = await Ticket.find({
-    status: { $in: ["Open", "In Progress"] },
+    status: { $in: ["In Progress"] },
     sla: { $lt: new Date() },
   });
 
@@ -581,10 +576,10 @@ exports.getSubTasksByTicket = async (req, res) => {
   }
 };
 
-// Lấy supportTeam (sử dụng ticket đầu tiên)
+// Lấy supportTeam
 exports.getSupportTeam = async (req, res) => {
   try {
-    const result = await getSupportTeamMembers();
+    const result = await SupportTeam.getSupportTeamMembers();
     res.status(200).json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -595,7 +590,7 @@ exports.getSupportTeam = async (req, res) => {
 exports.addUserToSupportTeam = async (req, res) => {
   try {
     const { userId } = req.body;
-    const message = await addMemberToSupportTeam(userId);
+    const message = await SupportTeam.addMember(userId);
     res.status(200).json({ success: true, message });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -606,7 +601,7 @@ exports.addUserToSupportTeam = async (req, res) => {
 exports.removeUserFromSupportTeam = async (req, res) => {
   try {
     const { userId } = req.body;
-    const message = await removeMemberFromSupportTeam(userId, req.user);
+    const message = await SupportTeam.removeMember(userId, req.user);
     res.status(200).json({ success: true, message });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });

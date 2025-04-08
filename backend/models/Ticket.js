@@ -16,8 +16,6 @@ const subTaskSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
-
-
 const ticketSchema = new mongoose.Schema(
     {
       ticketCode: {
@@ -39,12 +37,8 @@ const ticketSchema = new mongoose.Schema(
       },
       creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
       assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Nhân viên hỗ trợ
-      supportTeam: { 
-        name: { type: String, default: "IT Support Team" },
-        members: [
-        { type: mongoose.Schema.Types.ObjectId, ref: "User" }
-      ],
-      }, 
+     
+      
       sla: {
         type: Date, // Hạn chót (deadline) dựa trên priority
       },
