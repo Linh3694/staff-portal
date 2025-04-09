@@ -414,9 +414,10 @@ const Profile = ({ userId, onBack }) => {
                         >
                           <option value="user">User</option>
                           <option value="marcom">Marcom</option>
-                          <option value="bos">BOS</option>
+                          <option value="bos">Ban Đào Tạo</option>
+                          <option value="admission">Tuyển Sinh</option>
                           <option value="hr">HR</option>
-                          <option value="technical">Technical</option>
+                          <option value="technical">IT</option>
                           <option value="admin">Admin</option>
                           <option value="superadmin">Super Admin</option>
                         </select>

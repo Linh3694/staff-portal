@@ -364,7 +364,7 @@ const LaptopProductCard = ({
 
     // Cập nhật state ngay lập tức để phản ánh trên UI (optimistic update)
     setLocalLaptop(updatedLaptop);
-    fetchLaptopDetails(laptopData._id);
+    // fetchLaptopDetails(laptopData._id); // <-- Removed
     setEditField(null);
     setEditValue("");
 
@@ -383,7 +383,7 @@ const LaptopProductCard = ({
       })
       .then((response) => {
         toast.success("Cập nhật thông số thành công!");
-
+        onUpdateLaptop(updatedLaptop);
         // Cập nhật lại dữ liệu từ server nếu cần
         setLocalLaptop((prevLaptop) => ({
           ...prevLaptop,

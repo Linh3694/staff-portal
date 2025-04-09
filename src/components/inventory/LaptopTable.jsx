@@ -7,7 +7,6 @@ import LaptopProductCard from "./productcard/laptopProductCard";
 import * as XLSX from "xlsx";
 import ReactDOM from "react-dom";
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
-import Dropdown from "../function/dropdown";
 import { API_URL } from "../../config"; // import từ file config
 import _ from "lodash"; // hoặc import debounce trực tiếp: import { debounce } from 'lodash';
 import { FaFilter, FaAngleLeft, FaAngleRight } from "react-icons/fa6";
@@ -62,14 +61,6 @@ const LaptopTable = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [parsedData, setParsedData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedOption, setSelectedOption] = useState("Tất cả trạng thái");
-  const [selectedDepartment, setSelectedDepartment] =
-    useState("Tất cả phòng ban");
-  const [selectedManufacturer, setSelectedManufacturer] = useState(
-    "Tất cả nhà sản xuất"
-  );
-  const [selectedYear, setSelectedYear] = useState("Tất cả năm sản xuất");
-  const [selectedType, setSelectedType] = useState("Tất cả"); // Mặc định là Tất cả
   const [rooms, setRooms] = useState([]); // Lưu danh sách rooms từ API
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -81,11 +72,11 @@ const LaptopTable = () => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [activeSubFilter, setActiveSubFilter] = useState(null);
   const [filters, setFilters] = useState({
-    type: "All", // hoặc "Laptop", "Desktop", ...
-    status: "All",
-    year: "All",
-    manufacturer: "All",
-    department: "All",
+    type: [], // hoặc "Laptop", "Desktop", ...
+    status: [],
+    year: [],
+    manufacturer: [],
+    department: [],
   });
   const filterPanelRef = useRef(null);
 
@@ -152,6 +143,30 @@ const LaptopTable = () => {
     }
   }, [filters, setSearchParams /* BỎ searchParams */]);
 
+  useEffect(() => {
+    const yearParam = searchParams.get("year");
+    const manufacturerParam = searchParams.get("manufacturer");
+    const departmentParam = searchParams.get("department");
+
+    const parseParamArray = (param) =>
+      param ? param.split(",").filter((v) => v && v !== "All") : [];
+
+    setFilters({
+      status: parseParamArray(searchParams.get("status")),
+      type: parseParamArray(searchParams.get("type")),
+      year: parseParamArray(searchParams.get("year")),
+      manufacturer: parseParamArray(searchParams.get("manufacturer")),
+      department: parseParamArray(searchParams.get("department")),
+    });
+
+    // Cập nhật UI filter (nếu bạn có selectedYears, selectedDepartments, etc.)
+    setSelectedYears(yearParam ? yearParam.split(",") : []);
+    setSelectedManufacturers(
+      manufacturerParam ? manufacturerParam.split(",") : []
+    );
+    setSelectedDepartments(departmentParam ? departmentParam.split(",") : []);
+  }, []);
+
   const statusLabels = {
     Active: "Đang sử dụng",
     Standby: "Chờ Cấp Phát",
@@ -159,32 +174,56 @@ const LaptopTable = () => {
     PendingDocumentation: "Đã bàn giao - Chưa có biên bản", // Thêm trạng thái mới
   };
 
-  const handleUpdateSpecs = (laptopId, updatedSpecs) => {
+  const handleUpdateSpecs = async (laptopId, updatedSpecs) => {
     const token = localStorage.getItem("authToken");
-    return axios
-      .put(`${API_URL}/laptops/${laptopId}/specs`, updatedSpecs, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((response) => {
-        const updatedLaptop = response.data;
-        if (selectedLaptop && selectedLaptop._id === updatedLaptop._id) {
-          setSelectedLaptop(updatedLaptop);
+    try {
+      // 1) Gọi API PUT để server cập nhật
+      const response = await axios.put(
+        `${API_URL}/laptops/${laptopId}/specs`,
+        updatedSpecs,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         }
-        return updatedLaptop;
-      })
-      .catch((error) => {
-        console.error("Lỗi cập nhật specs:", error);
-        throw error;
-      });
+      );
+      // 2) Server trả về laptop đã cập nhật
+      const updatedLaptop = response.data;
+
+      // 3) Nếu laptop này đang mở modal (selectedLaptop), cập nhật luôn cho đồng bộ
+      if (selectedLaptop && selectedLaptop._id === updatedLaptop._id) {
+        setSelectedLaptop(updatedLaptop);
+      }
+
+      // 4) Thay thế laptop cũ bằng `updatedLaptop` trong **mọi** mảng state cục bộ
+      setOriginalData((prev) =>
+        prev.map((lap) => (lap._id === updatedLaptop._id ? updatedLaptop : lap))
+      );
+      setFilteredData((prev) =>
+        prev.map((lap) => (lap._id === updatedLaptop._id ? updatedLaptop : lap))
+      );
+      setData((prev) =>
+        prev.map((lap) => (lap._id === updatedLaptop._id ? updatedLaptop : lap))
+      );
+
+      // 5) (Tuỳ chọn) Gọi lại hàm applyFilters(...) nếu bạn muốn kiểm tra
+      //    trường hợp laptop cập nhật xong có còn khớp filter hiện tại hay không.
+      applyFilters(filters); // Nếu cần thì mở comment
+
+      return updatedLaptop;
+    } catch (error) {
+      console.error("Lỗi cập nhật specs:", error);
+      throw error;
+    }
   };
+
   const handleViewDetails = (laptop) => {
     setSelectedLaptop(laptop); // Chỉ truyền dữ liệu xuống LaptopProductCard
     setRefreshKey((prevKey) => prevKey + 1); // Tăng giá trị để ép render
     setShowDetailModal(true);
   };
+
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("authToken");
@@ -283,18 +322,22 @@ const LaptopTable = () => {
   const applyFilters = (filters = {}) => {
     let filtered = [...originalData];
 
-    if (filters.status && filters.status !== "All") {
-      filtered = filtered.filter((item) => item.status === filters.status);
+    // 1) Lọc theo status
+    //   => Nếu filters.status có phần tử => for “OR” logic
+    if (Array.isArray(filters.status) && filters.status.length > 0) {
+      filtered = filtered.filter((item) =>
+        filters.status.includes(item.status)
+      );
     }
 
-    if (filters.type && filters.type !== "All" && filters.type !== "All") {
-      filtered = filtered.filter((item) => item.type === filters.type);
+    // 2) Lọc theo type
+    //   => nếu mảng rỗng => bỏ qua => tương đương “All”
+    if (Array.isArray(filters.type) && filters.type.length > 0) {
+      filtered = filtered.filter((item) => filters.type.includes(item.type));
     }
 
-    // Lọc theo nhà sản xuất
+    // 3) Lọc theo manufacturer
     if (
-      filters.manufacturer &&
-      filters.manufacturer !== "All" &&
       Array.isArray(filters.manufacturer) &&
       filters.manufacturer.length > 0
     ) {
@@ -303,40 +346,35 @@ const LaptopTable = () => {
       );
     }
 
-    if (
-      filters.year &&
-      filters.year !== "All" &&
-      Array.isArray(filters.year) &&
-      filters.year.length > 0
-    ) {
+    // 4) Lọc theo năm (year)
+    if (Array.isArray(filters.year) && filters.year.length > 0) {
+      // item.releaseYear có thể là number => ép so sánh bằng string
       filtered = filtered.filter((item) =>
-        filters.year.includes(item.releaseYear)
+        filters.year.includes(String(item.releaseYear))
       );
     }
 
-    // Lọc theo phòng ban
-    if (
-      filters.department &&
-      filters.department !== "All" &&
-      Array.isArray(filters.department) &&
-      filters.department.length > 0
-    ) {
+    // 5) Lọc theo phòng ban (department)
+    if (Array.isArray(filters.department) && filters.department.length > 0) {
       filtered = filtered.filter(
         (item) =>
+          // Kiểm tra user.department
           item.assigned.some((user) =>
             filters.department.includes(user.department)
           ) ||
+          // Kiểm tra room.location
           (item.room?.location || []).some((loc) =>
             filters.department.includes(loc)
           )
       );
     }
-    setFilteredData(filtered);
 
+    // Cập nhật state
+    setFilteredData(filtered);
     const newTotalPages = Math.ceil(filtered.length / 30);
     setTotalPages(newTotalPages);
     setCurrentPage(1);
-    setData(filtered.slice(0, 30)); // Hiển thị trang đầu (chỉ 30 items)
+    setData(filtered.slice(0, 30)); // Trang đầu, 30 items
   };
 
   const handlePageChange = (newPage) => {
@@ -501,11 +539,20 @@ const LaptopTable = () => {
       return;
     }
 
-    setData((prevData) =>
-      prevData.map((laptop) =>
-        laptop && laptop._id === updatedLaptop._id ? updatedLaptop : laptop
-      )
+    // B1) Thay thế laptop cũ trong mọi mảng state
+    setOriginalData((prev) =>
+      prev.map((l) => (l._id === updatedLaptop._id ? updatedLaptop : l))
     );
+    setFilteredData((prev) =>
+      prev.map((l) => (l._id === updatedLaptop._id ? updatedLaptop : l))
+    );
+    setData((prev) =>
+      prev.map((l) => (l._id === updatedLaptop._id ? updatedLaptop : l))
+    );
+
+    // B2) (Tuỳ chọn) Gọi lại applyFilters nếu muốn đảm bảo
+    // laptop vẫn khớp với filter hiện tại (nhất là khi status bị thay đổi).
+    applyFilters(filters);
   };
 
   const handleUpdateRoom = (updatedLaptop) => {
@@ -1074,11 +1121,11 @@ const LaptopTable = () => {
                     <button
                       onClick={() => {
                         setFilters({
-                          type: "All",
-                          status: "All",
-                          year: "All",
-                          manufacturer: "All",
-                          department: "All",
+                          type: [],
+                          status: [],
+                          year: [],
+                          manufacturer: [],
+                          department: [],
                         });
                         setSelectedYears([]);
                         setSelectedManufacturers([]);
@@ -1099,7 +1146,10 @@ const LaptopTable = () => {
                           Loại thiết bị
                         </span>
                         <span className="font-semibold text-gray-500">
-                          {filters.type === "All" ? "Tất cả" : filters.type}
+                          {Array.isArray(filters.type) &&
+                          filters.type.length > 0
+                            ? filters.type.join(", ")
+                            : "Tất cả"}
                         </span>
                       </div>
                       <FaAngleRight className="ml-2 text-gray-300" />
@@ -1113,9 +1163,10 @@ const LaptopTable = () => {
                           Tình trạng
                         </span>
                         <span className="font-semibold text-gray-500">
-                          {filters.status === "All"
-                            ? "Tất cả"
-                            : statusLabels[filters.status] || filters.status}
+                          {Array.isArray(filters.status) &&
+                          filters.type.length > 0
+                            ? filters.type.join(", ")
+                            : "Tất cả"}
                         </span>
                       </div>
                       <FaAngleRight className="ml-2 text-gray-300" />
@@ -1219,7 +1270,10 @@ const LaptopTable = () => {
                             value="Laptop"
                             checked={filters.type === "Laptop"}
                             onChange={() =>
-                              setFilters({ ...filters, type: "Laptop" })
+                              setFilters((prev) => ({
+                                ...prev,
+                                type: ["Laptop"],
+                              }))
                             }
                             className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
                           />
@@ -1232,7 +1286,10 @@ const LaptopTable = () => {
                             value="Desktop"
                             checked={filters.type === "Desktop"}
                             onChange={() =>
-                              setFilters({ ...filters, type: "Desktop" })
+                              setFilters((prev) => ({
+                                ...prev,
+                                type: ["Desktop"],
+                              }))
                             }
                             className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
                           />
@@ -1273,7 +1330,10 @@ const LaptopTable = () => {
                             value="Active"
                             checked={filters.status === "Active"}
                             onChange={() =>
-                              setFilters({ ...filters, status: "Active" })
+                              setFilters((prev) => ({
+                                ...prev,
+                                status: ["Active"],
+                              }))
                             }
                             className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
                           />
@@ -1286,10 +1346,10 @@ const LaptopTable = () => {
                             value="PendingDocumentation"
                             checked={filters.status === "PendingDocumentation"}
                             onChange={() =>
-                              setFilters({
-                                ...filters,
-                                status: "PendingDocumentation",
-                              })
+                              setFilters((prev) => ({
+                                ...prev,
+                                status: ["PendingDocumentation"],
+                              }))
                             }
                             className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
                           />
@@ -1302,7 +1362,10 @@ const LaptopTable = () => {
                             value="Standby"
                             checked={filters.status === "Standby"}
                             onChange={() =>
-                              setFilters({ ...filters, status: "Standby" })
+                              setFilters((prev) => ({
+                                ...prev,
+                                status: ["Standby"],
+                              }))
                             }
                             className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
                           />
@@ -1315,7 +1378,10 @@ const LaptopTable = () => {
                             value="Broken"
                             checked={filters.status === "Broken"}
                             onChange={() =>
-                              setFilters({ ...filters, status: "Broken" })
+                              setFilters((prev) => ({
+                                ...prev,
+                                status: ["Broken"],
+                              }))
                             }
                             className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
                           />

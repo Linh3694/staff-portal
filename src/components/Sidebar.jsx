@@ -182,6 +182,23 @@ const Sidebar = ({
       ],
     },
     {
+      title: "Workspace",
+      allowedRoles: ["admission"],
+      subItems: [
+        {
+          label: "Tickets",
+          icon: <LuTicketSlash size={16} />,
+          link: "/dashboard/ticket",
+        },
+        {
+          label: "Phần mềm lật trang",
+          icon: <IoDocuments size={16} />,
+          link: "/dashboard/flippageadmin",
+          allowedRoles: ["superadmin", "admin", "marcom"],
+        },
+      ],
+    },
+    {
       title: "Settings",
       allowedRoles: ["superadmin", "admin"],
       subItems: [

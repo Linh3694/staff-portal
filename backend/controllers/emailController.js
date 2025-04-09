@@ -115,7 +115,8 @@ exports.fetchEmailsAndCreateTickets = async (req, res) => {
       const subject = msg.subject || "Email Support";
       const from = msg.from?.emailAddress?.address || "";
       const content = msg.body?.content || "";
-         if(subject.trim().toLowerCase().startsWith("trả lời:")) {
+      const lowerSubject = subject.trim().toLowerCase();
+      if (lowerSubject.startsWith("re:") || lowerSubject.startsWith("trả lời:")) {
         console.log(`Bỏ qua email có subject: ${subject}`);
          await graphClient
           .api(`/users/${userEmail}/messages/${msg.id}`)

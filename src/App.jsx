@@ -29,9 +29,15 @@ function PublicRoute({ children }) {
   // Chỉ chuyển hướng nếu user đã đăng nhập và có role hợp lệ
   if (
     isAuthenticated &&
-    ["admin", "superadmin", "technical", "marcom", "hr", "bos"].includes(
-      userRole
-    )
+    [
+      "admin",
+      "superadmin",
+      "technical",
+      "marcom",
+      "hr",
+      "bos",
+      "admission",
+    ].includes(userRole)
   ) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -119,6 +125,7 @@ function App() {
                   "marcom",
                   "hr",
                   "bos",
+                  "admission",
                 ]}
               >
                 <Dashboard />
