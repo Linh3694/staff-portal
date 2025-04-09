@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const passport = require("passport");
 const session = require("express-session");
-
+const Ticket = require("./models/Ticket");
 require("dotenv").config();
 
 // Import các route
@@ -45,6 +45,53 @@ const dailyTripRoutes = require("./routes/dailyTripRoutes");
 const libraryRoutes = require("./routes/library");
 
 const app = express();
+// Tạo HTTP server và tích hợp Socket.IO
+const http = require('http');
+const { Server } = require('socket.io');
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
+// Socket.IO events cho chat theo ticket
+io.on("connection", (socket) => {
+  console.log("Socket connected:", socket.id);
+
+  socket.on("joinTicket", (ticketId) => {
+    socket.join(ticketId);
+    console.log(`Socket ${socket.id} joined ticket room ${ticketId}`);
+  });
+
+  socket.on("sendMessage", async (data) => {
+      try {
+      console.log("Message received:", data);
+  
+      // Lưu tin nhắn vào DB
+      const ticketDoc = await Ticket.findById(data.ticketId);
+      if (!ticketDoc) {
+        console.error("Could not find ticket with ID", data.ticketId);
+        return;
+      }
+  
+      ticketDoc.messages.push({
+        text: data.text,
+        sender: data.sender._id, // data.sender holds { _id, fullname, ... }
+        type: data.type || "text",
+        timestamp: new Date(),
+      });
+  
+      await ticketDoc.save();
+  
+      // Phát tin nhắn đến tất cả client trong room
+      io.to(data.ticketId).emit("receiveMessage", data);
+    } catch (err) {
+      console.error("Error storing message:", err);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected:", socket.id);
+  });
+});
 
 // Kết nối MongoDB
 const connectDB = async () => {
@@ -124,7 +171,7 @@ app.use("/api/email", require("./routes/emailRoutes"));
 
 // Khởi động server
 const PORT = process.env.PORT;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 

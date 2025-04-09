@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiSend } from "react-icons/fi";
 import axios from "axios";
+import io from "socket.io-client";
 import { API_URL, BASE_URL } from "../../config";
 import { toast } from "react-toastify";
 import TechnicalRating from "./TechnicalRating";
@@ -12,16 +13,37 @@ export default function TicketAdminModal({
   ticket,
   currentUser,
   onClose,
-  handleSendMessage,
   handleCancelTicket,
   fetchTicketById,
+  newMessage,
+  setNewMessage,
 }) {
   const [detailTab, setDetailTab] = useState("request");
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const token = localStorage.getItem("authToken");
-  const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState([]);
+
+  // =======================
+  useEffect(() => {
+    if (ticket && ticket.messages) {
+      // Duyệt để biến đổi messages => state
+      const mapped = ticket.messages.map((m) => ({
+        id: m._id,
+        text: m.text,
+        sender: m.sender?.fullname || "N/A",
+        senderId: m.sender?._id,
+        senderAvatar: m.sender?.avatarUrl
+          ? `${BASE_URL}/uploads/Avatar/${m.sender.avatarUrl}`
+          : "/default-avatar.png",
+        time: new Date(m.timestamp).toLocaleString("vi-VN"),
+        isSelf: m.sender?._id === currentUser?.id,
+        type: m.type || "text",
+      }));
+      setMessages(mapped);
+    }
+    setTicketStatus(ticket.status);
+  }, [ticket, currentUser?.id]);
 
   useEffect(() => {
     setTicketStatus(ticket.status);
@@ -86,7 +108,6 @@ export default function TicketAdminModal({
 
   useEffect(() => {
     if (ticket && ticket.messages) {
-      // Lọc bỏ duplicate dựa trên _id của tin nhắn
       const uniqueMessagesMap = {};
       ticket.messages.forEach((m) => {
         uniqueMessagesMap[m._id] = m;
@@ -529,170 +550,282 @@ export default function TicketAdminModal({
   // ========== ProgressTab Code Kết Thúc ==========
 
   // Tab "Trao đổi"
-  const DiscussionTab = ({ ticket, currentUser, messages, setMessages }) => {
-    // Input text
-    const [localMessage, setLocalMessage] = useState("");
-    // Để track file upload
-    const fileInputRef = useRef(null);
-    const [isSending, setIsSending] = useState(false);
+  function DiscussionTab({ ticket, currentUser, fetchTicketById }) {
+    console.log("Ticket:", ticket);
+    const [messages, setMessages] = React.useState([]);
+    const [localMessage, setLocalMessage] = React.useState("");
+    const [autoScroll, setAutoScroll] = React.useState(true);
 
-    // Khu vực chat
-    const messagesEndRef = useRef(null);
-    const chatContainerRef = useRef(null);
+    const socketRef = React.useRef(null);
+    const chatContainerRef = React.useRef(null);
+    const messagesEndRef = React.useRef(null);
 
-    // Chỉ cuộn xuống lần đầu hoăc nếu người dùng ở gần đáy
-    const [autoScroll, setAutoScroll] = useState(true);
+    // ==================================
+    // 1) Lấy danh sách tin nhắn ban đầu
+    // ==================================
+    React.useEffect(() => {
+      if (!ticket || !ticket.messages) return;
+      const mapped = ticket.messages.map((m) => ({
+        id: m._id,
+        text: m.text,
+        sender: m.sender?.fullname || "N/A",
+        senderId: m.sender?._id,
+        senderAvatar: m.sender?.avatarUrl
+          ? `${BASE_URL}/uploads/Avatar/${m.sender.avatarUrl}`
+          : "/default-avatar.png",
+        time: new Date(m.timestamp).toLocaleString("vi-VN"),
+        type: m.type || "text",
+        isSelf: m.sender?._id === currentUser?.id,
+      }));
+      setMessages(mapped);
+    }, [ticket, currentUser?.id]);
 
-    // Lần đầu mount => cuộn xuống đáy
-    useEffect(() => {
-      scrollToBottom(false);
-      // eslint-disable-next-line
-    }, []);
+    // ======================
+    // 2) Kết nối Socket.IO
+    // ======================
+    React.useEffect(() => {
+      socketRef.current = io(BASE_URL);
+      if (ticket && ticket._id) {
+        socketRef.current.emit("joinTicket", ticket._id);
+      }
 
-    // Mỗi lần messages thay đổi => chỉ cuộn nếu autoScroll=true
-    useEffect(() => {
+      socketRef.current.on("receiveMessage", (data) => {
+        // Tạo message local
+        const newMsg = {
+          id: Date.now() + "_" + Math.random(),
+          text: data.text,
+          sender: data.sender.fullname,
+          senderId: data.sender._id,
+          senderAvatar: data.sender.avatarUrl
+            ? `${BASE_URL}/uploads/Avatar/${data.sender.avatarUrl}`
+            : "/default-avatar.png",
+          time: new Date(data.timestamp).toLocaleString("vi-VN"),
+          type: data.type || "text",
+          isSelf: data.sender._id === currentUser?.id,
+        };
+
+        // Kiểm tra trùng lặp (trường hợp optimistic update)
+        setMessages((prev) => {
+          const isDup = prev.some(
+            (m) =>
+              m.text === newMsg.text &&
+              m.time === newMsg.time &&
+              m.senderId === newMsg.senderId
+          );
+          if (!isDup) {
+            const updated = [...prev, newMsg];
+            // Nếu đang gần đáy => cuộn xuống
+            if (chatContainerRef.current) {
+              const { scrollTop, scrollHeight, clientHeight } =
+                chatContainerRef.current;
+              if (scrollHeight - scrollTop - clientHeight < 80) {
+                setTimeout(() => scrollToBottom(), 50);
+              }
+            }
+            return updated;
+          }
+          return prev;
+        });
+      });
+
+      return () => {
+        socketRef.current.disconnect();
+      };
+    }, [ticket?._id, currentUser?.id]);
+
+    // ======================
+    // 3) Cuộn xuống đáy
+    // ======================
+    React.useEffect(() => {
       if (autoScroll) {
-        scrollToBottom(); // có thể dùng smooth/auto tuỳ ý
+        scrollToBottom();
       }
     }, [messages, autoScroll]);
 
-    // Hàm cuộn xuống đáy
-    const scrollToBottom = (smooth = true) => {
+    const scrollToBottom = () => {
       if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({
-          behavior: smooth ? "smooth" : "auto",
-        });
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
       }
     };
 
-    // Theo dõi cuộn để biết user có đang ở đáy không
     const handleScroll = () => {
       if (!chatContainerRef.current) return;
       const { scrollTop, scrollHeight, clientHeight } =
         chatContainerRef.current;
-      // Nếu user đang ở vị trí cách đáy dưới 80px => autoScroll = true
-      if (scrollHeight - scrollTop - clientHeight < 80) {
-        setAutoScroll(true);
-      } else {
-        setAutoScroll(false);
-      }
+      const distance = scrollHeight - scrollTop - clientHeight;
+      setAutoScroll(distance < 80); // Nếu gần đáy => autoScroll = true
     };
 
-    // Gửi tin nhắn text
-    const handleSendMessage = async () => {
-      if (!localMessage.trim() || !ticket?._id || isSending) return;
-      setIsSending(true);
+    // ======================
+    // 4) Gửi tin nhắn text
+    // ======================
+    const handleSendMessage = () => {
+      if (!localMessage.trim() || !ticket?._id) return;
+
+      const messageData = {
+        ticketId: ticket._id,
+        text: localMessage,
+        sender: {
+          _id: currentUser.id,
+          fullname: currentUser.fullname,
+          avatarUrl: currentUser.avatarUrl || "",
+        },
+        timestamp: new Date(),
+        type: "text",
+      };
+
+      // **Optimistic**: hiển thị ngay
+      const newMsg = {
+        id: Date.now() + "_" + Math.random(),
+        text: localMessage,
+        sender: currentUser.fullname,
+        senderId: currentUser.id,
+        senderAvatar: currentUser.avatarUrl
+          ? `${BASE_URL}/uploads/Avatar/${currentUser.avatarUrl}`
+          : "/default-avatar.png",
+        time: new Date().toLocaleString("vi-VN"),
+        type: "text",
+        isSelf: true,
+      };
+      setMessages((prev) => [...prev, newMsg]);
+      setLocalMessage("");
+
+      // Socket emit
+      socketRef.current.emit("sendMessage", messageData);
+    };
+
+    // ======================
+    // 5) Upload ảnh
+    // ======================
+    // Sau khi xác định chính xác cấu trúc res.data
+    const handleFileChange = async (e) => {
+      const file = e.target.files[0];
+      if (!file || !ticket?._id) return;
+
       try {
         const token = localStorage.getItem("authToken");
-        const res = await axios.post(
-          `${API_URL}/tickets/${ticket._id}/messages`,
-          { text: localMessage },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.data.success) {
-          setLocalMessage("");
-          await fetchTicketById(ticket._id);
-        } else {
-          toast.error("Không thể gửi tin nhắn.");
-        }
-      } catch (error) {
-        console.error("Lỗi khi gửi tin nhắn:", error);
-        toast.error("Lỗi khi gửi tin nhắn.");
-      } finally {
-        setIsSending(false);
-      }
-    };
-
-    const handleUploadFile = async (file) => {
-      if (!file || !ticket?._id) return;
-      try {
         const formData = new FormData();
         formData.append("file", file);
 
+        const res = await axios.post(
+          `${API_URL}/tickets/${ticket._id}/messages`,
+          formData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        console.log("res.data:", res.data); // Xem cấu trúc response
+
+        if (res.data.success) {
+          // Kiểm tra cả 2 trường message và data
+          const imageData = res.data.message || res.data.data;
+          // Lấy đường dẫn ảnh từ imageData.text hoặc imageData.path
+          const rawUrl = imageData?.text || imageData?.path || "";
+          if (!rawUrl) {
+            // Thay vì báo lỗi, load lại ticket từ backend để lấy dữ liệu đúng
+            toast.warning("Không tìm thấy đường dẫn ảnh, làm mới dữ liệu...");
+            fetchTicketById(ticket._id);
+            return;
+          }
+
+          // Xây dựng URL đầy đủ
+          const finalUrl = rawUrl.startsWith("http")
+            ? rawUrl
+            : `${BASE_URL}${rawUrl}`;
+
+          const newMsg = {
+            id: imageData._id || Date.now() + "_" + Math.random(),
+            text: finalUrl,
+            sender: currentUser.fullname,
+            senderId: currentUser.id,
+            senderAvatar: currentUser.avatarUrl
+              ? `${BASE_URL}/uploads/Avatar/${currentUser.avatarUrl}`
+              : "/default-avatar.png",
+            time: new Date(imageData.timestamp || Date.now()).toLocaleString(
+              "vi-VN"
+            ),
+            type: "image",
+            isSelf: true,
+          };
+          setMessages((prev) => [...prev, newMsg]);
+          toast.success("Đã upload ảnh!");
+        } else {
+          toast.error("Không thể upload ảnh.");
+        }
+      } catch (error) {
+        console.error("Lỗi khi upload ảnh:", error);
+        toast.error("Lỗi upload ảnh.");
+      }
+    };
+    // ======================
+    // 6) Drag & Drop
+    // ======================
+    const handleDragOver = (e) => e.preventDefault();
+    const handleDrop = (e) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        uploadFile(file);
+      }
+    };
+    const uploadFile = async (file) => {
+      if (!file || !ticket?._id) return;
+      try {
         const token = localStorage.getItem("authToken");
+        const formData = new FormData();
+        formData.append("file", file);
+
         const res = await axios.post(
           `${API_URL}/tickets/${ticket._id}/messages`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (res.data.success) {
-          // Thay vì setMessages(...) => Gọi hàm fetchTicketById
-          await fetchTicketById(ticket._id);
           toast.success("Đã upload ảnh!");
         } else {
           toast.error("Không thể upload ảnh.");
         }
-      } catch (error) {
-        console.error("Lỗi upload file:", error);
-        toast.error("Lỗi khi upload file.");
+      } catch (err) {
+        console.error("Lỗi khi upload file:", err);
+        toast.error("Lỗi upload file.");
       }
     };
 
-    // Bắt sự kiện người dùng chọn file từ input
-    const handleFileChange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        handleUploadFile(file);
-      }
-    };
-
-    // Bắt sự kiện click nút
-    const openFileDialog = () => {
-      if (fileInputRef.current) {
-        fileInputRef.current.click();
-      }
-    };
-
-    // Xử lý drag & drop
-    const handleDragOver = (e) => {
-      e.preventDefault();
-    };
-    const handleDrop = (e) => {
-      e.preventDefault();
-      const file = e.dataTransfer.files[0];
-      if (file) {
-        handleUploadFile(file);
-      }
-    };
-
-    // JSX
+    // ======================
+    // 7) Giao diện
+    // ======================
     return (
       <div
-        className="bg-white w-full h-full p-4 flex flex-col"
+        className="w-full h-full p-4 flex flex-col bg-white"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        {/* Danh sách tin nhắn */}
         <div
           className="flex-1 mt-2 mb-4 overflow-auto space-y-4"
           ref={chatContainerRef}
           onScroll={handleScroll}
         >
-          {(Array.isArray(messages) ? messages : []).map((m, idx) => {
+          {messages.map((m, idx) => {
             const isSelf = m.isSelf;
             return (
               <div
-                key={idx}
-                className={`flex items-center gap-3 ${
+                key={m.id || idx}
+                className={`flex items-start gap-3 ${
                   isSelf ? "justify-end" : "justify-start"
                 }`}
               >
                 {!isSelf && (
                   <img
-                    src={m.senderAvatar || "/default-avatar.png"}
-                    alt="Avatar"
-                    className="w-11 h-11 rounded-full border shadow-md object-cover"
+                    src={m.senderAvatar}
+                    alt="avatar"
+                    className="w-10 h-10 rounded-full border shadow-md object-cover"
                   />
                 )}
                 <div className="flex flex-col max-w-[70%]">
-                  {/* Nội dung tin nhắn: text hoặc ảnh */}
                   {m.type === "image" ? (
                     <img
                       src={m.text}
                       alt="uploaded"
-                      className={`max-w-xs rounded-lg border ${
-                        isSelf ? "border-[#E4E9EF]" : "border-[#EBEBEB]"
-                      }`}
+                      className="max-w-xs rounded-lg border"
                     />
                   ) : (
                     <div
@@ -705,42 +838,38 @@ export default function TicketAdminModal({
                       {m.text}
                     </div>
                   )}
-
                   <div className="text-[11px] text-[#757575] mt-1">
                     {m.time}
                   </div>
                 </div>
                 {isSelf && (
                   <img
-                    src={m.senderAvatar || "/default-avatar.png"}
-                    alt="Avatar"
-                    className="w-11 h-11 rounded-full border shadow-md object-cover"
+                    src={m.senderAvatar}
+                    alt="avatar"
+                    className="w-10 h-10 rounded-full border shadow-md object-cover"
                   />
                 )}
               </div>
             );
           })}
-          {/* Mỏ neo cuộn */}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Thanh nhập tin nhắn + nút upload */}
+        {/* Input gửi tin */}
         <div className="flex items-center gap-2 mt-auto">
-          {/* Nút Upload file */}
           <button
-            onClick={openFileDialog}
-            className="bg-gray-200 text-gray-700 p-3 rounded-full flex items-center"
+            onClick={() => document.getElementById("adminFileInput").click()}
+            className="bg-gray-200 text-gray-700 p-3 rounded-full"
           >
             <FaImage />
           </button>
           <input
             type="file"
-            ref={fileInputRef}
+            id="adminFileInput"
             style={{ display: "none" }}
-            onChange={handleFileChange}
             accept="image/*"
+            onChange={handleFileChange}
           />
-
           <input
             type="text"
             placeholder="Nhập tin nhắn..."
@@ -754,17 +883,16 @@ export default function TicketAdminModal({
             }}
             className="w-full p-3 border-none bg-[#EBEBEB] rounded-full text-sm"
           />
-
           <button
             onClick={handleSendMessage}
-            className="bg-[#FF5733] text-white p-3 rounded-full flex items-center"
+            className="bg-[#FF5733] text-white p-3 rounded-full"
           >
-            <FiSend size={18} />
+            <FiSend />
           </button>
         </div>
       </div>
     );
-  };
+  }
 
   // Thêm hàm xử lý huỷ ticket
   const handleCancelTicketLocal = async () => {
@@ -859,6 +987,8 @@ export default function TicketAdminModal({
                   currentUser={currentUser}
                   messages={messages}
                   setMessages={setMessages}
+                  newMessage={newMessage}
+                  setNewMessage={setNewMessage}
                 />
               )}
             </div>

@@ -473,6 +473,7 @@ const Ticket = ({ currentUser }) => {
             selectedTicket={selectedTicket}
             currentUser={currentUser}
             messages={messages}
+            setMessages={setMessages}
             newMessage={newMessage}
             setNewMessage={setNewMessage}
             handleSendMessage={handleSendMessage}

@@ -12,13 +12,8 @@ const TicketAdminTable = ({ currentUser }) => {
   const [originalTickets, setOriginalTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState();
-  const [showSubTaskModal, setShowSubTaskModal] = useState(false); // Trạng thái hiển thị modal
-  const [newSubTask, setNewSubTask] = useState({ title: "", assignedTo: "" }); // Dữ liệu sub-task mới
-  const messagesEndRef = useRef(null);
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const [newMessage, setNewMessage] = useState("");
+
   // Modal state
   const [showTicketModal, setShowTicketModal] = useState(false);
   const openTicketModal = async (ticketId) => {
@@ -52,11 +47,9 @@ const TicketAdminTable = ({ currentUser }) => {
   // 3. State cho modal Assigned (chỉ mở khi ticket status = Assigned)
   // ---------------------------------------------------------
   const [assignedTicket, setAssignedTicket] = useState(null);
-  const [processingTicket, setProcessingTicket] = useState(null);
   const token = localStorage.getItem("authToken");
 
   // Action user chọn bên trong modal: accept / cancel / transfer
-  const [selectedAction, setSelectedAction] = useState("accept");
   const [cancelReason, setCancelReason] = useState(""); // State for cancel reason
 
   // ---------------------------------------------------------
@@ -98,6 +91,7 @@ const TicketAdminTable = ({ currentUser }) => {
     }
   };
   const fetchTicketById = async (ticketId) => {
+    console.log("Fetching ticket by ID:", ticketId);
     try {
       const token = localStorage.getItem("authToken");
 
@@ -273,40 +267,6 @@ const TicketAdminTable = ({ currentUser }) => {
 
   // ---------------------------------------------------------
   // 16. Các hàm hành động trong modal (Nhận / Hủy / Chuyển)
-  // ---------------------------------------------------------
-  // 16a) Nhận (accept): chuyển ticket -> processing, assignedTo = currentUser
-  const handleAccept = async () => {
-    if (!assignedTicket) return;
-
-    try {
-      const token = localStorage.getItem("authToken");
-      const updatedTicket = {
-        ...assignedTicket,
-        status: "Processing",
-        assignedTo: currentUser?.id,
-      };
-
-      console.log("[Accept] Gửi lên server:", updatedTicket);
-
-      const response = await axios.put(
-        `${API_URL}/tickets/${assignedTicket._id}`,
-        updatedTicket,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (response.data.success) {
-        toast.success(
-          "Nhận yêu cầu thành công! Ticket chuyển sang Processing."
-        );
-        setAssignedTicket(null);
-        fetchTickets(); // Refresh bảng
-      } else {
-        toast.error("Nhận yêu cầu thất bại!");
-      }
-    } catch (error) {
-      toast.error("Có lỗi xảy ra khi nhận yêu cầu!");
-    }
-  };
-
   // 16b) Hủy
   const handleCancel = async () => {
     console.log("Hủy ticket:", assignedTicket);
@@ -344,138 +304,45 @@ const TicketAdminTable = ({ currentUser }) => {
       toast.error("Có lỗi xảy ra khi huỷ yêu cầu!");
     }
   };
-
-  // 16c) Chuyển
-  const handleTransfer = async () => {
-    if (!assignedTicket) return;
-    if (!assignedTicket.transferTo) {
-      toast.error("Vui lòng chọn người nhận mới!");
-      return;
-    }
-    try {
-      const token = localStorage.getItem("authToken");
-      const updatedTicket = {
-        ...assignedTicket,
-        status: "Assigned", // hoặc vẫn "Assigned",
-        assignedTo: assignedTicket.transferTo,
-        // Lưu ý: Thực tế bạn cần {_id, fullname, email} -
-        // chứ không chỉ user._id. Tùy backend yêu cầu.
-      };
-      console.log("[Transfer] Gửi lên server:", updatedTicket);
-
-      const response = await axios.put(
-        `${API_URL}/tickets/${assignedTicket._id}`,
-        updatedTicket,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (response.data.success) {
-        toast.success("Đã chuyển ticket thành công!");
-        setAssignedTicket(null);
-        fetchTickets();
-      } else {
-        toast.error("Chuyển ticket thất bại!");
-      }
-    } catch (error) {
-      toast.error("Có lỗi xảy ra khi chuyển ticket!");
-    }
-  };
-
-  // 🛠 Hàm Xác nhận - Gửi API cập nhật trạng thái ticket
-  const handleCancelUpdate = () => {
-    setSelectedStatus(null); // Reset trạng thái
-  };
-
-  const handleUpdateStatus = async () => {
-    // Nếu không chọn trạng thái mới, giữ nguyên trạng thái cũ
-    const newStatus =
-      selectedStatus !== null ? selectedStatus : processingTicket.status;
-
-    if (!newStatus) {
-      toast.error("Không thể cập nhật trạng thái. Vui lòng thử lại.");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("authToken");
-      const res = await axios.put(
-        `${API_URL}/tickets/${processingTicket._id}`,
-        { status: newStatus },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (res.data.success) {
-        toast.success("Cập nhật trạng thái thành công!");
-
-        // Cập nhật giao diện
-        setProcessingTicket((prev) => ({
-          ...prev,
-          status: newStatus,
-        }));
-
-        // Đóng modal sau khi cập nhật thành công
-        setSelectedStatus(null); // Reset trạng thái chọn
-      }
-    } catch (error) {
-      console.error("Lỗi khi cập nhật trạng thái:", error);
-      toast.error("Cập nhật thất bại! Vui lòng thử lại.");
-    }
-  };
   // ---------------------------------------------------------
   // 17. tính năng chat
   // ---------------------------------------------------------
   const [selectedTicket, setSelectedTicket] = useState(null);
-  const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
-  // useEffect(() => {
-  //   if (selectedTicket && selectedTicket.messages) {
-  //     const mapped = selectedTicket.messages.map((m) => {
-  //       return {
-  //         text: m.text,
-  //         sender: m?.sender?.fullname || "N/A",
-  //         senderId: m?.sender?._id,
-  //         senderAvatar: m.sender?.avatarUrl
-  //           ? `${BASE_URL}/uploads/Avatar/${m.sender.avatarUrl}`
-  //           : "/default-avatar.png",
-  //         time: new Date(m.timestamp).toLocaleString("vi-VN"),
-  //         isSelf: m?.sender?._id === currentUser?.id,
-  //       };
-  //     });
-  //     setMessages(mapped);
-  //   }
-  // }, [selectedTicket]);
-
-  // -----------------------------------------
-  // 4. Gửi tin nhắn
-  // -----------------------------------------
-
-  const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
-    try {
-      const res = await axios.post(
-        `${API_URL}/tickets/${selectedTicket._id}/messages`,
-        { text: newMessage },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (res.data.success) {
-        // Load lại ticket để hiển thị tin nhắn mới
-        await fetchTicketById(selectedTicket._id);
-        setNewMessage("");
-      }
-    } catch (error) {
-      console.error("Lỗi khi gửi tin nhắn:", error);
-    }
-  };
-  // -----------------------------------------
-  // 5. Polling mỗi 5s để load tin nhắn mới
-  // -----------------------------------------
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (selectedTicket && selectedTicket.messages) {
+      const mapped = selectedTicket.messages.map((m) => ({
+        id: m._id,
+        text: m.text,
+        sender: m?.sender?.fullname || "N/A",
+        senderId: m?.sender?._id,
+        senderAvatar: m.sender?.avatarUrl
+          ? `${BASE_URL}/uploads/Avatar/${m.sender.avatarUrl}`
+          : "/default-avatar.png",
+        time: new Date(m.timestamp).toLocaleString("vi-VN"),
+        isSelf: m?.sender?._id === currentUser?.id,
+        type: m.type || "text",
+      }));
+
+      setMessages((prevMessages) => {
+        // Tạo map các tin nhắn từ state cũ (key = id)
+        const msgMap = {};
+        prevMessages.forEach((msg) => {
+          if (msg.id) msgMap[msg.id] = msg;
+        });
+        // Ghi đè bằng tin nhắn từ server
+        mapped.forEach((msg) => {
+          msgMap[msg.id] = msg;
+        });
+        // Trả về mảng tin nhắn deduped và sắp xếp theo thời gian (nếu cần)
+        const merged = Object.values(msgMap);
+        merged.sort((a, b) => new Date(a.time) - new Date(b.time));
+        return merged;
+      });
+    }
+  }, [selectedTicket, setMessages, currentUser?.id]);
+
   // ---------------------------------------------------------
   // 18. useEffect gọi fetch
   // ---------------------------------------------------------
@@ -483,102 +350,6 @@ const TicketAdminTable = ({ currentUser }) => {
     fetchTickets();
     fetchUsers();
   }, []);
-
-  // useEffect(() => {
-  //   if (processingTicket && processingTicket.messages) {
-  //     const mapped = processingTicket.messages.map((m) => ({
-  //       text: m.text,
-  //       senderId: m.sender?._id,
-  //       sender: m.sender?.fullname || "N/A",
-  //       senderAvatar: m.sender?.avatarUrl
-  //         ? `${BASE_URL}/uploads/Avatar/${m.sender.avatarUrl}`
-  //         : "/default-avatar.png",
-  //       time: new Date(m.timestamp).toLocaleString("vi-VN"),
-  //       isSelf: m.sender?._id === currentUser?.id,
-  //     }));
-  //     setMessages(mapped);
-  //   } else {
-  //     setMessages([]);
-  //   }
-  // }, [processingTicket]);
-  // ---------------------------------------------------------
-  // 19. JSX render
-  // ---------------------------------------------------------
-  const handleAddSubTask = async () => {
-    if (!newSubTask.title || !newSubTask.assignedTo) {
-      toast.error("Vui lòng nhập đầy đủ thông tin!");
-      return;
-    }
-
-    try {
-      const res = await axios.post(
-        `${API_URL}/tickets/${selectedTicket._id}/subtasks`,
-        {
-          title: newSubTask.title,
-          assignedTo: newSubTask.assignedTo,
-          status: "In Progress", // 🟡 Trạng thái mặc định
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
-      );
-
-      if (res.data.success) {
-        toast.success("Thêm subtask thành công!");
-        setShowSubTaskModal(false);
-        // ✅ Fetch lại ticket ngay lập tức để cập nhật UI
-        fetchTicketById(selectedTicket._id);
-      }
-    } catch (error) {
-      console.error("Lỗi khi thêm sub-task:", error);
-      toast.error("Không thể thêm sub-task!");
-    }
-  };
-
-  const handleDeleteSubTask = async (subTaskId) => {
-    try {
-      const token = localStorage.getItem("authToken");
-      const res = await axios.delete(
-        `${API_URL}/tickets/${selectedTicket._id}/subtasks/${subTaskId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.data.success) {
-        toast.success("Sub-task đã được huỷ");
-        // Cập nhật lại ticket để refresh danh sách subtask
-        fetchTicketById(selectedTicket._id);
-      }
-    } catch (error) {
-      console.error("Lỗi khi huỷ sub-task:", error);
-      toast.error("Không thể huỷ sub-task!");
-    }
-  };
-
-  const updateSubTaskStatus = async (subTaskId, newStatus) => {
-    if (!selectedTicket || !subTaskId) {
-      toast.error("Lỗi: Không tìm thấy subtask hoặc ticket.");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("authToken");
-      const res = await axios.put(
-        `${API_URL}/tickets/${selectedTicket._id}/subtasks/${subTaskId}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.data.success) {
-        toast.success("Cập nhật trạng thái sub-task thành công!");
-        // Cập nhật lại ticket để hiển thị trạng thái mới
-        fetchTicketById(selectedTicket._id);
-      }
-    } catch (error) {
-      console.error("Lỗi khi cập nhật trạng thái sub-task:", error);
-      toast.error("Không thể cập nhật trạng thái sub-task!");
-    }
-  };
-
   // ---------------------------------------------------------
   // 20. JSX render
   // ---------------------------------------------------------
@@ -853,10 +624,11 @@ const TicketAdminTable = ({ currentUser }) => {
               ticket={selectedTicket}
               currentUser={currentUser}
               onClose={closeTicketModal}
-              handleSendMessage={handleSendMessage}
               handleCancelTicket={handleCancel}
               messages={messages}
               fetchTicketById={fetchTicketById}
+              newMessage={newMessage}
+              setNewMessage={setNewMessage}
             />
           )}
         </div>

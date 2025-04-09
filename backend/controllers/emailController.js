@@ -7,6 +7,7 @@ const Ticket = require("../models/Ticket");
 const User = require("../models/Users");
 const { v4: uuidv4 } = require("uuid");
 const ticketController = require("./ticketController");
+const { convert } = require('html-to-text'); // Added import for html-to-text
 
 // Khởi tạo OAuth 2.0 credentials
 const credential = new ClientSecretCredential(
@@ -124,7 +125,7 @@ exports.fetchEmailsAndCreateTickets = async (req, res) => {
         continue;
         }
  
-        const plainContent = content.replace(/<[^>]+>/g, "").trim();
+      const plainContent = convert(content, { wordwrap: 130 }); // Updated to use html-to-text
 
       // Kiểm tra domain của người gửi
       if (!from.endsWith("@wellspring.edu.vn")) {
