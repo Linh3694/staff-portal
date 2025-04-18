@@ -3,7 +3,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { API_URL, BASE_URL } from "../../config";
 import * as XLSX from "xlsx";
-import { FaTrashCan } from "react-icons/fa6";
+import CategoryModal from './Modal/CategoryModal';
+import RecordModal from './Modal/RecordModal';
 
 function HallOfFameAdminPage() {
   const [activeTab, setActiveTab] = useState("categories");
@@ -48,6 +49,8 @@ function HallOfFameAdminPage() {
   const [newCustomSubAward, setNewCustomSubAward] = useState("");
   const [newCustomSubAwardSchoolYear, setNewCustomSubAwardSchoolYear] =
     useState("");
+  const [newCustomSubAwardPriority, setNewCustomSubAwardPriority] = useState(1); // Thêm state mới
+  const [newCustomSubAwardEng, setNewCustomSubAwardEng] = useState("");
 
   // --- Award Record State (để tạo record ngay trong modal) ---
   const [records, setRecords] = useState([]);
@@ -78,13 +81,20 @@ function HallOfFameAdminPage() {
   const [searchInput, setSearchInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredStudents, setFilteredStudents] = useState([]);
-
+  const [showRecordModal, setShowRecordModal] = useState(false);
   // Thêm state mới để lưu học sinh đang chọn
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [tempNote, setTempNote] = useState("");
   const [tempNoteEng, setTempNoteEng] = useState("");
   const [tempClassNote, setTempClassNote] = useState("");
   const [tempClassNoteEng, setTempClassNoteEng] = useState("");
+  const [tempKeyword, setTempKeyword] = useState("");
+  const [tempKeywordEng, setTempKeywordEng] = useState("");
+  const [tempActivity, setTempActivity] = useState("");
+  const [tempActivityEng, setTempActivityEng] = useState("");
+
+  const [showRecordModalDirect, setShowRecordModalDirect] = useState(false);
+  const [selectedCategoryForRecord, setSelectedCategoryForRecord] = useState(null);
 
   // Thêm hàm xử lý tìm kiếm
   const handleSearchChange = (e) => {
@@ -121,6 +131,30 @@ function HallOfFameAdminPage() {
     fetchClasses();
   }, []);
 
+  // Thêm useEffect mới để fetch lại records khi selectedSubAward thay đổi
+  useEffect(() => {
+    if (selectedSubAward && editingCategory) {
+      console.log("Selected subAward changed, fetching records...");
+      fetchRecordsBySubAward(selectedSubAward);
+    }
+  }, [selectedSubAward, editingCategory]);
+
+  // Thêm useEffect để fetch lại records khi studentsList hoặc classesList thay đổi
+  useEffect(() => {
+    if (selectedSubAward && editingCategory && (studentsList.length > 0 || classesList.length > 0)) {
+      console.log("Students or Classes list updated, refreshing records...");
+      fetchRecordsBySubAward(selectedSubAward);
+    }
+  }, [studentsList, classesList]);
+
+  // Thêm useEffect mới để theo dõi selectedCategoryForRecord
+  useEffect(() => {
+    if (selectedCategoryForRecord) {
+      console.log('Selected category for record:', selectedCategoryForRecord);
+      setEditingCategory(selectedCategoryForRecord._id);
+    }
+  }, [selectedCategoryForRecord]);
+
   // ----------------- FETCH DATA -----------------
   const fetchCategories = async () => {
     try {
@@ -145,7 +179,6 @@ function HallOfFameAdminPage() {
   const fetchSchoolYears = async () => {
     try {
       const res = await axios.get(`${API_URL}/schoolyears`);
-      console.log("School Years:", res.data);
       setSchoolYears(res.data || []);
     } catch (error) {
       console.error("Error fetching school years:", error);
@@ -301,12 +334,15 @@ function HallOfFameAdminPage() {
 
     const dataToSend = {
       ...categoryFormData,
-      subAwards: computedSubAwards,
+      subAwards: computedSubAwards.map((sub, idx) => ({
+        ...sub,
+        priority: sub.priority != null ? sub.priority : idx + 1,
+      })),
     };
 
     try {
       if (editingCategory) {
-        await axios.put(
+        const updateRes = await axios.put(
           `${API_URL}/award-categories/${editingCategory}`,
           dataToSend
         );
@@ -334,6 +370,7 @@ function HallOfFameAdminPage() {
 
   const handleCategoryEdit = (cat) => {
     setEditingCategory(cat._id);
+    setSelectedCategoryForRecord(cat);
     setShowCategoryModal(true);
 
     // Xác định các loại Sub Awards trong category
@@ -361,9 +398,13 @@ function HallOfFameAdminPage() {
     });
 
     // Lưu danh sách Custom SubAwards
-    const existingCustomSubs = cat.subAwards.filter(
-      (sub) => sub.type === "custom"
-    );
+    const existingCustomSubs = cat.subAwards
+      .filter((sub) => sub.type === "custom")
+      .map((sub, idx) => ({
+        ...sub,
+        priority:
+          sub.priority != null && sub.priority > 0 ? sub.priority : idx + 1,
+      }));
     setCustomSubAwards(existingCustomSubs);
 
     // Lưu danh sách School Years
@@ -407,35 +448,61 @@ function HallOfFameAdminPage() {
       const workbook = XLSX.read(binaryStr, { type: "binary" });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      // Đọc dữ liệu dưới dạng mảng với header
+      const rows = XLSX.utils.sheet_to_json(worksheet, { 
+        header: ["studentCode", "keyword", "keywordEng", "activity", "activityEng", "note", "noteEng"],
+        range: 1 // Bỏ qua dòng header
+      });
 
-      if (rows.length < 2) {
+      console.log("Excel rows:", rows);
+
+      if (rows.length === 0) {
         alert("File Excel không có dữ liệu hợp lệ.");
         return;
       }
 
       const newStudents = [];
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.length === 0) continue;
+      for (const row of rows) {
+        if (!row.studentCode) continue;
 
-        const code = row[0] ? row[0].toString().trim() : "";
-        const note = row[1] ? row[1].toString().trim() : "";
-        const noteEng = row[2] ? row[2].toString().trim() : "";
-
-        if (!code) continue;
-
+        const code = String(row.studentCode).trim();
         const foundStudent = studentsList.find(
           (s) => s.studentCode.toLowerCase() === code.toLowerCase()
         );
+
         if (!foundStudent) {
           console.warn(`Không tìm thấy sinh viên có mã: ${code}`);
           continue;
         }
 
-        newStudents.push({ student: foundStudent._id, note, noteEng });
+        // Xử lý các trường dữ liệu
+        const processField = (field) => {
+          if (!field) return [];
+          const value = String(field).trim();
+          if (!value) return [];
+          return value.split(",").map(item => item.trim()).filter(Boolean);
+        };
+
+        const studentData = {
+          student: foundStudent._id,
+          keyword: processField(row.keyword),
+          keywordEng: processField(row.keywordEng),
+          activity: processField(row.activity),
+          activityEng: processField(row.activityEng),
+          note: row.note ? String(row.note).trim() : "",
+          noteEng: row.noteEng ? String(row.noteEng).trim() : ""
+        };
+
+        console.log("Processing student data:", {
+          code,
+          studentData
+        });
+
+        newStudents.push(studentData);
       }
 
+      console.log("Final processed students:", newStudents);
       setExcelStudents(newStudents);
       setExcelRecordCount(newStudents.length);
     };
@@ -466,8 +533,12 @@ function HallOfFameAdminPage() {
         if (!row || row.length === 0) continue;
 
         const className = row[0] ? row[0].toString().trim() : "";
-        const note = row[1] ? row[1].toString().trim() : "";
-        const noteEng = row[2] ? row[2].toString().trim() : "";
+        const keyword = row[1] ? row[1].toString().trim() : "";
+        const keywordEng = row[2] ? row[2].toString().trim() : "";
+        const activity = row[3] ? row[3].toString().trim() : "";
+        const activityEng = row[4] ? row[4].toString().trim() : "";
+        const note = row[5] ? row[5].toString().trim() : "";
+        const noteEng = row[6] ? row[6].toString().trim() : "";
 
         if (!className) continue;
 
@@ -479,7 +550,15 @@ function HallOfFameAdminPage() {
           continue;
         }
 
-        newClasses.push({ class: foundClass._id, note, noteEng });
+        newClasses.push({ 
+          class: foundClass._id,
+          keyword: keyword ? keyword.split(",").map(k => k.trim()).filter(Boolean) : [],
+          keywordEng: keywordEng ? keywordEng.split(",").map(k => k.trim()).filter(Boolean) : [],
+          activity: activity ? activity.split(",").map(a => a.trim()).filter(Boolean) : [],
+          activityEng: activityEng ? activityEng.split(",").map(a => a.trim()).filter(Boolean) : [],
+          note, 
+          noteEng 
+        });
       }
 
       setExcelClasses(newClasses);
@@ -515,93 +594,308 @@ function HallOfFameAdminPage() {
   };
 
   const handleRecordSubmit = async (e) => {
-    e.preventDefault();
-    // Gộp danh sách học sinh
-    const finalStudents = [...recordFormData.students, ...excelStudents];
-
-    // Gộp danh sách lớp
-    const classNames = classInput
-      .split(",")
-      .map((c) => c.trim())
-      .filter(Boolean);
-    const manualClasses = [];
-    for (let cname of classNames) {
-      const foundCls = classesList.find(
-        (cl) => cl.className.toLowerCase() === cname.toLowerCase()
-      );
-      if (foundCls) {
-        manualClasses.push({ class: foundCls._id, note: "", noteEng: "" });
-      } else {
-        console.warn(`Không tìm thấy lớp: ${cname}`);
-      }
+    if (e && e.preventDefault) {
+      e.preventDefault();
     }
-
-    const classRecords = [...manualClasses, ...excelClasses];
-
-    if (finalStudents.length === 0 && classRecords.length === 0) {
-      alert("Vui lòng thêm ít nhất 1 học sinh hoặc 1 lớp");
-      return;
-    }
-
-    // Kiểm tra ghi chú của từng học sinh
-    for (let i = 0; i < finalStudents.length; i++) {
-      const stu = finalStudents[i];
-      if (!stu.student) {
-        alert(`Học sinh thứ ${i + 1}: Bạn chưa chọn sinh viên`);
-        return;
-      }
-      if (!stu.note || stu.note.trim() === "") {
-        alert(`Học sinh thứ ${i + 1}: Bạn chưa nhập ghi chú`);
-        return;
-      }
-    }
-
-    // Đảm bảo subAward có đầy đủ thông tin
-    const selectedCategory = categories.find(
-      (cat) => cat._id === editingCategory
-    );
-    const subAward = selectedCategory?.subAwards?.find(
-      (sa) =>
-        sa.label === recordFormData.subAward?.label &&
-        sa.type === recordFormData.subAward?.type &&
-        String(sa.schoolYear) === String(recordFormData.subAward?.schoolYear)
-    );
-
-    if (!subAward) {
-      alert("Vui lòng chọn loại vinh danh");
-      return;
-    }
-
-    const dataToSend = {
-      awardCategory: editingCategory,
-      subAward: {
-        ...subAward,
-        label: subAward.label,
-        type: subAward.type || "custom", // Đảm bảo luôn có type
-        schoolYear: subAward.schoolYear,
-        semester: subAward.semester,
-        month: subAward.month,
-        awardCount: subAward.awardCount || 0,
-      },
-      reason: recordFormData.reason,
-      awardClasses: classRecords,
-      students: finalStudents,
-    };
-
+    
     try {
+      // Kiểm tra editingCategory
+      if (!editingCategory) {
+        console.error("Missing editingCategory");
+        alert("Vui lòng chọn loại vinh danh");
+        return;
+      }
+
+      console.log("Current editingCategory:", editingCategory);
+      
+      /* ---- Determine current sub‑award for duplicate check ---- */
+      const activeSubAward =
+        recordFormData.subAward && recordFormData.subAward.label
+          ? recordFormData.subAward
+          : selectedSubAward;         // fallback to selectedSubAward
+
+      if (!activeSubAward) {
+        alert("Vui lòng chọn loại vinh danh");
+        return;
+      }
+
+      // Lấy danh sách học sinh hiện có trong subAward này
+      const existingRecords = await axios.get(`${API_URL}/award-records`, {
+        params: {
+          awardCategory: editingCategory,
+          subAwardLabel: activeSubAward.label,
+          subAwardType: activeSubAward.type,
+          subAwardSchoolYear: activeSubAward.schoolYear,
+          subAwardSemester: activeSubAward.semester || 0,
+          subAwardMonth: activeSubAward.month || 0,
+        },
+      });
+
+      const existingStudentIds = new Set();
+      existingRecords.data.forEach(record => {
+        record.students?.forEach(student => {
+          if (student.student) {
+            existingStudentIds.add(typeof student.student === 'object' ? student.student._id : student.student);
+          }
+        });
+      });
+
+      // Xử lý dữ liệu học sinh từ form và file Excel
+      const finalStudents = [];
+      const processedStudentIds = new Set();
+      
+      // Xử lý từng học sinh trong danh sách
+      for (const student of [...recordFormData.students, ...excelStudents]) {
+        console.log("Processing student record:", student);
+        
+        // Kiểm tra nếu student là hợp lệ
+        if (!student.student) {
+          console.error("Missing student data:", student);
+          continue; // Bỏ qua học sinh không hợp lệ
+        }
+        
+        let studentId = null;
+        
+        // Xử lý trường hợp student.student là object
+        if (typeof student.student === 'object' && student.student._id) {
+          studentId = student.student._id;
+        } 
+        // Xử lý trường hợp student.student là string không phải ObjectId
+        else if (typeof student.student === 'string' && !/^[0-9a-fA-F]{24}$/.test(student.student)) {
+          // Tìm kiếm học sinh theo mã số học sinh
+          const foundStudent = studentsList.find(s => 
+            s.studentCode === student.student || 
+            s._id === student.student
+          );
+          
+          if (foundStudent && foundStudent._id) {
+            studentId = foundStudent._id;
+          } else {
+            console.error("Invalid student ID and not found in studentsList:", student.student);
+            continue; // Bỏ qua học sinh không tìm thấy
+          }
+        }
+        // Nếu là string hợp lệ, sử dụng trực tiếp
+        else {
+          studentId = student.student;
+        }
+
+        // Kiểm tra trùng lặp
+        if (processedStudentIds.has(studentId) || existingStudentIds.has(studentId)) {
+          console.log(`Skipping duplicate student: ${studentId}`);
+          continue; // Bỏ qua học sinh trùng lặp
+        }
+        
+        // Kiểm tra mã ghi chú
+        if (!student.note || student.note.trim() === "") {
+          console.log(`Skipping student ${studentId}: missing note`);
+          continue; // Bỏ qua học sinh thiếu ghi chú
+        }
+
+        // Thêm vào Set để theo dõi
+        processedStudentIds.add(studentId);
+        
+        // Thêm vào danh sách với ID đã chuẩn hóa và đảm bảo các trường array được xử lý đúng
+        finalStudents.push({
+          student: studentId,
+          keyword: Array.isArray(student.keyword) ? student.keyword : (student.keyword || "").split(",").map(k => k.trim()).filter(Boolean),
+          keywordEng: Array.isArray(student.keywordEng) ? student.keywordEng : (student.keywordEng || "").split(",").map(k => k.trim()).filter(Boolean),
+          activity: Array.isArray(student.activity) ? student.activity : (student.activity || "").split(",").map(a => a.trim()).filter(Boolean),
+          activityEng: Array.isArray(student.activityEng) ? student.activityEng : (student.activityEng || "").split(",").map(a => a.trim()).filter(Boolean),
+          note: student.note || "",
+          noteEng: student.noteEng || ""
+        });
+      }
+
+      if (finalStudents.length === 0) {
+        alert("Không có học sinh hợp lệ để thêm");
+        return;
+      }
+
+      console.log("Final students to submit:", finalStudents);
+      
+      // Gộp danh sách lớp
+      const classNames = classInput
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean);
+      const manualClasses = [];
+      for (let cname of classNames) {
+        const foundCls = classesList.find(
+          (cl) => cl.className.toLowerCase() === cname.toLowerCase()
+        );
+        if (foundCls) {
+          manualClasses.push({ class: foundCls._id, note: "", noteEng: "" });
+        } else {
+          console.warn(`Không tìm thấy lớp: ${cname}`);
+        }
+      }
+
+      // Đảm bảo dữ liệu class cũng đúng định dạng
+      const classRecords = [];
+      
+      // Xử lý từng class record
+      for (const classRecord of [...manualClasses, ...excelClasses]) {
+        let classId = null;
+        
+        if (typeof classRecord.class === 'object' && classRecord.class._id) {
+          classId = classRecord.class._id;
+        } else if (typeof classRecord.class === 'string') {
+          if (!/^[0-9a-fA-F]{24}$/.test(classRecord.class)) {
+            console.error("Invalid class ID format:", classRecord.class);
+            alert(`ID lớp không hợp lệ: ${classRecord.class}`);
+            return;
+          }
+          classId = classRecord.class;
+        } else {
+          console.error("Missing class ID:", classRecord);
+          alert("Thông tin lớp bị thiếu");
+          return;
+        }
+        
+        classRecords.push({
+          ...classRecord,
+          class: classId
+        });
+      }
+
+      console.log("Data to submit:", {
+        students: finalStudents,
+        classes: classRecords
+      });
+
+      if (finalStudents.length === 0 && classRecords.length === 0) {
+        alert("Vui lòng thêm ít nhất 1 học sinh hoặc 1 lớp");
+        return;
+      }
+
+      // Đảm bảo subAward có đầy đủ thông tin
+      const selectedCategory = categories.find(
+        (cat) => cat._id === editingCategory
+      );
+
+      if (!selectedCategory) {
+        console.error("Selected category not found:", editingCategory);
+        alert("Không tìm thấy thông tin loại vinh danh");
+        return;
+      }
+
+      console.log("Selected category:", selectedCategory);
+      
+      // Tìm subAward với điều kiện linh hoạt hơn
+      const subAward = selectedCategory?.subAwards?.find(
+        (sa) => {
+          const labelMatch = sa.label === recordFormData.subAward?.label;
+          const typeMatch = sa.type === recordFormData.subAward?.type;
+          const yearMatch = String(sa.schoolYear) === String(recordFormData.subAward?.schoolYear);
+          
+          console.log("Matching subAward:", { sa, labelMatch, typeMatch, yearMatch });
+          return labelMatch && (typeMatch || !recordFormData.subAward?.type) && 
+                 (yearMatch || !recordFormData.subAward?.schoolYear);
+        }
+      );
+
+      // Tạo subAward nếu không tìm thấy
+      let finalSubAward = subAward;
+      if (!finalSubAward && recordFormData.subAward) {
+        console.log("Creating new subAward from recordFormData:", recordFormData.subAward);
+        finalSubAward = {
+          label: recordFormData.subAward.label || "",
+          type: recordFormData.subAward.type || "custom",
+          schoolYear: recordFormData.subAward.schoolYear || "",
+          semester: recordFormData.subAward.semester || 0,
+          month: recordFormData.subAward.month || 0,
+          awardCount: 0
+        };
+      }
+
+      if (!finalSubAward) {
+        alert("Vui lòng chọn loại vinh danh");
+        return;
+      }
+
+      const dataToSend = {
+        awardCategory: editingCategory, // Đảm bảo gán giá trị editingCategory
+        subAward: {
+          ...finalSubAward,
+          label: finalSubAward.label,
+          type: finalSubAward.type || "custom",
+          schoolYear: finalSubAward.schoolYear,
+          semester: finalSubAward.semester,
+          month: finalSubAward.month,
+          awardCount: finalSubAward.awardCount || 0,
+        },
+        reason: recordFormData.reason,
+        awardClasses: classRecords,
+        students: finalStudents,
+      };
+
+      console.log("Final data to send:", dataToSend);
+
+      let response;
       if (!editingRecord) {
         // Tạo mới record
-        await axios.post(`${API_URL}/award-records`, dataToSend);
-        alert("Tạo mới record thành công!");
+        response = await axios.post(`${API_URL}/award-records`, dataToSend);
+        console.log("Created new record:", response.data);
       } else {
         // Cập nhật record
-        await axios.put(
+        response = await axios.put(
           `${API_URL}/award-records/${editingRecord}`,
           dataToSend
         );
-        alert("Cập nhật record thành công!");
-        setEditingRecord(null);
+        console.log("Updated record:", response.data);
       }
+
+      // Kiểm tra response
+      if (!response.data.awardCategory) {
+        console.error("Response missing awardCategory:", response.data);
+        // Thử cập nhật lại record với awardCategory
+        const updateResponse = await axios.put(
+          `${API_URL}/award-records/${response.data._id}`,
+          {
+            ...response.data,
+            awardCategory: editingCategory
+          }
+        );
+        response.data = updateResponse.data;
+      }
+
+      // Cập nhật UI với dữ liệu mới
+      if (response && response.data) {
+        // Populate thông tin học sinh trong record mới
+        const populatedRecord = {
+          ...response.data,
+          awardCategory: selectedCategory, // Thêm thông tin category đầy đủ
+          students: response.data.students.map(student => {
+            const foundStudent = studentsList.find(s => s._id === student.student);
+            return {
+              ...student,
+              student: foundStudent || student.student,
+              keyword: Array.isArray(student.keyword) ? student.keyword : [],
+              keywordEng: Array.isArray(student.keywordEng) ? student.keywordEng : [],
+              activity: Array.isArray(student.activity) ? student.activity : [],
+              activityEng: Array.isArray(student.activityEng) ? student.activityEng : []
+            };
+          }),
+          awardClasses: response.data.awardClasses?.map(awardClass => ({
+            ...awardClass,
+            class: classesList.find(c => c._id === awardClass.class) || awardClass.class
+          }))
+        };
+        
+        // Cập nhật state với record mới
+        setSelectedSubAwardRecords(prev => {
+          // Nếu đang edit thì thay thế record cũ
+          if (editingRecord) {
+            return prev.map(r => r._id === editingRecord ? populatedRecord : r);
+          }
+          // Nếu tạo mới thì thêm vào đầu danh sách
+          return [populatedRecord, ...prev];
+        });
+      }
+
+      alert(editingRecord ? "Cập nhật record thành công!" : "Tạo mới record thành công!");
+      
       // Reset form
       setRecordFormData({
         subAward: {},
@@ -614,9 +908,12 @@ function HallOfFameAdminPage() {
       setClassInput("");
       setExcelClasses([]);
       setExcelClassCount(0);
+      setEditingRecord(null);
 
       // Gọi lại fetchRecordsBySubAward để cập nhật danh sách
-      await fetchRecordsBySubAward(selectedSubAward);
+      if (selectedSubAward) {
+        await fetchRecordsBySubAward(selectedSubAward);
+      }
     } catch (error) {
       console.error("Error in record submit:", error);
       alert("Lỗi: " + (error.response?.data?.error || error.message));
@@ -686,49 +983,93 @@ function HallOfFameAdminPage() {
     if (!subAward || !editingCategory) return;
 
     try {
+      console.log("Fetching records for:", { subAward, editingCategory });
+      
+      // Fetch records với params đầy đủ
       const res = await axios.get(`${API_URL}/award-records`, {
         params: {
           awardCategory: editingCategory,
           subAwardLabel: subAward.label,
           subAwardType: subAward.type,
           subAwardSchoolYear: subAward.schoolYear,
-          subAwardSemester: subAward.semester,
-          subAwardMonth: subAward.month,
+          subAwardSemester: subAward.semester || 0,
+          subAwardMonth: subAward.month || 0,
         },
       });
 
-      // Lọc records theo sub-award được chọn và đảm bảo thông tin lớp được populate
-      const filteredRecords = res.data
-        .filter((record) => {
-          return (
-            // Thêm điều kiện awardCategory
-            record.awardCategory &&
-            record.awardCategory._id === editingCategory &&
-            // Rồi mới xét tới subAward
-            record.subAward.label === subAward.label &&
-            record.subAward.type === subAward.type &&
-            String(record.subAward.schoolYear) ===
-              String(subAward.schoolYear) &&
-            (record.subAward.semester || 0) === (subAward.semester || 0) &&
-            (record.subAward.month || 0) === (subAward.month || 0)
-          );
-        })
-        .map((record) => {
-          // Nếu có awardClasses, populate thông tin lớp từ classesList
-          if (record.awardClasses && record.awardClasses.length > 0) {
-            return {
-              ...record,
-              awardClasses: record.awardClasses.map((awardClass) => ({
-                ...awardClass,
-                class:
-                  classesList.find((c) => c._id === awardClass.class) ||
-                  awardClass.class,
-              })),
-            };
-          }
-          return record;
-        });
+      console.log("Received records:", res.data);
 
+      // Xử lý và populate dữ liệu
+      const processedRecords = (res.data || []).map((record) => {
+        if (!record) return null;
+
+        try {
+          // Populate thông tin học sinh
+          const populatedStudents = (record.students || []).map(student => {
+            if (!student || !student.student) return null;
+            const foundStudent = studentsList.find(s => s._id === (typeof student.student === 'object' ? student.student._id : student.student));
+            return {
+              ...student,
+              student: foundStudent || student.student,
+              keyword: Array.isArray(student.keyword) ? student.keyword : [],
+              keywordEng: Array.isArray(student.keywordEng) ? student.keywordEng : [],
+              activity: Array.isArray(student.activity) ? student.activity : [],
+              activityEng: Array.isArray(student.activityEng) ? student.activityEng : []
+            };
+          }).filter(Boolean);
+
+          // Populate thông tin lớp
+          const populatedClasses = (record.awardClasses || []).map(awardClass => {
+            if (!awardClass || !awardClass.class) return null;
+            return {
+              ...awardClass,
+              class: classesList.find(c => c._id === (typeof awardClass.class === 'object' ? awardClass.class._id : awardClass.class)) || awardClass.class
+            };
+          }).filter(Boolean);
+
+          return {
+            ...record,
+            students: populatedStudents,
+            awardClasses: populatedClasses,
+            awardCategory: {
+              _id: editingCategory,
+              ...(record.awardCategory || {})
+            }
+          };
+        } catch (err) {
+          console.error("Error processing record:", err, record);
+          return null;
+        }
+      }).filter(Boolean);
+
+      // Lọc records theo điều kiện chính xác
+      const filteredRecords = processedRecords.filter((record) => {
+        if (!record || !record.awardCategory || !record.subAward) return false;
+
+        const match = record.awardCategory._id === editingCategory &&
+          record.subAward.label === subAward.label &&
+          record.subAward.type === subAward.type &&
+          String(record.subAward.schoolYear || '') === String(subAward.schoolYear || '') &&
+          (record.subAward.semester || 0) === (subAward.semester || 0) &&
+          (record.subAward.month || 0) === (subAward.month || 0);
+        
+        console.log("Record match check:", { 
+          recordId: record._id,
+          match,
+          conditions: {
+            categoryMatch: record.awardCategory._id === editingCategory,
+            labelMatch: record.subAward.label === subAward.label,
+            typeMatch: record.subAward.type === subAward.type,
+            yearMatch: String(record.subAward.schoolYear || '') === String(subAward.schoolYear || ''),
+            semesterMatch: (record.subAward.semester || 0) === (subAward.semester || 0),
+            monthMatch: (record.subAward.month || 0) === (subAward.month || 0)
+          }
+        });
+        
+        return match;
+      });
+
+      console.log("Final filtered records:", filteredRecords);
       setSelectedSubAwardRecords(filteredRecords);
     } catch (error) {
       console.error("Error fetching records by sub-award:", error);
@@ -777,7 +1118,18 @@ function HallOfFameAdminPage() {
   };
 
   // Thêm hàm xử lý khi ấn nút thêm mới
-  const handleAddNewRecord = async () => {
+  const handleAddNewRecord = async ({
+    selectedStudent,
+    tempNote,
+    tempNoteEng,
+    tempKeyword,
+    tempKeywordEng,
+    tempActivity,
+    tempActivityEng,
+    selectedCategory,
+    selectedSubAwardLocal,
+    availableSubAwards
+  }) => {
     if (!selectedStudent) {
       alert("Vui lòng chọn học sinh trước!");
       return;
@@ -789,34 +1141,68 @@ function HallOfFameAdminPage() {
     }
 
     try {
-      // Tạo record mới
+      const subAward = availableSubAwards.find(sa => 
+        sa._id === selectedSubAwardLocal || 
+        `${sa.type}-${sa.label}-${sa.schoolYear}-${sa.semester || ''}-${sa.month || ''}` === selectedSubAwardLocal
+      );
+      
+      if (!subAward) {
+        alert("Vui lòng chọn loại vinh danh con!");
+        return;
+      }
+
+      // Xác định ID học sinh đúng định dạng
+      let studentId = selectedStudent;
+      // Nếu là object thì lấy _id
+      if (typeof selectedStudent === 'object' && selectedStudent._id) {
+        studentId = selectedStudent._id;
+      }
+      
+      // Kiểm tra nếu ID không phải định dạng MongoDB ObjectId hợp lệ
+      if (typeof studentId === 'string' && !/^[0-9a-fA-F]{24}$/.test(studentId)) {
+        console.error("Invalid student ID format:", studentId);
+        alert(`ID học sinh không hợp lệ: ${studentId}`);
+        return;
+      }
+
+      console.log("Sending student ID:", studentId);
+
+      // Tạo record mới với format đúng
       const newRecord = {
-        awardCategory: editingCategory,
-        subAward: selectedSubAward,
+        awardCategory: selectedCategory,
+        subAward: {
+          type: subAward.type,
+          label: subAward.label,
+          schoolYear: subAward.schoolYear,
+          semester: subAward.semester,
+          month: subAward.month
+        },
         students: [
           {
-            student: selectedStudent._id,
+            student: studentId,
             note: tempNote,
             noteEng: tempNoteEng,
-          },
-        ],
+            keyword: tempKeyword.split(",").map(k => k.trim()).filter(Boolean),
+            keywordEng: tempKeywordEng.split(",").map(k => k.trim()).filter(Boolean),
+            activity: tempActivity.split(",").map(a => a.trim()).filter(Boolean),
+            activityEng: tempActivityEng.split(",").map(a => a.trim()).filter(Boolean)
+          }
+        ]
       };
-
       // Gọi API để lưu record
       const res = await axios.post(`${API_URL}/award-records`, newRecord);
-
       // Thêm record mới vào đầu danh sách
-      setSelectedSubAwardRecords((prevRecords) => [
+      setSelectedSubAwardRecords(prevRecords => [
         {
           ...res.data,
           students: [
             {
               ...res.data.students[0],
-              student: selectedStudent,
-            },
-          ],
+              student: selectedStudent
+            }
+          ]
         },
-        ...prevRecords,
+        ...prevRecords
       ]);
 
       // Reset các trường
@@ -824,9 +1210,15 @@ function HallOfFameAdminPage() {
       setSearchInput("");
       setTempNote("");
       setTempNoteEng("");
+      setTempKeyword("");
+      setTempKeywordEng("");
+      setTempActivity("");
+      setTempActivityEng("");
+
+      alert("Thêm mới thành công!");
     } catch (error) {
       console.error("Error creating record:", error);
-      alert("Thêm mới thất bại!");
+      alert("Thêm mới thất bại! " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -883,13 +1275,83 @@ function HallOfFameAdminPage() {
     }
   };
 
-  const handleDeleteCustomSubAward = (index) => {
-    setCustomSubAwards((prev) => prev.filter((_, i) => i !== index));
-    // Nếu bạn muốn cập nhật cả trong categoryFormData.subAwards:
-    setCategoryFormData((prev) => ({
-      ...prev,
-      subAwards: prev.subAwards.filter((_, i) => i !== index),
-    }));
+  const handleDeleteCustomSubAward = async (index) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa sub-award này?")) return;
+
+    try {
+      const subAwardToDelete = customSubAwards[index];
+
+      // Xóa khỏi state local
+      setCustomSubAwards((prev) => prev.filter((_, i) => i !== index));
+      setCategoryFormData((prev) => ({
+        ...prev,
+        subAwards: prev.subAwards.filter(
+          (sub) =>
+            !(
+              sub.type === "custom" &&
+              sub.label === subAwardToDelete.label &&
+              sub.schoolYear === subAwardToDelete.schoolYear
+            )
+        ),
+      }));
+
+      // Xóa khỏi database
+      if (editingCategory) {
+        const updatedCategory = {
+          ...categoryFormData,
+          subAwards: categoryFormData.subAwards.filter(
+            (sub) =>
+              !(
+                sub.type === "custom" &&
+                sub.label === subAwardToDelete.label &&
+                sub.schoolYear === subAwardToDelete.schoolYear
+              )
+          ),
+        };
+
+        await axios.put(
+          `${API_URL}/award-categories/${editingCategory}`,
+          updatedCategory
+        );
+
+        // Xóa tất cả records liên quan đến subAward này
+        const relatedRecords = records.filter(
+          (record) =>
+            record.awardCategory._id === editingCategory &&
+            record.subAward.type === "custom" &&
+            record.subAward.label === subAwardToDelete.label &&
+            record.subAward.schoolYear === subAwardToDelete.schoolYear
+        );
+
+        // Xóa từng record liên quan
+        for (const record of relatedRecords) {
+          await axios.delete(`${API_URL}/award-records/${record._id}`);
+        }
+
+        // Refresh lại danh sách
+        await fetchCategories();
+        await fetchRecords();
+      }
+
+      alert("Xóa sub-award thành công!");
+    } catch (error) {
+      console.error("Error deleting sub-award:", error);
+      alert("Xóa sub-award thất bại: " + error.message);
+
+      // Rollback state nếu có lỗi
+      await fetchCategories();
+      if (editingCategory) {
+        const currentCategory = categories.find(
+          (cat) => cat._id === editingCategory
+        );
+        if (currentCategory) {
+          setCustomSubAwards(
+            currentCategory.subAwards.filter((sub) => sub.type === "custom")
+          );
+          setCategoryFormData(currentCategory);
+        }
+      }
+    }
   };
 
   // Reset tất cả state khi đóng modal
@@ -1061,6 +1523,15 @@ function HallOfFameAdminPage() {
                         Cập nhật
                       </button>
                       <button
+                        className="bg-[#009483] text-white font-semibold px-3 py-1 rounded-lg"
+                        onClick={() => {
+                          setSelectedCategoryForRecord(cat);
+                          setShowRecordModalDirect(true);
+                        }}
+                      >
+                        Record
+                      </button>
+                      <button
                         className="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded-lg"
                         onClick={() => handleCategoryDelete(cat._id)}
                       >
@@ -1075,1548 +1546,97 @@ function HallOfFameAdminPage() {
         </div>
       )}
 
-      {/* Tab Quản lý Records */}
-      {activeTab === "records" && (
-        <div className="mt-4">
-          {/* Bảng danh sách records */}
-          <table className="min-w-full border text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="border px-2 py-1">ID</th>
-                <th className="border px-2 py-1">Sinh viên</th>
-                <th className="border px-2 py-1">Lớp</th>
-                <th className="border px-2 py-1">Ảnh</th>
-                <th className="border px-2 py-1">Award Category</th>
-                <th className="border px-2 py-1">Sub Award</th>
-                <th className="border px-2 py-1">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(records || []).map((r) => (
-                <tr key={r._id}>
-                  <td className="border px-2 py-1">{r._id}</td>
-                  <td className="border px-2 py-1">
-                    {r.students.map((stu, i) => (
-                      <div key={i}>
-                        {stu.student?.studentCode} - {stu.student?.name} -{" "}
-                        {stu.currentClass?.className}
-                      </div>
-                    ))}
-                  </td>
-                  <td className="border px-2 py-1">
-                    {r.awardClasses && r.awardClasses.length > 0
-                      ? r.awardClasses.map((c) => c.className).join(", ")
-                      : "—"}
-                  </td>
-                  <td className="border px-2 py-1">
-                    {r.students.map((stu, i) => (
-                      <div key={i}>
-                        {stu.photo?.photoUrl ? (
-                          <img
-                            src={`${BASE_URL}/${stu.photo.photoUrl}`}
-                            alt="Student"
-                            className="w-24 object-cover"
-                          />
-                        ) : (
-                          "Chưa có ảnh"
-                        )}
-                      </div>
-                    ))}
-                  </td>
-                  <td className="border px-2 py-1">
-                    {r.awardCategory?.name || r.awardCategory?._id}
-                  </td>
-                  <td className="border px-2 py-1">
-                    {r.subAward ? r.subAward.label : ""}
-                  </td>
-                  <td className="border px-2 py-1 space-x-2">
-                    <button
-                      className="bg-[#EAA300] text-white px-2 py-1 rounded"
-                      onClick={() => handleRecordEditOutside(r)}
-                    >
-                      Cập nhật
-                    </button>
-                    <button
-                      className="bg-[#DC0909]  text-white px-2 py-1 rounded"
-                      onClick={() => handleRecordDelete(r._id)}
-                    >
-                      Xoá
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
       {/* Modal Tạo/Sửa Category + Tạo Record */}
-      {showCategoryModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-20">
-          <div className="bg-white pt-16 px-10 pb-6 rounded-[20px] shadow-lg w-11/12 relative flex gap-6">
-            <button
-              onClick={resetModalState}
-              className="absolute top-[2%] right-[1%] text-sm items-center justify-center px-3 py-1 font-bold text-white bg-orange-red rounded-lg transform transition-transform duration-300 hover:scale-105"
-            >
-              Đóng
-            </button>
+      <CategoryModal 
+        showCategoryModal={showCategoryModal}
+        resetModalState={resetModalState}
+        editingCategory={editingCategory}
+        categoryFormData={categoryFormData}
+        setCategoryFormData={setCategoryFormData}
+        handleCoverImageChange={handleCoverImageChange}
+        handleCategorySubmit={handleCategorySubmit}
+        subAwardMode={subAwardMode}
+        setSubAwardMode={setSubAwardMode}
+        newCustomSubAward={newCustomSubAward}
+        setNewCustomSubAward={setNewCustomSubAward}
+        newCustomSubAwardEng={newCustomSubAwardEng}
+        setNewCustomSubAwardEng={setNewCustomSubAwardEng}
+        newCustomSubAwardSchoolYear={newCustomSubAwardSchoolYear}
+        setNewCustomSubAwardSchoolYear={setNewCustomSubAwardSchoolYear}
+        newCustomSubAwardPriority={newCustomSubAwardPriority}
+        setNewCustomSubAwardPriority={setNewCustomSubAwardPriority}
+        customSubAwards={customSubAwards}
+        setCustomSubAwards={setCustomSubAwards}
+        schoolYears={schoolYears}
+        handleDeleteCustomSubAward={handleDeleteCustomSubAward}
+        selectedSchoolYears={selectedSchoolYears}
+        setSelectedSchoolYears={setSelectedSchoolYears}
+        setSubAwardStep={setSubAwardStep}
+        categories={categories}
+        selectedSubAwardSchoolYear={selectedSubAwardSchoolYear}
+        setSelectedSubAwardSchoolYear={setSelectedSubAwardSchoolYear}
+        selectedSubAward={selectedSubAward}
+        handleSubAwardSelect={handleSubAwardSelect}
+        setShowRecordModal={setShowRecordModal}
+        BASE_URL={BASE_URL}
+      />
 
-            {/* Nửa bên trái: Thông tin Category + Step subAward */}
-            <div
-              className="w-1/2 border-r pr-4 overflow-y-hidden hover:overflow-y-auto"
-              style={{ maxHeight: "80vh" }}
-            >
-              <h2 className="text-xl font-semibold mb-2">
-                {editingCategory
-                  ? "Cập nhật Loại Vinh Danh"
-                  : "Tạo mới Loại Vinh Danh"}
-              </h2>
-              <div className="relative group mb-2">
-                <div>
-                  {categoryFormData.coverImage ? (
-                    <img
-                      src={`${BASE_URL}/${categoryFormData.coverImage}`}
-                      alt="Cover"
-                      className="w-full h-48 rounded-2xl object-cover cursor-pointer"
-                      onClick={() =>
-                        document.getElementById("coverImageUpload").click()
-                      }
-                    />
-                  ) : (
-                    <div
-                      className="w-full h-48 rounded-2xl bg-gray-100 flex items-center justify-center cursor-pointer border border-dashed border-gray-300 hover:bg-gray-200 transition"
-                      onClick={() =>
-                        document.getElementById("coverImageUpload").click()
-                      }
-                    >
-                      <span className="text-gray-500">Chọn ảnh bìa</span>
-                    </div>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  id="coverImageUpload"
-                  onChange={handleCoverImageChange}
-                  className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
-                />
-              </div>
-
-              {/* Form Category */}
-              <form onSubmit={handleCategorySubmit} className="space-y-4">
-                <div className="w-full flex flex-row gap-4 mb-2">
-                  <div className="w-full">
-                    <label className="block font-medium">Tên:</label>
-                    <input
-                      className="w-full border border-gray-200 rounded-2xl p-2 text-[#282828]"
-                      value={categoryFormData.name}
-                      onChange={(e) =>
-                        setCategoryFormData({
-                          ...categoryFormData,
-                          name: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="w-full">
-                    <label className="block font-medium">
-                      Tên (Tiếng Anh):
-                    </label>
-                    <input
-                      className="w-full border border-gray-200 rounded-2xl p-2 text-[#282828]"
-                      value={categoryFormData.nameEng}
-                      onChange={(e) =>
-                        setCategoryFormData({
-                          ...categoryFormData,
-                          nameEng: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="w-full flex flex-row gap-4 mb-2">
-                  <div className="w-full">
-                    <label className="block font-medium">Mô tả:</label>
-                    <textarea
-                      className="w-full h-36 border border-gray-200 rounded-2xl p-2 text-[#282828] overflow-hidden hover:overflow-auto"
-                      value={categoryFormData.description}
-                      onChange={(e) =>
-                        setCategoryFormData({
-                          ...categoryFormData,
-                          description: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="w-full">
-                    <label className="block font-medium">
-                      Mô tả (Tiếng Anh):
-                    </label>
-                    <textarea
-                      className="w-full h-36 border border-gray-200 rounded-2xl p-2 text-[#282828] overflow-hidden hover:overflow-auto"
-                      value={categoryFormData.descriptionEng}
-                      onChange={(e) =>
-                        setCategoryFormData({
-                          ...categoryFormData,
-                          descriptionEng: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                {/* Bước 1 và 2 gộp lại */}
-                <div className="border rounded-2xl p-4">
-                  <h4 className="font-medium mb-4">
-                    Bước 1: Chọn và thiết lập loại Vinh danh
-                  </h4>
-                  <div className="space-y-6">
-                    {/* Vinh danh tùy chọn */}
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          className="form-checkbox h-4 w-4 text-[#002147] rounded-[4px]"
-                          checked={subAwardMode.custom}
-                          onChange={(e) =>
-                            setSubAwardMode({
-                              ...subAwardMode,
-                              custom: e.target.checked,
-                            })
-                          }
-                        />
-                        <span>
-                          Vinh danh tùy chọn <br />
-                          <span className="text-xs text-gray-500 italic">
-                            Chọn mode này khi bạn muốn tạo các loại vinh danh
-                            nhỏ hơn không có thời gian định kỳ năm, tháng, học
-                            kì.
-                          </span>
-                        </span>
-                      </div>
-                      {subAwardMode.custom && (
-                        <div className=" ml-6 space-y-3 border-l-2 border-gray-200 pl-4">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="text"
-                              className="w-48 border rounded-lg p-1.5 text-xs"
-                              value={newCustomSubAward}
-                              onChange={(e) =>
-                                setNewCustomSubAward(e.target.value)
-                              }
-                              placeholder="Nhập tên vinh danh"
-                            />
-                            <select
-                              className="border rounded-lg p-2 text-xs"
-                              value={newCustomSubAwardSchoolYear}
-                              onChange={(e) =>
-                                setNewCustomSubAwardSchoolYear(e.target.value)
-                              }
-                            >
-                              <option value="">--Chọn năm học--</option>
-                              {(schoolYears || []).map((sy) => (
-                                <option key={sy._id} value={sy._id}>
-                                  {sy.code || sy.name}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              type="button"
-                              className="bg-[#009483] text-white px-2 py-1 rounded-lg text-sm font-semibold"
-                              onClick={() => {
-                                if (
-                                  newCustomSubAward.trim() !== "" &&
-                                  newCustomSubAwardSchoolYear !== ""
-                                ) {
-                                  const newSubAward = {
-                                    type: "custom",
-                                    label: newCustomSubAward,
-                                    schoolYear: newCustomSubAwardSchoolYear,
-                                    awardCount: 0,
-                                  };
-                                  setCustomSubAwards([
-                                    ...customSubAwards,
-                                    newSubAward,
-                                  ]);
-
-                                  setCategoryFormData((prev) => ({
-                                    ...prev,
-                                    subAwards: [...prev.subAwards, newSubAward],
-                                  }));
-
-                                  setNewCustomSubAward("");
-                                  setNewCustomSubAwardSchoolYear("");
-                                } else {
-                                  alert(
-                                    "Vui lòng nhập label và chọn School Year cho subAward."
-                                  );
-                                }
-                              }}
-                            >
-                              +
-                            </button>
-                          </div>
-                          <ul className="list-disc pl-5 space-y-1">
-                            {customSubAwards.map((sub, index) => {
-                              const schoolYear = schoolYears.find(
-                                (sy) => sy._id === sub.schoolYear
-                              );
-                              return (
-                                <li
-                                  key={index}
-                                  className="text-sm flex items-center gap-2"
-                                >
-                                  <span>
-                                    {sub.label} (
-                                    {schoolYear
-                                      ? `Năm học ${schoolYear.code}`
-                                      : sub.schoolYear}
-                                    )
-                                  </span>
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteCustomSubAward(index)
-                                    }
-                                    className="text-white font-semibold hover:text-red-700 rounded-lg bg-orange-red-dark px-2"
-                                    title="Xoá"
-                                  >
-                                    X
-                                  </button>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Vinh danh định kỳ */}
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          className="form-checkbox h-4 w-4 text-[#002147] rounded-[4px]"
-                          checked={subAwardMode.schoolYear}
-                          onChange={(e) =>
-                            setSubAwardMode({
-                              ...subAwardMode,
-                              schoolYear: e.target.checked,
-                            })
-                          }
-                        />
-                        <span>
-                          Vinh danh định kì <br />
-                          <span className="text-xs text-gray-500 italic">
-                            Chọn mode này khi bạn muốn tạo các loại vinh danh có
-                            thời gian định kỳ năm, tháng, học kì.
-                          </span>
-                        </span>
-                      </div>
-                      {subAwardMode.schoolYear && (
-                        <div className="ml-6 space-y-3 border-l-2 border-gray-200 pl-4">
-                          <label className="text-sm">Chọn Năm học:</label>
-                          <div className="w-72 grid grid-cols-2 gap-2">
-                            {schoolYears.map((sy) => (
-                              <label
-                                key={sy._id}
-                                className="flex items-center space-x-2"
-                              >
-                                <input
-                                  type="checkbox"
-                                  className="form-checkbox h-4 w-4 text-[#002147] rounded-[4px]"
-                                  value={sy._id}
-                                  checked={selectedSchoolYears.includes(sy._id)}
-                                  onChange={(e) => {
-                                    const checked = e.target.checked;
-                                    setSelectedSchoolYears((prev) => {
-                                      if (checked) {
-                                        return [...prev, sy._id];
-                                      } else {
-                                        return prev.filter(
-                                          (id) => id !== sy._id
-                                        );
-                                      }
-                                    });
-                                  }}
-                                />
-                                <span>{sy.code || sy.name}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        className="bg-[#002855]  text-white px-3 py-1 rounded-lg text-sm font-bold"
-                        onClick={async () => {
-                          try {
-                            await handleCategorySubmit();
-                            alert("Đã lưu Category và Sub-Award thành công!");
-                            setSubAwardStep(3);
-                          } catch (error) {
-                            console.error(error);
-                            alert("Lưu Category thất bại!");
-                          }
-                        }}
-                      >
-                        Cập nhật
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 3: Xác nhận & Quản lý Sub Award */}
-                <div className="border rounded-2xl p-4">
-                  <h4 className="font-medium mb-4">
-                    Bước 2: Thêm học sinh và lớp
-                  </h4>
-                  {(() => {
-                    const cat = categories.find(
-                      (c) => c._id === editingCategory
-                    );
-                    if (!cat || !cat.subAwards || cat.subAwards.length === 0) {
-                      return (
-                        <p className="text-gray-500 italic">
-                          Không có Sub Award nào.
-                        </p>
-                      );
-                    }
-
-                    // Filter sub-awards based on the selected school year
-                    const filteredSubAwards = selectedSubAwardSchoolYear
-                      ? cat.subAwards.filter(
-                          (sub) =>
-                            String(sub.schoolYear) ===
-                            String(selectedSubAwardSchoolYear)
-                        )
-                      : [];
-
-                    return (
-                      <div className="mb-4">
-                        <label>Chọn Năm Học:</label>
-                        <select
-                          className="border border-gray-300 rounded-3xl mr-4 ml-2"
-                          value={selectedSubAwardSchoolYear}
-                          onChange={(e) =>
-                            setSelectedSubAwardSchoolYear(e.target.value)
-                          }
-                        >
-                          <option>Chọn Năm Học</option>
-                          {(schoolYears || []).map((sy) => (
-                            <option key={sy._id} value={sy._id}>
-                              {sy.code || sy.name}
-                            </option>
-                          ))}
-                        </select>
-                        <label>Chọn mục:</label>
-                        <select
-                          className="border border-gray-300 rounded-3xl ml-2"
-                          value={selectedSubAward ? selectedSubAward.label : ""}
-                          onChange={(e) => {
-                            const chosen = filteredSubAwards.find(
-                              (sub) => sub.label === e.target.value
-                            );
-                            if (chosen) {
-                              handleSubAwardSelect(chosen);
-                            }
-                          }}
-                        >
-                          <option>Chọn mục</option>
-                          {filteredSubAwards.map((sub, idx) => (
-                            <option key={idx} value={sub.label}>
-                              {sub.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </form>
-            </div>
-
-            {/* Nửa bên phải: Form Tạo Record */}
-            <div
-              className="w-1/2 pl-4 overflow-y-hidden hover:overflow-y-auto"
-              style={{ maxHeight: "80vh" }}
-            >
-              {/* Nếu chưa có editingCategory => disable form */}
-              {!editingCategory && (
-                <div className="text-red-500">
-                  Vui lòng tạo & lưu Category trước khi thêm Record.
-                </div>
-              )}
-
-              {/* Hiển thị thông tin Sub Award đang chọn */}
-              {selectedSubAward && (
-                <div className="mb-4">
-                  <div className="p-3 rounded-t">
-                    <div className="flex justify-between items-center">
-                      <a
-                        href="/record-sample.xlsx"
-                        download
-                        className="bg-[#002855] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
-                      >
-                        Tải file mẫu
-                      </a>
-                      <div className="space-x-2">
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          onChange={handleExcelUpload}
-                          className="hidden"
-                          id="excel-students"
-                        />
-                        <label
-                          htmlFor="excel-students"
-                          className="bg-[#002855] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
-                        >
-                          Thêm học sinh
-                        </label>
-
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          onChange={handleExcelClassUpload}
-                          className="hidden"
-                          id="excel-classes"
-                        />
-                        <label
-                          htmlFor="excel-classes"
-                          className="bg-[#002855] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
-                        >
-                          Thêm lớp
-                        </label>
-                        {/* Nút “Cập nhật tất cả” -> chỉ hiện khi anyRecordChanged = true */}
-                        {anyRecordChanged && (
-                          <button
-                            onClick={handleSaveAllChanges}
-                            className="bg-[#009483] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
-                          >
-                            Cập nhật tất cả
-                          </button>
-                        )}
-                        {selectedSubAwardRecords.length > 0 && (
-                          <button
-                            onClick={handleDeleteAllRecords}
-                            className="bg-[#DC0909] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
-                          >
-                            Xóa tất cả dữ liệu
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Thêm các nút xác nhận và xóa */}
-                  <div className="mt-4 flex justify-end items-center space-x-4">
-                    {/* Hiển thị số lượng học sinh và lớp từ Excel */}
-                    {(excelRecordCount > 0 || excelClassCount > 0) && (
-                      <div className="flex items-center space-x-4">
-                        {excelRecordCount > 0 && (
-                          <div className="flex items-center space-x-2 bg-green-50 px-3 py-1.5 rounded-lg">
-                            <span className="text-sm font-medium text-green-700">
-                              Trong file có {excelRecordCount} học sinh
-                            </span>
-                            <button
-                              onClick={() => {
-                                if (
-                                  window.confirm(
-                                    "Bạn có chắc chắn muốn xóa file học sinh đã tải lên?"
-                                  )
-                                ) {
-                                  setExcelStudents([]);
-                                  setExcelRecordCount(0);
-                                }
-                              }}
-                              className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
-                              title="Xóa file học sinh"
-                            >
-                              <FaTrashCan size={12} />
-                            </button>
-                          </div>
-                        )}
-                        {excelClassCount > 0 && (
-                          <div className="flex items-center space-x-2 bg-yellow-50 px-3 py-1.5 rounded-lg">
-                            <span className="text-sm font-medium text-yellow-700">
-                              Trong file có {excelClassCount} lớp
-                            </span>
-                            <button
-                              onClick={() => {
-                                if (
-                                  window.confirm(
-                                    "Bạn có chắc chắn muốn xóa file lớp đã tải lên?"
-                                  )
-                                ) {
-                                  setExcelClasses([]);
-                                  setExcelClassCount(0);
-                                }
-                              }}
-                              className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
-                              title="Xóa file lớp"
-                            >
-                              <FaTrashCan size={12} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <div>
-                      {(excelRecordCount > 0 || excelClassCount > 0) && (
-                        <button
-                          onClick={handleRecordSubmit}
-                          className="bg-[#009483] hover:bg-[#008577] text-white px-4 py-1.5 rounded-lg text-sm font-medium flex items-center space-x-2 transition-colors"
-                        >
-                          <span>Xác nhận thêm</span>
-                          <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
-                            {excelRecordCount + excelClassCount} đối tượng
-                          </span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Bảng hiển thị dữ liệu */}
-                  <div className="rounded-b">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="!border-px !border-gray-400">
-                          <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                            <p className="text-sm font-bold text-gray-500 uppercase">
-                              Mã học sinh/ Lớp
-                            </p>
-                          </th>
-                          <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                            <p className="text-sm font-bold text-gray-500 uppercase">
-                              Ghi chú
-                            </p>
-                          </th>
-                          <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                            <p className="text-sm font-bold text-gray-500 uppercase">
-                              Ghi chú (EN)
-                            </p>
-                          </th>
-                          <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                            <p className="text-sm font-bold text-gray-500 uppercase">
-                              Hành động
-                            </p>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {/* Dòng thêm mới bằng tay */}
-                        {selectedSubAward && (
-                          <>
-                            {/* Phần thêm học sinh */}
-                            <tr className="border-b">
-                              <td className="py-3 pr-4">
-                                <div className="relative">
-                                  <input
-                                    type="text"
-                                    value={searchInput}
-                                    onChange={handleSearchChange}
-                                    onFocus={() => setShowSuggestions(true)}
-                                    onBlur={() =>
-                                      setTimeout(
-                                        () => setShowSuggestions(false),
-                                        200
-                                      )
-                                    }
-                                    placeholder="Nhập mã hoặc tên học sinh..."
-                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                  />
-                                  {showSuggestions &&
-                                    filteredStudents.length > 0 &&
-                                    !selectedStudent && (
-                                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                        {filteredStudents.map((student) => (
-                                          <div
-                                            key={student._id}
-                                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                                            onClick={() =>
-                                              handleSelectStudent(student)
-                                            }
-                                          >
-                                            <div className="text-sm font-bold">
-                                              {student.studentCode} -{" "}
-                                              {student.name}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm text-gray-900">
-                                <div className="relative">
-                                  <input
-                                    type="text"
-                                    value={tempNote}
-                                    onChange={(e) =>
-                                      setTempNote(e.target.value)
-                                    }
-                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                    placeholder="Nhập ghi chú tiếng việt"
-                                    disabled={!selectedStudent}
-                                  />
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm text-gray-900">
-                                <div className="relative">
-                                  <input
-                                    type="text"
-                                    value={tempNoteEng}
-                                    onChange={(e) =>
-                                      setTempNoteEng(e.target.value)
-                                    }
-                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                    placeholder="Nhập ghi chú tiếng anh"
-                                    disabled={!selectedStudent}
-                                  />
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm text-gray-900">
-                                <div className="flex space-x-2">
-                                  <button
-                                    onClick={handleAddNewRecord}
-                                    className="text-white bg-[#002855] p-1 rounded-[8px]"
-                                    title="Thêm mới"
-                                    disabled={!selectedStudent}
-                                  >
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      className="h-5 w-5"
-                                      viewBox="0 0 20 20"
-                                      fill="currentColor"
-                                    >
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                        clipRule="evenodd"
-                                      />
-                                    </svg>
-                                  </button>
-                                  {selectedStudent && (
-                                    <button
-                                      onClick={() => {
-                                        setSelectedStudent(null);
-                                        setSearchInput("");
-                                        setTempNote("");
-                                        setTempNoteEng("");
-                                      }}
-                                      className="text-red-500 hover:text-red-600 p-1 rounded-[8px] hover:bg-red-50"
-                                      title="Hủy"
-                                    ></button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-
-                            {/* Phần thêm lớp */}
-                            <tr className="border-b">
-                              <td className="py-3 pr-4">
-                                <div className="relative">
-                                  <select
-                                    value={classInput}
-                                    onChange={(e) =>
-                                      setClassInput(e.target.value)
-                                    }
-                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                  >
-                                    <option value="">Chọn lớp...</option>
-                                    {classesList.map((cls) => (
-                                      <option key={cls._id} value={cls._id}>
-                                        {cls.className}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm text-gray-900">
-                                <div className="relative">
-                                  <input
-                                    type="text"
-                                    value={tempClassNote}
-                                    onChange={(e) =>
-                                      setTempClassNote(e.target.value)
-                                    }
-                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                    placeholder="Nhập ghi chú tiếng việt"
-                                    disabled={!classInput}
-                                  />
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm text-gray-900">
-                                <div className="relative">
-                                  <input
-                                    type="text"
-                                    value={tempClassNoteEng}
-                                    onChange={(e) =>
-                                      setTempClassNoteEng(e.target.value)
-                                    }
-                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                    placeholder="Nhập ghi chú tiếng anh"
-                                    disabled={!classInput}
-                                  />
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm text-gray-900">
-                                <div className="flex space-x-2">
-                                  <button
-                                    onClick={handleAddNewClassRecord}
-                                    className="text-white bg-[#002855]  p-1 rounded-[8px]"
-                                    title="Thêm mới"
-                                    disabled={!classInput}
-                                  >
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      className="h-5 w-5"
-                                      viewBox="0 0 20 20"
-                                      fill="currentColor"
-                                    >
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                        clipRule="evenodd"
-                                      />
-                                    </svg>
-                                  </button>
-                                  {classInput && (
-                                    <button
-                                      onClick={() => {
-                                        setClassInput("");
-                                        setTempClassNote("");
-                                        setTempClassNoteEng("");
-                                      }}
-                                      className="text-red-500 hover:text-red-600 p-1 rounded-[8px] hover:bg-red-50"
-                                      title="Hủy"
-                                    >
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="h-5 w-5"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
-                                      >
-                                        <path
-                                          fillRule="evenodd"
-                                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                          clipRule="evenodd"
-                                        />
-                                      </svg>
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          </>
-                        )}
-
-                        {/* Hiển thị records đã lưu */}
-                        {selectedSubAwardRecords.map((record, recordIndex) => (
-                          <React.Fragment key={`record-${recordIndex}`}>
-                            {/* 3.1) Nếu record có student(s) */}
-                            {record.students?.map((student, studentIndex) => (
-                              <tr
-                                key={`record-${recordIndex}-student-${studentIndex}`}
-                                className="border-b border-gray-200"
-                              >
-                                {/* Mã học sinh */}
-                                <td className="py-3 pr-4">
-                                  <input
-                                    type="text"
-                                    value={student.student?.studentCode || ""}
-                                    readOnly
-                                    className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full"
-                                  />
-                                </td>
-
-                                {/* Ghi chú tiếng Việt (note) */}
-                                <td className="px-3 py-2 text-sm text-gray-900">
-                                  <div className="relative">
-                                    {/* Input hiển thị để click vào chuyển sang textarea */}
-                                    <input
-                                      type="text"
-                                      value={student.note || ""}
-                                      onFocus={(e) => {
-                                        e.target.style.display = "none";
-                                        e.target.nextElementSibling.style.display =
-                                          "block";
-                                        e.target.nextElementSibling.focus();
-                                      }}
-                                      onChange={() => {
-                                        /* Để tránh warning của React, không làm gì trong đây */
-                                      }}
-                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full cursor-pointer"
-                                    />
-
-                                    {/* Textarea ẩn, hiển thị khi focus */}
-                                    <textarea
-                                      rows={3}
-                                      style={{ display: "none" }}
-                                      value={student.note || ""}
-                                      onChange={(e) => {
-                                        const newValue = e.target.value;
-
-                                        // Chỉ cập nhật record tương ứng
-                                        setSelectedSubAwardRecords(
-                                          (prevRecords) =>
-                                            prevRecords.map((rec, idx) => {
-                                              if (idx !== recordIndex) {
-                                                return rec; // giữ nguyên các record khác
-                                              }
-                                              // nếu là recordIndex này, ta clone students
-                                              const updatedStudents =
-                                                rec.students.map(
-                                                  (stu, sIdx) => {
-                                                    if (sIdx !== studentIndex) {
-                                                      return stu; // giữ nguyên student khác
-                                                    }
-                                                    return {
-                                                      ...stu,
-                                                      note: newValue,
-                                                    };
-                                                  }
-                                                );
-                                              return {
-                                                ...rec,
-                                                isChanged: true, // đánh dấu record này
-                                                students: updatedStudents,
-                                              };
-                                            })
-                                        );
-                                      }}
-                                      onBlur={(e) => {
-                                        e.target.style.display = "none";
-                                        e.target.previousElementSibling.style.display =
-                                          "block";
-                                      }}
-                                      className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
-                                    />
-                                  </div>
-                                </td>
-
-                                {/* Ghi chú tiếng Anh (noteEng) */}
-                                <td className="px-3 py-2 text-sm text-gray-900">
-                                  <div className="relative">
-                                    {/* Input */}
-                                    <input
-                                      type="text"
-                                      value={student.noteEng || ""}
-                                      onFocus={(e) => {
-                                        e.target.style.display = "none";
-                                        e.target.nextElementSibling.style.display =
-                                          "block";
-                                        e.target.nextElementSibling.focus();
-                                      }}
-                                      onChange={() => {}}
-                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full cursor-pointer"
-                                    />
-                                    {/* Textarea */}
-                                    <textarea
-                                      rows={3}
-                                      style={{ display: "none" }}
-                                      value={student.noteEng || ""}
-                                      onChange={(e) => {
-                                        const newValue = e.target.value;
-                                        setSelectedSubAwardRecords(
-                                          (prevRecords) =>
-                                            prevRecords.map((rec, idx) => {
-                                              if (idx !== recordIndex) {
-                                                return rec;
-                                              }
-                                              const updatedStudents =
-                                                rec.students.map(
-                                                  (stu, sIdx) => {
-                                                    if (sIdx !== studentIndex)
-                                                      return stu;
-                                                    return {
-                                                      ...stu,
-                                                      noteEng: newValue,
-                                                    };
-                                                  }
-                                                );
-                                              return {
-                                                ...rec,
-                                                isChanged: true,
-                                                students: updatedStudents,
-                                              };
-                                            })
-                                        );
-                                      }}
-                                      onBlur={(e) => {
-                                        e.target.style.display = "none";
-                                        e.target.previousElementSibling.style.display =
-                                          "block";
-                                      }}
-                                      className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
-                                    />
-                                  </div>
-                                </td>
-
-                                {/* Cột thao tác */}
-                                <td className="px-3 py-2 text-sm text-gray-900">
-                                  <div className="flex space-x-2">
-                                    {/* Nút Xóa */}
-                                    <button
-                                      onClick={async () => {
-                                        if (
-                                          !window.confirm(
-                                            "Bạn có chắc muốn xóa record này?"
-                                          )
-                                        ) {
-                                          return;
-                                        }
-                                        try {
-                                          await axios.delete(
-                                            `${API_URL}/award-records/${record._id}`
-                                          );
-                                          // Xoá record khỏi state
-                                          setSelectedSubAwardRecords((prev) =>
-                                            prev.filter(
-                                              (_, fIdx) => fIdx !== recordIndex
-                                            )
-                                          );
-                                          alert("Đã xóa thành công!");
-                                        } catch (err) {
-                                          console.error(err);
-                                          alert("Xóa thất bại!");
-                                        }
-                                      }}
-                                      className="text-[#DC0909] hover:text-red-600 p-1 rounded-full hover:bg-red-50"
-                                      title="Xóa record"
-                                    >
-                                      <FaTrashCan size={14} />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-
-                            {/* 3.2) Nếu record có awardClasses */}
-                            {record.awardClasses?.map(
-                              (awardClass, classIndex) => (
-                                <tr
-                                  key={`record-${recordIndex}-class-${classIndex}`}
-                                  className="border-b border-gray-200"
-                                >
-                                  {/* Tên lớp */}
-                                  <td className="py-3 pr-4">
-                                    <input
-                                      type="text"
-                                      value={awardClass.class?.className || ""}
-                                      readOnly
-                                      className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full"
-                                    />
-                                  </td>
-
-                                  {/* Ghi chú tiếng Việt (note) */}
-                                  <td className="px-3 py-2 text-sm text-gray-900">
-                                    <div className="relative">
-                                      <input
-                                        type="text"
-                                        value={awardClass.note || ""}
-                                        onFocus={(e) => {
-                                          e.target.style.display = "none";
-                                          e.target.nextElementSibling.style.display =
-                                            "block";
-                                          e.target.nextElementSibling.focus();
-                                        }}
-                                        onChange={() => {}}
-                                        className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full cursor-pointer"
-                                      />
-                                      <textarea
-                                        rows={3}
-                                        style={{ display: "none" }}
-                                        value={awardClass.note || ""}
-                                        onChange={(e) => {
-                                          const newValue = e.target.value;
-                                          setSelectedSubAwardRecords(
-                                            (prevRecords) =>
-                                              prevRecords.map((rec, idx) => {
-                                                if (idx !== recordIndex)
-                                                  return rec;
-                                                const updatedClasses =
-                                                  rec.awardClasses.map(
-                                                    (ac, cIdx) => {
-                                                      if (cIdx !== classIndex)
-                                                        return ac;
-                                                      return {
-                                                        ...ac,
-                                                        note: newValue,
-                                                      };
-                                                    }
-                                                  );
-                                                return {
-                                                  ...rec,
-                                                  isChanged: true,
-                                                  awardClasses: updatedClasses,
-                                                };
-                                              })
-                                          );
-                                        }}
-                                        onBlur={(e) => {
-                                          e.target.style.display = "none";
-                                          e.target.previousElementSibling.style.display =
-                                            "block";
-                                        }}
-                                        className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
-                                      />
-                                    </div>
-                                  </td>
-
-                                  {/* Ghi chú tiếng Anh (noteEng) */}
-                                  <td className="px-3 py-2 text-sm text-gray-900">
-                                    <div className="relative">
-                                      <input
-                                        type="text"
-                                        value={awardClass.noteEng || ""}
-                                        onFocus={(e) => {
-                                          e.target.style.display = "none";
-                                          e.target.nextElementSibling.style.display =
-                                            "block";
-                                          e.target.nextElementSibling.focus();
-                                        }}
-                                        onChange={() => {}}
-                                        className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full cursor-pointer"
-                                      />
-                                      <textarea
-                                        rows={3}
-                                        style={{ display: "none" }}
-                                        value={awardClass.noteEng || ""}
-                                        onChange={(e) => {
-                                          const newValue = e.target.value;
-                                          setSelectedSubAwardRecords(
-                                            (prevRecords) =>
-                                              prevRecords.map((rec, idx) => {
-                                                if (idx !== recordIndex)
-                                                  return rec;
-                                                const updatedClasses =
-                                                  rec.awardClasses.map(
-                                                    (ac, cIdx) => {
-                                                      if (cIdx !== classIndex)
-                                                        return ac;
-                                                      return {
-                                                        ...ac,
-                                                        noteEng: newValue,
-                                                      };
-                                                    }
-                                                  );
-                                                return {
-                                                  ...rec,
-                                                  isChanged: true,
-                                                  awardClasses: updatedClasses,
-                                                };
-                                              })
-                                          );
-                                        }}
-                                        onBlur={(e) => {
-                                          e.target.style.display = "none";
-                                          e.target.previousElementSibling.style.display =
-                                            "block";
-                                        }}
-                                        className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
-                                      />
-                                    </div>
-                                  </td>
-
-                                  {/* Cột thao tác cho lớp */}
-                                  <td className="px-3 py-2 text-sm text-gray-900">
-                                    <div className="flex space-x-2">
-                                      {/* Nút Xoá */}
-                                      <button
-                                        onClick={async () => {
-                                          if (
-                                            !window.confirm(
-                                              "Bạn có chắc muốn xóa record này?"
-                                            )
-                                          ) {
-                                            return;
-                                          }
-                                          try {
-                                            await axios.delete(
-                                              `${API_URL}/award-records/${record._id}`
-                                            );
-                                            setSelectedSubAwardRecords((prev) =>
-                                              prev.filter(
-                                                (_, fIdx) =>
-                                                  fIdx !== recordIndex
-                                              )
-                                            );
-                                            alert("Đã xóa thành công!");
-                                          } catch (err) {
-                                            console.error(err);
-                                            alert("Xóa thất bại!");
-                                          }
-                                        }}
-                                        className="text-[#DC0909] hover:text-red-600 p-1 rounded-full hover:bg-red-50"
-                                        title="Xóa record"
-                                      >
-                                        <FaTrashCan size={14} />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )
-                            )}
-                          </React.Fragment>
-                        ))}
-
-                        {/* Hiển thị records đang thêm mới */}
-                        {recordFormData.students.map((student, index) => (
-                          <tr
-                            key={`new-student-${index}`}
-                            className="border-b border-gray-200"
-                          >
-                            <td className="py-3 pr-4">
-                              <select
-                                value={student.student || ""}
-                                onChange={(e) =>
-                                  handleStudentChange(
-                                    index,
-                                    "student",
-                                    e.target.value
-                                  )
-                                }
-                                className="w-full border rounded-lg p-2 text-sm"
-                              >
-                                <option value="">Chọn học sinh</option>
-                                {studentsList.map((s) => (
-                                  <option key={s._id} value={s._id}>
-                                    {s.studentCode} - {s.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={student.note || ""}
-                                  onChange={(e) =>
-                                    handleStudentChange(
-                                      index,
-                                      "note",
-                                      e.target.value
-                                    )
-                                  }
-                                  onFocus={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.nextElementSibling.style.display =
-                                      "block";
-                                    e.target.nextElementSibling.focus();
-                                  }}
-                                  className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                />
-                                <textarea
-                                  value={student.note || ""}
-                                  onChange={(e) =>
-                                    handleStudentChange(
-                                      index,
-                                      "note",
-                                      e.target.value
-                                    )
-                                  }
-                                  onBlur={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.previousElementSibling.style.display =
-                                      "block";
-                                  }}
-                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
-                                  rows="4"
-                                />
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={student.noteEng || ""}
-                                  onChange={(e) =>
-                                    handleStudentChange(
-                                      index,
-                                      "noteEng",
-                                      e.target.value
-                                    )
-                                  }
-                                  onFocus={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.nextElementSibling.style.display =
-                                      "block";
-                                    e.target.nextElementSibling.focus();
-                                  }}
-                                  className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                />
-                                <textarea
-                                  value={student.noteEng || ""}
-                                  onChange={(e) =>
-                                    handleStudentChange(
-                                      index,
-                                      "noteEng",
-                                      e.target.value
-                                    )
-                                  }
-                                  onBlur={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.previousElementSibling.style.display =
-                                      "block";
-                                  }}
-                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
-                                  rows="4"
-                                />
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <button
-                                onClick={() => handleRemoveStudent(index)}
-                                className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
-                                title="Xóa"
-                              >
-                                <FaTrashCan size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-
-                        {/* Hiển thị học sinh từ Excel */}
-                        {excelStudents.map((student, index) => (
-                          <tr
-                            key={`excel-student-${index}`}
-                            className="border-b "
-                          >
-                            <td className="py-3 pr-4">
-                              <input
-                                type="text"
-                                value={
-                                  studentsList.find(
-                                    (s) => s._id === student.student
-                                  )?.studentCode || ""
-                                }
-                                readOnly
-                                className="border-none rounded-lg bg-transparent text-sm font-bold text-navy-700 w-full"
-                              />
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={student.note || ""}
-                                  onChange={(e) => {
-                                    const updatedStudents = [...excelStudents];
-                                    updatedStudents[index].note =
-                                      e.target.value;
-                                    setExcelStudents(updatedStudents);
-                                  }}
-                                  onFocus={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.nextElementSibling.style.display =
-                                      "block";
-                                    e.target.nextElementSibling.focus();
-                                  }}
-                                  className="border-none rounded-lg bg-transparent text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                />
-                                <textarea
-                                  value={student.note || ""}
-                                  onChange={(e) => {
-                                    const updatedStudents = [...excelStudents];
-                                    updatedStudents[index].note =
-                                      e.target.value;
-                                    setExcelStudents(updatedStudents);
-                                  }}
-                                  onBlur={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.previousElementSibling.style.display =
-                                      "block";
-                                  }}
-                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
-                                  rows="4"
-                                />
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={student.noteEng || ""}
-                                  onChange={(e) => {
-                                    const updatedStudents = [...excelStudents];
-                                    updatedStudents[index].noteEng =
-                                      e.target.value;
-                                    setExcelStudents(updatedStudents);
-                                  }}
-                                  onFocus={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.nextElementSibling.style.display =
-                                      "block";
-                                    e.target.nextElementSibling.focus();
-                                  }}
-                                  className="border-none rounded-lg bg-transparent text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                />
-                                <textarea
-                                  value={student.noteEng || ""}
-                                  onChange={(e) => {
-                                    const updatedStudents = [...excelStudents];
-                                    updatedStudents[index].noteEng =
-                                      e.target.value;
-                                    setExcelStudents(updatedStudents);
-                                  }}
-                                  onBlur={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.previousElementSibling.style.display =
-                                      "block";
-                                  }}
-                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
-                                  rows="4"
-                                />
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <button
-                                onClick={() => {
-                                  const updatedStudents = excelStudents.filter(
-                                    (_, i) => i !== index
-                                  );
-                                  setExcelStudents(updatedStudents);
-                                  setExcelRecordCount(updatedStudents.length);
-                                }}
-                                className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
-                                title="Xóa"
-                              >
-                                <FaTrashCan size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-
-                        {/* Hiển thị lớp từ Excel */}
-                        {excelClasses.map((awardClass, index) => (
-                          <tr key={`excel-class-${index}`} className="border-b">
-                            <td className="py-3 pr-4">
-                              <input
-                                type="text"
-                                value={
-                                  classesList.find(
-                                    (c) => c._id === awardClass.class
-                                  )?.className || ""
-                                }
-                                readOnly
-                                className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                              />
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={awardClass.note || ""}
-                                  onChange={(e) => {
-                                    const updatedClasses = [...excelClasses];
-                                    updatedClasses[index].note = e.target.value;
-                                    setExcelClasses(updatedClasses);
-                                  }}
-                                  onFocus={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.nextElementSibling.style.display =
-                                      "block";
-                                    e.target.nextElementSibling.focus();
-                                  }}
-                                  className="border-none rounded-lg bg-gray-100  text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                />
-                                <textarea
-                                  value={awardClass.note || ""}
-                                  onChange={(e) => {
-                                    const updatedClasses = [...excelClasses];
-                                    updatedClasses[index].note = e.target.value;
-                                    setExcelClasses(updatedClasses);
-                                  }}
-                                  onBlur={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.previousElementSibling.style.display =
-                                      "block";
-                                  }}
-                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
-                                  rows="4"
-                                />
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={awardClass.noteEng || ""}
-                                  onChange={(e) => {
-                                    const updatedClasses = [...excelClasses];
-                                    updatedClasses[index].noteEng =
-                                      e.target.value;
-                                    setExcelClasses(updatedClasses);
-                                  }}
-                                  onFocus={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.nextElementSibling.style.display =
-                                      "block";
-                                    e.target.nextElementSibling.focus();
-                                  }}
-                                  className="border-none rounded-lg bg-gray-100  text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md focus:z-10 focus:relative focus:scale-105 focus:border"
-                                />
-                                <textarea
-                                  value={awardClass.noteEng || ""}
-                                  onChange={(e) => {
-                                    const updatedClasses = [...excelClasses];
-                                    updatedClasses[index].noteEng =
-                                      e.target.value;
-                                    setExcelClasses(updatedClasses);
-                                  }}
-                                  onBlur={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.previousElementSibling.style.display =
-                                      "block";
-                                  }}
-                                  className="hidden absolute -top-[20px] left-0 w-full min-h-[100px] border-none rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none transition-all duration-200"
-                                  rows="4"
-                                />
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <button
-                                onClick={() => {
-                                  const updatedClasses = excelClasses.filter(
-                                    (_, i) => i !== index
-                                  );
-                                  setExcelClasses(updatedClasses);
-                                  setExcelClassCount(updatedClasses.length);
-                                }}
-                                className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
-                                title="Xóa"
-                              >
-                                <FaTrashCan size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-
-                        {/* Hiển thị thông báo khi không có dữ liệu */}
-                        {selectedSubAwardRecords.length === 0 &&
-                          recordFormData.students.length === 0 &&
-                          excelStudents.length === 0 &&
-                          excelClasses.length === 0 && (
-                            <tr>
-                              <td
-                                colSpan="4"
-                                className="text-center py-4 text-gray-500"
-                              >
-                                Chưa có dữ liệu. Vui lòng thêm học sinh hoặc
-                                lớp.
-                              </td>
-                            </tr>
-                          )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {showRecordModalDirect && (
+        <RecordModal
+          showRecordModal={showRecordModalDirect}
+          setShowRecordModal={setShowRecordModalDirect}
+          editingCategory={selectedCategoryForRecord?._id}
+          selectedSubAward={null}
+          onSubAwardSelect={handleSubAwardSelect}
+          handleExcelUpload={handleExcelUpload}
+          handleExcelClassUpload={handleExcelClassUpload}
+          anyRecordChanged={anyRecordChanged}
+          handleSaveAllChanges={handleSaveAllChanges}
+          selectedSubAwardRecords={selectedSubAwardRecords}
+          handleDeleteAllRecords={handleDeleteAllRecords}
+          excelRecordCount={excelRecordCount}
+          excelClassCount={excelClassCount}
+          setExcelStudents={setExcelStudents}
+          setExcelClasses={setExcelClasses}
+          setExcelRecordCount={setExcelRecordCount}
+          setExcelClassCount={setExcelClassCount}
+          handleRecordSubmit={handleRecordSubmit}
+          searchInput={searchInput}
+          setSearchInput={setSearchInput}
+          handleSearchChange={handleSearchChange}
+          showSuggestions={showSuggestions}
+          setShowSuggestions={setShowSuggestions}
+          filteredStudents={filteredStudents}
+          selectedStudent={selectedStudent}
+          handleSelectStudent={handleSelectStudent}
+          tempKeyword={tempKeyword}
+          setTempKeyword={setTempKeyword}
+          tempKeywordEng={tempKeywordEng}
+          setTempKeywordEng={setTempKeywordEng}
+          tempActivity={tempActivity}
+          setTempActivity={setTempActivity}
+          tempActivityEng={tempActivityEng}
+          setTempActivityEng={setTempActivityEng}
+          tempNote={tempNote}
+          setTempNote={setTempNote}
+          tempNoteEng={tempNoteEng}
+          setTempNoteEng={setTempNoteEng}
+          handleAddNewRecord={handleAddNewRecord}
+          classInput={classInput}
+          setClassInput={setClassInput}
+          tempClassNote={tempClassNote}
+          setTempClassNote={setTempClassNote}
+          tempClassNoteEng={tempClassNoteEng}
+          setTempClassNoteEng={setTempClassNoteEng}
+          handleAddNewClassRecord={handleAddNewClassRecord}
+          classesList={classesList}
+          setSelectedStudent={setSelectedStudent}
+          setSelectedSubAwardRecords={setSelectedSubAwardRecords}
+          API_URL={API_URL}
+          categories={categories || []}
+          schoolYears={schoolYears || []}
+          studentsList={studentsList || []}
+        />
       )}
     </div>
   );

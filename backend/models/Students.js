@@ -7,11 +7,10 @@ const studentSchema = new mongoose.Schema(
     gender: { type: String, enum: ["Nam", "Nữ", "Khác"] },
     birthDate: { type: Date },
     email: { type: String },
-    // Tham chiếu đến Family (một chiều)
-    family: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Family",
-    },
+    address: { type: String }, // Địa chỉ học sinh (tuyển sinh)
+    phone: { type: String }, // Số điện thoại (optional, hỗ trợ liên lạc)
+    parents: [{ type: mongoose.Schema.Types.ObjectId, ref: "Parent" }], // Thay hoặc bổ sung cho  Family, liên kết trực tiếp với phụ huynh
+    status: { type: String, enum: ["active", "inactive", "graduated"] }, // Trạng thái học sinh
   },
   { timestamps: true }
 );

@@ -12,6 +12,8 @@ const schoolYearSchema = new mongoose.Schema(
     // Ví dụ 30-06-2024
 
     description: { type: String },
+
+    isActive: { type: Boolean, default: false }, // Đánh dấu năm học hiện tại
   },
   { timestamps: true }
 );

@@ -8,9 +8,11 @@ const classSchema = new mongoose.Schema(
       ref: "SchoolYear",
       required: true
     },
-homeroomTeachers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], 
-
-
+    homeroomTeachers: [{ type: mongoose.Schema.Types.ObjectId, ref: "Users" }], 
+    educationalSystem: { type: mongoose.Schema.Types.ObjectId, ref: "EducationalSystem" }, // Hệ học
+    gradeLevel: { type: String }, // Ví dụ: "Lớp 10", "Grade 11"
+    curriculum: { type: mongoose.Schema.Types.ObjectId, ref: "Curriculum" }, // Giáo trình
+    students: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }], // Danh sách học sinh (optional)
 },
   { timestamps: true }
 );

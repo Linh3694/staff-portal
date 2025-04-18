@@ -15,6 +15,18 @@ const StudentAwardSchema = new Schema(
     noteEng: { 
       type: String, 
     },
+    keyword: [{
+      type: String,
+    }],
+    keywordEng: [{
+      type: String,
+    }],
+    activity: [{
+      type: String,
+    }],
+    activityEng: [{
+      type: String,
+    }],
   },
   { _id: false }
 );
@@ -43,7 +55,9 @@ const SubAwardDetailSchema = new Schema(
     semester: { type: Number },
     year: { type: Number },
     label: { type: String },
+    labelEng: { type: String },
     schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear" },
+    priority: { type: Number, default: 0 },
   },
   { _id: false }
 );

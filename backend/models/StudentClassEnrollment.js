@@ -17,8 +17,8 @@ const studentClassEnrollmentSchema = new mongoose.Schema(
       ref: "SchoolYear",
       required: true
     },
-
-    // Thời gian bắt đầu - kết thúc ở lớp này (nếu có thay đổi giữa chừng)
+    status: { type: String, enum: ["active", "transferred", "dropped"] }, // Trạng thái trong lớp
+    
     startDate: { type: Date },
     endDate: { type: Date },
 

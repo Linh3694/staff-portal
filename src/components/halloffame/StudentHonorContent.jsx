@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { API_URL, BASE_URL } from "../../config";
-import { CDN_URL } from "../../config";
+import { API_URL, BASE_URL, CDN_URL } from "../../config";
 import { FaAngleDown, FaAngleRight } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
@@ -684,7 +683,6 @@ const StudentHonorContent = ({
             onChange={(e) => setSearchName(e.target.value)}
           />
           <button
-            onClick={() => console.log("Searching:", searchName)} // Thay bằng logic tìm kiếm của bạn
             className="hidden absolute right-[-40px] w-[36px] h-[36px] bg-[#002855] rounded-full lg:flex items-center justify-center hover:bg-[#001F3F] transition"
           >
             <FaSearch className="text-white text-[18px]" />

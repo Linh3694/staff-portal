@@ -21,8 +21,11 @@ const SubAwardSchema = new Schema(
     year: { type: Number },
     // Nếu kiểu là "custom": lưu nhãn (ví dụ: "Tiêu biểu")
     label: { type: String },
+    labelEng: { type: String },
     // Số lượng học sinh được vinh danh theo mục này
-    awardCount: { type: Number, required: true, default: 0 }
+    awardCount: { type: Number, required: true, default: 0 },
+    // Thứ tự ưu tiên hiển thị (1-8)
+    priority: { type: Number, default: 0 }
   },
   { _id: false }
 );

@@ -5,7 +5,13 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true, // Email là ID chính và duy nhất
+    unique: true,
+    trim: true,
+  },
+  phone: {
+    type: String,
+    required: true,
+    unique: true,
     trim: true,
   },
   password: {
@@ -69,9 +75,6 @@ const userSchema = new mongoose.Schema({
     ]
 }, { timestamps: true });
 
-
-
-// Middleware: Hash mật khẩu trước khi lưu
 
 // Middleware: Hash mật khẩu trước khi lưu
 userSchema.pre('save', async function (next) {
