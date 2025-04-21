@@ -43,7 +43,7 @@ const CategoryModal = ({
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-20 transition-opacity duration-300">
       <div className="bg-white rounded-[20px] shadow-lg w-[90vw] h-[90vh] relative flex flex-col transform transition-transform duration-300 scale-100">
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 h-16 bg-[#002855] rounded-t-[20px] flex items-center justify-between px-10">
+        <div className="absolute top-0 left-0 right-0 h-16 bg-[#002855] rounded-t-xl flex items-center justify-between px-10">
           <h2 className="text-xl font-semibold text-white">
             {editingCategory ? 'Cập nhật Loại Vinh Danh' : 'Tạo mới Loại Vinh Danh'}
           </h2>
@@ -324,7 +324,7 @@ const CategoryModal = ({
         </div>
 
         {/* Footer with update button */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gray-50 rounded-b-[20px] flex items-center justify-end px-10">
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gray-50 rounded-b-xl flex items-center justify-end px-10">
           <button
             type="button"
             className="bg-[#009483] text-white px-6 py-2 rounded-full text-sm font-bold hover:bg-[#008577] transition-colors"

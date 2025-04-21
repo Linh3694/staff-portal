@@ -454,114 +454,202 @@ const handleSelectStudent = (student) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="absolute inset-0 bg-black opacity-50" onClick={() => setShowRecordModal(false)}></div>
-      <div className="bg-white max-w-[90%] p-6 rounded-lg relative max-h-[90vh] overflow-y-auto">
-        <div className="mb-6 flex gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Năm học
-            </label>
-            <select
-              name="schoolYear"
-              value={selectedYear}
-              onChange={(e) => {
-                setSelectedYear(e.target.value);
-                setSelectedSubAwardLocal("");
-              }}
-              className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-[#002855]"
-            >
-              <option value="">Chọn năm học</option>
-              {schoolYears.map((year) => (
-                <option key={year._id} value={year._id}>
-                  {year.code || year.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Loại vinh danh con
-            </label>
-            <select
-              name="subAward"
-              value={selectedSubAwardLocal}
-              onChange={(e) => handleSubAwardChange(e.target.value)}
-              className=" border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-[#002855]"
-              disabled={!selectedYear}
-            >
-              <option value="">Chọn loại vinh danh con</option>
-              {availableSubAwards.map((subAward) => (
-                <option key={subAward._id} value={subAward._id}>
-                  {subAward.label}
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="bg-white max-w-[90%] rounded-lg relative max-h-[90vh] overflow-y-auto">
+        <div className="bg-[#002855] py-4 px-10 rounded-t-lg flex justify-between items-center">
+          <h2 className="text-xl font-medium text-white">Cập nhật học sinh vinh danh</h2>
+          <button 
+            onClick={() => setShowRecordModal(false)}
+            className="font-semibold bg-white hover:bg-white/20 transition-colors px-4 py-1 rounded-lg text-sm text-[#002855]"
+          >
+            Đóng
+          </button>
         </div>
 
-        <div className="w-full pl-4 overflow-y-hidden hover:overflow-y-auto" style={{ maxHeight: "80vh" }}>
-          {!selectedCategory ? (
-            <div className="text-red-500">Vui lòng chọn loại vinh danh</div>
-          ) : !selectedYear ? (
-            <div className="text-red-500">Vui lòng chọn năm học</div>
-          ) : !selectedSubAwardLocal ? (
-            <div className="text-red-500">Vui lòng chọn loại vinh danh con</div>
-          ) : (
+        <div className="p-6">
+          {/* Header Controls Section */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex justify-between items-center gap-6">
+              {/* Select Boxes Group */}
+              <div className="flex gap-4 flex-1">
+                <div className="w-1/2">
+                  <select
+                    name="schoolYear"
+                    value={selectedYear}
+                    onChange={(e) => {
+                      setSelectedYear(e.target.value);
+                      setSelectedSubAwardLocal("");
+                    }}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-[#002855] bg-white"
+                  >
+                    <option value="">Năm học</option>
+                    {schoolYears.map((year) => (
+                      <option key={year._id} value={year._id}>
+                        {year.code || year.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="w-1/2">
+                  <select
+                    name="subAward"
+                    value={selectedSubAwardLocal}
+                    onChange={(e) => handleSubAwardChange(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-[#002855] bg-white"
+                    disabled={!selectedYear}
+                  >
+                    <option value="">Loại vinh danh con</option>
+                    {availableSubAwards.map((subAward) => (
+                      <option key={subAward._id} value={subAward._id}>
+                        {subAward.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Buttons Group */}
+              <div className="flex flex-wrap gap-3 justify-end">
+                <a
+                  href="/record-sample.xlsx"
+                  download
+                  className="inline-flex items-center px-4 py-2 bg-[#002855] text-white text-sm font-medium rounded-lg hover:bg-[#001f42] transition-colors"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Tải file mẫu
+                </a>
+
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleExcelUpload}
+                    className="hidden"
+                    id="excel-students"
+                  />
+                  <label
+                    htmlFor="excel-students"
+                    className="inline-flex items-center px-4 py-2 bg-[#002855] text-white text-sm font-medium rounded-lg hover:bg-[#001f42] transition-colors cursor-pointer"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Thêm học sinh
+                  </label>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleExcelClassUpload}
+                    className="hidden"
+                    id="excel-classes"
+                  />
+                  <label
+                    htmlFor="excel-classes"
+                    className="inline-flex items-center px-4 py-2 bg-[#002855] text-white text-sm font-medium rounded-lg hover:bg-[#001f42] transition-colors cursor-pointer"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Thêm lớp
+                  </label>
+                </div>
+
+                {anyRecordChanged && (
+                  <button
+                    onClick={handleSaveAllChanges}
+                    className="inline-flex items-center px-4 py-2 bg-[#009483] text-white text-sm font-medium rounded-lg hover:bg-[#007a6c] transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Cập nhật tất cả
+                  </button>
+                )}
+
+                {selectedSubAwardRecords.length > 0 && (
+                  <button
+                    onClick={handleDeleteAllRecords}
+                    className="inline-flex items-center px-4 py-2 bg-[#DC0909] text-white text-sm font-medium rounded-lg hover:bg-[#b30707] transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Xóa tất cả dữ liệu
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Preview Section */}
+            {showPreview && previewData && (
+              <div className="mt-4 bg-green-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-green-700">
+                    {previewData.type === 'students' ? (
+                      <>
+                        Trong file có {previewData.totalInFile} học sinh, có thể thêm {previewData.count}{' '}
+                        học sinh mới{previewData.duplicates > 0 && <> ({previewData.duplicates} trùng)</>}
+                      </>
+                    ) : (
+                      <>
+                        Trong file có {previewData.totalInFile} lớp, có thể thêm {previewData.count}{' '}
+                        lớp mới{previewData.duplicates > 0 && <> ({previewData.duplicates} trùng)</>}
+                      </>
+                    )}
+                  </span>
+                  {previewData.count > 0 && (
+                    <button
+                      onClick={handleRecordSubmit}
+                      className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Xác nhận thêm {previewData.count} {previewData.type === 'students' ? 'học sinh mới' : 'lớp mới'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Rest of the content */}
+          <div className="w-full pl-4 overflow-y-hidden hover:overflow-y-auto" style={{ maxHeight: "calc(80vh - 300px)" }}>
             <div className="mb-4">
               <div className="p-3 rounded-t">
                 <div className="flex justify-end items-center">
                   <div className="space-x-2">
-                    <a
-                      href="/record-sample.xlsx"
-                      download
-                      className="bg-[#002855] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
-                    >
-                      Tải file mẫu
-                    </a>
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleExcelUpload}
-                      className="hidden"
-                      id="excel-students"
-                    />
-                    <label
-                      htmlFor="excel-students"
-                      className="bg-[#002855] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
-                    >
-                      Thêm học sinh
-                    </label>
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={(e) => {
-                        console.log("Class file upload triggered");
-                        handleExcelClassUpload(e);
-                      }}
-                      className="hidden"
-                      id="excel-classes"
-                    />
-                    <label
-                      htmlFor="excel-classes"
-                      className="bg-[#002855] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
-                      onClick={() => console.log("Upload class button clicked")}
-                    >
-                      Thêm lớp
-                    </label>
-                    {anyRecordChanged && (
-                      <button
-                        onClick={handleSaveAllChanges}
-                        className="bg-[#009483] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
-                      >
-                        Cập nhật tất cả
-                      </button>
+                    {showPreview && previewData && (
+                      <div className="bg-green-50 px-3 py-1.5 rounded-lg">
+                        <span className="text-sm font-medium text-green-700">
+                          {previewData.type === 'students' ? (
+                            <>
+                              Trong file có {previewData.totalInFile} học sinh, có thể thêm {previewData.count}{' '}
+                              học sinh mới{previewData.duplicates > 0 && <> ({previewData.duplicates} trùng)</>}
+                            </>
+                          ) : (
+                            <>
+                              Trong file có {previewData.totalInFile} lớp, có thể thêm {previewData.count}{' '}
+                              lớp mới{previewData.duplicates > 0 && <> ({previewData.duplicates} trùng)</>}
+                            </>
+                          )}
+                        </span>
+                      </div>
                     )}
-                    {selectedSubAwardRecords.length > 0 && (
+                    {previewData && previewData.count > 0 && (
                       <button
-                        onClick={handleDeleteAllRecords}
-                        className="bg-[#DC0909] text-white font-semibold px-3 py-1 rounded cursor-pointer text-sm"
+                        onClick={handleRecordSubmit}
+                        className="bg-[#009483] hover:bg-[#008577] text-white px-4 py-1.5 rounded-lg text-sm font-medium flex items-center space-x-2 transition-colors"
                       >
-                        Xóa tất cả dữ liệu
+                        <span>Xác nhận thêm</span>
+                        <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
+                          {previewData.count} {previewData.type === 'students' ? 'học sinh mới' : 'lớp mới'}
+                        </span>
                       </button>
                     )}
                   </div>
@@ -1287,7 +1375,7 @@ const handleSelectStudent = (student) => {
                 </table>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
