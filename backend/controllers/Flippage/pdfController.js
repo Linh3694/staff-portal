@@ -196,7 +196,7 @@ exports.getImages = async (req, res) => {
     }
 
     // Xác định thư mục chứa ảnh PDF
-    const imageDir = path.join(__dirname, "..", "public", "uploads", "pdf-images");
+    const imageDir = path.join(__dirname, "..", "..", "public", "uploads", "pdf-images");
     if (!fs.existsSync(imageDir)) {
       return res.status(404).json({
         error: `Không tìm thấy thư mục ảnh cho PDF "${customName}"`,
@@ -360,7 +360,7 @@ exports.permanentlyDeletePdf = async (req, res) => {
     }
 
     // Xoá các file ảnh liên quan
-    const imageDir = path.join(__dirname, "..", "public", "uploads", "pdf-images");
+    const imageDir = path.join(__dirname, "..", "..", "public", "uploads", "pdf-images");
     const imageFiles = fs.readdirSync(imageDir).filter((file) => file.startsWith(pdfData.folderName));
     imageFiles.forEach((file) => fs.unlinkSync(path.join(imageDir, file)));
 
