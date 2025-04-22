@@ -191,12 +191,12 @@ function Admission() {
           />
         </div>
         
-        <div className="relative w-full h-full flex justify-center items-center">
-          <div className="flex flex-col items-center justify-center bg-white bg-opacity-80 p-8 rounded-xl max-w-5xl mx-4">
+        <div className="relative w-full h-full flex justify-center items-start overflow-y-auto pt-24 sm:pt-28 pb-16">
+          <div className="flex flex-col w-full items-center justify-start bg-white bg-opacity-80 p-8 rounded-xl max-w-5xl mx-4">
         
             
             {/* Bộ đếm thời gian (đối với mobile hiển thị theo lưới 2 cột) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-8 mb-8 w-full px-4">
+            <div className="mt-4 md:mt-0 grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-8 mb-8 w-full px-4">
               {[
                 { value: timeLeft.days, label: "Ngày" },
                 { value: timeLeft.hours, label: "Giờ" },
