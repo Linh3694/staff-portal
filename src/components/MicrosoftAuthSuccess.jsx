@@ -8,6 +8,7 @@ function MicrosoftAuthSuccess() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
+    const isAdmission = params.get("admission") === "true";
 
     if (!token) {
       console.error("Không tìm thấy token trong URL.");
@@ -19,6 +20,17 @@ function MicrosoftAuthSuccess() {
       const decoded = jwtDecode(token);
       const userRole = decoded.role;
       if (!userRole) throw new Error("Token không chứa role.");
+
+      // Admission-specific flow: skip role checks and go straight to /admission
+      if (isAdmission) {
+        localStorage.setItem("admissionAuth", "true");
+        localStorage.setItem("admissionToken", token);
+        if (decoded.role) {
+          localStorage.setItem("admissionRole", decoded.role);
+        }
+        navigate("/admission");
+        return; // stop further processing
+      }
 
       localStorage.setItem("authToken", token);
       localStorage.setItem("role", userRole);

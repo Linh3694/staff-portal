@@ -98,17 +98,23 @@ const Sidebar = ({
           link: "/dashboard/flippageadmin",
           allowedRoles: ["superadmin", "admin", "marcom"],
         },
-        {
-          label: "Quản lý tuyển dụng",
-          icon: <FaUserTie size={16} />,
-          link: "/dashboard/recruitmentadmin",
-          allowedRoles: ["superadmin", "admin", "hr"],
-        },
+          {
+            label: "Quản lý tuyển dụng",
+            icon: <FaUserTie size={16} />,
+            link: "/dashboard/recruitmentadmin",
+            allowedRoles: ["superadmin", "admin", "hr"],
+          },
         {
           label: "Quản lý vinh danh",
           icon: <FaUserGraduate size={16} />,
           link: "/dashboard/halloffame",
           allowedRoles: ["superadmin", "admin", "marcom"],
+        },
+        {
+          label: "Tuyển sinh",
+          icon: <FaUserGraduate size={16} />,
+          link: "/dashboard/admission",
+          allowedRoles: ["superadmin", "admin", "admission"],
         },
         {
           label: "Quản lý Bus",
@@ -195,6 +201,12 @@ const Sidebar = ({
           icon: <IoDocuments size={16} />,
           link: "/dashboard/flippageadmin",
           allowedRoles: ["superadmin", "admin", "marcom"],
+        },
+        {
+          label: "Tuyển sinh",
+          icon: <FaUserGraduate size={16} />,
+          link: "/dashboard/admission",
+          allowedRoles: ["superadmin", "admin", "admission"],
         },
       ],
     },

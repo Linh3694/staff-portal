@@ -22,17 +22,17 @@ passport.use(
       passReqToCallback: false,
       scope: ["User.Read", "profile", "email", "openid"],
       // Thêm các tuỳ chọn debug
-    loggingLevel: "info",
-    validateIssuer: false, // Nếu bạn muốn tắt xác thực issuer (đặc biệt là khi dùng multi-tenant)
+      loggingLevel: "info",
+      validateIssuer: false, // Nếu bạn muốn tắt xác thực issuer (đặc biệt là khi dùng multi-tenant)
     },
     // Callback khi nhận được dữ liệu từ Microsoft
     async (iss, sub, profile, accessToken, refreshToken, params, done) => {
-        if (!profile || !profile._json) {
-          console.error("❌ Lỗi: Không nhận được thông tin user từ Microsoft.");
-          return done(null, false, { message: "Không nhận được thông tin từ Microsoft" });
-        }
-      
-        try {
+      if (!profile || !profile._json) {
+        console.error("❌ Lỗi: Không nhận được thông tin user từ Microsoft.");
+        return done(null, false, { message: "Không nhận được thông tin từ Microsoft" });
+      }
+
+      try {
         // Lấy email và tên từ profile trả về từ Microsoft
         const email = profile._json.preferred_username;
         const displayName = profile.displayName || "No name";
@@ -70,23 +70,25 @@ passport.deserializeUser(async (id, done) => {
 router.get("/microsoft", (req, res, next) => {
   const redirectUri = req.query.redirectUri || "";
   const isMobile = req.query.mobile === "true";
+  const isAdmission = req.query.admission === "true";
 
   // Lưu thông tin tùy chỉnh vào session
-  req.session.authState = { redirectUri, isMobile };
+  req.session.authState = { redirectUri, isMobile, isAdmission };
   console.log("🔍 Nhận được request đến /microsoft với redirectUri:", redirectUri);
   passport.authenticate("azuread-openidconnect")(req, res, next);
 });
 
 router.get("/microsoft/callback", (req, res, next) => {
-  
+
   let redirectUri = "";
-  
   let isMobile = false;
+  let isAdmission = false;
 
   // Lấy thông tin từ session (nếu có)
   if (req.session && req.session.authState) {
     redirectUri = req.session.authState.redirectUri;
     isMobile = req.session.authState.isMobile;
+    isAdmission = req.session.authState.isAdmission;
     // Xóa sau khi đã lấy để không lộ thông tin lần sau
     delete req.session.authState;
   }
@@ -110,10 +112,12 @@ router.get("/microsoft/callback", (req, res, next) => {
       );
       // Nếu đăng nhập từ mobile và có redirectUri thì chuyển về mobile
       if (isMobile && redirectUri) {
-      return res.redirect(`${redirectUri}?token=${token}`);      }
+        return res.redirect(`${redirectUri}?token=${token}`);
+      }
 
       // Nếu từ web, chuyển hướng về frontend
-      return res.redirect(`http://localhost:3000/auth/microsoft/success?token=${token}`);
+      const admissionQuery = isAdmission ? "&admission=true" : "";
+      return res.redirect(`http://localhost:3000/auth/microsoft/success?token=${token}${admissionQuery}`);
     } catch (error) {
       console.error("❌ Lỗi khi tạo JWT:", error);
       return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent(error.message)}`);

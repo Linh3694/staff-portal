@@ -20,7 +20,8 @@ import FlipViewPage from "./pages/FlipViewPage";
 import HallofFame from "./pages/HallOfFame-homepage";
 import HallOfFamePublicPage from "./pages/HallOfFame-detail";
 import Library from "./pages/Library";
-
+import Admission from "./pages/Admission";
+import LoginAdmission from "./pages/LoginAdmission";
 // PublicRoute: Nếu người dùng đã đăng nhập, chuyển hướng về Dashboard
 function PublicRoute({ children }) {
   const isAuthenticated = !!localStorage.getItem("authToken");
@@ -62,6 +63,18 @@ function RequireAuth({ children, allowedRoles }) {
   return children;
 }
 
+// RequireAdmissionAuth: Kiểm tra đăng nhập đặc biệt cho trang Admission
+function RequireAdmissionAuth({ children }) {
+  const location = useLocation();
+  const isAdmissionAuthenticated = !!localStorage.getItem("admissionAuth");
+
+  if (!isAdmissionAuthenticated) {
+    return <Navigate to="/login-admission" state={{ from: location }} replace />;
+  }
+
+  return children;
+}
+
 function App() {
   const [isEventAuthenticated, setIsEventAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(null);
@@ -85,10 +98,6 @@ function App() {
         newestOnTop={false}
         closeOnClick
         rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        style={{ zIndex: 1200 }}
       />
       <Router>
         <Routes>
@@ -97,6 +106,15 @@ function App() {
             path="/hall-of-honor/detail"
             element={<HallOfFamePublicPage />}
           />
+          <Route 
+            path="/admission" 
+            element={
+              <RequireAdmissionAuth>
+                <Admission />
+              </RequireAdmissionAuth>
+            } 
+          />
+          <Route path="/login-admission" element={<LoginAdmission />} />
           <Route path="/library" element={<Library />} />
           <Route path="/:customName" element={<FlipViewPage />} />
           {/* Trang Login */}

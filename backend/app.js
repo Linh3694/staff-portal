@@ -38,6 +38,7 @@ const vehicleRoutes = require("./routes/Bus/vehicleRoutes");
 const tripRoutes = require("./routes/Bus/tripRoutes");
 const dailyTripRoutes = require("./routes/Bus/dailyTripRoutes");
 const libraryRoutes = require("./routes/Library/library");
+const admissionRoutes = require("./routes/Admission/admissionRoutes");
 
 const app = express();
 // Tạo HTTP server và tích hợp Socket.IO
@@ -57,25 +58,25 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sendMessage", async (data) => {
-      try {
+    try {
       console.log("Message received:", data);
-  
+
       // Lưu tin nhắn vào DB
       const ticketDoc = await Ticket.findById(data.ticketId);
       if (!ticketDoc) {
         console.error("Could not find ticket with ID", data.ticketId);
         return;
       }
-  
+
       ticketDoc.messages.push({
         text: data.text,
         sender: data.sender._id, // data.sender holds { _id, fullname, ... }
         type: data.type || "text",
         timestamp: new Date(),
       });
-  
+
       await ticketDoc.save();
-  
+
       // Phát tin nhắn đến tất cả client trong room
       io.to(data.ticketId).emit("receiveMessage", data);
     } catch (err) {
@@ -150,7 +151,7 @@ app.use("/api/schoolyears", schoolYearRoutes);
 app.use("/api/classes", classRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/photos", photoRoutes);
-app.use("/api/award-records", awardRecordRoutes); 
+app.use("/api/award-records", awardRecordRoutes);
 app.use("/api/award-categories", awardCategoryRoutes);
 app.use("/api/routes", routeRoutes);
 app.use("/api/vehicles", vehicleRoutes);
@@ -158,6 +159,7 @@ app.use("/api/trips", tripRoutes);
 app.use("/api/daily-trips", dailyTripRoutes);
 app.use("/api/libraries", libraryRoutes);
 app.use("/api/email", require("./routes/Ticket/emailRoutes"));
+app.use("/api/admission", admissionRoutes);
 
 // Khởi động server
 const PORT = process.env.PORT;

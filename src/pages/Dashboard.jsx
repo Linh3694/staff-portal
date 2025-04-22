@@ -33,6 +33,7 @@ import BusDashboard from "../components/busService/BusDashboard";
 import LibraryReport from "../components/library/libraryReport";
 import LibraryData from "../components/library/libraryData";
 import LibraryManagement from "../components/library/libraryManagement";
+import Admission from "../components/admission/homepage";
 
 const urlToMenu = {
   devices: "Quản lý thiết bị",
@@ -48,6 +49,7 @@ const urlToMenu = {
   halloffame: "Quản lý vinh danh",
   bus: "Quản lý Bus",
   library: "Quản lý Thư viện",
+  admission: "Tuyển sinh",
 };
 
 const Dashboard = () => {
@@ -235,6 +237,8 @@ const Dashboard = () => {
 
       case "Phần mềm lật trang":
         return <FlippageAdmin currentUser={currentUser} />;
+      case "Tuyển sinh":
+        return <Admission currentUser={currentUser} />;
       case "Tickets":
         return <Ticket currentUser={currentUser} />;
       case "Quản lý tuyển dụng":
