@@ -837,7 +837,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
         className="absolute inset-0 bg-black opacity-50"
         onClick={onClose}
       ></div>
-      <div className="bg-white max-w-[90%] max-h-[90%] rounded-lg relative overflow-y-auto">
+      <div className="bg-white max-w-[90%] h-[90%] rounded-lg relative overflow-y-auto">
         <div className="bg-[#002855] py-4 px-10 rounded-t-lg flex justify-between items-center">
           <h2 className="text-xl font-medium text-white">
             Cập nhật học sinh vinh danh
@@ -1099,32 +1099,40 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                           Mã học sinh/ Lớp
                         </p>
                       </th>
-                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
                         <p className="text-sm font-bold text-gray-500 uppercase">
-                          3 Keywords
+                          <span>3 Keywords</span>
+                          <br />
+                          <span>(Cách dấu ",")</span>
                         </p>
                       </th>
-                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
                         <p className="text-sm font-bold text-gray-500 uppercase">
-                          3 Keywords (EN)
+                          <span>3 Keywords (EN)</span>
+                          <br />
+                          <span>(Cách dấu ",")</span>
                         </p>
                       </th>
-                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
                         <p className="text-sm font-bold text-gray-500 uppercase">
-                          5 Activities
+                          <span>5 Activities</span>
+                          <br />
+                          <span>(Cách dấu ",")</span>
                         </p>
                       </th>
-                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
                         <p className="text-sm font-bold text-gray-500 uppercase">
-                          5 Activities (EN)
+                          <span>5 Activities (EN)</span>
+                          <br />
+                          <span>(Cách dấu ",")</span>
                         </p>
                       </th>
-                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
                         <p className="text-sm font-bold text-gray-500 uppercase">
                           Ghi chú
                         </p>
                       </th>
-                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
                         <p className="text-sm font-bold text-gray-500 uppercase">
                           Ghi chú (EN)
                         </p>
@@ -1176,7 +1184,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                           value={tempKeyword}
                           onChange={(e) => setTempKeyword(e.target.value)}
                           className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md"
-                          placeholder="Nhập keyword (cách dấu ',')"
+                          placeholder="Nhập keyword"
                           disabled={!selectedStudent}
                         />
                       </td>
@@ -1186,7 +1194,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                           value={tempKeywordEng}
                           onChange={(e) => setTempKeywordEng(e.target.value)}
                           className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md"
-                          placeholder="Nhập keyword tiếng Anh"
+                          placeholder="Nhập keyword (EN)"
                           disabled={!selectedStudent}
                         />
                       </td>
@@ -1196,7 +1204,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                           value={tempActivity}
                           onChange={(e) => setTempActivity(e.target.value)}
                           className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md"
-                          placeholder="Nhập activity (cách dấu ',')"
+                          placeholder="Nhập activity"
                           disabled={!selectedStudent}
                         />
                       </td>
@@ -1206,7 +1214,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                           value={tempActivityEng}
                           onChange={(e) => setTempActivityEng(e.target.value)}
                           className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md"
-                          placeholder="Nhập activity tiếng Anh"
+                          placeholder="Nhập activity (EN)"
                           disabled={!selectedStudent}
                         />
                       </td>
@@ -1226,7 +1234,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                           value={tempNoteEng}
                           onChange={(e) => setTempNoteEng(e.target.value)}
                           className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md"
-                          placeholder="Nhập ghi chú tiếng Anh"
+                          placeholder="Nhập ghi chú (EN)"
                           disabled={!selectedStudent}
                         />
                       </td>
@@ -1572,7 +1580,9 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                   rows={3}
                                   style={{ display: "none" }}
                                   value={
-                                    student.keyword
+                                    student.keywordText !== undefined
+                                      ? student.keywordText
+                                      : student.keyword
                                       ? student.keyword.join(", ")
                                       : ""
                                   }
@@ -1587,6 +1597,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                               return stu;
                                             return {
                                               ...stu,
+                                              keywordText: newValue,
                                               keyword: newValue
                                                 .split(",")
                                                 .map((item) => item.trim())
@@ -1606,7 +1617,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                     e.target.previousElementSibling.style.display =
                                       "block";
                                   }}
-                                  className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
+                                  className="absolute left-0 -top-4 w-full min-h-[90px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                   placeholder="Nhập keyword (cách dấu ',')"
                                 />
                               </div>
@@ -1634,7 +1645,9 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                   rows={3}
                                   style={{ display: "none" }}
                                   value={
-                                    student.keywordEng
+                                    student.keywordEngText !== undefined
+                                      ? student.keywordEngText
+                                      : student.keywordEng
                                       ? student.keywordEng.join(", ")
                                       : ""
                                   }
@@ -1649,6 +1662,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                               return stu;
                                             return {
                                               ...stu,
+                                              keywordEngText: newValue,
                                               keywordEng: newValue
                                                 .split(",")
                                                 .map((item) => item.trim())
@@ -1668,7 +1682,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                     e.target.previousElementSibling.style.display =
                                       "block";
                                   }}
-                                  className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
+                                  className="absolute left-0 -top-4 w-full min-h-[90px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                   placeholder="Nhập keyword tiếng Anh (cách dấu ',')"
                                 />
                               </div>
@@ -1696,7 +1710,9 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                   rows={3}
                                   style={{ display: "none" }}
                                   value={
-                                    student.activity
+                                    student.activityText !== undefined
+                                      ? student.activityText
+                                      : student.activity
                                       ? student.activity.join(", ")
                                       : ""
                                   }
@@ -1711,6 +1727,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                               return stu;
                                             return {
                                               ...stu,
+                                              activityText: newValue,
                                               activity: newValue
                                                 .split(",")
                                                 .map((item) => item.trim())
@@ -1730,7 +1747,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                     e.target.previousElementSibling.style.display =
                                       "block";
                                   }}
-                                  className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
+                                  className="absolute left-0 -top-4 w-full min-h-[90px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                   placeholder="Nhập activity (cách dấu ',')"
                                 />
                               </div>
@@ -1758,7 +1775,9 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                   rows={3}
                                   style={{ display: "none" }}
                                   value={
-                                    student.activityEng
+                                    student.activityEngText !== undefined
+                                      ? student.activityEngText
+                                      : student.activityEng
                                       ? student.activityEng.join(", ")
                                       : ""
                                   }
@@ -1773,6 +1792,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                               return stu;
                                             return {
                                               ...stu,
+                                              activityEngText: newValue,
                                               activityEng: newValue
                                                 .split(",")
                                                 .map((item) => item.trim())
@@ -1792,7 +1812,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                     e.target.previousElementSibling.style.display =
                                       "block";
                                   }}
-                                  className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
+                                  className="absolute left-0 -top-4 w-full min-h-[90px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                   placeholder="Nhập activity tiếng Anh (cách dấu ',')"
                                 />
                               </div>
@@ -1839,7 +1859,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                     e.target.previousElementSibling.style.display =
                                       "block";
                                   }}
-                                  className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
+                                  className="absolute left-0 -top-4 w-full min-h-[90px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                 />
                               </div>
                             </td>
@@ -1888,7 +1908,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                     e.target.previousElementSibling.style.display =
                                       "block";
                                   }}
-                                  className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
+                                  className="absolute left-0 -top-4 w-full min-h-[90px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                 />
                               </div>
                             </td>
@@ -1979,7 +1999,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                     e.target.previousElementSibling.style.display =
                                       "block";
                                   }}
-                                  className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
+                                  className="absolute left-0 -top-4 w-full min-h-[90px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                 />
                               </div>
                             </td>
@@ -2024,7 +2044,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                     e.target.previousElementSibling.style.display =
                                       "block";
                                   }}
-                                  className="absolute left-0 w-full min-h-[80px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
+                                  className="absolute left-0 -top-4 w-full min-h-[90px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
                                 />
                               </div>
                             </td>

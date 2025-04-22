@@ -57,9 +57,9 @@ const ScholarShipContent = ({ categoryId }) => {
         const [categoriesRes, recordsRes, schoolYearsRes] = await Promise.all([
           axios.get(`${API_URL}/award-categories`),
           axios.get(`${API_URL}/award-records`),
-          axios.get(`${API_URL}/schoolyears`)
+          axios.get(`${API_URL}/schoolyears`),
         ]);
-        
+
         setCategories(categoriesRes.data);
         setRecords(recordsRes.data);
         setSchoolYears(schoolYearsRes.data);
@@ -91,8 +91,7 @@ const ScholarShipContent = ({ categoryId }) => {
 
     const filteredSubAwards = currentCategory.subAwards?.filter(
       (sub) =>
-        sub.type === "custom" &&
-        String(sub.schoolYear) === selectedSchoolYearId
+        sub.type === "custom" && String(sub.schoolYear) === selectedSchoolYearId
     );
 
     if (filteredSubAwards?.length > 0) {
@@ -210,23 +209,31 @@ const ScholarShipContent = ({ categoryId }) => {
     const searchTerm = searchName.toLowerCase().trim();
     const newGroupsToExpand = new Set();
 
-    sortedGroups.forEach(group => {
-      const hasMatch = group.recordsGroup.some(record => {
-        const studentMatch = record.students?.some(student => {
+    sortedGroups.forEach((group) => {
+      const hasMatch = group.recordsGroup.some((record) => {
+        const studentMatch = record.students?.some((student) => {
           const studentData = student.student;
           return (
             studentData?.name?.toLowerCase().includes(searchTerm) ||
             studentData?.studentCode?.toLowerCase().includes(searchTerm) ||
-            (student.keyword || []).some(k => k.toLowerCase().includes(searchTerm)) ||
-            (student.keywordEng || []).some(k => k.toLowerCase().includes(searchTerm)) ||
-            (student.activity || []).some(a => a.toLowerCase().includes(searchTerm)) ||
-            (student.activityEng || []).some(a => a.toLowerCase().includes(searchTerm)) ||
+            (student.keyword || []).some((k) =>
+              k.toLowerCase().includes(searchTerm)
+            ) ||
+            (student.keywordEng || []).some((k) =>
+              k.toLowerCase().includes(searchTerm)
+            ) ||
+            (student.activity || []).some((a) =>
+              a.toLowerCase().includes(searchTerm)
+            ) ||
+            (student.activityEng || []).some((a) =>
+              a.toLowerCase().includes(searchTerm)
+            ) ||
             (student.note || "").toLowerCase().includes(searchTerm) ||
             (student.noteEng || "").toLowerCase().includes(searchTerm)
           );
         });
 
-        const classMatch = record.awardClasses?.some(awardClass => {
+        const classMatch = record.awardClasses?.some((awardClass) => {
           return (
             awardClass.class?.className?.toLowerCase().includes(searchTerm) ||
             (awardClass.note || "").toLowerCase().includes(searchTerm) ||
@@ -383,21 +390,19 @@ const ScholarShipContent = ({ categoryId }) => {
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
           />
-          <button
-            className="absolute right-3 w-[36px] h-[36px] rounded-full flex items-center justify-center hover:bg-[#e5e5e5] transition"
-          >
+          <button className="absolute right-3 w-[36px] h-[36px] rounded-full flex items-center justify-center hover:bg-[#e5e5e5] transition">
             <FaSearch className="text-[#757575] text-[18px]" />
           </button>
         </div>
       </div>
-      
+
       {/* Hiển thị các record, nhóm theo SubAward (mỗi SubAward là 1 Level) */}
       {sortedGroups.map(({ subAwardLabel, recordsGroup, priority }) => {
         // Lấy subAward từ category để có thông tin labelEng
         const subAward = currentCategory.subAwards?.find(
-          sub => sub.label === subAwardLabel
+          (sub) => sub.label === subAwardLabel
         );
-        
+
         // Lấy danh sách các student từ mỗi record trong group
         const studentItems = recordsGroup.flatMap((record) =>
           record.students.map((student) => ({ record, student }))
@@ -418,7 +423,9 @@ const ScholarShipContent = ({ categoryId }) => {
                 className="font-bold"
                 style={{ color: priorityColors[priority - 1] || "#002855" }}
               >
-                {i18n.language === "vi" ? subAwardLabel : (subAward?.labelEng || subAwardLabel)}
+                {i18n.language === "vi"
+                  ? subAwardLabel
+                  : subAward?.labelEng || subAwardLabel}
               </span>
               <span className="text-gray-500 text-lg">
                 {openLevel === subAwardLabel ? (
@@ -428,8 +435,9 @@ const ScholarShipContent = ({ categoryId }) => {
                 )}
               </span>
             </div>
-            {(openLevel === subAwardLabel || expandedGroups.has(subAwardLabel)) && (
-              <div className="w-full grid justify-items-center xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-x-[8px] gap-y-[20px] lg:gap-x-[30px] lg:gap-y-[35px]">
+            {(openLevel === subAwardLabel ||
+              expandedGroups.has(subAwardLabel)) && (
+              <div className="w-full grid justify-items-center 2xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-x-[8px] gap-y-[20px] lg:gap-x-[30px] lg:gap-y-[35px]">
                 {studentItems.map((item, idx) => {
                   const { record, student } = item;
                   return (
@@ -470,18 +478,18 @@ const ScholarShipContent = ({ categoryId }) => {
       {showModal && modalStudent && modalRecord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           {/* Desktop Version */}
-          <div className="hidden md:flex relative  md:w-[60%] w-[70%] md:h-[80%] h-[80%] max-w-[1200px] px-10 py-16 rounded-xl overflow-hidden">           
-              <img
-                src="/halloffame/scholarship.svg"
-                alt="Modal Background"
-                className="hidden lg:block absolute inset-0 w-full h-full object-cover"
-              />
-              <img
-                src="/halloffame/scholarship-mobile.svg"
-                alt="Modal Background (mobile)"
-                className="block lg:hidden absolute inset-0 w-full h-full object-cover"
-              />
-            
+          <div className="hidden xl:flex relative  md:w-[60%] w-[70%] md:h-[80%] h-[80%] max-w-[1200px] px-10 py-16 rounded-xl overflow-hidden">
+            <img
+              src="/halloffame/scholarship.svg"
+              alt="Modal Background"
+              className="hidden lg:block absolute inset-0 w-full h-full object-cover"
+            />
+            <img
+              src="/halloffame/scholarship-mobile.svg"
+              alt="Modal Background (mobile)"
+              className="block lg:hidden absolute inset-0 w-full h-full object-cover"
+            />
+
             {/* Left curved panel */}
             <div className="relative w-[50%] p-10 h-full flex lg:flex-col flex-row">
               <div className="w-full border border-[#F9D16F] rounded-xl p-9 flex-grow overflow-y-hidden hover:overflow-y-auto">
@@ -570,13 +578,13 @@ const ScholarShipContent = ({ categoryId }) => {
           </div>
 
           {/* Mobile Version */}
-          <div className="flex md:hidden flex-col relative w-[90%] h-[90%] px-4 py-8 rounded-xl overflow-y-auto">           
-              <img
-                src="/halloffame/scholarship-mobile.svg"
-                alt="Modal Background (mobile)"
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            
+          <div className="flex xl:hidden flex-col relative w-[90%] max-h-[90%] px-4 py-8 rounded-xl overflow-y-auto">
+            <img
+              src="/halloffame/scholarship-mobile.svg"
+              alt="Modal Background (mobile)"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+
             <div className="relative w-full flex flex-col items-center z-10">
               <button
                 onClick={handleCloseModal}
@@ -597,7 +605,7 @@ const ScholarShipContent = ({ categoryId }) => {
               </div>
 
               {/* Note section with student photo on top */}
-              <div className="w-full px-4 pt-12 mb-4 flex justify-center">
+              <div className="w-full h-full px-4 pt-12 mb-4 flex justify-center">
                 <div className="relative w-full">
                   <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
                     <img
@@ -606,7 +614,7 @@ const ScholarShipContent = ({ categoryId }) => {
                       className="w-[100px] h-[100px] rounded-full object-cover object-top shadow-lg"
                     />
                   </div>
-                  <div className="border border-[#F9D16F] rounded-xl pt-16 p-4">
+                  <div className="h-full border border-[#F9D16F] rounded-xl pt-16 p-4">
                     <p className="text-sm font-semibold text-justify  text-white max-h-[200px] overflow-y-hidden hover:overflow-y-auto">
                       {i18n.language === "vi"
                         ? modalStudent.note
@@ -676,10 +684,9 @@ const ScholarShipContent = ({ categoryId }) => {
                   ))}
                 </ul>
               </div>
-               <hr className="w-full border-gray-300 my-4" />
+              <hr className="w-full border-gray-300 my-4" />
             </div>
           </div>
-
         </div>
       )}
     </div>
