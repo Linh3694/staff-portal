@@ -136,39 +136,9 @@ function Admission() {
 
   return (
     <>
-      {/* Modal hiển thị chính sách thưởng tuyển sinh */}
-      {showSaleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-          <div className="relative bg-white rounded-lg p-4 max-w-4xl mx-4">
-            <button 
-              onClick={closeSaleModal}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl"
-            >
-              <i className="fas fa-times"></i>
-            </button>
-            <div className="text-center mb-4">
-              <h2 className="text-2xl font-bold text-[#002147]">Chính Sách Thưởng Tuyển Sinh</h2>
-            </div>
-            <img 
-              src="/admission/sale.png" 
-              alt="Chính sách thưởng tuyển sinh" 
-              className="w-full h-auto max-h-[80vh] object-cover rounded-lg"
-            />
-            <div className="mt-4 text-center">
-              <button
-                onClick={closeSaleModal}
-                className="px-6 py-2 bg-[#002147] text-white font-bold rounded-lg hover:bg-[#001b33] transition-all"
-              >
-                Đã hiểu
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div
         id="admission-container"
-        className={`relative w-full h-screen flex flex-col items-center justify-center overflow-hidden ${
+        className={`relative w-full max-h-screen flex flex-col items-center justify-center overflow-hidden ${
           isFullscreen ? "fixed inset-0 z-50 bg-black" : ""
         }`}
         style={{
@@ -192,10 +162,10 @@ function Admission() {
         </div>
         
         <div className="relative w-full h-full flex justify-center items-start overflow-y-auto pt-24 sm:pt-28 pb-16">
-          <div className="flex flex-col w-full items-center justify-start bg-white bg-opacity-80 p-8 rounded-xl max-w-5xl mx-4">
+          <div className="flex flex-col w-full items-center justify-start bg-white bg-opacity-60 p-8 rounded-xl max-w-5xl mx-4">
         
             
-            {/* Bộ đếm thời gian (đối với mobile hiển thị theo lưới 2 cột) */}
+            {/* Bộ đếm thời gian (đối với mobile hiển thị theo lưới 2 cột) */}
             <div className="mt-4 md:mt-0 grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-8 mb-8 w-full px-4">
               {[
                 { value: timeLeft.days, label: "Ngày" },
@@ -216,15 +186,15 @@ function Admission() {
             </div>
             
             <p className="text-xl md:text-2xl italic text-center text-gray-700 mb-6">
-             đến ngày 31/08/2025
+             đến hạn 31/08/2025
             </p>
             
             {/* Thêm phần hiển thị thống kê tuyển sinh */}
-            <div className="w-full rounded-lg p-4 mb-8">
-              <div className="flex justify-center items-center mb-6 gap-2">
-                <p className="text-xl md:text-2xl text-center font-semibold text-[#002855]">
-                  Tính đến ngày {today}
-                </p>
+            <div className="w-full rounded-lg p-4">
+              <div className="flex justify-center items-center mb-6 gap-4">
+              <h2 className="text-2xl md:text-3xl font-bold text-center text-[#002855] ">
+                NĂM HỌC 2025-2026
+              </h2>
                 <button 
                   onClick={refreshStats} 
                   className="flex items-center gap-1 px-3 py-1 bg-[#002147] text-white rounded-md hover:bg-[#001b38] transition-colors"
@@ -234,9 +204,11 @@ function Admission() {
                 </button>
               </div>
               
+              {/* Năm học heading */}
+              
+              
               {loadingStats ? (
                 <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#002147]"></div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-10 px-2 sm:px-4">
@@ -267,11 +239,11 @@ function Admission() {
               )}
               
               <div className="text-center text-xs text-gray-500 mt-4">
-                (Dữ liệu tự động cập nhật mỗi 10 giây)
+              Tính đến ngày {today} (Dữ liệu tự động cập nhật mỗi 10 giây)
               </div>
             </div>
-            
-            <div className="flex flex-wrap justify-center gap-4">
+
+             <div className="flex flex-wrap justify-center gap-4">
               <button
                 className="px-8 py-3 bg-[#002147] text-white font-bold rounded-lg hover:bg-[#001b33] transition-all"
               >
@@ -283,16 +255,36 @@ function Admission() {
                 onClick={() => setShowSaleModal(true)}
                 className="px-8 py-3 bg-orange-red text-white font-bold rounded-lg hover:bg-[#001b33] transition-all"
               >
-              Chính Sách Thưởng
+                {showSaleModal ? "Ẩn Chính Sách" : "Xem Chính Sách Thưởng"}
               </button>
-              <button
+              {/* <button
                 onClick={toggleFullScreen}
                 className="px-8 py-3 bg-[#002147] text-white font-bold rounded-lg hover:bg-[#001b33] transition-all"
               >
                 <i className="fas fa-expand mr-2"></i>
                 {isFullscreen ? "Thoát Full" : "Toàn Màn Hình"}
-              </button>
+              </button> */}
             </div>
+            
+            {/* Thêm slogan tri ân */}
+            <div className="w-full text-center mt-[10%]">
+              <p className="text-xl md:text-2xl font-semibold text-[#002855]">
+                Tri ân 15 năm - Cùng nhau viết tiếp tương lai
+              </p>
+              
+              {/* Hiển thị ảnh chính sách thưởng ngay bên dưới */}
+              {showSaleModal && (
+                <div className="mt-20 flex justify-center">
+                  <img 
+                    src="/admission/sale.png" 
+                    alt="Chính sách thưởng tuyển sinh" 
+                    className="w-full max-w-2xl h-auto object-contain rounded-lg shadow-lg"
+                  />
+                </div>
+              )}
+            </div>
+            
+           
           </div>
         </div>
       </div>
