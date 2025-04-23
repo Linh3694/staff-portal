@@ -1099,20 +1099,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                           Mã học sinh/ Lớp
                         </p>
                       </th>
-                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
-                        <p className="text-sm font-bold text-gray-500 uppercase">
-                          <span>3 Keywords</span>
-                          <br />
-                          <span>(Cách dấu ",")</span>
-                        </p>
-                      </th>
-                      <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
-                        <p className="text-sm font-bold text-gray-500 uppercase">
-                          <span>3 Keywords (EN)</span>
-                          <br />
-                          <span>(Cách dấu ",")</span>
-                        </p>
-                      </th>
+
                       <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-center">
                         <p className="text-sm font-bold text-gray-500 uppercase">
                           <span>5 Activities</span>
@@ -1178,26 +1165,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                             )}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        <input
-                          type="text"
-                          value={tempKeyword}
-                          onChange={(e) => setTempKeyword(e.target.value)}
-                          className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md"
-                          placeholder="Nhập keyword"
-                          disabled={!selectedStudent}
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        <input
-                          type="text"
-                          value={tempKeywordEng}
-                          onChange={(e) => setTempKeywordEng(e.target.value)}
-                          className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md"
-                          placeholder="Nhập keyword (EN)"
-                          disabled={!selectedStudent}
-                        />
-                      </td>
+
                       <td className="px-3 py-2 text-sm text-gray-900">
                         <input
                           type="text"
@@ -1369,26 +1337,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                           ))}
                         </select>
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        <input
-                          value={tempClassKeyword}
-                          onChange={(e) => setTempClassKeyword(e.target.value)}
-                          disabled={!classInput}
-                          placeholder="3 Keywords"
-                          className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        <input
-                          value={tempClassKeywordEng}
-                          onChange={(e) =>
-                            setTempClassKeywordEng(e.target.value)
-                          }
-                          disabled={!classInput}
-                          placeholder="3 Keywords (EN)"
-                          className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full transition-all duration-200 focus:bg-white focus:shadow-md"
-                        />
-                      </td>
+
                       {/* Activities */}
                       <td className="px-3 py-2 text-sm text-gray-900">
                         <input

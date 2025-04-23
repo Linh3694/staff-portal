@@ -420,7 +420,7 @@ const ScholarShipContent = ({ categoryId }) => {
               }
             >
               <span
-                className="font-bold"
+                className="font-bold lg:text-2xl text-xl"
                 style={{ color: priorityColors[priority - 1] || "#002855" }}
               >
                 {i18n.language === "vi"
@@ -478,7 +478,7 @@ const ScholarShipContent = ({ categoryId }) => {
       {showModal && modalStudent && modalRecord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           {/* Desktop Version */}
-          <div className="hidden xl:flex relative  md:w-[60%] w-[70%] md:h-[80%] h-[80%] max-w-[1200px] px-10 py-16 rounded-xl overflow-hidden">
+          <div className="hidden xl:flex relative md:w-[60%] w-[70%] max-w-[1200px] px-10 py-10 rounded-xl max-h-[90vh] items-stretch overflow-y-auto">
             <img
               src="/halloffame/scholarship.svg"
               alt="Modal Background"
@@ -491,8 +491,8 @@ const ScholarShipContent = ({ categoryId }) => {
             />
 
             {/* Left curved panel */}
-            <div className="relative w-[50%] p-10 h-full flex lg:flex-col flex-row">
-              <div className="w-full border border-[#F9D16F] rounded-xl p-9 flex-grow overflow-y-hidden hover:overflow-y-auto">
+            <div className="relative w-[50%] max-h-[450px] p-10 flex flex-row lg:flex-col">
+              <div className="w-full h-full border border-[#F9D16F] rounded-xl p-9 flex-grow overflow-y-hidden hover:overflow-y-auto">
                 <p className="xl:text-base text-sm font-semibold text-justify text-white">
                   {i18n.language === "vi"
                     ? modalStudent.note
@@ -502,11 +502,11 @@ const ScholarShipContent = ({ categoryId }) => {
               <img
                 src={`${BASE_URL}/${modalStudent.photo?.photoUrl}`}
                 alt={modalStudent.student?.name}
-                className="absolute object-cover object-top -bottom-[3%] left-1/2 transform -translate-x-1/2 w-[25%] h-[20%] rounded-full shadow-lg"
+                className="absolute object-cover object-top -bottom-[3%] left-1/2 transform -translate-x-1/2 w-28 h-28 rounded-full shadow-lg"
               />
             </div>
             {/* Right content */}
-            <div className="w-[60%] py-10 px-5 flex flex-col relative z-10">
+            <div className="w-[60%] h-full py-10 px-5 flex flex-col relative z-10">
               {" "}
               <button
                 onClick={handleCloseModal}
@@ -533,28 +533,9 @@ const ScholarShipContent = ({ categoryId }) => {
                   t("noClass", "Chưa cập nhật lớp")}
               </div>
               {/* Traits row */}
-              <div className="grid grid-cols-3 gap-x-4 gap-y-2 mb-2 text-sm font-bold">
-                {(i18n.language === "vi"
-                  ? modalStudent.keyword
-                  : modalStudent.keywordEng || []
-                ).map((kw, idx, arr) => (
-                  <div
-                    key={idx}
-                    className={`${
-                      idx === 0
-                        ? "justify-self-start"
-                        : idx === arr.length - 1
-                        ? "justify-self-end"
-                        : "justify-self-center"
-                    }`}
-                  >
-                    <p className="font-bold text-white">{kw}</p>
-                  </div>
-                ))}
-              </div>
               <hr className="border-gray-300 mb-6" />
               {/* Activities list */}
-              <ul className="h-full py-auto flex flex-col items-start justify-center space-y-3">
+              <ul className="max-h-[250px] py-auto flex flex-col items-start justify-center space-y-3">
                 {(i18n.language === "vi"
                   ? modalRecord.students.find(
                       (s) => s.student?._id === modalStudent.student?._id
@@ -634,29 +615,6 @@ const ScholarShipContent = ({ categoryId }) => {
                   {modalStudent.currentClass?.name ||
                     modalStudent.currentClass?.className ||
                     t("noClass", "Chưa cập nhật lớp")}
-                </div>
-              </div>
-
-              {/* Keywords */}
-              <div className="w-full px-4 mb-4">
-                <div className="grid grid-cols-3 gap-x-2 gap-y-2 text-sm font-bold">
-                  {(i18n.language === "vi"
-                    ? modalStudent.keyword
-                    : modalStudent.keywordEng || []
-                  ).map((kw, idx, arr) => (
-                    <div
-                      key={idx}
-                      className={`${
-                        idx === 0
-                          ? "justify-self-start"
-                          : idx === arr.length - 1
-                          ? "justify-self-end"
-                          : "justify-self-center"
-                      }`}
-                    >
-                      <p className="font-bold text-white">{kw}</p>
-                    </div>
-                  ))}
                 </div>
               </div>
 
