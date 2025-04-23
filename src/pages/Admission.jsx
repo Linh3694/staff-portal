@@ -245,18 +245,19 @@ function Admission() {
 
              <div className="flex flex-wrap justify-center gap-4">
               <button
+                onClick={() => window.open("https://docs.google.com/spreadsheets/d/10W4xkYUaw5ZhGOiTcgFKFrR2-R7b_nD6TIyBtZmTzps/edit?gid=288416278#gid=288416278", "_blank")}
                 className="px-8 py-3 bg-[#002147] text-white font-bold rounded-lg hover:bg-[#001b33] transition-all"
               >
                 Tải Salekit
               </button>
               
           
-              <button
+              {/* <button
                 onClick={() => setShowSaleModal(true)}
                 className="px-8 py-3 bg-orange-red text-white font-bold rounded-lg hover:bg-[#001b33] transition-all"
               >
                 {showSaleModal ? "Ẩn Chính Sách" : "Xem Chính Sách Thưởng"}
-              </button>
+              </button> */}
               {/* <button
                 onClick={toggleFullScreen}
                 className="px-8 py-3 bg-[#002147] text-white font-bold rounded-lg hover:bg-[#001b33] transition-all"
