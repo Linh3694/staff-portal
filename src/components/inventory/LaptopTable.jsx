@@ -322,21 +322,19 @@ const LaptopTable = () => {
   const applyFilters = (filters = {}) => {
     let filtered = [...originalData];
 
-    // 1) Lọc theo status
-    //   => Nếu filters.status có phần tử => for “OR” logic
+    // Lọc theo status
     if (Array.isArray(filters.status) && filters.status.length > 0) {
       filtered = filtered.filter((item) =>
         filters.status.includes(item.status)
       );
     }
 
-    // 2) Lọc theo type
-    //   => nếu mảng rỗng => bỏ qua => tương đương “All”
+    // Lọc theo type
     if (Array.isArray(filters.type) && filters.type.length > 0) {
       filtered = filtered.filter((item) => filters.type.includes(item.type));
     }
 
-    // 3) Lọc theo manufacturer
+    // Lọc theo manufacturer
     if (
       Array.isArray(filters.manufacturer) &&
       filters.manufacturer.length > 0
@@ -346,23 +344,20 @@ const LaptopTable = () => {
       );
     }
 
-    // 4) Lọc theo năm (year)
+    // Lọc theo year
     if (Array.isArray(filters.year) && filters.year.length > 0) {
-      // item.releaseYear có thể là number => ép so sánh bằng string
       filtered = filtered.filter((item) =>
         filters.year.includes(String(item.releaseYear))
       );
     }
 
-    // 5) Lọc theo phòng ban (department)
+    // Lọc theo department
     if (Array.isArray(filters.department) && filters.department.length > 0) {
       filtered = filtered.filter(
         (item) =>
-          // Kiểm tra user.department
           item.assigned.some((user) =>
             filters.department.includes(user.department)
           ) ||
-          // Kiểm tra room.location
           (item.room?.location || []).some((loc) =>
             filters.department.includes(loc)
           )
@@ -1164,8 +1159,8 @@ const LaptopTable = () => {
                         </span>
                         <span className="font-semibold text-gray-500">
                           {Array.isArray(filters.status) &&
-                          filters.type.length > 0
-                            ? filters.type.join(", ")
+                          filters.status.length > 0
+                            ? filters.status.join(", ")
                             : "Tất cả"}
                         </span>
                       </div>
@@ -1238,7 +1233,6 @@ const LaptopTable = () => {
                       <FaAngleRight className="ml-2 text-gray-300" />
                     </div>
                   </div>
-
                   {/* Sub-dropdown: Loại thiết bị */}
                   {activeSubFilter === "type" && (
                     <div className="absolute top-0 left-full ml-4 w-64 bg-white shadow-xl p-4 z-[9999] border rounded-xl">
@@ -1259,7 +1253,7 @@ const LaptopTable = () => {
                             onChange={() =>
                               setFilters({ ...filters, type: "All" })
                             }
-                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                            className="appearance-none h-4 w-4 border-2 border-gray-300 rounded-full checked:bg-[#002855] checked:border-[#002855] focus:outline-none focus:ring-0"
                           />
                           <span>Tất cả</span>
                         </label>
@@ -1268,14 +1262,14 @@ const LaptopTable = () => {
                             type="radio"
                             name="deviceType"
                             value="Laptop"
-                            checked={filters.type === "Laptop"}
+                            checked={filters.type.includes("Laptop")}
                             onChange={() =>
                               setFilters((prev) => ({
                                 ...prev,
                                 type: ["Laptop"],
                               }))
                             }
-                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                            className="appearance-none h-4 w-4 border-2 border-gray-300 rounded-full checked:bg-[#002855] checked:border-[#002855] focus:outline-none focus:ring-0"
                           />
                           <span>Laptop</span>
                         </label>
@@ -1284,22 +1278,21 @@ const LaptopTable = () => {
                             type="radio"
                             name="deviceType"
                             value="Desktop"
-                            checked={filters.type === "Desktop"}
+                            checked={filters.type.includes("Desktop")}
                             onChange={() =>
                               setFilters((prev) => ({
                                 ...prev,
                                 type: ["Desktop"],
                               }))
                             }
-                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                            className="appearance-none h-4 w-4 border-2 border-gray-300 rounded-full checked:bg-[#002855] checked:border-[#002855] focus:outline-none focus:ring-0"
                           />
                           <span>Desktop</span>
                         </label>
                       </div>
                     </div>
                   )}
-
-                  {/* Sub-dropdown: Tình trạng */}
+                  {/* /* Sub-dropdown: Tình trạng */}
                   {activeSubFilter === "status" && (
                     <div className="absolute top-0 left-full ml-4 w-64 bg-white shadow-xl p-4 z-[9999] border rounded-xl">
                       <button
@@ -1315,11 +1308,11 @@ const LaptopTable = () => {
                             type="radio"
                             name="statusFilter"
                             value="All"
-                            checked={filters.status === "All"}
+                            checked={filters.status.length === 0}
                             onChange={() =>
-                              setFilters({ ...filters, status: "All" })
+                              setFilters({ ...filters, status: [] })
                             }
-                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                            className="appearance-none h-4 w-4 border-2 rounded-full checked:bg-[#002855] checked:border-[#002855] focus:outline-none focus:ring-0"
                           />
                           <span>Tất cả</span>
                         </label>
@@ -1328,14 +1321,14 @@ const LaptopTable = () => {
                             type="radio"
                             name="statusFilter"
                             value="Active"
-                            checked={filters.status === "Active"}
+                            checked={filters.status.includes("Active")}
                             onChange={() =>
                               setFilters((prev) => ({
                                 ...prev,
                                 status: ["Active"],
                               }))
                             }
-                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                            className="appearance-none h-4 w-4 border-2 rounded-full checked:bg-[#002855] checked:border-[#002855] focus:outline-none focus:ring-0"
                           />
                           <span>Đang sử dụng</span>
                         </label>
@@ -1344,14 +1337,16 @@ const LaptopTable = () => {
                             type="radio"
                             name="statusFilter"
                             value="PendingDocumentation"
-                            checked={filters.status === "PendingDocumentation"}
+                            checked={filters.status.includes(
+                              "PendingDocumentation"
+                            )}
                             onChange={() =>
                               setFilters((prev) => ({
                                 ...prev,
                                 status: ["PendingDocumentation"],
                               }))
                             }
-                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                            className="appearance-none h-4 w-4 border-2 rounded-full checked:bg-[#002855] checked:border-[#002855] focus:outline-none focus:ring-0"
                           />
                           <span>Chưa có biên bản</span>
                         </label>
@@ -1360,14 +1355,14 @@ const LaptopTable = () => {
                             type="radio"
                             name="statusFilter"
                             value="Standby"
-                            checked={filters.status === "Standby"}
+                            checked={filters.status.includes("Standby")}
                             onChange={() =>
                               setFilters((prev) => ({
                                 ...prev,
                                 status: ["Standby"],
                               }))
                             }
-                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                            className="appearance-none h-4 w-4 border-2 rounded-full checked:bg-[#002855] checked:border-[#002855] focus:outline-none focus:ring-0"
                           />
                           <span>Chờ cấp phát</span>
                         </label>
@@ -1376,14 +1371,14 @@ const LaptopTable = () => {
                             type="radio"
                             name="statusFilter"
                             value="Broken"
-                            checked={filters.status === "Broken"}
+                            checked={filters.status.includes("Broken")}
                             onChange={() =>
                               setFilters((prev) => ({
                                 ...prev,
                                 status: ["Broken"],
                               }))
                             }
-                            className="form-radio text-[#002855] focus:outline-none focus:ring-0 focus:shadow-none"
+                            className="appearance-none h-4 w-4 border-2 rounded-full checked:bg-[#002855] checked:border-[#002855] focus:outline-none focus:ring-0"
                           />
                           <span>Hỏng</span>
                         </label>
@@ -1403,7 +1398,7 @@ const LaptopTable = () => {
                         <button
                           onClick={() => {
                             setSelectedYears([]);
-                            setFilters({ ...filters, year: "All" });
+                            setFilters({ ...filters, year: [] });
                           }}
                           className="text-sm font-semibold text-[#002855] hover:text-[#003455]"
                         >
@@ -1443,10 +1438,7 @@ const LaptopTable = () => {
                                   setSelectedYears(newSelected);
                                   setFilters({
                                     ...filters,
-                                    year:
-                                      newSelected.length === 0
-                                        ? "All"
-                                        : newSelected,
+                                    year: newSelected.map(String),
                                   });
                                 }}
                               />
@@ -1468,7 +1460,7 @@ const LaptopTable = () => {
                         <button
                           onClick={() => {
                             setSelectedManufacturers([]);
-                            setFilters({ ...filters, manufacturer: "All" });
+                            setFilters({ ...filters, manufacturer: [] });
                           }}
                           className="text-sm font-semibold text-[#002855] hover:text-[#003455]"
                         >
@@ -1535,7 +1527,7 @@ const LaptopTable = () => {
                         <button
                           onClick={() => {
                             setSelectedDepartments([]);
-                            setFilters({ ...filters, department: "All" });
+                            setFilters({ ...filters, department: [] });
                           }}
                           className="text-sm font-semibold text-[#002855] hover:text-[#003455]"
                         >
