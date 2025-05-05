@@ -275,11 +275,30 @@ const StudentHonorContent = ({
     (r) => String(r.subAward?.schoolYear) === selectedSchoolYearId
   );
 
+  // Only month records for this category and school year
+  const monthRecords = useMemo(() => {
+    return records.filter(
+      (r) =>
+        r.awardCategory?._id === categoryId &&
+        r.subAward?.type === "month" &&
+        String(r.subAward?.schoolYear) === selectedSchoolYearId
+    );
+  }, [records, categoryId, selectedSchoolYearId]);
+
   const distinctSemesters = [
     ...new Set(
       recordsCatTypeYear.map((r) => r.subAward?.semester).filter(Boolean)
     ),
   ].sort((a, b) => a - b);
+
+  const monthSubAwards = useMemo(() => {
+    return (currentCategory.subAwards || []).filter(
+      (sub) =>
+        sub.type === "month" &&
+        String(sub.schoolYear) === selectedSchoolYearId &&
+        monthRecords.some((r) => r.subAward?.label === sub.label)
+    );
+  }, [currentCategory.subAwards, selectedSchoolYearId, monthRecords]);
 
   const distinctMonths = useMemo(() => {
     return [
@@ -294,12 +313,13 @@ const StudentHonorContent = ({
     if (
       activeTab === "month" &&
       selectedSchoolYearId &&
-      distinctMonths.length > 0 &&
-      (!selectedMonth || !distinctMonths.includes(Number(selectedMonth)))
+      monthSubAwards.length > 0 &&
+      (!selectedMonth ||
+        !monthSubAwards.map((sub) => sub.label).includes(selectedMonth))
     ) {
-      setSelectedMonth(String(distinctMonths[0]));
+      setSelectedMonth(monthSubAwards[0].label);
     }
-  }, [activeTab, selectedSchoolYearId, selectedMonth, distinctMonths]);
+  }, [activeTab, selectedSchoolYearId, selectedMonth, monthSubAwards]);
   // -----------------------------
   // 4) Lọc record theo các tiêu chí
   // -----------------------------
@@ -314,7 +334,7 @@ const StudentHonorContent = ({
     }
     if (activeTab === "month") {
       if (!selectedMonth) return false;
-      if (String(r.subAward?.month) !== selectedMonth) return false;
+      if (r.subAward?.label !== selectedMonth) return false;
     }
     return true;
   });
@@ -495,6 +515,40 @@ const StudentHonorContent = ({
     return syDoc?.code || syDoc?.name || "";
   };
 
+  // Helper for subAward label for filter
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const getSubAwardLabelForFilter = (sub) => {
+    if (i18n.language === "vi") return sub.label;
+    if (sub.labelEng) return sub.labelEng;
+    if (sub.type === "month") {
+      const nums = sub.label.match(/\d+/g) || [];
+      return nums.map((n) => monthNames[Number(n) - 1]).join("+");
+    }
+    if (sub.type === "semester") {
+      return `${t("semester", "Semester")} ${sub.semester}`;
+    }
+    if (sub.type === "year") {
+      return `${t("schoolYear", "School Year")} ${findSchoolYearLabel(
+        sub.schoolYear
+      )}`;
+    }
+    return sub.label;
+  };
+
   // Lấy text từ DB (hoặc i18n)
   const rawText =
     i18n.language === "vi"
@@ -645,32 +699,11 @@ const StudentHonorContent = ({
             onChange={(e) => setSelectedMonth(e.target.value)}
           >
             <option value="">{t("selectMonth")}</option>
-            {distinctMonths.map((m) => {
-              const mNum = Number(m);
-              const monthNames = [
-                "January",
-                "February",
-                "March",
-                "April",
-                "May",
-                "June",
-                "July",
-                "August",
-                "September",
-                "October",
-                "November",
-                "December",
-              ];
-              return (
-                <option key={m} value={m}>
-                  {i18n.language === "vi"
-                    ? `${t("month")} ${m}`
-                    : mNum >= 1 && mNum <= 12
-                    ? monthNames[mNum - 1]
-                    : m}
-                </option>
-              );
-            })}
+            {monthSubAwards.map((sub) => (
+              <option key={sub.label} value={sub.label}>
+                {getSubAwardLabelForFilter(sub)}
+              </option>
+            ))}
           </select>
         )}
 
@@ -682,9 +715,7 @@ const StudentHonorContent = ({
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
           />
-          <button
-            className="hidden absolute right-[-40px] w-[36px] h-[36px] bg-[#002855] rounded-full lg:flex items-center justify-center hover:bg-[#001F3F] transition"
-          >
+          <button className="hidden absolute right-[-40px] w-[36px] h-[36px] bg-[#002855] rounded-full lg:flex items-center justify-center hover:bg-[#001F3F] transition">
             <FaSearch className="text-white text-[18px]" />
           </button>
         </div>
