@@ -196,6 +196,18 @@ const StudentClass = () => {
     }
   }, [schoolYears]);
 
+  // Memoize filtered enrollments for the selected class to avoid inline IIFE and guard against missing data
+  const classEnrollments = React.useMemo(() => {
+    if (!selectedClassForEnroll?._id || !Array.isArray(enrollments)) return [];
+    return enrollments.filter((e) => {
+      const classId =
+        e?.class && typeof e.class === "object"
+          ? String(e.class._id)
+          : String(e.class);
+      return classId === String(selectedClassForEnroll._id);
+    });
+  }, [enrollments, selectedClassForEnroll]);
+
   // -----------------------------------
   // RESET FORM
   // -----------------------------------
@@ -1070,75 +1082,61 @@ const StudentClass = () => {
               <div className="w-full">
                 <h3 className="font-bold mb-5 uppercase">Học sinh</h3>
                 <div className="max-h-[300px] overflow-y-hidden hover:overflow-y-auto">
-                  {(() => {
-                    // Lấy danh sách enrollment của lớp này
-                    const classEnrollments = enrollments.filter((e) => {
-                      const enrollmentClassId =
-                        typeof e.class === "object"
-                          ? String(e.class._id)
-                          : String(e.class);
-                      return (
-                        enrollmentClassId === String(selectedClassForEnroll._id)
-                      );
-                    });
-                    return classEnrollments.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                        {classEnrollments.map((enrollment) => {
-                          const student = enrollment.student;
-                          const photo = photos.find((p) => {
-                            if (!p.student || !student) return false;
-                            const studentId =
-                              typeof p.student === "object" && p.student._id
-                                ? String(p.student._id)
-                                : String(p.student);
-                            const currentId =
-                              typeof student === "object" && student._id
-                                ? String(student._id)
-                                : String(student);
-                            return studentId === currentId;
-                          });
-                          return (
-                            <div
-                              key={enrollment._id}
-                              className="flex flex-col items-center p-2 relative "
+                  {classEnrollments.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                      {classEnrollments.map((enrollment) => {
+                        const student = enrollment.student;
+                        const photo = photos.find((p) => {
+                          if (!p.student || !student) return false;
+                          const studentId =
+                            typeof p.student === "object" && p.student._id
+                              ? String(p.student._id)
+                              : String(p.student);
+                          const currentId =
+                            typeof student === "object" && student._id
+                              ? String(student._id)
+                              : String(student);
+                          return studentId === currentId;
+                        });
+                        return (
+                          <div
+                            key={enrollment._id}
+                            className="flex flex-col items-center p-2 relative"
+                          >
+                            <button
+                              className="absolute top-1 right-9 text-red-600 px-2 py-0.5"
+                              onClick={() =>
+                                handleRemoveEnrollment(enrollment._id)
+                              }
                             >
-                              {/* Nút xóa */}
-                              <button
-                                className="absolute top-1 right-9 text-red-600 px-2 py-0.5 "
-                                onClick={() =>
-                                  handleRemoveEnrollment(enrollment._id)
-                                }
-                              >
-                                <FaUserXmark />
-                              </button>
-
-                              {photo && photo.photoUrl ? (
-                                <img
-                                  src={`${BASE_URL}/${photo.photoUrl}`}
-                                  alt="Avatar"
-                                  className="w-20 h-20 rounded-full object-cover object-top mb-2"
-                                />
-                              ) : (
-                                <div className="w-20 h-20 rounded-full bg-gray-300 flex items-center justify-center text-xs text-gray-600 mb-2">
-                                  N/A
-                                </div>
-                              )}
-                              <p className="text-sm font-bold text-center">
-                                {student?.name || "No name"}
-                              </p>
-                              <p className="text-xs italic text-gray-500 text-center">
-                                {student?.studentCode || "No code"}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-sm italic text-gray-600">
-                        Chưa có học sinh
-                      </p>
-                    );
-                  })()}
+                              <FaUserXmark />
+                            </button>
+                            {photo?.photoUrl ? (
+                              <img
+                                src={`${BASE_URL}/${photo.photoUrl}`}
+                                alt="Avatar"
+                                className="w-20 h-20 rounded-full object-cover object-top mb-2"
+                              />
+                            ) : (
+                              <div className="w-20 h-20 rounded-full bg-gray-300 flex items-center justify-center text-xs text-gray-600 mb-2">
+                                N/A
+                              </div>
+                            )}
+                            <p className="text-sm font-bold text-center">
+                              {student?.name || "No name"}
+                            </p>
+                            <p className="text-xs italic text-gray-500 text-center">
+                              {student?.studentCode || "No code"}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm italic text-gray-600">
+                      Chưa có học sinh
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
