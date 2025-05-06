@@ -564,36 +564,16 @@ function HallOfFameAdminPage() {
 
       // Xóa khỏi database
       if (editingCategory) {
-        const updatedCategory = {
-          ...categoryFormData,
-          subAwards: categoryFormData.subAwards.filter(
-            (sub) =>
-              !(
-                sub.type === "custom" &&
-                sub.label === subAwardToDelete.label &&
-                sub.schoolYear === subAwardToDelete.schoolYear
-              )
-          ),
-        };
-
-        await axios.put(
-          `${API_URL}/award-categories/${editingCategory}`,
-          updatedCategory
+        // Gọi API mới xoá sub‑award + mọi record liên quan
+        await axios.delete(
+          `${API_URL}/award-categories/${editingCategory}/sub-awards`,
+          {
+            params: {
+              label: subAwardToDelete.label,
+              schoolYear: subAwardToDelete.schoolYear || "",
+            },
+          }
         );
-
-        // Xóa tất cả records liên quan đến subAward này
-        const relatedRecords = records.filter(
-          (record) =>
-            record.awardCategory._id === editingCategory &&
-            record.subAward.type === "custom" &&
-            record.subAward.label === subAwardToDelete.label &&
-            record.subAward.schoolYear === subAwardToDelete.schoolYear
-        );
-
-        // Xóa từng record liên quan
-        for (const record of relatedRecords) {
-          await axios.delete(`${API_URL}/award-records/${record._id}`);
-        }
 
         // Refresh lại danh sách
         await fetchCategories();
@@ -601,6 +581,8 @@ function HallOfFameAdminPage() {
       }
 
       alert("Xóa sub-award thành công!");
+      // Thông báo cho các component khác refetch dữ liệu
+      window.dispatchEvent(new Event("hallOfFameDataUpdated"));
     } catch (error) {
       console.error("Error deleting sub-award:", error);
       alert("Xóa sub-award thất bại: " + error.message);

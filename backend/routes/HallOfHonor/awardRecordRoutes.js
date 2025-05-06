@@ -16,6 +16,6 @@ router.get("/:id", awardRecordController.getAwardRecordById);
 router.post("/", awardRecordController.createAwardRecord);
 router.put("/:id", awardRecordController.updateAwardRecord);
 router.delete("/:id", awardRecordController.deleteAwardRecord);
-
+// Xoá 1 sub‑award (custom) + mọi record liên quan
 
 module.exports = router;

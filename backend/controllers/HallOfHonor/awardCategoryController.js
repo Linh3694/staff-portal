@@ -1,5 +1,6 @@
 // backend/controllers/awardCategoryController.js
 const AwardCategory = require("../../models/AwardCategory");
+const AwardRecord = require("../../models/AwardRecord");
 
 // Tạo mới AwardCategory
 exports.createCategory = async (req, res) => {
@@ -59,5 +60,40 @@ exports.deleteCategory = async (req, res) => {
     return res.json({ message: "Xoá AwardCategory thành công" });
   } catch (error) {
     return res.status(400).json({ error: error.message });
+  }
+};
+
+// DELETE /award-categories/:id/sub-awards?label=...&schoolYear=...
+exports.deleteSubAward = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { label, schoolYear } = req.query;
+    if (!label) return res.status(400).json({ message: 'Thiếu label' });
+
+    // 1) Xoá khỏi mảng subAwards của Category
+    await AwardCategory.updateOne(
+      { _id: id },
+      {
+        $pull: {
+          subAwards: {
+            type: 'custom',
+            label,
+            ...(schoolYear ? { schoolYear } : {}),
+          },
+        },
+      }
+    );
+
+    // 2) Xoá toàn bộ AwardRecord liên quan
+    await AwardRecord.deleteMany({
+      awardCategory: id,
+      'subAward.type': 'custom',
+      'subAward.label': label,
+      ...(schoolYear ? { 'subAward.schoolYear': schoolYear } : {}),
+    });
+
+    res.json({ message: 'Đã xoá sub‑award và các bản ghi liên quan' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 };

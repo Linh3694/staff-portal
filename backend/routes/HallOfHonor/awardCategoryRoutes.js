@@ -34,5 +34,8 @@ router.post("/upload", uploadHOF.single("file"), (req, res) => {
   // Trả về đường dẫn file đã lưu
   return res.json({ filePath: `uploads/HallOfFame/${req.file.filename}` });});
 
+
+router.delete('/:id/sub-awards', awardCategoryController.deleteSubAward);
+
 module.exports = router;
 

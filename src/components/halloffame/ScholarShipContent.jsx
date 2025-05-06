@@ -123,13 +123,20 @@ const ScholarShipContent = ({ categoryId }) => {
   // -----------------------------
   // 4) Lọc record theo subAward custom, năm học và tên học sinh
   // -----------------------------
-  const filteredBaseRecords = records.filter((r) => {
-    return (
+
+  const validLabels = new Set(
+    (currentCategory.subAwards || [])
+      .filter((s) => s.type === "custom")
+      .map((s) => s.label)
+  );
+
+  const filteredBaseRecords = records.filter(
+    (r) =>
       r.awardCategory?._id === categoryId &&
       r.subAward?.type === "custom" &&
+      validLabels.has(r.subAward?.label) && // <── dòng mới
       String(r.subAward.schoolYear) === selectedSchoolYearId
-    );
-  });
+  );
 
   // Hàm normalize để tìm kiếm không phân biệt dấu và chữ hoa thường
   function removeDiacritics(str) {
