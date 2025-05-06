@@ -517,33 +517,48 @@ const ClassHonorContent = ({
     const schoolYearLabel = findSchoolYearLabel(schoolYear);
 
     if (type === "month") {
+      // Use subAward.label and subAward.labelEng for bilingual support, mirroring the filter logic.
+      const labelVi = `${categoryName} - ${record.subAward?.label || "?"} - ${t(
+        "schoolYear",
+        "Năm học"
+      )} ${schoolYearLabel}`;
       if (i18n.language === "vi") {
-        return `${categoryName} - ${t("month", "Tháng")} ${month || "?"} - ${t(
-          "schoolYear",
-          "Năm học"
-        )} ${schoolYearLabel}`;
-      } else {
-        const m = Number(month);
-        const monthNames = [
-          "January",
-          "February",
-          "March",
-          "April",
-          "May",
-          "June",
-          "July",
-          "August",
-          "September",
-          "October",
-          "November",
-          "December",
-        ];
-        const monthName = m >= 1 && m <= 12 ? monthNames[m - 1] : month;
-        return `${categoryName} - ${monthName} - ${t(
+        return labelVi;
+      }
+      // Find English label using subAwards definition (mirroring filter logic)
+      const engLabel = currentCategory.subAwards?.find(
+        (sub) =>
+          sub.type === "month" &&
+          String(sub.schoolYear) === String(schoolYear) &&
+          sub.label === record.subAward?.label
+      )?.labelEng;
+      if (engLabel) {
+        return `${categoryName} - ${engLabel} - ${t(
           "schoolYear",
           "School Year"
         )} ${schoolYearLabel}`;
       }
+      // fallback: convert numeric part
+      const nums = String(record.subAward?.label).match(/\d+/g) || [];
+      const monthNames = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      const fallbackEng = nums.map((n) => monthNames[Number(n) - 1]).join("+");
+      return `${categoryName} - ${fallbackEng} - ${t(
+        "schoolYear",
+        "School Year"
+      )} ${schoolYearLabel}`;
     } else if (type === "semester") {
       return `${categoryName} - ${t("semester", "Học kì")} ${
         semester || "?"
