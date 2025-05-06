@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { API_URL, BASE_URL } from "../../config";
 import { FaAngleDown, FaAngleRight } from "react-icons/fa6";
@@ -281,6 +281,52 @@ const ClassHonorContent = ({
     (r) => r.awardCategory?._id === categoryId && r.subAward?.type === activeTab
   );
 
+  // Month records for selected school year
+  const monthRecords = useMemo(
+    () =>
+      recordsSameCatAndType.filter(
+        (r) =>
+          r.subAward?.type === "month" &&
+          String(r.subAward?.schoolYear) === selectedSchoolYearId
+      ),
+    [recordsSameCatAndType, selectedSchoolYearId]
+  );
+
+  // Available month subAwards for filter
+  const monthSubAwards = useMemo(
+    () =>
+      (currentCategory.subAwards || []).filter(
+        (sub) =>
+          sub.type === "month" &&
+          String(sub.schoolYear) === selectedSchoolYearId &&
+          monthRecords.some((r) => r.subAward?.label === sub.label)
+      ),
+    [currentCategory.subAwards, selectedSchoolYearId, monthRecords]
+  );
+
+  // Helper for bilingual month labels in filter
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const getMonthOptionLabel = (sub) => {
+    if (i18n.language === "vi") return sub.label;
+    if (sub.labelEng) return sub.labelEng;
+    // fallback: convert numeric part to English month names
+    const nums = sub.label.match(/\d+/g) || [];
+    return nums.map((n) => monthNames[Number(n) - 1]).join("+");
+  };
+
   const distinctSchoolYearIds = [
     ...new Set(
       recordsSameCatAndType.map((r) => String(r.subAward?.schoolYear))
@@ -301,32 +347,27 @@ const ClassHonorContent = ({
     ),
   ].sort((a, b) => a - b);
 
-  const distinctMonths = [
-    ...new Set(
-      recordsCatTypeYear.map((r) => r.subAward?.month).filter(Boolean)
-    ),
-  ].sort((a, b) => a - b);
+  const distinctMonths = useMemo(
+    () => monthSubAwards.map((sub) => sub.label),
+    [monthSubAwards]
+  );
 
-  // Khi chuyển sang tab "month", nếu chưa chọn month thì tự động chọn option đầu tiên (nếu có)
   useEffect(() => {
     if (
       activeTab === "month" &&
       selectedSchoolYearId &&
-      (!selectedMonth || selectedMonth === "") &&
-      distinctMonths.length > 0
+      monthSubAwards.length > 0 &&
+      (!selectedMonth || !distinctMonths.includes(selectedMonth))
     ) {
-      const firstMonth = String(distinctMonths[0]);
-      setSelectedMonth(firstMonth);
-
-      // Đảm bảo records được lọc lại với tháng mới
-      const recordsForMonth = recordsCatTypeYear.filter(
-        (r) => String(r.subAward?.month) === firstMonth
-      );
-      if (recordsForMonth.length > 0) {
-        setSelectedMonth(firstMonth);
-      }
+      setSelectedMonth(distinctMonths[0]);
     }
-  }, [activeTab, selectedSchoolYearId, distinctMonths]);
+  }, [
+    activeTab,
+    selectedSchoolYearId,
+    selectedMonth,
+    monthSubAwards,
+    distinctMonths,
+  ]);
 
   // --------------------------------------------------
   // 4) Lọc record theo các tiêu chí => DÙNG awardClasses
@@ -353,7 +394,7 @@ const ClassHonorContent = ({
       }
       if (activeTab === "month") {
         if (!selectedMonth) return false;
-        if (String(r.subAward?.month) !== selectedMonth) return false;
+        if (r.subAward?.label !== selectedMonth) return false;
       }
       // --- Sửa phần lọc theo khối ---
       if (selectedGradeRange) {
@@ -667,32 +708,11 @@ const ClassHonorContent = ({
             onChange={(e) => setSelectedMonth(e.target.value)}
           >
             <option value="">{t("selectMonth")}</option>
-            {distinctMonths.map((m) => {
-              const mNum = Number(m);
-              const monthNames = [
-                "January",
-                "February",
-                "March",
-                "April",
-                "May",
-                "June",
-                "July",
-                "August",
-                "September",
-                "October",
-                "November",
-                "December",
-              ];
-              return (
-                <option key={m} value={m}>
-                  {i18n.language === "vi"
-                    ? `${t("month")} ${m}`
-                    : mNum >= 1 && mNum <= 12
-                    ? monthNames[mNum - 1]
-                    : m}
-                </option>
-              );
-            })}
+            {monthSubAwards.map((sub) => (
+              <option key={sub.label} value={sub.label}>
+                {getMonthOptionLabel(sub)}
+              </option>
+            ))}
           </select>
         )}
 

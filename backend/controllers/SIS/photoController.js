@@ -274,7 +274,7 @@ exports.uploadClassPhoto = async (req, res) => {
     }
 
     // Kiểm tra class có tồn tại không
-    const foundClass = await require("../models/Class").findById(classId);
+    const foundClass = await require("../../models/Class").findById(classId);
     if (!foundClass) {
       // Xoá file vừa upload để tránh rác
       if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
