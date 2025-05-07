@@ -165,13 +165,22 @@ const ScholarShipContent = ({ categoryId }) => {
   // Nhóm records theo subAward và thêm thông tin priority
   const groupedRecords = filteredSearchRecords.reduce((acc, record) => {
     const label = record.subAward?.label || "Unknown";
-    // Determine priority: first from record, then from category, then by order index
-    let prio = record.subAward?.priority;
+    // Determine priority: first from CATEGORY (đã được admin cập nhật),
+    // sau đó tới priority còn lưu trong RECORD, cuối cùng tới thứ tự xuất hiện
+    const catSub = currentCategory.subAwards?.find(
+      (sub) => sub.type === "custom" && sub.label === label
+    );
+    let prio = catSub?.priority; // ① lấy trực tiếp từ category
     if (!prio) {
-      const catSub = currentCategory.subAwards?.find(
+      // ② fallback sang record cũ nếu chưa có
+      prio = record.subAward?.priority;
+    }
+    if (!prio) {
+      // ③ cuối cùng fallback theo thứ tự
+      const idx = currentCategory.subAwards?.findIndex(
         (sub) => sub.type === "custom" && sub.label === label
       );
-      prio = catSub?.priority;
+      prio = idx >= 0 ? idx + 1 : 0;
     }
     if (!prio) {
       const idx = currentCategory.subAwards?.findIndex(
@@ -524,7 +533,14 @@ const ScholarShipContent = ({ categoryId }) => {
               <div className="w-full items-center flex justify-center">
                 <img
                   src={`/halloffame/Vector-${
-                    modalRecord.subAward?.priority || 1
+                    (modalRecord.subAward?.type === "custom" &&
+                      currentCategory.subAwards?.find(
+                        (s) =>
+                          s.type === "custom" &&
+                          s.label === modalRecord.subAward.label
+                      )?.priority) ||
+                    modalRecord.subAward?.priority ||
+                    1
                   }-${i18n.language === "vi" ? "vi" : "en"}.svg`}
                   alt={`HB ${getSubAwardLabel(modalRecord)}`}
                   className="mb-2 w-[90%]"
