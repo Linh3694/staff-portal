@@ -817,7 +817,7 @@ const StudentHonorContent = ({
       )}
       {/* Modal hiển thị chi tiết khi click vào 1 học sinh */}
       {showModal && modalStudent && modalRecord && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50" onClick={handleCloseModal}>
           <div
             className="lg:w-[980px] md:w-[80%] w-[95%] h-auto rounded-[20px] lg:py-20 lg:px-20 py-5 relative shadow-lg"
             style={{
@@ -829,6 +829,7 @@ const StudentHonorContent = ({
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
+            onClick={e => e.stopPropagation()}
           >
             {/* Bố cục chia làm 2 phần: Ảnh bên trái - Thông tin bên phải */}
             <div className="flex flex-col lg:flex-row lg:space-x-6 space-y-6 lg:space-y-0 ">

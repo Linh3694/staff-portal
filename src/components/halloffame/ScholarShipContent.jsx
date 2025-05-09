@@ -34,6 +34,8 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
   const [modalStudent, setModalStudent] = useState(null); // student được chọn
   const [openLevel, setOpenLevel] = useState(null);
 
+  
+
   // Tự động mở modal khi URL chứa recordId & studentId (sau khi states đã khởi tạo)
   useEffect(() => {
     if (!recordIdParam || !studentIdParam || !records.length) return;
@@ -307,9 +309,9 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
   // Hàm trả về label của danh hiệu (subAward custom)
   const getSubAwardLabel = (record) => {
     if (!record?.subAward) return "";
-    if (record.subAward.type === "custom") {
-      return record.subAward.label;
-    }
+      if (record.subAward.type === "custom") {
+        return record.subAward.label;
+      }
     return "";
   };
 
@@ -513,9 +515,9 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
       })}
       {/* Modal hiển thị chi tiết khi click vào 1 học sinh */}
       {showModal && modalStudent && modalRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={handleCloseModal}>
           {/* Desktop Version */}
-          <div className="hidden xl:flex relative md:w-[60%] w-[70%] max-w-[1200px] px-10 py-10 rounded-xl max-h-[90vh] items-stretch overflow-y-auto">
+          <div className="hidden xl:flex relative md:w-[60%] w-[70%] max-w-[1200px] px-10 py-10 rounded-xl max-h-[90vh] items-stretch overflow-y-auto" onClick={e => e.stopPropagation()}>
             <img
               src="/halloffame/scholarship.svg"
               alt="Modal Background"
@@ -528,7 +530,7 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
             />
 
             {/* Left curved panel */}
-            <div className="relative w-[50%] max-h-[600px] p-10 flex flex-row lg:flex-col">
+            <div className="relative w-[50%] max-h-[60%] p-10 flex flex-row lg:flex-col">
               <div className="w-full h-full border border-[#F9D16F] rounded-xl p-9 flex-grow overflow-y-hidden hover:overflow-y-auto">
                 <p className="xl:text-base text-sm font-semibold text-justify text-white">
                   {i18n.language === "vi"
@@ -603,7 +605,7 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
           </div>
 
           {/* Mobile Version */}
-          <div className="flex xl:hidden flex-col relative w-[90%] max-h-[90%] px-4 py-8 rounded-xl overflow-y-auto">
+          <div className="flex xl:hidden flex-col relative w-[90%] max-h-[90%] px-4 py-8 rounded-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
             <img
               src="/halloffame/scholarship-mobile.svg"
               alt="Modal Background (mobile)"

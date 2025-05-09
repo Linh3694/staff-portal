@@ -830,7 +830,7 @@ const ClassHonorContent = ({
 
       {/* ----------------- Modal hiển thị khi click 1 lớp ----------------- */}
       {showModal && modalClass && modalRecord && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50" onClick={handleCloseModal}>
           <div
             className="lg:w-[1200px] md:w-[80%] w-[95%] h-auto rounded-[20px] lg:py-16 lg:px-16 p-8 relative shadow-lg"
             style={{
@@ -842,6 +842,7 @@ const ClassHonorContent = ({
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
+            onClick={e => e.stopPropagation()}
           >
             {/* Nội dung modal */}
             <div className="w-full flex flex-col lg:flex-row gap-4">
