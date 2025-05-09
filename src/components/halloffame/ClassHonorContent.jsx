@@ -4,6 +4,7 @@ import { API_URL, BASE_URL } from "../../config";
 import { FaAngleDown, FaAngleRight } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 /**
  * Component hiển thị danh hiệu dành cho LỚP (thay vì học sinh).
@@ -11,11 +12,13 @@ import { useTranslation } from "react-i18next";
  */
 const ClassHonorContent = ({
   categoryId,
+  categoryName,
   recordIdParam,
   classIdParam,
   setSearchParams,
 }) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   // --- States cho dữ liệu API ---
   const [categories, setCategories] = useState([]);
@@ -324,7 +327,7 @@ const ClassHonorContent = ({
     if (sub.labelEng) return sub.labelEng;
     // fallback: convert numeric part to English month names
     const nums = sub.label.match(/\d+/g) || [];
-    return nums.map((n) => monthNames[Number(n) - 1]).join("+");
+    return nums.map((n) => monthNames[Number(n) - 1]).join("&");
   };
 
   const distinctSchoolYearIds = [
@@ -486,21 +489,14 @@ const ClassHonorContent = ({
     setModalRecord(record);
     setModalClass(cls);
     setShowModal(true);
-    if (setSearchParams) {
-      setSearchParams({
-        recordId: record._id,
-        classId: cls.classInfo?._id,
-      });
-    }
+    navigate(`/hall-of-honor/detail/${categoryName}/class/${record._id}/${cls.classInfo?._id}`);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setModalRecord(null);
     setModalClass(null);
-    if (setSearchParams) {
-      setSearchParams({});
-    }
+    navigate(`/hall-of-honor/detail/${categoryName}`);
   };
 
   const findSchoolYearLabel = (syId) => {
@@ -554,7 +550,7 @@ const ClassHonorContent = ({
         "November",
         "December",
       ];
-      const fallbackEng = nums.map((n) => monthNames[Number(n) - 1]).join("+");
+      const fallbackEng = nums.map((n) => monthNames[Number(n) - 1]).join("&");
       return `${categoryName} - ${fallbackEng} - ${t(
         "schoolYear",
         "School Year"

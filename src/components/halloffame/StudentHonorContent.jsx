@@ -4,19 +4,23 @@ import { API_URL, BASE_URL, CDN_URL } from "../../config";
 import { FaAngleDown, FaAngleRight } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 const StudentHonorContent = ({
   categoryId,
+  categoryName,
   recordIdParam,
   studentIdParam,
   setSearchParams,
 }) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   // --- States cho dữ liệu API ---
   const [categories, setCategories] = useState([]);
   const [records, setRecords] = useState([]);
   const [schoolYears, setSchoolYears] = useState([]);
+  const [isLoadingRecords, setIsLoadingRecords] = useState(true);
 
   // --- States cho giao diện lọc (filter) ---
   const [activeTab, setActiveTab] = useState("year");
@@ -30,6 +34,7 @@ const StudentHonorContent = ({
   const [showModal, setShowModal] = useState(false);
   const [modalRecord, setModalRecord] = useState(null); // record được chọn
   const [modalStudent, setModalStudent] = useState(null); // student được chọn
+  const [modalClass, setModalClass] = useState(null); // class được chọn
 
   // Lấy thông tin chi tiết của danh mục hiện tại từ dữ liệu API
   const currentCategory =
@@ -45,13 +50,15 @@ const StudentHonorContent = ({
   }, []);
 
   useEffect(() => {
-    if (!recordIdParam || !studentIdParam || !records.length) return;
+    if (isLoadingRecords) return; // Đợi load xong mới xử lý
+    if (!recordIdParam || !studentIdParam) return;
 
-    // Tìm record
     const foundRecord = records.find((r) => r._id === recordIdParam);
-    if (!foundRecord) return;
+    if (!foundRecord) {
+      navigate(`/hall-of-honor/detail/${categoryName}`);
+      return;
+    }
 
-    // Tìm student
     let foundStudent = null;
     for (const stu of foundRecord.students) {
       if (stu.student?._id === studentIdParam) {
@@ -59,13 +66,15 @@ const StudentHonorContent = ({
         break;
       }
     }
-    if (!foundStudent) return;
+    if (!foundStudent) {
+      navigate(`/hall-of-honor/detail/${categoryName}`);
+      return;
+    }
 
-    // Nếu tìm thấy -> mở modal
     setModalRecord(foundRecord);
     setModalStudent(foundStudent);
     setShowModal(true);
-  }, [recordIdParam, studentIdParam, records]);
+  }, [recordIdParam, studentIdParam, records, isLoadingRecords, categoryName, navigate]);
 
   const fetchCategories = async () => {
     try {
@@ -77,11 +86,14 @@ const StudentHonorContent = ({
   };
 
   const fetchRecords = async () => {
+    setIsLoadingRecords(true);
     try {
       const res = await axios.get(`${API_URL}/award-records`);
       setRecords(res.data);
     } catch (err) {
       console.error("Error fetching records:", err);
+    } finally {
+      setIsLoadingRecords(false);
     }
   };
 
@@ -437,16 +449,11 @@ const StudentHonorContent = ({
 
   // Hàm mở modal khi click vào 1 học sinh
   const handleOpenModal = (record, student) => {
+    console.log("Navigate to:", `/hall-of-honor/detail/${categoryName}/student/${record._id}/${student.student?._id}`);
     setModalRecord(record);
     setModalStudent(student);
     setShowModal(true);
-    // Cập nhật URL
-    if (setSearchParams) {
-      setSearchParams({
-        recordId: record._id,
-        studentId: student.student?._id,
-      });
-    }
+    navigate(`/hall-of-honor/detail/${categoryName}/student/${record._id}/${student.student?._id}`);
   };
 
   // Hàm đóng modal
@@ -454,10 +461,8 @@ const StudentHonorContent = ({
     setShowModal(false);
     setModalRecord(null);
     setModalStudent(null);
-    if (setSearchParams) {
-      // Xóa hết param
-      setSearchParams({});
-    }
+    setModalClass(null);
+    navigate(`/hall-of-honor/detail/${categoryName}`);
   };
 
   // Hàm phụ: trả về text cho danh hiệu (VD: "Học sinh Danh dự - Tháng 8"), bilingual logic
@@ -502,7 +507,7 @@ const StudentHonorContent = ({
         "November",
         "December",
       ];
-      const fallbackEng = nums.map((n) => monthNames[Number(n) - 1]).join("+");
+      const fallbackEng = nums.map((n) => monthNames[Number(n) - 1]).join("&");
       return `${categoryName} - ${fallbackEng} - ${t(
         "schoolYear",
         "School Year"
@@ -548,7 +553,7 @@ const StudentHonorContent = ({
     if (sub.labelEng) return sub.labelEng;
     if (sub.type === "month") {
       const nums = sub.label.match(/\d+/g) || [];
-      return nums.map((n) => monthNames[Number(n) - 1]).join("+");
+      return nums.map((n) => monthNames[Number(n) - 1]).join("&");
     }
     if (sub.type === "semester") {
       return `${t("semester", "Semester")} ${sub.semester}`;

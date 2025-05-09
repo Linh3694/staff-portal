@@ -9,11 +9,13 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { BiSolidQuoteLeft } from "react-icons/bi";
 import { FaAngleDown, FaAngleRight } from "react-icons/fa6";
 
-const ScholarShipContent = ({ categoryId }) => {
+const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentIdParam }) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   // --- States cho dữ liệu API ---
   const [categories, setCategories] = useState([]);
@@ -31,6 +33,23 @@ const ScholarShipContent = ({ categoryId }) => {
   const [modalRecord, setModalRecord] = useState(null); // record được chọn
   const [modalStudent, setModalStudent] = useState(null); // student được chọn
   const [openLevel, setOpenLevel] = useState(null);
+
+  // Tự động mở modal khi URL chứa recordId & studentId (sau khi states đã khởi tạo)
+  useEffect(() => {
+    if (!recordIdParam || !studentIdParam || !records.length) return;
+
+    const foundRecord = records.find((r) => r._id === recordIdParam);
+    if (!foundRecord) return;
+
+    const foundStudent = foundRecord.students.find(
+      (stu) => stu.student?._id === studentIdParam
+    );
+    if (!foundStudent) return;
+
+    setModalRecord(foundRecord);
+    setModalStudent(foundStudent);
+    setShowModal(true);
+  }, [recordIdParam, studentIdParam, records]);
 
   // Thêm mảng màu sắc cho các priority
   const priorityColors = [
@@ -275,12 +294,14 @@ const ScholarShipContent = ({ categoryId }) => {
     setModalRecord(record);
     setModalStudent(student);
     setShowModal(true);
+    navigate(`/hall-of-honor/detail/${categoryName}/student/${record._id}/${student.student?._id}`);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setModalRecord(null);
     setModalStudent(null);
+    navigate(`/hall-of-honor/detail/${categoryName}`);
   };
 
   // Hàm trả về label của danh hiệu (subAward custom)
@@ -507,7 +528,7 @@ const ScholarShipContent = ({ categoryId }) => {
             />
 
             {/* Left curved panel */}
-            <div className="relative w-[50%] max-h-[450px] p-10 flex flex-row lg:flex-col">
+            <div className="relative w-[50%] max-h-[600px] p-10 flex flex-row lg:flex-col">
               <div className="w-full h-full border border-[#F9D16F] rounded-xl p-9 flex-grow overflow-y-hidden hover:overflow-y-auto">
                 <p className="xl:text-base text-sm font-semibold text-justify text-white">
                   {i18n.language === "vi"

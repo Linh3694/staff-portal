@@ -102,9 +102,12 @@ function App() {
       <Router>
         <Routes>
           <Route path="/hall-of-honor" element={<HallofFame />} />
+          <Route path="/hall-of-honor/detail/:category" element={<HallOfFamePublicPage />} />
+          <Route path="/hall-of-honor/detail/:category/student/:recordId/:studentId" element={<HallOfFamePublicPage />} />
+          <Route path="/hall-of-honor/detail/:category/class/:recordId/:classId" element={<HallOfFamePublicPage />} />
           <Route
             path="/hall-of-honor/detail"
-            element={<HallOfFamePublicPage />}
+            element={<Navigate to="/hall-of-honor/detail/scholarship-talent" replace />}
           />
           <Route 
             path="/admission" 

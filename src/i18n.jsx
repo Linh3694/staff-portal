@@ -55,9 +55,9 @@ const resources = {
       elementary: "Elementary school",
       secondary: "Middle school",
       highschool: "High school",
-      category_67b5a7864c93fbb31475ad44: "Student Honor",
-      category_67b5a98b4c93fbb31475ad56: "Effort Award",
-      category_67b5a7c84c93fbb31475ad47: "Class Honor",
+      category_67b5a7864c93fbb31475ad44: "Honor Student",
+      category_67b5a98b4c93fbb31475ad56: "WISers Effort",
+      category_67b5a7c84c93fbb31475ad47: "Honor Class",
       principalMessageHeader: "Principal's Message",
       view_hall_of_honor: "View Hall of Honor",
 
