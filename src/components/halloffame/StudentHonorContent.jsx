@@ -507,7 +507,7 @@ const StudentHonorContent = ({
         "November",
         "December",
       ];
-      const fallbackEng = nums.map((n) => monthNames[Number(n) - 1]).join("&");
+      const fallbackEng = nums.map((n) => monthNames[Number(n) - 1]).join(" & ");
       return `${categoryName} - ${fallbackEng} - ${t(
         "schoolYear",
         "School Year"
@@ -553,7 +553,7 @@ const StudentHonorContent = ({
     if (sub.labelEng) return sub.labelEng;
     if (sub.type === "month") {
       const nums = sub.label.match(/\d+/g) || [];
-      return nums.map((n) => monthNames[Number(n) - 1]).join("&");
+      return nums.map((n) => monthNames[Number(n) - 1]).join(" & ");
     }
     if (sub.type === "semester") {
       return `${t("semester", "Semester")} ${sub.semester}`;

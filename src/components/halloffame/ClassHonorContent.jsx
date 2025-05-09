@@ -327,7 +327,7 @@ const ClassHonorContent = ({
     if (sub.labelEng) return sub.labelEng;
     // fallback: convert numeric part to English month names
     const nums = sub.label.match(/\d+/g) || [];
-    return nums.map((n) => monthNames[Number(n) - 1]).join("&");
+    return nums.map((n) => monthNames[Number(n) - 1]).join(" & ");
   };
 
   const distinctSchoolYearIds = [
@@ -550,7 +550,7 @@ const ClassHonorContent = ({
         "November",
         "December",
       ];
-      const fallbackEng = nums.map((n) => monthNames[Number(n) - 1]).join("&");
+      const fallbackEng = nums.map((n) => monthNames[Number(n) - 1]).join(" & ");
       return `${categoryName} - ${fallbackEng} - ${t(
         "schoolYear",
         "School Year"
