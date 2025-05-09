@@ -323,10 +323,10 @@ const ClassHonorContent = ({
     "December",
   ];
   const getMonthOptionLabel = (sub) => {
-    if (i18n.language === "vi") return sub.label;
-    if (sub.labelEng) return sub.labelEng;
-    // fallback: convert numeric part to English month names
     const nums = sub.label.match(/\d+/g) || [];
+    if (i18n.language === "vi") {
+      return nums.map((n) => `Tháng ${n}`).join(" & ");
+    }
     return nums.map((n) => monthNames[Number(n) - 1]).join(" & ");
   };
 

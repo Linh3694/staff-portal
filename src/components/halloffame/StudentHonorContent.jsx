@@ -519,21 +519,12 @@ const StudentHonorContent = ({
   ];
 
   const getSubAwardLabelForFilter = (sub) => {
-    if (i18n.language === "vi") return sub.label;
-    if (sub.labelEng) return sub.labelEng;
-    if (sub.type === "month") {
-      const nums = sub.label.match(/\d+/g) || [];
-      return nums.map((n) => monthNames[Number(n) - 1]).join(" & ");
-    }
-    if (sub.type === "semester") {
-      return `${t("semester", "Semester")} ${sub.semester}`;
-    }
-    if (sub.type === "year") {
-      return `${t("schoolYear", "School Year")} ${findSchoolYearLabel(
-        sub.schoolYear
-      )}`;
-    }
-    return sub.label;
+    const nums = sub.label.match(/\d+/g) || [];
+    if (i18n.language === "vi") return nums.map((n) => `Tháng ${n}`).join(" & ");
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
+    ];
+    return nums.map((n) => monthNames[Number(n) - 1]).join(" & ");
   };
 
   // Lấy text từ DB (hoặc i18n)
