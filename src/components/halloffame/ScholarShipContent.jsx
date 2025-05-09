@@ -530,7 +530,7 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
             />
 
             {/* Left curved panel */}
-            <div className="relative w-[50%] max-h-[60%] p-10 flex flex-row lg:flex-col">
+            <div className="relative w-[50%] max-h-[80%] p-10 flex flex-row lg:flex-col">
               <div className="w-full h-full border border-[#F9D16F] rounded-xl p-9 flex-grow overflow-y-hidden hover:overflow-y-auto">
                 <p className="xl:text-base text-sm font-semibold text-justify text-white">
                   {i18n.language === "vi"
