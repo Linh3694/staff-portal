@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, Outlet } from "react-router-dom";
 import i18n from "../i18n";
 import { CDN_URL } from "../config";
 import Sidebar from "../components/halloffame/Sidebar";
@@ -11,12 +11,14 @@ import { FaArrowUp, FaArrowDown, FaBars } from "react-icons/fa";
 import { useSearchParams } from "react-router-dom";
 
 function HallOfFamePublicPage() {
+  const { category, recordId, studentId, classId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const recordIdParam = searchParams.get("recordId");
-  const studentIdParam = searchParams.get("studentId");
-  const classIdParam = searchParams.get("classId");
-  const [showCategoryNameInHeader, setShowCategoryNameInHeader] =
-    useState(false);
+  const [showCategoryNameInHeader, setShowCategoryNameInHeader] = useState(false);
+  const [records, setRecords] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [modalRecord, setModalRecord] = useState(null);
+  const [modalStudent, setModalStudent] = useState(null);
+  const [modalClass, setModalClass] = useState(null);
 
   // --- i18n, Header logic ---
   const navigate = useNavigate();
@@ -26,14 +28,68 @@ function HallOfFamePublicPage() {
     i18n.changeLanguage(newLanguage);
   };
 
-  // --- UI state: selected category (mặc định là “Học sinh Danh dự”) & sidebar dropdown ---
-  const [selectedCategoryId, setSelectedCategoryId] = useState(
-    "67df88144651c845d0bec3dc"
-  );
+  // --- UI state: selected category (mặc định là "Học sinh Danh dự") & sidebar dropdown ---
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  // Giả sử bạn có hàm trả về tên danh mục dựa trên selectedCategoryId
   const categoryTitleRef = useRef(null);
+
+  // Hàm chuyển đổi category name thành ID
+  const getCategoryIdFromName = (name) => {
+    switch (name) {
+      case "scholarship-talent":
+        return "67b5a81e4c93fbb31475ad4a";
+      case "honor-student":
+        return "67b5a7864c93fbb31475ad44";
+      case "honor-class":
+        return "67b5a7c84c93fbb31475ad47";
+      case "wisers-effort":
+        return "67b5a98b4c93fbb31475ad56";
+      default:
+        return null;
+    }
+  };
+
+  // Hàm chuyển đổi category ID thành name
+  const getCategoryNameFromId = (id) => {
+    switch (id) {
+      case "67b5a81e4c93fbb31475ad4a":
+        return "scholarship-talent";
+      case "67b5a7864c93fbb31475ad44":
+        return "honor-student";
+      case "67b5a7c84c93fbb31475ad47":
+        return "honor-class";
+      case "67b5a98b4c93fbb31475ad56":
+        return "wisers-effort";
+      default:
+        return null;
+    }
+  };
+
+  // Cập nhật selectedCategoryId khi category trong URL thay đổi
+  useEffect(() => {
+    if (category) {
+      const categoryId = getCategoryIdFromName(category);
+      if (categoryId) {
+        setSelectedCategoryId(categoryId);
+      }
+    }
+  }, [category]);
+
+  // Cập nhật URL khi selectedCategoryId thay đổi
+  useEffect(() => {
+    if (!selectedCategoryId) return;
+
+    const categoryName = getCategoryNameFromId(selectedCategoryId);
+    if (!categoryName) return;
+
+    // Nếu URL đã ở trang chi tiết (có recordId kèm theo studentId hoặc classId) thì giữ nguyên
+    if (recordId && (studentId || classId)) {
+      return;
+    }
+
+    navigate(`/hall-of-honor/detail/${categoryName}`, { replace: true });
+  }, [selectedCategoryId, navigate, recordId, studentId, classId]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -74,51 +130,86 @@ function HallOfFamePublicPage() {
     });
   };
 
+  // Mở modal khi có recordId và studentId/classId trong URL
+  useEffect(() => {
+    if (recordId && (studentId || classId)) {
+      // Tìm record và student/class tương ứng
+      if (studentId) {
+        const record = records.find(r => r._id === recordId);
+        if (record) {
+          const student = record.students.find(s => s.student?._id === studentId);
+          if (student) {
+            setModalRecord(record);
+            setModalStudent(student);
+            setShowModal(true);
+          }
+        }
+      } else if (classId) {
+        const record = records.find(r => r._id === recordId);
+        if (record) {
+          const classInfo = record.awardClasses.find(c => c.classInfo?._id === classId);
+          if (classInfo) {
+            setModalRecord(record);
+            setModalClass(classInfo);
+            setShowModal(true);
+          }
+        }
+      }
+    }
+  }, [recordId, studentId, classId, records]);
+
+ 
+    const categoryName = getCategoryNameFromId(selectedCategoryId);
+
   // --- Chọn component hiển thị theo danh mục ---
   const renderMainContent = () => {
-    // Ví dụ: nếu danh mục là “Học sinh Danh dự” thì hiển thị component StudentHonorContent,
+    // Ví dụ: nếu danh mục là "Học sinh Danh dự" thì hiển thị component StudentHonorContent,
     // còn với các danh mục khác có thể render component tương ứng.
     switch (selectedCategoryId) {
-      //// Học sinh danh dự
-      case "67df88144651c845d0bec3dc":
+      // Học sinh danh dự
+      case "67b5a7864c93fbb31475ad44":
         return (
           <StudentHonorContent
             categoryId={selectedCategoryId}
-            recordIdParam={recordIdParam}
-            studentIdParam={studentIdParam}
+            categoryName={categoryName}
+            recordIdParam={recordId}
+            studentIdParam={studentId}
             setSearchParams={setSearchParams}
           />
         );
 
-      //// Học bổng tài năng
+      // Học bổng tài năng
       case "67b5a81e4c93fbb31475ad4a":
         return (
           <ScholarShipContent
             categoryId={selectedCategoryId}
-            recordIdParam={recordIdParam}
-            studentIdParam={studentIdParam}
+            categoryName={categoryName}
+            recordIdParam={recordId}
+            studentIdParam={studentId}
             setSearchParams={setSearchParams}
           />
         );
 
-      //// Học sinh nỗ lực
+      // Học sinh nỗ lực
       case "67b5a98b4c93fbb31475ad56":
         return (
           <StudentHonorContent
             categoryId={selectedCategoryId}
-            recordIdParam={recordIdParam}
-            studentIdParam={studentIdParam}
+            categoryName={categoryName}
+            recordIdParam={recordId}
+            studentIdParam={studentId}
             setSearchParams={setSearchParams}
           />
         );
 
-      //// Lớp danh dự
+      // Lớp danh dự
       case "67b5a7c84c93fbb31475ad47":
         return (
           <ClassHonorContent
             categoryId={selectedCategoryId}
-            recordIdParam={recordIdParam}
-            studentIdParam={studentIdParam}
+            categoryName={categoryName}
+            recordIdParam={recordId}
+            classIdParam={classId}
             setSearchParams={setSearchParams}
           />
         );
@@ -230,6 +321,7 @@ function HallOfFamePublicPage() {
           className="w-full"
         />
       </footer>
+      <Outlet />
     </div>
   );
 }
