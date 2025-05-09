@@ -1,6 +1,0 @@
-<AcsEventCond xmlns="http://www.hikvision.com/ver10/XMLSchema">
-<searchID>123456</searchID>
-<maxResults>30</maxResults>
-<startTime>2024-12-01T00:00:00</startTime>
-<endTime>2024-12-17T23:59:59</endTime>
-</AcsEventCond>
