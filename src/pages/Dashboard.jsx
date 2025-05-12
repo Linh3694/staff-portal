@@ -45,7 +45,7 @@ const urlToMenu = {
   users: "Quản lý người dùng",
   students: "Quản lý học sinh",
   rooms: "Quản lý phòng học",
-  recruitmentadmin: "Quản lý tuyển dụng",
+  recruitment: "Quản lý tuyển dụng",
   halloffame: "Quản lý vinh danh",
   bus: "Quản lý Bus",
   library: "Quản lý Thư viện",

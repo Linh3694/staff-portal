@@ -101,7 +101,7 @@ const Sidebar = ({
           {
             label: "Quản lý tuyển dụng",
             icon: <FaUserTie size={16} />,
-            link: "/dashboard/recruitmentadmin",
+            link: "/dashboard/recruitment",
             allowedRoles: ["superadmin", "admin", "hr"],
           },
         {

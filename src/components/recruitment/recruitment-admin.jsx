@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import Switch from "react-switch";
 import CreateJobModal from "./CreateJobModal";
 import JobDetailModal from "./JobDetailModal";
+import ConfirmDeleteModal from "./ConfirmDeleteModal";
 
 function RecruitmentAdmin({ currentUser }) {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -12,9 +13,11 @@ function RecruitmentAdmin({ currentUser }) {
   const fileInputRef = useRef(null); // Ref cho input file
   const [isCreateJobModalOpen, setIsCreateJobModalOpen] = useState(false);
   const [jobList, setJobList] = useState();
-  const [showJobDetailModal, setShowJobDetailModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [isJobDetailModalOpen, setIsJobDetailModalOpen] = useState(false);
   const [cvList, setCvList] = useState([]); // Lưu danh sách CV của job được chọn
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState(null);
 
   const fetchFileList = () => {
     const token = localStorage.getItem("authToken");
@@ -61,8 +64,7 @@ function RecruitmentAdmin({ currentUser }) {
 
   const handleOpenJobDetail = (job) => {
     setSelectedJob(job);
-    setShowJobDetailModal(true);
-    fetchJobDetails(job._id); // Gọi API lấy danh sách CV của job này
+    setIsJobDetailModalOpen(true);
   };
 
   useEffect(() => {
@@ -73,10 +75,29 @@ function RecruitmentAdmin({ currentUser }) {
     setSelectedFile(e.target.files[0]);
   };
 
-  const handleRemoveJob = () => {
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""; // Reset giá trị input file
+  const handleRemoveJob = (job) => {
+    setJobToDelete(job);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!jobToDelete) return;
+    try {
+      const res = await fetch(`${API_URL}/jobs/${jobToDelete._id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!res.ok) throw new Error("Xoá công việc thất bại");
+      toast.success("Đã xoá công việc!");
+      setFileList((prev) => prev.filter((j) => j._id !== jobToDelete._id));
+    } catch (err) {
+      toast.error("Có lỗi khi xoá công việc!");
+    } finally {
+      setIsDeleteModalOpen(false);
+      setJobToDelete(null);
     }
   };
 
@@ -120,18 +141,13 @@ function RecruitmentAdmin({ currentUser }) {
     <div className="min-h-screen p-8">
       <div className="w-full h-full p-6 bg-white rounded-xl shadow-md border">
         <div className="flex flex-row justify-between items-center">
-          <h2 className="font-bold text-lg mb-4">Danh sách CV đã upload</h2>
+          <h2 className="font-bold text-lg mb-4">Tuyển dụng</h2>
           <button
             onClick={() => setIsCreateJobModalOpen(true)}
-            className="px-4 py-2 bg-[#002147] text-white font-bold rounded-lg shadow-md hover:bg-[#001b33] transition-all"
+            className="px-4 py-2 bg-[#FF5733] text-white font-bold rounded-lg shadow-md hover:bg-[#001b33] transition-all"
           >
             Tạo mới
           </button>
-          <CreateJobModal
-            isOpen={isCreateJobModalOpen}
-            onClose={() => setIsCreateJobModalOpen(false)}
-            onJobCreated={(newJob) => setJobList([...jobList, newJob])}
-          />
         </div>
         {fileList.length > 0 ? (
           <table className="w-full">
@@ -146,7 +162,13 @@ function RecruitmentAdmin({ currentUser }) {
                   </p>
                 </th>
                 <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
-                  <p className="text-sm font-bold text-gray-500">Ngày tạo</p>
+                  <p className="text-sm font-bold text-gray-500">Tuyển gấp</p>
+                </th>
+                <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-500">Hạn cuối</p>
+                </th>
+                <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
+                  <p className="text-sm font-bold text-gray-500">Ngày sửa</p>
                 </th>
                 <th className="cursor-pointer border-b-[1px] border-gray-200 pt-4 pb-2 pr-4 text-start">
                   <p className="text-sm font-bold text-gray-500">CV Applied</p>
@@ -176,10 +198,24 @@ function RecruitmentAdmin({ currentUser }) {
                     {job.title}
                   </td>
 
-                  {/* Ngày tạo theo format dd/mm/yyyy */}
+                  {/* Tuyển gấp */}
                   <td className="border-white/0 py-3 pr-4">
                     <p className="text-sm font-bold text-navy-700">
-                      {new Date(job.createdAt).toLocaleDateString("vi-VN")}
+                      {job.urgent ? "Có" : "Không"}
+                    </p>
+                  </td>
+
+                  {/* Hạn cuối */}
+                  <td className="border-white/0 py-3 pr-4">
+                    <p className="text-sm font-bold text-navy-700">
+                      {job.deadline ? new Date(job.deadline).toLocaleDateString("vi-VN") : "-"}
+                    </p>
+                  </td>
+
+                  {/* Ngày sửa */}
+                  <td className="border-white/0 py-3 pr-4">
+                    <p className="text-sm font-bold text-navy-700">
+                      {job.updatedAt ? new Date(job.updatedAt).toLocaleDateString("vi-VN") : (job.createdAt ? new Date(job.createdAt).toLocaleDateString("vi-VN") : "-")}
                     </p>
                   </td>
 
@@ -195,7 +231,7 @@ function RecruitmentAdmin({ currentUser }) {
                     <Switch
                       onChange={() => toggleActiveStatus(job._id, !job.active)}
                       checked={job.active}
-                      onColor="#4caf50"
+                      onColor="#FF5733"
                       offColor="#ccc"
                       uncheckedIcon={false}
                       checkedIcon={false}
@@ -208,7 +244,7 @@ function RecruitmentAdmin({ currentUser }) {
                   <td className="border-white/0 py-3 pr-4">
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleJobChange(job)}
+  onClick={() => handleOpenJobDetail(job)}
                         className="flex items-center justify-center w-7 h-7 text-white bg-oxford-blue rounded-lg hover:scale-105 transition"
                       >
                         <FiEdit size={14} />
@@ -228,13 +264,23 @@ function RecruitmentAdmin({ currentUser }) {
         ) : (
           <p>Chưa có file nào được upload.</p>
         )}
-        <JobDetailModal
-          isOpen={showJobDetailModal}
-          onClose={() => setShowJobDetailModal(false)}
-          job={selectedJob}
-          cvList={cvList}
-        />
       </div>
+      <CreateJobModal
+        isOpen={isCreateJobModalOpen}
+        onClose={() => setIsCreateJobModalOpen(false)}
+        onJobCreated={(newJob) => setJobList([...jobList, newJob])}
+      />
+      <JobDetailModal
+        isOpen={isJobDetailModalOpen}
+        onClose={() => setIsJobDetailModalOpen(false)}
+        jobId={selectedJob?._id}
+      />
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => { setIsDeleteModalOpen(false); setJobToDelete(null); }}
+        onConfirm={handleConfirmDelete}
+        jobTitle={jobToDelete?.title}
+      />
     </div>
   );
 }

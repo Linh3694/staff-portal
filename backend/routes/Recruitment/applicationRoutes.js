@@ -1,9 +1,17 @@
 const express = require("express");
 const router = express.Router();
 const applicationController = require("../../controllers/Recruitment/applicationController");
-const upload = require("../../middleware/uploadCV");
+const uploadCV = require("../../middleware/uploadCV");
+const uploadApplication = require("../../middleware/uploadApplication");
 
-router.post("/", upload.single("cvFile"), applicationController.submitApplication);
+router.post(
+    "/",
+    uploadApplication.fields([
+        { name: "cvFile", maxCount: 1 },
+        { name: "profilePicture", maxCount: 1 }
+    ]),
+    applicationController.submitApplication
+);
 router.get("/", applicationController.getApplications);
 router.get("/job/:jobId", applicationController.getApplicationsByJob);
 
