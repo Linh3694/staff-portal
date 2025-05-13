@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { API_URL, UPLOAD_URL, BASE_URL } from "../../config"; // import từ file config
+import { API_URL } from "../../config"; // import từ file config
 import TicketAdminModal from "./TicketAdminModal";
 
 const TicketAdminTable = ({ currentUser }) => {
@@ -12,7 +12,6 @@ const TicketAdminTable = ({ currentUser }) => {
   const [originalTickets, setOriginalTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [newMessage, setNewMessage] = useState("");
 
   // Modal state
   const [showTicketModal, setShowTicketModal] = useState(false);
@@ -308,40 +307,6 @@ const TicketAdminTable = ({ currentUser }) => {
   // 17. tính năng chat
   // ---------------------------------------------------------
   const [selectedTicket, setSelectedTicket] = useState(null);
-  const [messages, setMessages] = useState([]);
-
-  useEffect(() => {
-    if (selectedTicket && selectedTicket.messages) {
-      const mapped = selectedTicket.messages.map((m) => ({
-        id: m._id,
-        text: m.text,
-        sender: m?.sender?.fullname || "N/A",
-        senderId: m?.sender?._id,
-        senderAvatar: m.sender?.avatarUrl
-          ? `${BASE_URL}/uploads/Avatar/${m.sender.avatarUrl}`
-          : "/default-avatar.png",
-        time: new Date(m.timestamp).toLocaleString("vi-VN"),
-        isSelf: m?.sender?._id === currentUser?.id,
-        type: m.type || "text",
-      }));
-
-      setMessages((prevMessages) => {
-        // Tạo map các tin nhắn từ state cũ (key = id)
-        const msgMap = {};
-        prevMessages.forEach((msg) => {
-          if (msg.id) msgMap[msg.id] = msg;
-        });
-        // Ghi đè bằng tin nhắn từ server
-        mapped.forEach((msg) => {
-          msgMap[msg.id] = msg;
-        });
-        // Trả về mảng tin nhắn deduped và sắp xếp theo thời gian (nếu cần)
-        const merged = Object.values(msgMap);
-        merged.sort((a, b) => new Date(a.time) - new Date(b.time));
-        return merged;
-      });
-    }
-  }, [selectedTicket, setMessages, currentUser?.id]);
 
   // ---------------------------------------------------------
   // 18. useEffect gọi fetch
@@ -625,10 +590,7 @@ const TicketAdminTable = ({ currentUser }) => {
               currentUser={currentUser}
               onClose={closeTicketModal}
               handleCancelTicket={handleCancel}
-              messages={messages}
               fetchTicketById={fetchTicketById}
-              newMessage={newMessage}
-              setNewMessage={setNewMessage}
             />
           )}
         </div>

@@ -8,7 +8,6 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // **Đăng nhập với Microsoft** - Chuyển hướng sang server
   const handleMicrosoftLogin = () => {
     window.location.href = `${API_URL}/auth/microsoft`;
   };

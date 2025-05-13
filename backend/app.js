@@ -44,10 +44,23 @@ const app = express();
 // Tạo HTTP server và tích hợp Socket.IO
 const http = require('http');
 const { Server } = require('socket.io');
+const jwt = require("jsonwebtoken"); // ADD THIS import just above
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: { origin: "*" },
+  allowRequest: (req, callback) => {
+    const token = req._query.token;
+    if (!token) return callback("unauthorized", false);
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) return callback("unauthorized", false);
+      req.user = decoded;           // attach for later use
+      callback(null, true);
+    });
+  },
 });
+
+app.set("io", io); // expose socket.io instance to controllers
+const processedTempIds = new Set();
 // Socket.IO events cho chat theo ticket
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
@@ -57,35 +70,86 @@ io.on("connection", (socket) => {
     console.log(`Socket ${socket.id} joined ticket room ${ticketId}`);
   });
 
+  socket.on("typing", ({ ticketId, isTyping, userId }) => {
+    socket.to(ticketId).emit("userTyping", { userId, isTyping });
+  });
+
+  socket.on("userOnline", ({ userId, ticketId }) => {
+    socket.to(ticketId).emit("userStatus", { userId, status: "online" });
+    socket.data.userId = userId;           // remember for disconnect
+  });
+
+  socket.on("leaveTicket", (ticketId) => {
+    socket.leave(ticketId);
+  });
+
+  socket.on("messageReceived", (data) => {
+    // Broadcast chỉ tới các client khác, không phải người gửi
+    socket.to(data.ticketId).emit("messageReceived", data);
+  });
+
+  socket.on("messageSeen", (data) => {
+    // Broadcast chỉ tới các client khác, không phải người gửi
+    socket.to(data.ticketId).emit("messageSeen", data);
+  });
+
   socket.on("sendMessage", async (data) => {
     try {
-      console.log("Message received:", data);
-
-      // Lưu tin nhắn vào DB
-      const ticketDoc = await Ticket.findById(data.ticketId);
-      if (!ticketDoc) {
-        console.error("Could not find ticket with ID", data.ticketId);
-        return;
-      }
+      if (data.tempId && processedTempIds.has(data.tempId)) return;
+      if (data.tempId) processedTempIds.add(data.tempId);
+      // Save to DB
+      const ticketDoc = await Ticket.findById(data.ticketId).populate("creator assignedTo");
+      if (!ticketDoc) return;
 
       ticketDoc.messages.push({
         text: data.text,
-        sender: data.sender._id, // data.sender holds { _id, fullname, ... }
+        sender: data.sender._id,
         type: data.type || "text",
         timestamp: new Date(),
       });
 
       await ticketDoc.save();
+      // Re‑load just‑saved message with populated sender
+      const populated = await Ticket.findById(ticketDoc._id)
+        .select({ messages: { $slice: -1 } })   // only last message
+        .populate("messages.sender", "fullname avatarUrl email");
 
-      // Phát tin nhắn đến tất cả client trong room
-      io.to(data.ticketId).emit("receiveMessage", data);
+      const msg = populated.messages[0];
+
+      // Broadcast with real _id - chỉ emit tới người gửi
+      if (data.tempId) {
+        socket.emit("receiveMessage", {
+          _id: msg._id,
+          text: msg.text,
+          sender: msg.sender,
+          timestamp: msg.timestamp,
+          type: msg.type,
+          tempId: data.tempId,
+        });
+      }
+
+      // Broadcast tới tất cả các client khác trong phòng (không bao gồm người gửi)
+      socket.to(data.ticketId).emit("receiveMessage", {
+        _id: msg._id,
+        text: msg.text,
+        sender: msg.sender,
+        timestamp: msg.timestamp,
+        type: msg.type,
+      });
     } catch (err) {
       console.error("Error storing message:", err);
     }
   });
 
-  socket.on("disconnect", () => {
-    console.log("Socket disconnected:", socket.id);
+  socket.on("disconnecting", () => {
+    const uid = socket.data.userId;
+    if (uid) {
+      socket.rooms.forEach((room) => {
+        if (room !== socket.id) {
+          socket.to(room).emit("userStatus", { userId: uid, status: "offline" });
+        }
+      });
+    }
   });
 });
 

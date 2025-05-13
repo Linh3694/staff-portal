@@ -8,12 +8,6 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true,
   },
-  phone: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-  },
   password: {
     type: String,
     minlength: 8, // Đảm bảo mật khẩu có độ dài tối thiểu

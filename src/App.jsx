@@ -22,6 +22,7 @@ import HallOfFamePublicPage from "./pages/HallOfFame-detail";
 import Library from "./pages/Library";
 import Admission from "./pages/Admission";
 import LoginAdmission from "./pages/LoginAdmission";
+import { AuthProvider } from "./contexts/AuthContext";
 // PublicRoute: Nếu người dùng đã đăng nhập, chuyển hướng về Dashboard
 function PublicRoute({ children }) {
   const isAuthenticated = !!localStorage.getItem("authToken");
@@ -90,74 +91,76 @@ function App() {
   }, []); // <-- Dependency array ngăn vòng lặp vô hạn
 
   return (
-    <div>
-      <ToastContainer
-        position="top-right"
-        autoClose={2000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-      />
-      <Router>
-        <Routes>
-          <Route path="/hall-of-honor" element={<HallofFame />} />
-          <Route path="/hall-of-honor/detail/:category" element={<HallOfFamePublicPage />} />
-          <Route path="/hall-of-honor/detail/:category/student/:recordId/:studentId" element={<HallOfFamePublicPage />} />
-          <Route path="/hall-of-honor/detail/:category/class/:recordId/:classId" element={<HallOfFamePublicPage />} />
-          <Route
-            path="/hall-of-honor/detail"
-            element={<Navigate to="/hall-of-honor/detail/scholarship-talent" replace />}
-          />
-          <Route 
-            path="/admission" 
-            element={
-              <RequireAdmissionAuth>
-                <Admission />
-              </RequireAdmissionAuth>
-            } 
-          />
-          <Route path="/login-admission" element={<LoginAdmission />} />
-          <Route path="/library" element={<Library />} />
-          <Route path="/:customName" element={<FlipViewPage />} />
-          {/* Trang Login */}
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            }
-          />
-          {/* Trang Microsoft Auth Success (sau khi đăng nhập Microsoft) */}
-          <Route
-            path="/auth/microsoft/success"
-            element={<MicrosoftAuthSuccess />}
-          />
-          {/* Trang Dashboard - Chỉ cho phép người dùng đã đăng nhập với role phù hợp */}
-          <Route
-            path="/dashboard/*"
-            element={
-              <RequireAuth
-                allowedRoles={[
-                  "admin",
-                  "superadmin",
-                  "technical",
-                  "marcom",
-                  "hr",
-                  "bos",
-                  "admission",
-                ]}
-              >
-                <Dashboard />
-              </RequireAuth>
-            }
-          />
-          {/* Default route: Nếu truy cập URL không xác định, chuyển về trang Login */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Router>
-    </div>
+    <AuthProvider>
+      <div>
+        <ToastContainer
+          position="top-right"
+          autoClose={2000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+        />
+        <Router>
+          <Routes>
+            <Route path="/hall-of-honor" element={<HallofFame />} />
+            <Route path="/hall-of-honor/detail/:category" element={<HallOfFamePublicPage />} />
+            <Route path="/hall-of-honor/detail/:category/student/:recordId/:studentId" element={<HallOfFamePublicPage />} />
+            <Route path="/hall-of-honor/detail/:category/class/:recordId/:classId" element={<HallOfFamePublicPage />} />
+            <Route
+              path="/hall-of-honor/detail"
+              element={<Navigate to="/hall-of-honor/detail/scholarship-talent" replace />}
+            />
+            <Route 
+              path="/admission" 
+              element={
+                <RequireAdmissionAuth>
+                  <Admission />
+                </RequireAdmissionAuth>
+              } 
+            />
+            <Route path="/login-admission" element={<LoginAdmission />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/:customName" element={<FlipViewPage />} />
+            {/* Trang Login */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <LoginPage />
+                </PublicRoute>
+              }
+            />
+            {/* Trang Microsoft Auth Success (sau khi đăng nhập Microsoft) */}
+            <Route
+              path="/auth/microsoft/success"
+              element={<MicrosoftAuthSuccess />}
+            />
+            {/* Trang Dashboard - Chỉ cho phép người dùng đã đăng nhập với role phù hợp */}
+            <Route
+              path="/dashboard/*"
+              element={
+                <RequireAuth
+                  allowedRoles={[
+                    "admin",
+                    "superadmin",
+                    "technical",
+                    "marcom",
+                    "hr",
+                    "bos",
+                    "admission",
+                  ]}
+                >
+                  <Dashboard />
+                </RequireAuth>
+              }
+            />
+            {/* Default route: Nếu truy cập URL không xác định, chuyển về trang Login */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Router>
+      </div>
+    </AuthProvider>
   );
 }
 

@@ -417,6 +417,16 @@ exports.sendMessage = async (req, res) => {
         select: "fullname avatarUrl email",
       });
 
+    // Emit socket event to broadcast new message
+    req.app.get("io").to(ticketId).emit("receiveMessage", {
+      _id: updatedTicket.messages[updatedTicket.messages.length - 1]._id,
+      text: updatedTicket.messages[updatedTicket.messages.length - 1].text,
+      sender: updatedTicket.messages[updatedTicket.messages.length - 1].sender,
+      timestamp: updatedTicket.messages[updatedTicket.messages.length - 1].timestamp,
+      type: updatedTicket.messages[updatedTicket.messages.length - 1].type,
+      tempId: req.body.tempId || null,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Gửi tin nhắn thành công",

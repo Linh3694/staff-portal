@@ -473,8 +473,7 @@ const TicketCreate = ({
               disabled={
                 (step === 1 && !ticketData.type) ||
                 (step === 2 &&
-                  (!ticketData.title || !ticketData.description)) ||
-                (step === 3 && ticketData.images.length === 0)
+                  (!ticketData.title || !ticketData.description))
               }
               onClick={() => {
                 if (step === 4) {
