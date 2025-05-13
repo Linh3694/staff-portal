@@ -93,6 +93,11 @@ exports.getAllAwardRecords = async (req, res) => {
   try {
     // --- Optional filtering via query params ---
     const match = {};
+    const mongoose = require("mongoose");
+    const castIfObjectId = (v) =>
+      typeof v === "string" && mongoose.isValidObjectId(v)
+        ? new mongoose.Types.ObjectId(v)
+        : v;
     if (req.query.awardCategory) match.awardCategory = req.query.awardCategory;
     if (req.query.subAwardType) match["subAward.type"] = req.query.subAwardType;
     if (req.query.subAwardLabel) match["subAward.label"] = req.query.subAwardLabel;
@@ -102,6 +107,16 @@ exports.getAllAwardRecords = async (req, res) => {
       match["subAward.semester"] = Number(req.query.subAwardSemester);
     if (req.query.subAwardMonth != null && req.query.subAwardMonth !== "")
       match["subAward.month"] = Number(req.query.subAwardMonth);
+
+    // 🔄 Cast string ids to real ObjectId so that $match works in aggregation
+    Object.keys(match).forEach((k) => {
+      const v = match[k];
+      if (Array.isArray(v)) {
+        match[k] = v.map(castIfObjectId);
+      } else {
+        match[k] = castIfObjectId(v);
+      }
+    });
 
     const pipeline = [];
 
@@ -454,14 +469,16 @@ exports.uploadExcelStudents = async (req, res) => {
       return res.status(400).json({ message: "File Excel không có dữ liệu" });
     }
 
-    const students = data.map(row => ({
-      student: row['StudentCode'],
-      keyword: (row['Keyword'] || '').split(',').map(k => k.trim()).filter(Boolean),
-      keywordEng: (row['KeywordEng'] || '').split(',').map(k => k.trim()).filter(Boolean),
-      activity: (row['Activity'] || '').split(',').map(a => a.trim()).filter(Boolean),
-      activityEng: (row['ActivityEng'] || '').split(',').map(a => a.trim()).filter(Boolean),
-      note: row['Note'] || '',
-      noteEng: row['NoteEng'] || ''
+    const students = data.map((row) => ({
+      student: row["StudentCode"],
+      exam: (row["Exam"] || "").toString().trim(),
+      // Score có thể là số hoặc chuỗi
+      score:
+        row["Score"] !== undefined && row["Score"] !== null
+          ? isNaN(Number(row["Score"]))
+            ? row["Score"].toString().trim()
+            : Number(row["Score"])
+          : "",
     }));
 
     // Remove duplicate student codes within the uploaded file itself
@@ -474,10 +491,12 @@ exports.uploadExcelStudents = async (req, res) => {
     });
 
     // Validate dữ liệu
-    const invalidStudents = uniqueStudents.filter(s => !s.student);
+    const invalidStudents = uniqueStudents.filter(
+      (s) => !s.student || !s.exam || s.score === "" || s.score === undefined
+    );
     if (invalidStudents.length > 0) {
       return res.status(400).json({
-        message: `Có ${invalidStudents.length} học sinh không có mã học sinh`,
+        message: `Có ${invalidStudents.length} dòng thiếu StudentCode, Exam hoặc Score`,
         invalidRows: invalidStudents
       });
     }

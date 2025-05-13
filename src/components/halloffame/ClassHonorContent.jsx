@@ -518,17 +518,17 @@ const ClassHonorContent = ({
       if (i18n.language === "vi") {
         // VD: Tháng 1 & Tháng 2
         const thangs = nums.map((n) => `Tháng ${n}`);
-        return `${categoryName} - ${thangs.join(" & ")} - ${t("schoolYear", "Năm học")} ${schoolYearLabel}`;
+        return `${categoryName} - ${thangs.join(" & ")} - ${t("schoolYearSC", "Năm học")} ${schoolYearLabel}`;
       } else {
         // VD: January & February
         const monthNames = [
           "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
         ];
         const months = nums.map((n) => monthNames[Number(n) - 1]);
-        return `${categoryName} - ${months.join(" & ")} - ${t("schoolYear", "School Year")} ${schoolYearLabel}`;
+        return `${categoryName} - ${months.join(" & ")} - ${t("schoolYearSC", "School Year")} ${schoolYearLabel}`;
       }
     } else if (type === "semester") {
-      return `${categoryName} - ${t("semester", "Học kì")} ${semester || "?"} - ${t("schoolYear", "Năm học")} ${schoolYearLabel}`;
+      return `${categoryName} - ${t("semester", "Học kì")} ${semester || "?"} - ${t("schoolYearSC", "Năm học")} ${schoolYearLabel}`;
     } else if (type === "year") {
       return `${categoryName} - ${t("schoolYear", "Năm học")} ${schoolYearLabel}`;
     }

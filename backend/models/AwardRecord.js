@@ -15,18 +15,18 @@ const StudentAwardSchema = new Schema(
     noteEng: { 
       type: String, 
     },
-    keyword: [{
-      type: String,
-    }],
-    keywordEng: [{
-      type: String,
-    }],
     activity: [{
       type: String,
     }],
     activityEng: [{
       type: String,
     }],
+    score: {
+      type: String,
+    },
+    exam: {
+      type: String,
+    },
   },
   { _id: false }
 );
@@ -48,7 +48,7 @@ const SubAwardDetailSchema = new Schema(
   {
     type: { 
       type: String, 
-      enum: ["month", "semester", "year", "custom"], 
+      enum: ["month", "semester", "year", "custom", "custom_with_description"], 
       required: true 
     },
     month: { type: Number },
@@ -56,6 +56,8 @@ const SubAwardDetailSchema = new Schema(
     year: { type: Number },
     label: { type: String },
     labelEng: { type: String },
+    description: { type: String },
+    descriptionEng: { type: String },
     schoolYear: { type: mongoose.Schema.Types.ObjectId, ref: "SchoolYear" },
     priority: { type: Number, default: 0 },
   },

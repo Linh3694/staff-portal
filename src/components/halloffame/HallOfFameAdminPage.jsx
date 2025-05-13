@@ -5,6 +5,7 @@ import { API_URL, BASE_URL } from "../../config";
 import * as XLSX from "xlsx";
 import CategoryModal from "./Modal/CategoryModal";
 import RecordModal from "./Modal/RecordModal";
+import Record2Modal from "./Modal/Record2Modal";
 
 function HallOfFameAdminPage() {
   const [activeTab, setActiveTab] = useState("categories");
@@ -41,6 +42,7 @@ function HallOfFameAdminPage() {
   // Chọn kiểu sub award
   const [subAwardMode, setSubAwardMode] = useState({
     custom: false,
+    customWithDescription: false,
     schoolYear: false,
   });
   const [customSubAwards, setCustomSubAwards] = useState([]);
@@ -51,6 +53,8 @@ function HallOfFameAdminPage() {
     useState("");
   const [newCustomSubAwardPriority, setNewCustomSubAwardPriority] = useState(1); // Thêm state mới
   const [newCustomSubAwardEng, setNewCustomSubAwardEng] = useState("");
+  const [newCustomSubAwardDescription, setNewCustomSubAwardDescription] = useState("");
+  const [newCustomSubAwardDescriptionEng, setNewCustomSubAwardDescriptionEng] = useState("");
 
   // --- Award Record State (để tạo record ngay trong modal) ---
   const [records, setRecords] = useState([]);
@@ -77,11 +81,8 @@ function HallOfFameAdminPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [showRecordModal, setShowRecordModal] = useState(false);
-  // Thêm state mới để lưu học sinh đang chọn
-
-  const [showRecordModalDirect, setShowRecordModalDirect] = useState(false);
-  const [selectedCategoryForRecord, setSelectedCategoryForRecord] =
-    useState(null);
+  const [showRecordModal2, setShowRecordModal2] = useState(false);
+  const [selectedCategoryForRecord, setSelectedCategoryForRecord] = useState(null);
 
   // Thêm hàm xử lý tìm kiếm
 
@@ -219,12 +220,15 @@ function HallOfFameAdminPage() {
       e.preventDefault();
     }
 
-    // Gom subAwards
     const computedSubAwards = [];
 
-    // SubAward custom
-    if (subAwardMode.custom && customSubAwards.length > 0) {
-      computedSubAwards.push(...customSubAwards);
+    // Gom cả custom và custom_with_description
+    if (customSubAwards.length > 0) {
+      computedSubAwards.push(
+        ...customSubAwards.filter(
+          sub => sub.type === "custom" || sub.type === "custom_with_description"
+        )
+      );
     }
 
     // SubAward year-based
@@ -343,6 +347,9 @@ function HallOfFameAdminPage() {
     const hasCustomSubAwards = cat.subAwards.some(
       (sub) => sub.type === "custom"
     );
+    const hasCustomWithDescSubAwards = cat.subAwards.some(
+      (sub) => sub.type === "custom_with_description"
+    );
     const hasSchoolYearSubAwards = cat.subAwards.some(
       (sub) =>
         sub.type === "year" || sub.type === "semester" || sub.type === "month"
@@ -360,16 +367,16 @@ function HallOfFameAdminPage() {
 
     setSubAwardMode({
       custom: hasCustomSubAwards,
+      customWithDescription: hasCustomWithDescSubAwards,
       schoolYear: hasSchoolYearSubAwards,
     });
 
-    // Lưu danh sách Custom SubAwards
+    // Lưu danh sách Custom SubAwards (bao gồm cả custom và custom_with_description)
     const existingCustomSubs = cat.subAwards
-      .filter((sub) => sub.type === "custom")
+      .filter((sub) => sub.type === "custom" || sub.type === "custom_with_description")
       .map((sub, idx) => ({
         ...sub,
-        priority:
-          sub.priority != null && sub.priority > 0 ? sub.priority : idx + 1,
+        priority: sub.priority != null && sub.priority > 0 ? sub.priority : idx + 1,
       }));
     setCustomSubAwards(existingCustomSubs);
 
@@ -765,7 +772,15 @@ function HallOfFameAdminPage() {
                         className="bg-[#009483] text-white font-semibold px-3 py-1 rounded-lg"
                         onClick={() => {
                           setSelectedCategoryForRecord(cat);
-                          setShowRecordModalDirect(true);
+                          // Kiểm tra loại subAward
+                          const hasCustomWithDesc = (cat.subAwards || []).some(
+                            (sub) => sub.type === "custom_with_description"
+                          );
+                          if (hasCustomWithDesc) {
+                            setShowRecordModal2(true);
+                          } else {
+                            setShowRecordModal(true);
+                          }
                         }}
                       >
                         Record
@@ -818,12 +833,23 @@ function HallOfFameAdminPage() {
         handleSubAwardSelect={handleSubAwardSelect}
         setShowRecordModal={setShowRecordModal}
         BASE_URL={BASE_URL}
+        newCustomSubAwardDescription={newCustomSubAwardDescription}
+        setNewCustomSubAwardDescription={setNewCustomSubAwardDescription}
+        newCustomSubAwardDescriptionEng={newCustomSubAwardDescriptionEng}
+        setNewCustomSubAwardDescriptionEng={setNewCustomSubAwardDescriptionEng}
       />
 
-      {showRecordModalDirect && (
+      {showRecordModal && (
         <RecordModal
-          visible={showRecordModalDirect}
-          onClose={() => setShowRecordModalDirect(false)}
+          visible={showRecordModal}
+          onClose={() => setShowRecordModal(false)}
+          categoryId={selectedCategoryForRecord?._id}
+        />
+      )}
+      {showRecordModal2 && (
+        <Record2Modal
+          visible={showRecordModal2}
+          onClose={() => setShowRecordModal2(false)}
           categoryId={selectedCategoryForRecord?._id}
         />
       )}

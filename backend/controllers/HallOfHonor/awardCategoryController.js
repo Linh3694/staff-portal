@@ -76,7 +76,7 @@ exports.deleteSubAward = async (req, res) => {
       {
         $pull: {
           subAwards: {
-            type: 'custom',
+            type: { $in: ['custom', 'custom_with_description'] },
             label,
             ...(schoolYear ? { schoolYear } : {}),
           },
@@ -87,7 +87,7 @@ exports.deleteSubAward = async (req, res) => {
     // 2) Xoá toàn bộ AwardRecord liên quan
     await AwardRecord.deleteMany({
       awardCategory: id,
-      'subAward.type': 'custom',
+      'subAward.type': { $in: ['custom', 'custom_with_description'] },
       'subAward.label': label,
       ...(schoolYear ? { 'subAward.schoolYear': schoolYear } : {}),
     });

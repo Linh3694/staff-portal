@@ -6,25 +6,21 @@ const SubAwardSchema = new Schema(
   {
     type: {
       type: String,
-      enum: ["month", "semester", "year", "custom"],
+      enum: ["month", "semester", "year", "custom", "custom_with_description"],
       required: true,
     },
     schoolYear: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SchoolYear",
     },
-    // Nếu kiểu là "month": lưu số tháng (1-12)
     month: { type: Number },
-    // Nếu kiểu là "semester": lưu học kỳ (ví dụ 1 hoặc 2)
     semester: { type: Number },
-    // Nếu kiểu là "year": lưu năm học (có thể dùng cho năm học riêng)
     year: { type: Number },
-    // Nếu kiểu là "custom": lưu nhãn (ví dụ: "Tiêu biểu")
     label: { type: String },
     labelEng: { type: String },
-    // Số lượng học sinh được vinh danh theo mục này
+    description: { type: String },
+    descriptionEng: { type: String },
     awardCount: { type: Number, required: true, default: 0 },
-    // Thứ tự ưu tiên hiển thị (1-8)
     priority: { type: Number, default: 0 }
   },
   { _id: false }

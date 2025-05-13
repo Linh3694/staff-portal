@@ -26,6 +26,10 @@ const CategoryModal = ({
   setSubAwardStep,
   newCustomSubAwardEng,
   setNewCustomSubAwardEng,
+  newCustomSubAwardDescription,
+  setNewCustomSubAwardDescription,
+  newCustomSubAwardDescriptionEng,
+  setNewCustomSubAwardDescriptionEng,
 }) => {
   if (!showCategoryModal) return null;
 
@@ -58,7 +62,7 @@ const CategoryModal = ({
         {/* Main content - Split screen */}
         <div className="flex h-[calc(90vh-4rem)] mt-16">
           {/* Left side - Category Info */}
-          <div className="w-1/2 p-6 border-r overflow-y-auto">
+          <div className="w-1/3 p-6 border-r overflow-y-auto">
             <div className="space-y-4">
               {/* Cover Image */}
               <div className="relative group">
@@ -127,7 +131,7 @@ const CategoryModal = ({
           </div>
 
           {/* Right side - Sub Awards */}
-          <div className="w-1/2 p-6 overflow-y-auto">
+          <div className="w-2/3 p-6 overflow-y-auto">
             <div className="space-y-6">
               <h4 className="font-medium text-lg border-b pb-2">Thiết lập loại Vinh danh</h4>
 
@@ -138,7 +142,11 @@ const CategoryModal = ({
                     type="checkbox"
                     className="form-checkbox h-4 w-4 text-[#002855] rounded-[4px]"
                     checked={subAwardMode.custom}
-                    onChange={(e) => setSubAwardMode({ ...subAwardMode, custom: e.target.checked })}
+                    onChange={(e) => setSubAwardMode({
+                      ...subAwardMode,
+                      custom: e.target.checked,
+                      customWithDescription: e.target.checked ? false : subAwardMode.customWithDescription
+                    })}
                   />
                   <span>
                     Vinh danh tùy chọn
@@ -147,30 +155,29 @@ const CategoryModal = ({
                     </p>
                   </span>
                 </div>
-
                 {subAwardMode.custom && (
                   <div className="ml-6 space-y-4 border-l-2 border-gray-200 pl-4">
                     <div className="flex items-center space-x-2">
                       <input
                         type="text"
-                        className="flex-1 border rounded-lg p-2 text-sm focus:ring-2 focus:ring-[#002855]"
+                        className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
                         value={newCustomSubAward}
                         onChange={(e) => setNewCustomSubAward(e.target.value)}
                         placeholder="Nhập tên vinh danh"
                       />
                       <input
                         type="text"
-                        className="flex-1 border rounded-lg p-2 text-sm focus:ring-2 focus:ring-[#002855]"
+                        className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
                         value={newCustomSubAwardEng}
                         onChange={(e) => setNewCustomSubAwardEng(e.target.value)}
                         placeholder="Enter award name in English"
                       />
                       <select
-                        className="border rounded-lg p-2 text-sm focus:ring-2 focus:ring-[#002855]"
+                        className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
                         value={newCustomSubAwardSchoolYear}
                         onChange={(e) => setNewCustomSubAwardSchoolYear(e.target.value)}
                       >
-                        <option value="">--Chọn năm học--</option>
+                        <option value="">Chọn năm học</option>
                         {(schoolYears || []).map((sy) => (
                           <option key={sy._id} value={sy._id}>
                             {sy.code || sy.name}
@@ -179,7 +186,7 @@ const CategoryModal = ({
                       </select>
                       <input
                         type="number"
-                        className="w-20 border rounded-lg p-2 text-sm focus:ring-2 focus:ring-[#002855]"
+                        className="max-w-[5%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
                         value={newCustomSubAwardPriority}
                         onChange={(e) => setNewCustomSubAwardPriority(parseInt(e.target.value) || 1)}
                         min="1"
@@ -216,56 +223,306 @@ const CategoryModal = ({
 
                     {/* List of custom sub awards */}
                     <div className="space-y-2">
-                      {customSubAwards.map((sub, index) => {
+                      {customSubAwards.filter(sub => sub.type === 'custom').map((sub, index) => {
                         const schoolYear = schoolYears.find((sy) => sy._id === sub.schoolYear);
                         return (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
-                          >
-                            <div>
-                              <span className="font-medium">{sub.label}</span>
-                              {sub.labelEng && (
-                                <span className="text-sm text-gray-500 ml-2">
-                                  ({sub.labelEng})
-                                </span>
-                              )}
-                              <span className="text-sm text-gray-500 ml-2">
-                                ({schoolYear ? `Năm học ${schoolYear.code}` : sub.schoolYear})
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="number"
-                                className="w-16 border rounded-lg p-1 text-sm focus:ring-2 focus:ring-[#002855]"
-                                min="1"
-                                value={sub.priority}
-                                onChange={(e) => {
-                                  const newPrio = Number(e.target.value) || 1;
-                                  setCustomSubAwards((prev) =>
-                                    prev.map((s, i) => (i === index ? { ...s, priority: newPrio } : s))
-                                  );
-                                }}
-                              />
-                              <button
-                                onClick={() => handleDeleteCustomSubAward(index)}
-                                className="text-white bg-[#C81E1E] p-2 rounded-full hover:bg-[#b81c1c] transition-colors"
-                                title="Xóa"
+                          <div key={index} className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg">
+                            <input
+                              type="text"
+                              className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                              value={sub.label}
+                              onChange={e => {
+                                const newVal = e.target.value;
+                                setCustomSubAwards(prev =>
+                                  prev.map((s, i) => i === index ? { ...s, label: newVal } : s)
+                                );
+                                setCategoryFormData(prev => ({
+                                  ...prev,
+                                  subAwards: prev.subAwards.map((s, i) =>
+                                    s.type === 'custom' && i === index ? { ...s, label: newVal } : s
+                                  ),
+                                }));
+                              }}
+                            />
+                            <input
+                              type="text"
+                              className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                              value={sub.labelEng || ""}
+                              onChange={e => {
+                                const newVal = e.target.value;
+                                setCustomSubAwards(prev =>
+                                  prev.map((s, i) => i === index ? { ...s, labelEng: newVal } : s)
+                                );
+                                setCategoryFormData(prev => ({
+                                  ...prev,
+                                  subAwards: prev.subAwards.map((s, i) =>
+                                    s.type === 'custom' && i === index ? { ...s, labelEng: newVal } : s
+                                  ),
+                                }));
+                              }}
+                            />
+                            <select
+                              className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                              value={sub.schoolYear}
+                              onChange={(e) => {
+                                const newVal = e.target.value;
+                                setCustomSubAwards(prev =>
+                                  prev.map((s, i) => i === index ? { ...s, schoolYear: newVal } : s)
+                                );
+                                setCategoryFormData(prev => ({
+                                  ...prev,
+                                  subAwards: prev.subAwards.map((s, i) =>
+                                    s.type === 'custom' && i === index ? { ...s, schoolYear: newVal } : s
+                                  ),
+                                }));
+                              }}
+                            >
+                              <option value="">--Chọn năm học--</option>
+                              {(schoolYears || []).map((sy) => (
+                                <option key={sy._id} value={sy._id}>
+                                  {sy.code || sy.name}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              type="number"
+                              className="max-w-[5%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                              value={sub.priority}
+                              onChange={(e) => {
+                                const newPrio = Number(e.target.value) || 1;
+                                setCustomSubAwards((prev) =>
+                                  prev.map((s, i) => (i === index ? { ...s, priority: newPrio } : s))
+                                );
+                              }}
+                            />
+                            <button
+                              onClick={() => handleDeleteCustomSubAward(index)}
+                              className="text-white bg-[#C81E1E] p-2 rounded-full hover:bg-[#b81c1c] transition-colors"
+                              title="Xóa"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
                               >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom with description mode */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    className="form-checkbox h-4 w-4 text-[#002855] rounded-[4px]"
+                    checked={subAwardMode.customWithDescription}
+                    onChange={(e) => setSubAwardMode({
+                      ...subAwardMode,
+                      customWithDescription: e.target.checked,
+                      custom: e.target.checked ? false : subAwardMode.custom
+                    })}
+                  />
+                  <span>
+                    Vinh danh tùy chọn có mô tả
+                    <p className="text-sm text-gray-500">
+                      Chọn mode này khi bạn muốn tạo các loại vinh danh có thêm phần mô tả chi tiết.
+                    </p>
+                  </span>
+                </div>
+                {subAwardMode.customWithDescription && (
+                  <div className="ml-6 space-y-4 border-l-2 border-gray-200 pl-4">
+                    <div className="flex flex-row items-end gap-2">
+                      <input
+                        type="text"
+                        className="max-w-[10%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                        value={newCustomSubAward}
+                        onChange={(e) => setNewCustomSubAward(e.target.value)}
+                        placeholder="Nhập tên vinh danh"
+                      />
+                      <input
+                        type="text"
+                        className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                        value={newCustomSubAwardDescription}
+                        onChange={(e) => setNewCustomSubAwardDescription(e.target.value)}
+                        placeholder="Nhập mô tả"
+                      />
+                      <input
+                        type="text"
+                        className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                        value={newCustomSubAwardDescriptionEng}
+                        onChange={(e) => setNewCustomSubAwardDescriptionEng(e.target.value)}
+                        placeholder="Enter description in English"
+                      />
+                      <select
+                        className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                        value={newCustomSubAwardSchoolYear}
+                        onChange={(e) => setNewCustomSubAwardSchoolYear(e.target.value)}
+                      >
+                        <option value="">Chọn năm học</option>
+                        {(schoolYears || []).map((sy) => (
+                          <option key={sy._id} value={sy._id}>
+                            {sy.code || sy.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        className="max-w-[5%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                        value={newCustomSubAwardPriority}
+                        onChange={(e) => setNewCustomSubAwardPriority(parseInt(e.target.value) || 1)}
+                        min="1"
+                        placeholder="Ưu tiên"
+                      />
+                      <button
+                        type="button"
+                        className="bg-[#009483] text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-[#008577] transition-colors"
+                        onClick={() => {
+                          if (newCustomSubAward.trim() !== '' && newCustomSubAwardSchoolYear !== '') {
+                            const newSubAward = {
+                              type: 'custom_with_description',
+                              label: newCustomSubAward,
+                              description: newCustomSubAwardDescription,
+                              descriptionEng: newCustomSubAwardDescriptionEng,
+                              schoolYear: newCustomSubAwardSchoolYear,
+                              priority: newCustomSubAwardPriority,
+                            };
+                            setCustomSubAwards([...customSubAwards, newSubAward]);
+                            setCategoryFormData((prev) => ({
+                              ...prev,
+                              subAwards: [...prev.subAwards, newSubAward],
+                            }));
+                            // Reset form
+                            setNewCustomSubAward('');
+                            setNewCustomSubAwardDescription('');
+                            setNewCustomSubAwardDescriptionEng('');
+                            setNewCustomSubAwardSchoolYear('');
+                            setNewCustomSubAwardPriority(1);
+                          }
+                        }}
+                      >
+                        Thêm
+                      </button>
+                    </div>
+
+                    {/* List of custom_with_description sub awards */}
+                    <div className="space-y-2">
+                      {customSubAwards.filter(sub => sub.type === 'custom_with_description').map((sub, index) => {
+                        const schoolYear = schoolYears.find((sy) => sy._id === sub.schoolYear);
+                        return (
+                          <div key={index} className="flex items-center gap-2 p-3 rounded-lg">
+                            <input
+                              type="text"
+                              className="max-w-[10%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                              value={sub.label}
+                              onChange={e => {
+                                const newVal = e.target.value;
+                                setCustomSubAwards(prev =>
+                                  prev.map((s, i) => i === index ? { ...s, label: newVal } : s)
+                                );
+                                setCategoryFormData(prev => ({
+                                  ...prev,
+                                  subAwards: prev.subAwards.map((s, i) =>
+                                    s.type === 'custom_with_description' && i === index ? { ...s, label: newVal } : s
+                                  ),
+                                }));
+                              }}
+                            />
+                            <input
+                              type="text"
+                              className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                              value={sub.description || ""}
+                              onChange={e => {
+                                const newVal = e.target.value;
+                                setCustomSubAwards(prev =>
+                                  prev.map((s, i) => i === index ? { ...s, description: newVal } : s)
+                                );
+                                setCategoryFormData(prev => ({
+                                  ...prev,
+                                  subAwards: prev.subAwards.map((s, i) =>
+                                    s.type === 'custom_with_description' && i === index ? { ...s, description: newVal } : s
+                                  ),
+                                }));
+                              }}
+                            />
+                            <input
+                              type="text"
+                              className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                              value={sub.descriptionEng || ""}
+                              onChange={e => {
+                                const newVal = e.target.value;
+                                setCustomSubAwards(prev =>
+                                  prev.map((s, i) => i === index ? { ...s, descriptionEng: newVal } : s)
+                                );
+                                setCategoryFormData(prev => ({
+                                  ...prev,
+                                  subAwards: prev.subAwards.map((s, i) =>
+                                    s.type === 'custom_with_description' && i === index ? { ...s, descriptionEng: newVal } : s
+                                  ),
+                                }));
+                              }}
+                            />
+                            <select
+                              className="max-w-[20%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                              value={sub.schoolYear}
+                              onChange={(e) => {
+                                const newVal = e.target.value;
+                                setCustomSubAwards(prev =>
+                                  prev.map((s, i) => i === index ? { ...s, schoolYear: newVal } : s)
+                                );
+                                setCategoryFormData(prev => ({
+                                  ...prev,
+                                  subAwards: prev.subAwards.map((s, i) =>
+                                    s.type === 'custom_with_description' && i === index ? { ...s, schoolYear: newVal } : s
+                                  ),
+                                }));
+                              }}
+                            >
+                              <option value="">--Chọn năm học--</option>
+                              {(schoolYears || []).map((sy) => (
+                                <option key={sy._id} value={sy._id}>
+                                  {sy.code || sy.name}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              type="number"
+                              className="max-w-[5%] h-9 border border-gray-400 rounded-lg text-sm flex-1"
+                              value={sub.priority}
+                              onChange={(e) => {
+                                const newPrio = Number(e.target.value) || 1;
+                                setCustomSubAwards((prev) =>
+                                  prev.map((s, i) => (i === index ? { ...s, priority: newPrio } : s))
+                                );
+                              }}
+                            />
+                            <button
+                              onClick={() => handleDeleteCustomSubAward(index)}
+                              className="text-white bg-[#C81E1E] p-2 rounded-full hover:bg-[#b81c1c] transition-colors"
+                              title="Xóa"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
                           </div>
                         );
                       })}

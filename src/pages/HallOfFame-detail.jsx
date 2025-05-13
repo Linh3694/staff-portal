@@ -7,6 +7,7 @@ import Sidebar from "../components/halloffame/Sidebar";
 import StudentHonorContent from "../components/halloffame/StudentHonorContent";
 import ClassHonorContent from "../components/halloffame/ClassHonorContent";
 import ScholarShipContent from "../components/halloffame/ScholarShipContent";
+import StandardizedTestAchievements from "../components/halloffame/StandardizedTestAchievements";
 import { FaArrowUp, FaArrowDown, FaBars } from "react-icons/fa";
 import { useSearchParams } from "react-router-dom";
 
@@ -45,6 +46,8 @@ function HallOfFamePublicPage() {
         return "67b5a7c84c93fbb31475ad47";
       case "wisers-effort":
         return "67b5a98b4c93fbb31475ad56";
+      case "standardized-test":
+        return "6822ac896c9cd6eb0dadecb5";  
       default:
         return null;
     }
@@ -61,6 +64,8 @@ function HallOfFamePublicPage() {
         return "honor-class";
       case "67b5a98b4c93fbb31475ad56":
         return "wisers-effort";
+      case "6822ac896c9cd6eb0dadecb5":
+        return "standardized-test";
       default:
         return null;
     }
@@ -213,6 +218,19 @@ function HallOfFamePublicPage() {
             setSearchParams={setSearchParams}
           />
         );
+      
+      // Thành tích các bài thi chuẩn hóa
+      case "6822ac896c9cd6eb0dadecb5":
+        return (
+          <StandardizedTestAchievements
+            categoryId={selectedCategoryId}
+            categoryName={categoryName} 
+            recordIdParam={recordId}
+            studentIdParam={studentId}
+            setSearchParams={setSearchParams}
+          />
+        );
+      
       // TODO: thêm các case khác nếu có các component riêng cho danh mục khác.
       default:
         return (

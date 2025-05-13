@@ -14,6 +14,7 @@ const resources = {
       hallhonor: "Hall of Honor",
       award: "Award",
       schoolYear: "School Year",
+      schoolYearSC: "SY",
       semester: "Semester",
       month: "Month",
       language: "Language",
@@ -58,6 +59,7 @@ const resources = {
       category_67b5a7864c93fbb31475ad44: "Honor Student",
       category_67b5a98b4c93fbb31475ad56: "WISers Effort",
       category_67b5a7c84c93fbb31475ad47: "Honor Class",
+      category_6822ac896c9cd6eb0dadecb5: "Standardized Test Achievements",
       principalMessageHeader: "Principal's Message",
       view_hall_of_honor: "View Hall of Honor",
 
@@ -231,6 +233,7 @@ const resources = {
       hallhonor: "Bảng vinh danh",
       award: "Danh hiệu",
       schoolYear: "Năm học",
+      schoolYearSC: "NH",
       semester: "Học kì",
       month: "Tháng",
       language: "Ngôn ngữ",
@@ -275,6 +278,7 @@ const resources = {
       category_67b5a7864c93fbb31475ad44: "Học sinh Danh dự",
       category_67b5a98b4c93fbb31475ad56: "Học sinh Nỗ lực",
       category_67b5a7c84c93fbb31475ad47: "Lớp Danh dự",
+      category_6822ac896c9cd6eb0dadecb5: "Thành tích các bài thi chuẩn hóa",
       principalMessageHeader: "Thông điệp từ Hiệu trưởng",
       view_hall_of_honor: "Xem Bảng Vinh Danh",
 
