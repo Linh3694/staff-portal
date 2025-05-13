@@ -22,8 +22,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  const [tempKeyword, setTempKeyword] = useState("");
-  const [tempKeywordEng, setTempKeywordEng] = useState("");
   const [tempActivity, setTempActivity] = useState("");
   const [tempActivityEng, setTempActivityEng] = useState("");
   const [tempNote, setTempNote] = useState("");
@@ -32,8 +30,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
   const [classInput, setClassInput] = useState("");
   const [tempClassNote, setTempClassNote] = useState("");
   const [tempClassNoteEng, setTempClassNoteEng] = useState("");
-  const [tempClassKeyword, setTempClassKeyword] = useState("");
-  const [tempClassKeywordEng, setTempClassKeywordEng] = useState("");
   const [tempClassActivity, setTempClassActivity] = useState("");
   const [tempClassActivityEng, setTempClassActivityEng] = useState("");
   const [showSampleMenu, setShowSampleMenu] = useState(false);
@@ -190,14 +186,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
           student: studentId,
           note: tempNote,
           noteEng: tempNoteEng,
-          keyword: tempKeyword
-            .split(",")
-            .map((k) => k.trim())
-            .filter(Boolean),
-          keywordEng: tempKeywordEng
-            .split(",")
-            .map((k) => k.trim())
-            .filter(Boolean),
           activity: tempActivity
             .split(",")
             .map((a) => a.trim())
@@ -219,8 +207,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
       setSearchInput("");
       setTempNote("");
       setTempNoteEng("");
-      setTempKeyword("");
-      setTempKeywordEng("");
       setTempActivity("");
       setTempActivityEng("");
       alert("Thêm mới thành công!");
@@ -326,8 +312,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
         student: sid,
         note: stu.note,
         noteEng: stu.noteEng || "",
-        keyword: Array.isArray(stu.keyword) ? stu.keyword : [],
-        keywordEng: Array.isArray(stu.keywordEng) ? stu.keywordEng : [],
         activity: Array.isArray(stu.activity) ? stu.activity : [],
         activityEng: Array.isArray(stu.activityEng) ? stu.activityEng : [],
       });
@@ -419,22 +403,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
     if (visible && categoryId) fetchData();
   }, [visible, categoryId]);
 
-  useEffect(() => {
-    console.log("Current values:", {
-      categoryId,
-      selectedCategory,
-      selectedYear,
-      selectedSubAwardLocal,
-      availableSubAwards: availableSubAwards.length,
-    });
-  }, [
-    categoryId,
-    ,
-    selectedCategory,
-    selectedYear,
-    selectedSubAwardLocal,
-    availableSubAwards,
-  ]);
 
   useEffect(() => {
     if (
@@ -445,7 +413,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
     ) {
       const category = categories.find((cat) => cat._id === selectedCategory);
       if (category) {
-        console.log("Updating availableSubAwards for category:", category.name);
         const subAwards = category.subAwards
           .filter((sa) => sa.schoolYear === selectedYear)
           .map((sa) => ({
@@ -459,7 +426,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
         setAvailableSubAwards(subAwards);
       }
     } else {
-      console.log("Clearing availableSubAwards due to missing dependencies");
       setAvailableSubAwards([]);
     }
   }, [selectedCategory, selectedYear, categories]);
@@ -467,10 +433,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
   useEffect(() => {
     if (categoryId) {
       setSelectedCategory(categoryId);
-      const category = categories?.find((cat) => cat._id === categoryId);
-      if (category) {
-        console.log("Found category:", category);
-      }
     }
   }, [categoryId, , categories]);
 
@@ -809,7 +771,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
   };
 
   const handleSelectStudent = (student) => {
-    console.log("Selecting student:", student);
     // Đảm bảo student có _id hợp lệ
     if (student && student._id) {
       // Kiểm tra nếu _id có định dạng đúng (24 ký tự hexa)
@@ -1210,8 +1171,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => {
-                              console.log("Selected student:", selectedStudent);
-
                               // Xử lý student ID trước khi gửi
                               let finalStudentId = null;
                               if (selectedStudent) {
@@ -1255,8 +1214,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                 },
                                 tempNote,
                                 tempNoteEng,
-                                tempKeyword,
-                                tempKeywordEng,
                                 tempActivity,
                                 tempActivityEng,
                                 selectedCategory,
@@ -1266,8 +1223,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                               // Clear inputs for next entry
                               setSelectedStudent(null);
                               setSearchInput("");
-                              setTempKeyword("");
-                              setTempKeywordEng("");
                               setTempActivity("");
                               setTempActivityEng("");
                               setTempNote("");
@@ -1297,8 +1252,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                 setSearchInput("");
                                 setTempNote("");
                                 setTempNoteEng("");
-                                setTempKeyword("");
-                                setTempKeywordEng("");
                                 setTempActivity("");
                                 setTempActivityEng("");
                               }}
@@ -1411,14 +1364,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                 awardClasses: [
                                   {
                                     class: cls,
-                                    keyword: tempClassKeyword
-                                      .split(",")
-                                      .map((s) => s.trim())
-                                      .filter(Boolean),
-                                    keywordEng: tempClassKeywordEng
-                                      .split(",")
-                                      .map((s) => s.trim())
-                                      .filter(Boolean),
                                     activity: tempClassActivity
                                       .split(",")
                                       .map((s) => s.trim())
@@ -1434,8 +1379,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                               });
                               // 4. Reset lại input để có thể thêm tiếp
                               setClassInput("");
-                              setTempClassKeyword("");
-                              setTempClassKeywordEng("");
                               setTempClassActivity("");
                               setTempClassActivityEng("");
                               setTempClassNote("");
@@ -1462,8 +1405,6 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                             <button
                               onClick={() => {
                                 setClassInput("");
-                                setTempClassKeyword("");
-                                setTempClassKeywordEng("");
                                 setTempClassActivity("");
                                 setTempClassActivityEng("");
                                 setTempClassNote("");
@@ -1506,136 +1447,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
                                 className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full"
                               />
                             </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={
-                                    student.keyword
-                                      ? student.keyword.join(", ")
-                                      : ""
-                                  }
-                                  onFocus={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.nextElementSibling.style.display =
-                                      "block";
-                                    e.target.nextElementSibling.focus();
-                                  }}
-                                  onChange={() => {}}
-                                  className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full cursor-pointer"
-                                  placeholder="Nhập keyword (cách dấu ',')"
-                                />
-                                <textarea
-                                  rows={3}
-                                  style={{ display: "none" }}
-                                  value={
-                                    student.keywordText !== undefined
-                                      ? student.keywordText
-                                      : student.keyword
-                                      ? student.keyword.join(", ")
-                                      : ""
-                                  }
-                                  onChange={(e) => {
-                                    const newValue = e.target.value;
-                                    setRecords((prevRecords) =>
-                                      prevRecords.map((rec, idx) => {
-                                        if (idx !== index) return rec;
-                                        const updatedStudents =
-                                          rec.students.map((stu, sIdx) => {
-                                            if (sIdx !== studentIndex)
-                                              return stu;
-                                            return {
-                                              ...stu,
-                                              keywordText: newValue,
-                                              keyword: newValue
-                                                .split(",")
-                                                .map((item) => item.trim())
-                                                .filter(Boolean),
-                                            };
-                                          });
-                                        return {
-                                          ...rec,
-                                          isChanged: true,
-                                          students: updatedStudents,
-                                        };
-                                      })
-                                    );
-                                  }}
-                                  onBlur={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.previousElementSibling.style.display =
-                                      "block";
-                                  }}
-                                  className="absolute left-0 -top-4 w-full min-h-[90px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
-                                  placeholder="Nhập keyword (cách dấu ',')"
-                                />
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-sm text-gray-900">
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={
-                                    student.keywordEng
-                                      ? student.keywordEng.join(", ")
-                                      : ""
-                                  }
-                                  onFocus={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.nextElementSibling.style.display =
-                                      "block";
-                                    e.target.nextElementSibling.focus();
-                                  }}
-                                  onChange={() => {}}
-                                  className="border-none rounded-lg bg-gray-100 text-sm font-bold text-navy-700 w-full cursor-pointer"
-                                  placeholder="Nhập keyword tiếng Anh (cách dấu ',')"
-                                />
-                                <textarea
-                                  rows={3}
-                                  style={{ display: "none" }}
-                                  value={
-                                    student.keywordEngText !== undefined
-                                      ? student.keywordEngText
-                                      : student.keywordEng
-                                      ? student.keywordEng.join(", ")
-                                      : ""
-                                  }
-                                  onChange={(e) => {
-                                    const newValue = e.target.value;
-                                    setRecords((prevRecords) =>
-                                      prevRecords.map((rec, idx) => {
-                                        if (idx !== index) return rec;
-                                        const updatedStudents =
-                                          rec.students.map((stu, sIdx) => {
-                                            if (sIdx !== studentIndex)
-                                              return stu;
-                                            return {
-                                              ...stu,
-                                              keywordEngText: newValue,
-                                              keywordEng: newValue
-                                                .split(",")
-                                                .map((item) => item.trim())
-                                                .filter(Boolean),
-                                            };
-                                          });
-                                        return {
-                                          ...rec,
-                                          isChanged: true,
-                                          students: updatedStudents,
-                                        };
-                                      })
-                                    );
-                                  }}
-                                  onBlur={(e) => {
-                                    e.target.style.display = "none";
-                                    e.target.previousElementSibling.style.display =
-                                      "block";
-                                  }}
-                                  className="absolute left-0 -top-4 w-full min-h-[90px] rounded-lg bg-white text-sm font-bold text-navy-700 shadow-md z-20 border border-blue-200 p-2 resize-none"
-                                  placeholder="Nhập keyword tiếng Anh (cách dấu ',')"
-                                />
-                              </div>
-                            </td>
+                            
                             <td className="px-3 py-2 text-sm text-gray-900">
                               <div className="relative">
                                 <input

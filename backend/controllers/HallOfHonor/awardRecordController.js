@@ -20,8 +20,7 @@ exports.createAwardRecord = async (req, res) => {
         }
       }
     }
-    // --- Deduplication & duplicate guard (students / classes) ---
-    // 1) Remove duplicates within the request body itself
+
     if (Array.isArray(req.body.students)) {
       const seenStu = new Set();
       req.body.students = req.body.students.filter((s) => {
