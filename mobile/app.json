@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "workspace",
+    "slug": "workspace",
+    "version": "1.0.0",
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wellspring.workspace",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.hailinh.n23.workspace"
+    },
+    "fonts": [
+      {
+        "asset": "./src/assets/fonts/Mulish-Regular.ttf",
+        "family": "Mulish-Regular"
+      },
+      {
+        "asset": "./src/assets/fonts/Mulish-Medium.ttf",
+        "family": "Mulish-Medium"
+      },
+      {
+        "asset": "./src/assets/fonts/Mulish-SemiBold.ttf",
+        "family": "Mulish-SemiBold"
+      },
+      {
+        "asset": "./src/assets/fonts/Mulish-Bold.ttf",
+        "family": "Mulish-Bold"
+      }
+    ],
+    "scheme": "staffportal",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f6365a6d-3c57-4b54-aaa8-119f05e3698e"
+      }
+    }
+  }
+}
