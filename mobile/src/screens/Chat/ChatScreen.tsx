@@ -45,6 +45,7 @@ const ChatScreen = () => {
     const [chats, setChats] = useState<Chat[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
     const navigation = useNavigation<NativeStackNavigationProp<ChatStackParamList>>();
     const parentTabNav: any = (navigation as any).getParent?.();
     const hideTabBar = () => {
@@ -123,6 +124,27 @@ const ChatScreen = () => {
         };
     }, [currentUserId]);
 
+    useEffect(() => {
+        if (!socketRef.current) return;
+        const handleUserOnline = ({ userId }: { userId: string }) => {
+            setOnlineUsers(prev => prev.includes(userId) ? prev : [...prev, userId]);
+        };
+        const handleUserOffline = ({ userId }: { userId: string }) => {
+            setOnlineUsers(prev => prev.filter(id => id !== userId));
+        };
+        socketRef.current.on('userOnline', handleUserOnline);
+        socketRef.current.on('userOffline', handleUserOffline);
+        return () => {
+            socketRef.current.off('userOnline', handleUserOnline);
+            socketRef.current.off('userOffline', handleUserOffline);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (currentUserId && !onlineUsers.includes(currentUserId)) {
+            setOnlineUsers(prev => prev.includes(currentUserId) ? prev : [...prev, currentUserId]);
+        }
+    }, [currentUserId]);
 
     // Fetch chats each time screen is focused
     useFocusEffect(
@@ -184,7 +206,10 @@ const ChatScreen = () => {
                 navigation.navigate('ChatDetail', { user: item });
             }}
         >
-            <Image source={{ uri: getAvatar(item) }} className="w-16 h-16 rounded-full bg-gray-200" />
+            <View className="relative">
+                <Image source={{ uri: getAvatar(item) }} className="w-16 h-16 rounded-full bg-gray-200" />
+                <View style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: onlineUsers.includes(item._id) ? 'green' : '#bbb', borderWidth: 2, borderColor: 'white' }} />
+            </View>
             <Text className="mt-1 text-xs text-center w-20" numberOfLines={1}>{item.fullname}</Text>
         </TouchableOpacity>
     );
@@ -227,6 +252,7 @@ const ChatScreen = () => {
             >
                 <View className="relative">
                     <Image source={{ uri: getAvatar(other) }} className="w-14 h-14 rounded-full bg-gray-200" />
+                    <View style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: onlineUsers.includes(other._id) ? 'green' : '#bbb', borderWidth: 2, borderColor: 'white' }} />
                 </View>
                 <View className="flex-1 ml-4">
                     <Text className={`${hasUnreadMessage ? 'font-bold' : 'font-semi'} text-lg`} numberOfLines={1}>{other.fullname}</Text>

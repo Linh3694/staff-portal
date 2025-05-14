@@ -7,6 +7,9 @@ const jwt = require("jsonwebtoken");
 const { check, validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('Kết nối MongoDB thành công!'))
+  .catch(err => console.error('Lỗi kết nối MongoDB:', err));
 
 // 1) LOGIN THỦ CÔNG
 router.post(
@@ -20,16 +23,23 @@ router.post(
       .notEmpty().withMessage("Vui lòng nhập mật khẩu!")
   ],
   async (req, res) => {
+    console.log('POST /login called', req.body);
     const errors = validationResult(req);
+    console.log('Sau validationResult');
     if (!errors.isEmpty()) {
+      console.log('Có lỗi validate:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
+    console.log('Sau kiểm tra errors');
 
     const { email, password } = req.body;
+    console.log('Email:', email, 'Password:', password);
 
     try {
+      console.log('Bắt đầu xử lý login');
       // Tìm kiếm user theo email
       const user = await User.findOne({ email });
+      console.log('Kết quả tìm user:', user);
       if (!user) {
         console.log("Tài khoản không tồn tại trong DB");
         return res.status(404).json({ message: "Tài khoản không tồn tại!" });
@@ -167,5 +177,6 @@ router.post("/verify-name", async (req, res) => {
   }
 });
 
+bcrypt.hash('password', 10).then(console.log);
 
 module.exports = router;

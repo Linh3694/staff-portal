@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ROUTES } from '../constants/routes';
 import HomeScreen from '../screens/Home/HomeScreen';
-import ChatStackNavigator from './ChatStackNavigator';
+import ChatScreen from '../screens/Chat/ChatScreen';
 import NotificationsScreen from '../screens/Notifications/NotificationsScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import { Text, View } from 'react-native';
@@ -47,7 +47,7 @@ const BottomTabNavigator = () => {
             />
             <Tab.Screen
                 name={ROUTES.MAIN.CHAT}
-                component={ChatStackNavigator}
+                component={ChatScreen}
                 options={({ route }) => ({
                     tabBarIcon: ({ focused }) => (
                         <View className="items-center">
@@ -55,19 +55,6 @@ const BottomTabNavigator = () => {
                         </View>
                     ),
                     tabBarLabel: ({ focused }) => tabBarLabel('Tin nhắn', focused),
-                    tabBarStyle: (() => {
-                        const routeName = getFocusedRouteNameFromRoute(route) ?? '';
-                        const shouldHide = HIDDEN_ROUTES.includes(routeName);
-                        // Render tab bar out of layout immediately to avoid flicker
-                        return shouldHide
-                            ? { position: 'absolute', height: 0, overflow: 'hidden' }
-                            : {
-                                borderTopWidth: 1,
-                                height: 90,
-                                paddingBottom: 16,
-                                paddingTop: 8,
-                            };
-                    })(),
                 })}
             />
             <Tab.Screen

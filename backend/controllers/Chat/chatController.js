@@ -140,4 +140,52 @@ exports.markMessageAsRead = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+};
+
+// Upload file/ảnh cho chat
+exports.uploadChatAttachment = async (req, res) => {
+    try {
+        const { chatId } = req.body;
+        const senderId = req.user._id;
+        if (!req.file) {
+            return res.status(400).json({ message: 'Không có file được upload' });
+        }
+        // Xác định loại file
+        let type = 'file';
+        if (req.file.mimetype.startsWith('image/')) {
+            type = 'image';
+        }
+        // Đường dẫn file trả về cho client
+        const fileUrl = `/uploads/Chat/${req.file.filename}`;
+        // Tạo message
+        const message = await Message.create({
+            chat: chatId,
+            sender: senderId,
+            content: req.file.originalname,
+            type,
+            fileUrl,
+            readBy: [senderId]
+        });
+        // Cập nhật lastMessage trong chat
+        await Chat.findByIdAndUpdate(chatId, {
+            lastMessage: message._id,
+            updatedAt: Date.now()
+        });
+        // Populate sender
+        const populatedMessage = await Message.findById(message._id)
+            .populate('sender', 'fullname avatarUrl email');
+        // Emit socket event
+        const io = req.app.get('io');
+        io.to(chatId).emit('receiveMessage', populatedMessage);
+        // Lấy lại chat đã cập nhật kèm populate
+        const updatedChat = await Chat.findById(chatId)
+            .populate('participants', 'fullname avatarUrl email')
+            .populate('lastMessage');
+        updatedChat.participants.forEach(p =>
+            io.to(p._id.toString()).emit('newChat', updatedChat)
+        );
+        res.status(201).json(populatedMessage);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 }; 

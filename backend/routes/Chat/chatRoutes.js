@@ -3,6 +3,7 @@ const router = express.Router();
 const chatController = require('../../controllers/Chat/chatController');
 const authenticate = require('../../middleware/authMiddleware');
 const Message = require('../../models/Message');
+const uploadChat = require('../../middleware/uploadChat');
 
 // Tạo hoặc lấy chat với người dùng khác
 router.post('/create', authenticate, chatController.createOrGetChat);
@@ -56,5 +57,8 @@ router.put('/read-all/:chatId', authenticate, async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
+// Upload file/ảnh cho chat
+router.post('/upload-attachment', authenticate, uploadChat.single('file'), chatController.uploadChatAttachment);
 
 module.exports = router; 

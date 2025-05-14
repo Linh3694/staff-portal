@@ -12,9 +12,10 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMicrosoftLogin } from './useMicrosoftLogin';
 import MicrosoftIcon from '../../assets/microsoft.svg';
-
+import { ROUTES } from '../../constants/routes';
 type RootStackParamList = {
     Welcome: undefined;
+    Login: undefined;
     SignIn: undefined;
 };
 
@@ -117,7 +118,7 @@ const WelcomeScreen = () => {
                     </View>
                     <Text className="text-secondary font-bold">Đăng nhập với Microsoft</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
+                <TouchableOpacity onPress={() => navigation.navigate(ROUTES.AUTH.LOGIN)}>
                     <Text className="mt-4 text-text-secondary text-base font-semibold">Đăng nhập bằng tài khoản</Text>
                 </TouchableOpacity>
             </View>
