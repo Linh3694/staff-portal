@@ -56,6 +56,9 @@ Thumbs.db
 uploads/
 public/uploads/
 
+#config local
+config/
+
 # Temporary files
 tmp/
 temp/
