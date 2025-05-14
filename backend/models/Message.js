@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
-    chatId: {
+    chat: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Chat",
       required: true,
@@ -12,15 +12,25 @@ const messageSchema = new mongoose.Schema(
       ref: "Users",
       required: true,
     },
-    text: {
+    content: {
       type: String,
-      default: "",
+      required: true,
     },
-    media: [
+    type: {
+      type: String,
+      enum: ["text", "image", "file"],
+      default: "text",
+    },
+    readBy: [
       {
-        type: String, // link ảnh upload hoặc path local
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Users",
       },
     ],
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
   { timestamps: true }
 );

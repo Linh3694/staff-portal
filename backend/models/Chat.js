@@ -2,16 +2,32 @@ const mongoose = require("mongoose");
 
 const chatSchema = new mongoose.Schema(
   {
-    members: [
+    participants: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Users",
+        required: true
       },
     ],
-    // Ví dụ: tên nhóm chat, type = "group" / "private"...
-    chatName: { type: String, default: "" },
+    lastMessage: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message"
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    }
   },
   { timestamps: true }
 );
+
+chatSchema.pre('save', function (next) {
+  this.updatedAt = Date.now();
+  next();
+});
 
 module.exports = mongoose.model("Chat", chatSchema);

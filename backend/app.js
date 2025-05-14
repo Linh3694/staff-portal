@@ -39,6 +39,7 @@ const tripRoutes = require("./routes/Bus/tripRoutes");
 const dailyTripRoutes = require("./routes/Bus/dailyTripRoutes");
 const libraryRoutes = require("./routes/Library/library");
 const admissionRoutes = require("./routes/Admission/admissionRoutes");
+const chatRoutes = require("./routes/Chat/chatRoutes");
 
 const app = express();
 // Tạo HTTP server và tích hợp Socket.IO
@@ -64,10 +65,30 @@ const processedTempIds = new Set();
 // Socket.IO events cho chat theo ticket
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
+  // Join room by userId (for personal events)
+  try {
+    const token = socket.handshake.query.token;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded && decoded._id) {
+        socket.join(decoded._id.toString());
+        socket.data.userId = decoded._id.toString();
+      }
+    }
+  } catch (err) {
+    console.error('Token verify error:', err);
+  }
 
   socket.on("joinTicket", (ticketId) => {
     socket.join(ticketId);
     console.log(`Socket ${socket.id} joined ticket room ${ticketId}`);
+  });
+
+  // Client‑side explicit join to personal room (fallback)
+  socket.on("joinUserRoom", (uid) => {
+    if (uid) {
+      socket.join(uid.toString());
+    }
   });
 
   socket.on("typing", ({ ticketId, isTyping, userId }) => {
@@ -153,6 +174,70 @@ io.on("connection", (socket) => {
   });
 });
 
+// Socket.IO events cho chat
+io.on("connection", (socket) => {
+  console.log("Socket connected:", socket.id);
+  // Join room by userId (for personal events)
+  try {
+    const token = socket.handshake.query.token;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded && decoded._id) {
+        socket.join(decoded._id.toString());
+        socket.data.userId = decoded._id.toString();
+      }
+    }
+  } catch (err) {
+    console.error('Token verify error:', err);
+  }
+
+  // Join vào phòng chat
+  socket.on("joinChat", (chatId) => {
+    socket.join(chatId);
+    console.log(`Socket ${socket.id} joined chat room ${chatId}`);
+  });
+
+  // Client‑side explicit join to personal room (fallback)
+  socket.on("joinUserRoom", (uid) => {
+    if (uid) {
+      socket.join(uid.toString());
+    }
+  });
+
+  // Thông báo đang nhập
+  socket.on("typing", ({ chatId, isTyping, userId }) => {
+    socket.to(chatId).emit("userTyping", { userId, isTyping });
+  });
+
+  // Thông báo trạng thái online
+  socket.on("userOnline", ({ userId, chatId }) => {
+    socket.to(chatId).emit("userStatus", { userId, status: "online" });
+    socket.data.userId = userId;
+  });
+
+  // Xử lý thông báo tin nhắn đã đọc
+  socket.on("messageRead", (data) => {
+    socket.to(data.chatId).emit("messageRead", data);
+  });
+
+  // Rời phòng chat
+  socket.on("leaveChat", (chatId) => {
+    socket.leave(chatId);
+  });
+
+  // Xử lý khi ngắt kết nối
+  socket.on("disconnecting", () => {
+    const uid = socket.data.userId;
+    if (uid) {
+      socket.rooms.forEach((room) => {
+        if (room !== socket.id) {
+          socket.to(room).emit("userStatus", { userId: uid, status: "offline" });
+        }
+      });
+    }
+  });
+});
+
 // Kết nối MongoDB
 const connectDB = async () => {
   try {
@@ -224,6 +309,7 @@ app.use("/api/daily-trips", dailyTripRoutes);
 app.use("/api/libraries", libraryRoutes);
 app.use("/api/email", require("./routes/Ticket/emailRoutes"));
 app.use("/api/admission", admissionRoutes);
+app.use("/api/chats", chatRoutes);
 
 // Khởi động server
 const PORT = process.env.PORT;
