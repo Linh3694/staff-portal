@@ -56,18 +56,12 @@ exports.getUsers = async (req, res) => {
 
 exports.createUser = async (req, res) => {
   try {
-    console.log("Payload nhận được:", req.body);
-
     const { fullname, email, password, role, employeeCode, avatar, active = false } = req.body;
-
-    // Hash mật khẩu nếu được cung cấp
     let hashedPassword = null;
     if (password) {
-      console.log("Hashing password...");
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
-    console.log("Creating new user...");
     const newUser = new User({
       fullname,
       email,
@@ -214,8 +208,6 @@ exports.updateAttendance = async (req, res) => {
 
 // Thêm hàm này ở cuối file userController.js (hoặc vị trí thích hợp)
 exports.bulkAvatarUpload = async (req, res) => {
-  console.log("Files received:", req.files);
-  // Filter out files to only include those with fieldname "avatars"
   req.files = req.files.filter(file => file.fieldname === "avatars");
   try {
     if (!req.files || req.files.length === 0) {

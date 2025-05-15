@@ -1,6 +1,7 @@
 const Ticket = require("../../models/Ticket");
 const User = require("../../models/Users"); // Import model User nếu chưa import
 const SupportTeam = require("../../models/SupportTeam");
+const notificationController = require('../Notification/notificationController'); // Thêm import
 
 
 function getVNTimeString() {
@@ -53,6 +54,9 @@ exports.createTicket = async (req, res) => {
     // notes
    newTicket.notes = notes || "";
    await newTicket.save();
+
+    // Gửi thông báo đến admin và technical
+    await notificationController.sendNewTicketNotification(newTicket);
 
     res.status(201).json({ success: true, ticket: newTicket });
   } catch (error) {
@@ -172,6 +176,17 @@ exports.updateTicket = async (req, res) => {
 
     await ticket.save();
     console.log("Ticket đã được lưu thành công:", ticket);
+
+    // Xác định loại hành động để gửi thông báo phù hợp
+    let action = 'updated';
+    if (req.body.status && ticket.status !== previousStatus) {
+      action = 'status_updated';
+    } else if (req.body.assignedTo && !previousAssignedTo.equals(ticket.assignedTo)) {
+      action = 'assigned';
+    }
+
+    // Gửi thông báo cập nhật
+    await notificationController.sendTicketUpdateNotification(ticket, action);
 
     res.status(200).json({ success: true, ticket });
   } catch (error) {
@@ -426,6 +441,9 @@ exports.sendMessage = async (req, res) => {
       type: updatedTicket.messages[updatedTicket.messages.length - 1].type,
       tempId: req.body.tempId || null,
     });
+
+    // Gửi thông báo có tin nhắn mới
+    await notificationController.sendTicketUpdateNotification(ticket, 'comment_added');
 
     return res.status(200).json({
       success: true,

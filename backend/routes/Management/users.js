@@ -30,6 +30,8 @@ router.delete("/:id", userController.deleteUser);
 
 // Thiết bị gán
 router.post("/assign-device", userController.getAssignedItems);
+
+
 router.get("/:userId/assigned-items", userController.getAssignedItems);
 
 module.exports = router;

@@ -8,6 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChatStackParamList } from '../../navigation/ChatStackNavigator';
 import { jwtDecode } from 'jwt-decode';
 import io from 'socket.io-client';
+import { useOnlineStatus } from '../../context/OnlineStatusContext';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -23,6 +24,9 @@ interface Message {
     createdAt: string;
     sender: string;
     readBy: string[];
+    type?: string;
+    fileUrl?: string;
+    fileUrls?: string[];
 }
 
 interface Chat {
@@ -45,7 +49,7 @@ const ChatScreen = () => {
     const [chats, setChats] = useState<Chat[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-    const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+    const { isUserOnline, getFormattedLastSeen } = useOnlineStatus();
     const navigation = useNavigation<NativeStackNavigationProp<ChatStackParamList>>();
     const parentTabNav: any = (navigation as any).getParent?.();
     const hideTabBar = () => {
@@ -124,28 +128,6 @@ const ChatScreen = () => {
         };
     }, [currentUserId]);
 
-    useEffect(() => {
-        if (!socketRef.current) return;
-        const handleUserOnline = ({ userId }: { userId: string }) => {
-            setOnlineUsers(prev => prev.includes(userId) ? prev : [...prev, userId]);
-        };
-        const handleUserOffline = ({ userId }: { userId: string }) => {
-            setOnlineUsers(prev => prev.filter(id => id !== userId));
-        };
-        socketRef.current.on('userOnline', handleUserOnline);
-        socketRef.current.on('userOffline', handleUserOffline);
-        return () => {
-            socketRef.current.off('userOnline', handleUserOnline);
-            socketRef.current.off('userOffline', handleUserOffline);
-        };
-    }, []);
-
-    useEffect(() => {
-        if (currentUserId && !onlineUsers.includes(currentUserId)) {
-            setOnlineUsers(prev => prev.includes(currentUserId) ? prev : [...prev, currentUserId]);
-        }
-    }, [currentUserId]);
-
     // Fetch chats each time screen is focused
     useFocusEffect(
         React.useCallback(() => {
@@ -208,7 +190,7 @@ const ChatScreen = () => {
         >
             <View className="relative">
                 <Image source={{ uri: getAvatar(item) }} className="w-16 h-16 rounded-full bg-gray-200" />
-                <View style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: onlineUsers.includes(item._id) ? 'green' : '#bbb', borderWidth: 2, borderColor: 'white' }} />
+                <View style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: isUserOnline(item._id) ? 'green' : '#bbb', borderWidth: 2, borderColor: 'white' }} />
             </View>
             <Text className="mt-1 text-xs text-center w-20" numberOfLines={1}>{item.fullname}</Text>
         </TouchableOpacity>
@@ -241,6 +223,30 @@ const ChatScreen = () => {
             item.lastMessage.sender !== currentUserId &&
             (!item.lastMessage.readBy || !item.lastMessage.readBy.includes(currentUserId));
 
+        // Xử lý nội dung tin nhắn cuối cùng để hiển thị
+        let lastMessageContent = '';
+        if (item.lastMessage) {
+            // Kiểm tra loại tin nhắn và hiển thị tương ứng
+            if (item.lastMessage.type === 'image') {
+                // Một ảnh
+                lastMessageContent = 'Đã gửi ảnh';
+            } else if (item.lastMessage.fileUrls && item.lastMessage.fileUrls.length > 0) {
+                // Nhiều ảnh
+                lastMessageContent = `${item.lastMessage.fileUrls.length} hình ảnh`;
+            } else if (item.lastMessage.type === 'file') {
+                // File đính kèm
+                lastMessageContent = 'Tệp đính kèm';
+            } else {
+                // Tin nhắn văn bản thông thường
+                lastMessageContent = item.lastMessage.content || '';
+            }
+
+            // Thêm tiền tố "Bạn: " nếu người gửi là người dùng hiện tại
+            if (item.lastMessage.sender === currentUserId) {
+                lastMessageContent = `Bạn: ${lastMessageContent}`;
+            }
+        }
+
         return (
             <TouchableOpacity
                 key={`chat-item-${item._id || index}`}
@@ -252,13 +258,22 @@ const ChatScreen = () => {
             >
                 <View className="relative">
                     <Image source={{ uri: getAvatar(other) }} className="w-14 h-14 rounded-full bg-gray-200" />
-                    <View style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: onlineUsers.includes(other._id) ? 'green' : '#bbb', borderWidth: 2, borderColor: 'white' }} />
+                    <View style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: isUserOnline(other._id) ? 'green' : '#bbb', borderWidth: 2, borderColor: 'white' }} />
                 </View>
                 <View className="flex-1 ml-4">
                     <Text className={`${hasUnreadMessage ? 'font-bold' : 'font-semi'} text-lg`} numberOfLines={1}>{other.fullname}</Text>
-                    <Text className={`${hasUnreadMessage ? 'text-secondary font-bold' : 'text-gray-500'} text-base mt-0.5`} numberOfLines={1}>
-                        {item.lastMessage?.content || ''}
-                    </Text>
+                    <View className="flex-row items-center">
+                        <Text
+                            className={`${hasUnreadMessage ? 'text-secondary font-bold' : 'text-gray-500'} text-base mt-0.5 mr-1`}
+                            numberOfLines={1}
+                            style={{ maxWidth: '70%' }}
+                        >
+                            {lastMessageContent}
+                        </Text>
+                        <Text className="text-xs text-gray-400">
+                            • {isUserOnline(other._id) ? 'Đang hoạt động' : getFormattedLastSeen(other._id)}
+                        </Text>
+                    </View>
                 </View>
                 <View className="items-end">
                     <Text className={`${hasUnreadMessage ? 'text-black font-bold' : 'text-gray-400'} text-xs mb-1`}>{formattedTime}</Text>

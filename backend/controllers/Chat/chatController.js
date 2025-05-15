@@ -188,4 +188,58 @@ exports.uploadChatAttachment = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+};
+
+// Upload nhiều ảnh cùng lúc
+exports.uploadMultipleImages = async (req, res) => {
+    try {
+        const { chatId } = req.body;
+        const senderId = req.user._id;
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'Không có file được upload' });
+        }
+
+        // Lưu đường dẫn của tất cả các file
+        const fileUrls = req.files.map(file => `/uploads/Chat/${file.filename}`);
+
+        // Tạo message với danh sách fileUrls
+        const message = await Message.create({
+            chat: chatId,
+            sender: senderId,
+            content: `${req.files.length} ảnh`,
+            type: 'image',
+            fileUrl: fileUrls[0], // Lưu ảnh đầu tiên làm ảnh đại diện cho các thumbnail
+            fileUrls: fileUrls,   // Mảng chứa tất cả đường dẫn ảnh
+            readBy: [senderId]
+        });
+
+        // Cập nhật lastMessage trong chat
+        await Chat.findByIdAndUpdate(chatId, {
+            lastMessage: message._id,
+            updatedAt: Date.now()
+        });
+
+        // Populate sender
+        const populatedMessage = await Message.findById(message._id)
+            .populate('sender', 'fullname avatarUrl email');
+
+        // Emit socket event
+        const io = req.app.get('io');
+        io.to(chatId).emit('receiveMessage', populatedMessage);
+
+        // Lấy lại chat đã cập nhật kèm populate
+        const updatedChat = await Chat.findById(chatId)
+            .populate('participants', 'fullname avatarUrl email')
+            .populate('lastMessage');
+
+        updatedChat.participants.forEach(p =>
+            io.to(p._id.toString()).emit('newChat', updatedChat)
+        );
+
+        res.status(201).json(populatedMessage);
+    } catch (error) {
+        console.error('Error uploading multiple images:', error);
+        res.status(500).json({ message: error.message });
+    }
 }; 

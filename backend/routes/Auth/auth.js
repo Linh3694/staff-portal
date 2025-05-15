@@ -65,6 +65,7 @@ router.post(
         message: "Đăng nhập thành công!",
         token,
         user: {
+          _id: user._id,
           fullname: user.fullname || "N/A",
           email: user.email || "N/A",
           role: user.role || "user",

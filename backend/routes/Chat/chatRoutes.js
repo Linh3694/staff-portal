@@ -4,6 +4,7 @@ const chatController = require('../../controllers/Chat/chatController');
 const authenticate = require('../../middleware/authMiddleware');
 const Message = require('../../models/Message');
 const uploadChat = require('../../middleware/uploadChat');
+const Chat = require('../../models/Chat');
 
 // Tạo hoặc lấy chat với người dùng khác
 router.post('/create', authenticate, chatController.createOrGetChat);
@@ -60,5 +61,37 @@ router.put('/read-all/:chatId', authenticate, async (req, res) => {
 
 // Upload file/ảnh cho chat
 router.post('/upload-attachment', authenticate, uploadChat.single('file'), chatController.uploadChatAttachment);
+
+// Upload nhiều ảnh cùng lúc
+router.post('/upload-multiple', authenticate, uploadChat.array('files', 6), chatController.uploadMultipleImages);
+
+// Lấy thông tin chi tiết của một chat
+router.get('/:chatId', authenticate, async (req, res) => {
+    try {
+        const { chatId } = req.params;
+
+        // Tìm chat và populate thông tin người tham gia
+        const chat = await Chat.findById(chatId)
+            .populate('participants', 'fullname avatarUrl email')
+            .populate('lastMessage');
+
+        if (!chat) {
+            return res.status(404).json({ message: 'Không tìm thấy chat' });
+        }
+
+        // Kiểm tra xem người dùng hiện tại có phải là người tham gia vào chat không
+        const isParticipant = chat.participants.some(
+            participant => participant._id.toString() === req.user._id.toString()
+        );
+
+        if (!isParticipant) {
+            return res.status(403).json({ message: 'Bạn không có quyền truy cập chat này' });
+        }
+
+        res.status(200).json(chat);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
 module.exports = router; 

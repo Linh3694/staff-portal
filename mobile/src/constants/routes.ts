@@ -10,5 +10,6 @@ export const ROUTES = {
         NOTIFICATIONS: 'Notifications',
         SETTINGS: 'Settings',
         CHAT: 'Chat',
+        TICKET: 'Ticket',
     },
 } as const; 

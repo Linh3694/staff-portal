@@ -93,8 +93,6 @@ exports.sendTicketStatusEmail = async (req, res) => {
 // B) Hàm đọc email từ inbox và tạo ticket (dùng Microsoft Graph API)
 exports.fetchEmailsAndCreateTickets = async (req, res) => {
   try {
-    console.log("Đang lấy email từ Microsoft Graph API...");
-    console.log("Email:", process.env.EMAIL_USER);
 
     // Sử dụng /users/{EMAIL_USER} thay vì /me
     const userEmail = process.env.EMAIL_USER;

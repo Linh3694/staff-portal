@@ -41,6 +41,7 @@ const libraryRoutes = require("./routes/Library/library");
 const admissionRoutes = require("./routes/Admission/admissionRoutes");
 const chatRoutes = require("./routes/Chat/chatRoutes");
 const chatSocket = require('./socketChat');
+const notificationRoutes = require("./routes/Notification/notificationRoutes");
 
 const app = express();
 // Tạo HTTP server và tích hợp Socket.IO
@@ -184,9 +185,7 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log("MongoDB connected successfully");
   } catch (error) {
-    console.error("MongoDB connection error:", error);
     process.exit(1);
   }
 };
@@ -249,8 +248,7 @@ app.use("/api/libraries", libraryRoutes);
 app.use("/api/email", require("./routes/Ticket/emailRoutes"));
 app.use("/api/admission", admissionRoutes);
 app.use("/api/chats", chatRoutes);
-
-console.log('Auth route mounted at /api/auth');
+app.use("/api/notifications", notificationRoutes);
 
 // Khởi động server
 const PORT = process.env.PORT;

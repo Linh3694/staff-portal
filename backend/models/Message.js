@@ -24,6 +24,9 @@ const messageSchema = new mongoose.Schema(
     fileUrl: {
       type: String,
     },
+    fileUrls: {
+      type: [String],
+    },
     readBy: [
       {
         type: mongoose.Schema.Types.ObjectId,

@@ -66,7 +66,9 @@ const userSchema = new mongoose.Schema({
         time: { type: String },
         createdAt: { type: Date, default: Date.now },
       },
-    ]
+  ],
+
+  deviceToken: { type: String }, // Thêm trường này để lưu token thiết bị
 }, { timestamps: true });
 
 
