@@ -731,7 +731,7 @@ const TicketCreate = () => {
             {/* Main content */}
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className="h-full flex-1 mt-5"
+                className="h-full flex-1"
             >
                 <ScrollView
                     className="h-full flex-1 mt-4"
@@ -769,7 +769,7 @@ const TicketCreate = () => {
                     {step === 5 && renderStepFive()}
                 </ScrollView>
                 {/* Navigation buttons */}
-                <View className="absolute left-4 right-4 bottom-[8%] items-center gap-3">
+                <View className="absolute left-4 right-4 bottom-[2%] items-center gap-3">
                     {step < 5 && (
                         <>
                             <TouchableOpacity

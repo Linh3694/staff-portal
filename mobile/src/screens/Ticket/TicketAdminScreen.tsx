@@ -6,8 +6,9 @@ import { RootStackParamList } from '../../navigation/AppNavigator';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config/constants';
 
-type TicketScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ticket'>;
+type TicketScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TicketAdminScreen'>;
 
 interface Ticket {
     id: string;
@@ -42,6 +43,7 @@ const TicketAdminScreen = () => {
     const [showRoleFilters, setShowRoleFilters] = useState(false);
     const [loading, setLoading] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState('assigned'); // 'assigned' hoặc 'my'
 
     useEffect(() => {
         const loadUserId = async () => {
@@ -69,8 +71,7 @@ const TicketAdminScreen = () => {
 
             try {
                 // Xây dựng URL với các tham số lọc
-                const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001';
-                let url = `${apiUrl}/api/tickets`;
+                let url = `${API_BASE_URL}/api/tickets`;
 
                 // Thêm các tham số lọc
                 const params = new URLSearchParams();
@@ -81,11 +82,10 @@ const TicketAdminScreen = () => {
                     params.append('search', searchTerm);
                 }
 
-                // Thêm tham số lọc theo vai trò
-                if (userId && filterRole === 'created') {
-                    params.append('creator', userId);
-                } else if (userId && filterRole === 'assigned') {
-                    params.append('assignedTo', userId);
+                // Logic lọc theo tab
+                if (activeTab === 'my' && userId) {
+                    // Nếu là tab "Ticket của tôi", lấy cả ticket được tạo và được giao
+                    params.append('userTickets', userId);
                 }
 
                 if (params.toString()) {
@@ -100,8 +100,17 @@ const TicketAdminScreen = () => {
                 if (res.data.success) {
                     console.log('API thành công, nhận được', res.data.tickets?.length || 0, 'tickets');
 
+                    let filteredTickets = res.data.tickets;
+
+                    // Nếu là tab "Ticket của tôi", lọc theo creator hoặc assignedTo
+                    if (activeTab === 'my' && userId) {
+                        filteredTickets = filteredTickets.filter((ticket: any) =>
+                            ticket.creator?._id === userId || ticket.assignedTo?._id === userId
+                        );
+                    }
+
                     // Chuyển đổi dữ liệu API để phù hợp với cấu trúc hiện tại
-                    const formattedTickets = res.data.tickets.map((ticket: any) => ({
+                    const formattedTickets = filteredTickets.map((ticket: any) => ({
                         id: ticket._id,
                         _id: ticket._id,
                         ticketCode: ticket.ticketCode || `Ticket-${ticket._id.substring(0, 3)}`,
@@ -200,11 +209,11 @@ const TicketAdminScreen = () => {
             filteredTickets = filteredTickets.filter(ticket => ticket.status === filterStatus);
         }
 
-        // Lọc theo vai trò (creator hoặc assignedTo)
-        if (filterRole === 'created') {
-            filteredTickets = filteredTickets.filter(ticket => ticket.creator?._id === userId);
-        } else if (filterRole === 'assigned') {
-            filteredTickets = filteredTickets.filter(ticket => ticket.assignedTo?._id === userId);
+        // Lọc theo tab
+        if (activeTab === 'my') {
+            filteredTickets = filteredTickets.filter(ticket =>
+                ticket.creator?._id === userId || ticket.assignedTo?._id === userId
+            );
         }
 
         // Lọc theo từ khóa tìm kiếm
@@ -221,12 +230,16 @@ const TicketAdminScreen = () => {
 
     const statusColor = (status: string) => {
         switch (status) {
-            case 'open':
-                return 'bg-blue-500';
-            case 'inProgress':
-                return 'bg-yellow-500';
-            case 'resolved':
-                return 'bg-green-500';
+            case 'assigned':
+                return 'bg-[#002855]';
+            case 'processing':
+                return 'bg-[#F59E0B]';
+            case 'done':
+                return 'bg-[#BED232]';
+            case 'closed':
+                return 'bg-[#009483]';
+            case 'cancelled':
+                return 'bg-[#F05023]';
             default:
                 return 'bg-gray-500';
         }
@@ -234,16 +247,21 @@ const TicketAdminScreen = () => {
 
     const statusLabel = (status: string) => {
         switch (status) {
-            case 'open':
-                return 'Chưa nhận';
-            case 'inProgress':
+            case 'assigned':
+                return 'Đã tiếp nhận';
+            case 'processing':
                 return 'Đang xử lý';
-            case 'resolved':
+            case 'done':
                 return 'Đã xử lý';
+            case 'closed':
+                return 'Đã đóng';
+            case 'cancelled':
+                return 'Đã hủy';
             default:
                 return status;
         }
     };
+
 
     const priorityColor = (priority: string) => {
         switch (priority) {
@@ -296,7 +314,7 @@ const TicketAdminScreen = () => {
     };
 
     const handleViewTicketDetail = (ticketId: string) => {
-        navigation.navigate('TicketDetail', { ticketId });
+        navigation.navigate('TicketAdminDetail', { ticketId });
     };
 
     const handleGoBack = () => {
@@ -307,19 +325,62 @@ const TicketAdminScreen = () => {
         navigation.navigate('TicketCreate');
     };
 
+    const toggleTab = (tab: string) => {
+        if (activeTab !== tab) {
+            setActiveTab(tab);
+            // Đặt lại các filter khi chuyển tab
+            setFilterStatus('');
+            setFilterRole('');
+            setShowFilters(false);
+            setShowRoleFilters(false);
+            setSearchTerm('');
+            // Gọi lại API để lấy dữ liệu mới
+            fetchTickets();
+        }
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-white">
-            <View className="w-full flex-1 pb-16">
-                {/* Header với tiêu đề và nút back */}
-                <View className="w-full flex-row items-center px-4 py-4">
-                    <TouchableOpacity onPress={handleGoBack} >
-                        <Ionicons name="arrow-back" size={24} color="#000" />
-                    </TouchableOpacity>
-                    <View className="flex-1 items-center justify-center">
-                        <Text className="text-xl font-bold">Ticket</Text>
-                    </View>
-                </View>
 
+            <View className="w-full flex-row items-center px-4 py-4">
+                <TouchableOpacity onPress={handleGoBack} className="mr-3">
+                    <Ionicons name="arrow-back" size={24} color="#000" />
+                </TouchableOpacity>
+                <View className="flex-1 items-center justify-center mr-[10%]">
+                    <Text className="text-xl font-bold">Ticket</Text>
+                </View>
+            </View>
+
+            {/* Tab Navigation */}
+            <View className="flex-row px-4 pt-2 pb-5">
+                <View className="flex-1 items-center">
+                    <TouchableOpacity
+                        onPress={() => toggleTab('my')}
+                    >
+                        <Text className={`text-center ${activeTab === 'my' ? 'text-[#002855] font-bold' : 'text-gray-500'}`}>
+                            Tất cả Ticket
+                        </Text>
+                        {activeTab === 'my' && (
+                            <View className="h-0.5 bg-[#002855] mt-2" />
+                        )}
+                    </TouchableOpacity>
+                </View>
+                <View className="flex-1 items-center">
+                    <TouchableOpacity
+                        onPress={() => toggleTab('assigned')}
+                    >
+                        <Text className={`text-center ${activeTab === 'assigned' ? 'text-[#002855] font-bold' : 'text-gray-500'}`}>
+                            Ticket của tôi
+                        </Text>
+                        {activeTab === 'assigned' && (
+                            <View className="h-0.5 bg-[#002855] mt-2" />
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            {/* Content */}
+            <View className="flex-1">
                 {/* Ô tìm kiếm cải tiến với nút lọc */}
                 <View className="px-4 py-2">
                     <View className="flex-row items-center">
@@ -348,12 +409,7 @@ const TicketAdminScreen = () => {
                         >
                             <MaterialIcons name="filter-list" size={24} color="#666" />
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            className="ml-2 bg-gray-100 rounded-full w-10 h-10 items-center justify-center"
-                            onPress={toggleRoleFilters}
-                        >
-                            <Ionicons name="person" size={20} color={filterRole ? "#FF5733" : "#666"} />
-                        </TouchableOpacity>
+
                     </View>
                 </View>
 
@@ -389,31 +445,7 @@ const TicketAdminScreen = () => {
                     </View>
                 )}
 
-                {/* Bộ lọc vai trò */}
-                {showRoleFilters && (
-                    <View className="px-4 mb-2">
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="py-2">
-                            <TouchableOpacity
-                                className={`mr-2 px-3 py-1 rounded-full ${filterRole === '' ? 'bg-[#FF5733]' : 'bg-gray-200'}`}
-                                onPress={() => applyRoleFilter('')}
-                            >
-                                <Text className={filterRole === '' ? 'text-white' : 'text-gray-700'}>Tất cả Ticket</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                className={`mr-2 px-3 py-1 rounded-full ${filterRole === 'assigned' ? 'bg-[#FF5733]' : 'bg-gray-200'}`}
-                                onPress={() => applyRoleFilter('assigned')}
-                            >
-                                <Text className={filterRole === 'assigned' ? 'text-white' : 'text-gray-700'}>Ticket được giao</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                className={`px-3 py-1 rounded-full ${filterRole === 'created' ? 'bg-[#FF5733]' : 'bg-gray-200'}`}
-                                onPress={() => applyRoleFilter('created')}
-                            >
-                                <Text className={filterRole === 'created' ? 'text-white' : 'text-gray-700'}>Ticket của tôi</Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-                    </View>
-                )}
+
 
                 {/* Danh sách ticket */}
                 {loading ? (
@@ -427,41 +459,32 @@ const TicketAdminScreen = () => {
                         contentContainerStyle={{ padding: 16 }}
                         renderItem={({ item }) => (
                             <TouchableOpacity
-                                className="bg-gray-50 rounded-xl p-4 shadow-sm mb-3"
+                                className="bg-[#F8F8F8] rounded-xl p-4 mb-3"
                                 onPress={() => handleViewTicketDetail(item.id)}
                             >
                                 <View>
-                                    <Text className="text-[#E84A37] font-semibold text-base">{item.title}</Text>
-                                    <Text className="text-gray-500 text-xs mt-1">{item.ticketCode || `Ticket-${item.id.padStart(3, '0')}`}</Text>
-
-                                    {/* Hiển thị tag creator/assignedTo nếu đang lọc theo tất cả */}
-                                    {filterRole === '' && userId && (
-                                        <View className="mt-2">
-                                            {item.creator?._id === userId && (
-                                                <View className="bg-gray-200 rounded-md px-2 py-0.5 inline-block mr-2">
-                                                    <Text className="text-gray-700 text-xs">Tạo bởi tôi</Text>
-                                                </View>
-                                            )}
-                                            {item.assignedTo?._id === userId && (
-                                                <View className="bg-[#FFE5D9] rounded-md px-2 py-0.5 inline-block">
-                                                    <Text className="text-[#FF5733] text-xs">Được giao cho tôi</Text>
-                                                </View>
-                                            )}
+                                    <Text className="text-[#E84A37] font-semibold text-lg">{item.title}</Text>
+                                    <View className="flex-row justify-between items-center mt-2">
+                                        <Text className="text-gray-500 text-sm font-semibold mt-1">{item.ticketCode || `Ticket-${item.id.padStart(3, '0')}`}</Text>
+                                        <View>
+                                            <Text className="text-[#757575] text-base font-medium text-right">
+                                                {item.assignedTo?.fullname || 'Chưa phân công'}
+                                            </Text>
                                         </View>
-                                    )}
-
-                                    <View className="flex-row justify-between items-center mt-3">
-                                        <Text className="text-gray-600 text-sm font-medium">
-                                            {item.requester}
-                                        </Text>
-                                        {item.status === 'open' ? (
-                                            <Text className="text-gray-600 font-medium">Chưa nhận</Text>
-                                        ) : (
-                                            <View className={`${statusColor(item.status)} rounded-lg px-3 py-1`}>
-                                                <Text className="text-white text-xs font-semibold">{statusLabel(item.status)}</Text>
-                                            </View>
-                                        )}
                                     </View>
+                                    <View className="flex-row justify-between items-center mt-2">
+                                        <View>
+                                            <Text className="text-primary text-lg font-semibold">
+                                                {item.creator?.fullname || 'Không xác định'}
+                                            </Text>
+                                        </View>
+                                        <View className={`${statusColor(item.status)} rounded-lg px-3 py-1`}>
+                                            <Text className="text-white text-base font-semibold">{statusLabel(item.status)}</Text>
+                                        </View>
+
+                                    </View>
+
+
                                 </View>
                             </TouchableOpacity>
                         )}

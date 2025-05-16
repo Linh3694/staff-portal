@@ -13,6 +13,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMicrosoftLogin } from './useMicrosoftLogin';
 import MicrosoftIcon from '../../assets/microsoft.svg';
 import { ROUTES } from '../../constants/routes';
+import { API_BASE_URL } from '../../config/constants';
+
 type RootStackParamList = {
     Welcome: undefined;
     Login: undefined;
@@ -20,8 +22,6 @@ type RootStackParamList = {
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001';
 
 const WelcomeScreen = () => {
     const navigation = useNavigation<NavigationProp>();

@@ -9,8 +9,7 @@ import { ChatStackParamList } from '../../navigation/ChatStackNavigator';
 import { jwtDecode } from 'jwt-decode';
 import io from 'socket.io-client';
 import { useOnlineStatus } from '../../context/OnlineStatusContext';
-
-const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001';
+import { API_BASE_URL } from '../../config/constants';
 
 interface User {
     _id: string;
@@ -38,7 +37,7 @@ interface Chat {
 
 const getAvatar = (user: User) => {
     if (user.avatarUrl) {
-        return `${apiUrl}/uploads/Avatar/${user.avatarUrl}`;
+        return `${API_BASE_URL}/uploads/Avatar/${user.avatarUrl}`;
     }
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}`;
 };
@@ -62,21 +61,21 @@ const ChatScreen = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const usersRes = await fetch(apiUrl + '/api/users');
+                const usersRes = await fetch(API_BASE_URL + '/api/users');
                 const usersData = await usersRes.json();
                 setUsers(usersData);
 
                 // Lấy token từ AsyncStorage
-                const token = await AsyncStorage.getItem('token');
+                const token = await AsyncStorage.getItem('authToken');
+                console.log('Token:', token);
                 if (token) {
                     try {
+                        const decoded: any = jwtDecode(token);
+                        console.log('Decoded:', decoded);
                         // decode JWT to get the current user's id
-                        const decoded: { id?: string, _id?: string } = jwtDecode(token) as any;
-                        if (decoded && (decoded._id || decoded.id)) {
-                            const userId = decoded._id || decoded.id;
-                            if (userId) {
-                                setCurrentUserId(userId);
-                            }
+                        const userId = decoded._id || decoded.id;
+                        if (userId) {
+                            setCurrentUserId(userId);
                         }
                     } catch (err) {
                         console.log('Token decode error:', err);
@@ -94,10 +93,10 @@ const ChatScreen = () => {
     useEffect(() => {
         const setupGlobalSocket = async () => {
             if (!currentUserId || socketRef.current) return;
-            const token = await AsyncStorage.getItem('token');
+            const token = await AsyncStorage.getItem('authToken');
             if (!token) return;
 
-            socketRef.current = io(apiUrl, { query: { token }, transports: ['websocket'] });
+            socketRef.current = io(API_BASE_URL, { query: { token }, transports: ['websocket'] });
 
             // ensure server joins personal room
             socketRef.current.on('connect', () => {
@@ -137,9 +136,9 @@ const ChatScreen = () => {
 
             const fetchChats = async () => {
                 try {
-                    const token = await AsyncStorage.getItem('token');
+                    const token = await AsyncStorage.getItem('authToken');
                     if (!token) return;
-                    const res = await fetch(apiUrl + '/api/chats/list', {
+                    const res = await fetch(API_BASE_URL + '/api/chats/list', {
                         headers: { Authorization: `Bearer ${token}` },
                     });
                     const data = await res.json();
@@ -162,10 +161,10 @@ const ChatScreen = () => {
         try {
             let usersData = [];
             if (text.trim() === "") {
-                const usersRes = await fetch(apiUrl + '/api/users');
+                const usersRes = await fetch(API_BASE_URL + '/api/users');
                 usersData = await usersRes.json();
             } else {
-                const res = await fetch(`${apiUrl}/api/users/search?query=${encodeURIComponent(text)}`);
+                const res = await fetch(`${API_BASE_URL}/api/users/search?query=${encodeURIComponent(text)}`);
                 if (res.ok) {
                     usersData = await res.json();
                 } else {
@@ -303,6 +302,13 @@ const ChatScreen = () => {
                     <MaterialIcons name="search" size={22} color="#BDBDBD" />
                     <TextInput
                         className="flex-1 ml-2 text-base text-gray-400"
+                        style={{
+                            height: 36,
+                            paddingVertical: 0,
+                            textAlignVertical: 'center',
+                            marginTop: 0,
+                            marginBottom: 0,
+                        }}
                         placeholder="Tìm kiếm"
                         placeholderTextColor="#BDBDBD"
                         value={search}

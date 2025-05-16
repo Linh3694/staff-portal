@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import BottomTabNavigator from './BottomTabNavigator';
 import WelcomeScreen from '../screens/Login/WelcomeScreen';
 import LoginScreen from '../screens/Login/SignInScreen';
-import HomeScreen from '../screens/Home/HomeScreen';
 import { ROUTES } from '../constants/routes';
-import ChatScreen from '../screens/Chat/ChatScreen';
 import ChatDetailScreen from '../screens/Chat/ChatDetailScreen';
 import TicketGuestScreen from '../screens/Ticket/TicketGuestScreen';
 import TicketAdminScreen from '../screens/Ticket/TicketAdminScreen';
 import TicketDetailScreen from '../screens/Ticket/TicketDetailScreen';
 import TicketCreate from '../screens/Ticket/TicketCreate';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ChatInitScreen from '../screens/Chat/ChatInitScreen';
+import TicketAdminDetail from '../screens/Ticket/TicketAdminDetail';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -36,6 +35,9 @@ export type RootStackParamList = {
     Ticket: undefined;
     TicketDetail: { ticketId: string };
     TicketCreate: undefined;
+    ChatInit: { chatId: string; senderId: string };
+    TicketAdminScreen: undefined;
+    TicketAdminDetail: { ticketId: string };
 };
 
 const AppNavigator = () => {
@@ -101,6 +103,25 @@ const AppNavigator = () => {
                     presentation: 'card',
                     animation: 'default'
                 }}
+            />
+            <Stack.Screen
+                name="ChatInit"
+                component={ChatInitScreen}
+                options={{
+                    headerShown: false,
+                    presentation: 'card',
+                    animation: 'default'
+                }}
+            />
+            <Stack.Screen
+                name="TicketAdminScreen"
+                component={TicketAdminScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="TicketAdminDetail"
+                component={TicketAdminDetail}
+                options={{ headerShown: false }}
             />
         </Stack.Navigator>
     );

@@ -1,7 +1,9 @@
+
 const Ticket = require("../../models/Ticket");
 const User = require("../../models/Users"); // Import model User nếu chưa import
 const SupportTeam = require("../../models/SupportTeam");
 const notificationController = require('../Notification/notificationController'); // Thêm import
+const mongoose = require("mongoose");
 
 
 function getVNTimeString() {
@@ -470,8 +472,14 @@ exports.addSubTask = async (req, res) => {
       return res.status(404).json({ success: false, message: "Ticket không tồn tại!" });
     }
 
-    // Tìm user qua fullname
-    const assignedUser = await User.findOne({ fullname: assignedTo });
+    // Tìm user theo _id hoặc fullname
+    let assignedUser = null;
+    if (mongoose.Types.ObjectId.isValid(assignedTo)) {
+      assignedUser = await User.findById(assignedTo);
+    }
+    if (!assignedUser) {
+      assignedUser = await User.findOne({ fullname: assignedTo });
+    }
     if (!assignedUser) {
       return res.status(400).json({
         success: false,

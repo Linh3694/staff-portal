@@ -1,6 +1,7 @@
 const Chat = require('../../models/Chat');
 const Message = require('../../models/Message');
 const User = require('../../models/Users');
+const notificationController = require('../Notification/notificationController');
 
 // Tạo chat mới hoặc lấy chat hiện có
 exports.createOrGetChat = async (req, res) => {
@@ -65,6 +66,9 @@ exports.sendMessage = async (req, res) => {
             readBy: [senderId]
         });
 
+        // Lấy thông tin chat để gửi thông báo
+        const chat = await Chat.findById(chatId);
+
         // Cập nhật lastMessage trong chat
         await Chat.findByIdAndUpdate(chatId, {
             lastMessage: message._id,
@@ -76,21 +80,26 @@ exports.sendMessage = async (req, res) => {
             .populate('sender', 'fullname avatarUrl email');
 
         // Emit socket event
+        const io = req.app.get('io');
+        io.to(chatId).emit('receiveMessage', populatedMessage);
 
         // Lấy lại chat đã cập nhật kèm populate
         const updatedChat = await Chat.findById(chatId)
             .populate('participants', 'fullname avatarUrl email')
             .populate('lastMessage');
 
-        const io = req.app.get('io');
-
-        // 1) Phát tới room chi tiết (ai đang mở ChatDetail)
-        io.to(chatId).emit('receiveMessage', populatedMessage);
-
-        // 2) Phát tới room user để ChatScreen refresh
         updatedChat.participants.forEach(p =>
             io.to(p._id.toString()).emit('newChat', updatedChat)
         );
+
+        // Gửi thông báo push cho người nhận
+        if (chat) {
+            notificationController.sendNewChatMessageNotification(
+                message,
+                req.user.fullname,
+                chat
+            );
+        }
 
         res.status(201).json(populatedMessage);
     } catch (error) {
@@ -166,6 +175,10 @@ exports.uploadChatAttachment = async (req, res) => {
             fileUrl,
             readBy: [senderId]
         });
+
+        // Lấy thông tin chat để gửi thông báo
+        const chat = await Chat.findById(chatId);
+
         // Cập nhật lastMessage trong chat
         await Chat.findByIdAndUpdate(chatId, {
             lastMessage: message._id,
@@ -184,6 +197,16 @@ exports.uploadChatAttachment = async (req, res) => {
         updatedChat.participants.forEach(p =>
             io.to(p._id.toString()).emit('newChat', updatedChat)
         );
+
+        // Gửi thông báo push cho người nhận
+        if (chat) {
+            notificationController.sendNewChatMessageNotification(
+                message,
+                req.user.fullname,
+                chat
+            );
+        }
+
         res.status(201).json(populatedMessage);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -208,11 +231,14 @@ exports.uploadMultipleImages = async (req, res) => {
             chat: chatId,
             sender: senderId,
             content: `${req.files.length} ảnh`,
-            type: 'image',
+            type: 'multiple-images',
             fileUrl: fileUrls[0], // Lưu ảnh đầu tiên làm ảnh đại diện cho các thumbnail
             fileUrls: fileUrls,   // Mảng chứa tất cả đường dẫn ảnh
             readBy: [senderId]
         });
+
+        // Lấy thông tin chat để gửi thông báo
+        const chat = await Chat.findById(chatId);
 
         // Cập nhật lastMessage trong chat
         await Chat.findByIdAndUpdate(chatId, {
@@ -236,6 +262,15 @@ exports.uploadMultipleImages = async (req, res) => {
         updatedChat.participants.forEach(p =>
             io.to(p._id.toString()).emit('newChat', updatedChat)
         );
+
+        // Gửi thông báo push cho người nhận
+        if (chat) {
+            notificationController.sendNewChatMessageNotification(
+                message,
+                req.user.fullname,
+                chat
+            );
+        }
 
         res.status(201).json(populatedMessage);
     } catch (error) {

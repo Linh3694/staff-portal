@@ -22,8 +22,8 @@ import { useOnlineStatus } from '../../context/OnlineStatusContext';
 import { Video, ResizeMode } from 'expo-av';
 import ImageViewing from 'react-native-image-viewing';
 import { AppState, AppStateStatus } from 'react-native';
-
-const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001';
+import { API_BASE_URL } from '../../config/constants';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type Message = {
     _id: string;
@@ -44,7 +44,7 @@ type Chat = {
 
 const getAvatar = (user: User) => {
     if (user.avatarUrl) {
-        return `${apiUrl}/uploads/Avatar/${user.avatarUrl}`;
+        return `${API_BASE_URL}/uploads/Avatar/${user.avatarUrl}`;
     }
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}`;
 };
@@ -79,9 +79,10 @@ const ImageGrid = ({ images, onPress }: { images: string[], onPress: (index: num
     const maxWidth = screenWidth * 0.7; // Chiếm khoảng 70% chiều rộng màn hình
     const gap = 2; // Khoảng cách giữa các ảnh
 
-    // Logic sắp xếp ảnh dựa vào số lượng
+    // Log để debug
+    console.log('ImageGrid received images:', images);
+
     if (images.length === 1) {
-        // Một ảnh: hiển thị toàn bộ
         return (
             <TouchableOpacity onPress={() => onPress(0)}>
                 <Image
@@ -92,7 +93,6 @@ const ImageGrid = ({ images, onPress }: { images: string[], onPress: (index: num
             </TouchableOpacity>
         );
     } else if (images.length === 2) {
-        // Hai ảnh: hiển thị cạnh nhau
         return (
             <View style={{ flexDirection: 'row', width: maxWidth }}>
                 <TouchableOpacity onPress={() => onPress(0)} style={{ flex: 1, marginRight: gap / 2 }}>
@@ -179,7 +179,7 @@ const ImageGrid = ({ images, onPress }: { images: string[], onPress: (index: num
             </View>
         );
     } else {
-        // 5+ ảnh: luôn hiển thị dạng lưới 3x2 cố định
+        // 5+ ảnh: hiển thị dạng lưới 3x2 (6 ảnh hoặc ít hơn)
         const displayImages = images.slice(0, Math.min(6, images.length));
         // Mỗi hàng có 3 ảnh
         const itemWidth = maxWidth / 3 - (gap * 2 / 3);
@@ -260,26 +260,22 @@ const formatMessageTime = (timestamp: string): string => {
     const minutes = messageDate.getMinutes().toString().padStart(2, '0');
     const timeString = `${hours}:${minutes}`;
 
-    // Kiểm tra xem có phải là ngày hôm nay không
     if (messageDate.toDateString() === now.toDateString()) {
         return timeString;
     }
 
-    // Kiểm tra xem có phải là ngày hôm qua không
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     if (messageDate.toDateString() === yesterday.toDateString()) {
         return `Hôm qua ${timeString}`;
     }
 
-    // Trong tuần này (hiển thị tên thứ)
     const diff = Math.floor((now.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24));
     if (diff < 7) {
         const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
         return `${days[messageDate.getDay()]} ${timeString}`;
     }
 
-    // Ngày khác trong năm nay
     if (messageDate.getFullYear() === now.getFullYear()) {
         const day = messageDate.getDate().toString().padStart(2, '0');
         const month = (messageDate.getMonth() + 1).toString().padStart(2, '0');
@@ -290,7 +286,6 @@ const formatMessageTime = (timestamp: string): string => {
     return `${messageDate.getDate().toString().padStart(2, '0')}/${(messageDate.getMonth() + 1).toString().padStart(2, '0')}/${messageDate.getFullYear()} ${timeString}`;
 };
 
-// Component hiển thị trạng thái tin nhắn
 const MessageStatus = ({ message, currentUserId, chat }: { message: Message, currentUserId: string | null, chat: Chat | null }) => {
     // Chỉ hiển thị status cho tin nhắn của mình
     if (!currentUserId || message.sender._id !== currentUserId) {
@@ -386,7 +381,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             // Mark messages as read when screen comes into focus
             if (currentUserId && chatIdRef.current) {
                 const fetchToken = async () => {
-                    const token = await AsyncStorage.getItem('token');
+                    const token = await AsyncStorage.getItem('authToken');
                     if (token) {
                         markMessagesAsRead(chatIdRef.current, currentUserId, token);
                     }
@@ -409,15 +404,13 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     useEffect(() => {
         // Lấy currentUserId từ token
         const fetchCurrentUser = async () => {
-            const token = await AsyncStorage.getItem('token');
+            const token = await AsyncStorage.getItem('authToken');
             if (token) {
                 try {
-                    const decoded: { id?: string, _id?: string } = jwtDecode(token) as any;
-                    if (decoded && (decoded._id || decoded.id)) {
-                        const userId = decoded._id || decoded.id;
-                        if (userId) {
-                            setCurrentUserId(userId);
-                        }
+                    const decoded: any = jwtDecode(token);
+                    const userId = decoded._id || decoded.id;
+                    if (userId) {
+                        setCurrentUserId(userId);
                     }
                 } catch (err) {
                     console.log('Token decode error:', err);
@@ -436,26 +429,32 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     }, [navigation]);
 
     useEffect(() => {
+        if (!currentUserId) return; // Chưa có userId thì không fetch
         const fetchData = async () => {
             setLoading(true);
-            const token = await AsyncStorage.getItem('token');
-            if (!token) {
+            const authToken = await AsyncStorage.getItem('authToken');
+            if (!authToken) {
                 setLoading(false);
                 return;
             }
 
             try {
-                // Nếu có sẵn chatId từ route.params, sử dụng nó
+                if (!authToken) return;
+
                 if (routeChatId) {
+                    // Nếu đã có chatId, lấy thông tin chat và tin nhắn
+                    const chatRes = await fetch(`${API_BASE_URL}/api/chats/${routeChatId}`, {
+                        headers: { Authorization: `Bearer ${authToken}` },
+                    });
+                    const chatData = await chatRes.json();
+                    setChat(chatData);
+
                     // Lưu chatId vào ref
                     chatIdRef.current = routeChatId;
 
-                    // Lấy thông tin chat
-                    setChat({ _id: routeChatId, participants: [] as User[] });
-
                     // Lấy tin nhắn
-                    const msgRes = await fetch(`${apiUrl}/api/chats/messages/${routeChatId}`, {
-                        headers: { Authorization: `Bearer ${token}` },
+                    const msgRes = await fetch(`${API_BASE_URL}/api/chats/messages/${routeChatId}`, {
+                        headers: { Authorization: `Bearer ${authToken}` },
                     });
                     const msgData = await msgRes.json();
                     if (Array.isArray(msgData)) {
@@ -467,19 +466,19 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
                         // Đánh dấu tin nhắn là đã đọc nếu có currentUserId
                         if (currentUserId && msgData.length > 0) {
-                            markMessagesAsRead(routeChatId, currentUserId, token);
+                            markMessagesAsRead(routeChatId, currentUserId, authToken);
                         }
                     }
 
                     // Thiết lập Socket.IO
-                    setupSocket(token, routeChatId);
+                    setupSocket(authToken, routeChatId);
                 } else {
                     // Tạo chat mới nếu không có sẵn chatId
-                    const res = await fetch(`${apiUrl}/api/chats/create`, {
+                    const res = await fetch(`${API_BASE_URL}/api/chats/create`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            Authorization: `Bearer ${token}`,
+                            Authorization: `Bearer ${authToken}`,
                         },
                         body: JSON.stringify({ participantId: user._id }),
                     });
@@ -490,8 +489,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     chatIdRef.current = chatData._id;
 
                     // Lấy tin nhắn
-                    const msgRes = await fetch(`${apiUrl}/api/chats/messages/${chatData._id}`, {
-                        headers: { Authorization: `Bearer ${token}` },
+                    const msgRes = await fetch(`${API_BASE_URL}/api/chats/messages/${chatData._id}`, {
+                        headers: { Authorization: `Bearer ${authToken}` },
                     });
                     const msgData = await msgRes.json();
                     if (Array.isArray(msgData)) {
@@ -503,12 +502,12 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
                         // Đánh dấu tin nhắn là đã đọc nếu có currentUserId
                         if (currentUserId && msgData.length > 0) {
-                            markMessagesAsRead(chatData._id, currentUserId, token);
+                            markMessagesAsRead(chatData._id, currentUserId, authToken);
                         }
                     }
 
                     // Thiết lập Socket.IO
-                    setupSocket(token, chatData._id);
+                    setupSocket(authToken, chatData._id);
                 }
             } catch (err) {
                 console.error('Error fetching data:', err);
@@ -534,7 +533,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
         try {
             // Sử dụng API mới để đánh dấu tất cả tin nhắn đã đọc
-            const response = await fetch(`${apiUrl}/api/chats/read-all/${chatId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/chats/read-all/${chatId}`, {
                 method: 'PUT',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -567,8 +566,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         }
     };
 
-    const setupSocket = async (token: string | null, chatId: string) => {
-        if (!token) return;
+    const setupSocket = async (authToken: string | null, chatId: string) => {
+        if (!authToken) return;
 
         // Dọn dẹp socket cũ nếu có
         if (socketRef.current) {
@@ -576,8 +575,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         }
 
         // Kết nối Socket.IO với token
-        socketRef.current = io(apiUrl, {
-            query: { token },
+        socketRef.current = io(API_BASE_URL, {
+            query: { token: authToken },
             transports: ['websocket']
         });
 
@@ -589,7 +588,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
             // Đánh dấu tin nhắn là đã đọc khi kết nối thành công
             if (currentUserId) {
-                markMessagesAsRead(chatId, currentUserId, token);
+                markMessagesAsRead(chatId, currentUserId, authToken);
             }
         });
 
@@ -606,7 +605,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
                 // Đánh dấu tin nhắn mới là đã đọc nếu bạn không phải người gửi và đang ở trong màn hình chat
                 if (currentUserId && newMessage.sender._id !== currentUserId && isScreenActive) {
-                    markMessagesAsRead(chatId, currentUserId, token);
+                    markMessagesAsRead(chatId, currentUserId, authToken);
                 }
             }
         });
@@ -639,10 +638,10 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 if (currentUserId) {
                     const fetchFullChatInfo = async () => {
                         try {
-                            const token = await AsyncStorage.getItem('token');
+                            const token = await AsyncStorage.getItem('authToken');
                             if (!token) return;
 
-                            const response = await fetch(`${apiUrl}/api/chats/${chatId}`, {
+                            const response = await fetch(`${API_BASE_URL}/api/chats/${chatId}`, {
                                 headers: { Authorization: `Bearer ${token}` }
                             });
 
@@ -671,14 +670,14 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
     const sendMessage = async () => {
         if (!input.trim() || !chat) return;
-        const token = await AsyncStorage.getItem('token');
+        const token = await AsyncStorage.getItem('authToken');
         const content = input.trim();
 
         // Xóa input trước để UI phản hồi nhanh hơn
         setInput('');
 
         try {
-            const res = await fetch(`${apiUrl}/api/chats/message`, {
+            const res = await fetch(`${API_BASE_URL}/api/chats/message`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -835,7 +834,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     // Hàm upload file/ảnh lên server
     const uploadAttachment = async (file: any, type: 'image' | 'file') => {
         if (!chat) return;
-        const token = await AsyncStorage.getItem('token');
+        const token = await AsyncStorage.getItem('authToken');
         const formData = new FormData();
         formData.append('chatId', chat._id);
         if (type === 'image') {
@@ -852,7 +851,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             } as any);
         }
         try {
-            const res = await fetch(`${apiUrl}/api/chats/upload-attachment`, {
+            const res = await fetch(`${API_BASE_URL}/api/chats/upload-attachment`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -882,20 +881,35 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             },
             async (buttonIndex) => {
                 if (buttonIndex === 0) {
-                    // Chụp ảnh
+                    // Chụp ảnh - kiểm tra quyền trước
+                    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+                    if (cameraStatus !== 'granted') {
+                        Alert.alert('Cần quyền truy cập', 'Vui lòng cấp quyền truy cập camera để chụp ảnh.');
+                        return;
+                    }
+
                     const result = await ImagePicker.launchCameraAsync({
                         mediaTypes: ImagePicker.MediaTypeOptions.Images,
                         quality: 1,
+                        allowsEditing: true,
                     });
                     if (!result.canceled && result.assets && result.assets.length > 0) {
                         setImagesToSend(prev => [...prev, ...result.assets]);
                     }
                 } else if (buttonIndex === 1) {
+                    // Chọn từ thư viện - kiểm tra quyền trước
+                    const { status: libStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                    if (libStatus !== 'granted') {
+                        Alert.alert('Cần quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh.');
+                        return;
+                    }
+
                     // Chọn từ thư viện (cho phép nhiều ảnh)
                     const result = await ImagePicker.launchImageLibraryAsync({
                         mediaTypes: ImagePicker.MediaTypeOptions.Images,
                         allowsMultipleSelection: true,
                         quality: 1,
+                        allowsEditing: false,
                     });
                     if (!result.canceled && result.assets && result.assets.length > 0) {
                         setImagesToSend(prev => [...prev, ...result.assets]);
@@ -946,24 +960,27 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     // Thêm hàm mới để upload nhiều ảnh
     const uploadMultipleImages = async (images: any[]) => {
         if (!chat) return;
-        const token = await AsyncStorage.getItem('token');
+        const token = await AsyncStorage.getItem('authToken');
 
         try {
-            // Chuẩn bị form data với nhiều ảnh
+            console.log('Preparing to upload multiple images:', images.length);
             const formData = new FormData();
             formData.append('chatId', chat._id);
+            formData.append('type', 'multiple-images'); // Thêm type để server biết đây là tin nhắn nhiều ảnh
 
             // Thêm nhiều file vào formData
             images.forEach((img, index) => {
-                formData.append('files', {
+                const fileInfo = {
                     uri: img.uri,
                     name: img.fileName || img.name || `image_${index}.jpg`,
                     type: img.mimeType || img.type || 'image/jpeg',
-                } as any);
+                };
+                console.log(`Adding image ${index} to formData:`, fileInfo);
+                formData.append('files', fileInfo as any);
             });
 
-            // Gửi request đến API mới (cần tạo ở backend)
-            const res = await fetch(`${apiUrl}/api/chats/upload-multiple`, {
+            console.log('Sending request to upload-multiple endpoint');
+            const res = await fetch(`${API_BASE_URL}/api/chats/upload-multiple`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -973,7 +990,13 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             });
 
             const newMessage = await res.json();
+            console.log('Server response for multiple images upload:', newMessage);
+
             if (newMessage && newMessage._id) {
+                console.log('New multiple images message has ID:', newMessage._id);
+                console.log('Message type:', newMessage.type);
+                console.log('FileUrls:', newMessage.fileUrls);
+
                 LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 setMessages(prevMessages => {
                     const exists = prevMessages.some(m => m._id === newMessage._id);
@@ -983,15 +1006,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         } catch (err) {
             console.error("Error uploading multiple images:", err);
             Alert.alert('Lỗi', 'Không thể gửi nhiều ảnh cùng lúc.');
-
-            // Fallback: Nếu API mới không hoạt động, gửi từng ảnh một
-            for (const img of images) {
-                try {
-                    await uploadAttachment(img, 'image');
-                } catch (e) {
-                    console.error("Error uploading single image in fallback:", e);
-                }
-            }
         }
     };
 
@@ -1018,7 +1032,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
                     // Đánh dấu tin nhắn là đã đọc khi quay lại từ background
                     const markAsRead = async () => {
-                        const token = await AsyncStorage.getItem('token');
+                        const token = await AsyncStorage.getItem('authToken');
                         if (token) {
                             markMessagesAsRead(chat._id, currentUserId, token);
                         }
@@ -1041,11 +1055,11 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             if (!chat?._id || !currentUserId) return;
 
             try {
-                const token = await AsyncStorage.getItem('token');
+                const token = await AsyncStorage.getItem('authToken');
                 if (!token) return;
 
                 // Lấy thông tin đầy đủ của chat bao gồm participants
-                const response = await fetch(`${apiUrl}/api/chats/${chat._id}`, {
+                const response = await fetch(`${API_BASE_URL}/api/chats/${chat._id}`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -1066,325 +1080,352 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     }, [chat?._id, currentUserId]);
 
     return (
-        <KeyboardAvoidingView
-            className="flex-1 bg-[#f8f8f8]"
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-            <SafeAreaView style={{ flex: 0 }}>
+        <SafeAreaView style={{ flex: 1 }}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={0}
+            >
                 <View className="flex-row items-center p-3 border-b border-gray-200">
-                    <TouchableOpacity onPress={() => navigationProp.goBack()} className="mr-3">
-                        <Text className="text-3xl text-primary">{'‹'}</Text>
+                    <TouchableOpacity onPress={() => navigationProp.goBack()} className="mr-2">
+                        <MaterialIcons name="arrow-back-ios" size={32} color="#009483" />
                     </TouchableOpacity>
-                    <Image source={{ uri: getAvatar(user) }} className="w-12 h-12 rounded-full mr-3" />
-                    <View>
-                        <Text className="font-bold text-lg">{user.fullname}</Text>
-                        <View className="flex-row items-center mt-1">
-                            <View
-                                style={{
-                                    width: 8,
-                                    height: 8,
-                                    borderRadius: 4,
-                                    backgroundColor: isUserOnline(user._id) ? 'green' : '#bbb',
-                                    marginRight: 4
+                    <View style={{ position: 'relative', marginRight: 12 }}>
+                        <Image
+                            source={{ uri: getAvatar(user) }}
+                            style={{ width: 48, height: 48, borderRadius: 24 }}
+                        />
+                        <View
+                            style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                right: 0,
+                                width: 10,
+                                height: 10,
+                                borderRadius: 5,
+                                backgroundColor: isUserOnline(user._id) ? 'green' : '#bbb',
+                                borderWidth: 2,
+                                borderColor: 'white',
+                            }}
+                        />
+                    </View>
+                    <View style={{ justifyContent: 'center' }}>
+                        <Text className="font-bold text-lg" style={{ marginBottom: 0 }}>{user.fullname}</Text>
+                        <Text style={{ fontSize: 12, color: '#444' }}>
+                            {isUserOnline(user._id) ? 'Đang hoạt động' : getFormattedLastSeen(user._id)}
+                        </Text>
+                    </View>
+                </View>
+
+
+                <LinearGradient
+                    colors={['#F050230D', '#FFCE020D', '#BED2320A', '#00948312']}
+                    style={{ flex: 1 }}
+                >
+
+
+                    <View style={{ flex: 1 }}>
+                        {loading ? (
+                            <View className="flex-1 items-center justify-center">
+                                <Text>Đang tải tin nhắn...</Text>
+                            </View>
+                        ) : (
+                            <FlatList
+                                ref={flatListRef}
+                                data={[...messages].reverse()}
+                                inverted
+                                keyExtractor={(item, index) => item._id || `message-${index}`}
+                                ListHeaderComponent={() => (
+                                    // Hiển thị typing indicator như một tin nhắn đặc biệt
+                                    // Vì FlatList đã bị đảo ngược nên ListHeaderComponent thực tế ở dưới cùng
+                                    otherTyping ? (
+                                        <View className="flex-row justify-start items-end mx-2 mt-4 mb-1">
+                                            <View className="relative mr-1.5">
+                                                <Image
+                                                    source={{ uri: getAvatar(user) }}
+                                                    className="w-8 h-8 rounded-full"
+                                                />
+                                            </View>
+                                            <View className="bg-gray-200 rounded-2xl py-2 px-4 flex-row items-center">
+                                                <TypingIndicator />
+                                            </View>
+                                        </View>
+                                    ) : null
+                                )}
+                                    style={{ flex: 1 }}
+                                    renderItem={({ item, index }) => {
+                                        // Nếu là ảnh đang preview (chưa gửi), không render bubble
+                                        if (!item._id) return null;
+                                        const isMe = currentUserId && item.sender._id === currentUserId;
+                                        const prevMsg = messages[messages.length - index] || {};
+                                        const nextMsg = messages[messages.length - 1 - (index + 1)] || {};
+
+                                        // Cùng người gửi?
+                                        const isPrevSameSender = prevMsg?.sender?._id === item.sender._id;
+                                        const isNextSameSender = nextMsg?.sender?._id === item.sender._id;
+
+                                        // isFirst: trên cùng chuỗi (không cùng sender với tin nhắn phía trên)
+                                        const isFirst = !isPrevSameSender;
+                                        // isLast: dưới cùng chuỗi (không cùng sender với tin nhắn phía dưới)
+                                        const isLast = !isNextSameSender;
+
+                                        // Tính border radius theo yêu cầu
+                                        let borderRadiusStyle = {};
+                                        if (isMe) {
+                                            if (isFirst && isLast) {
+                                                borderRadiusStyle = {
+                                                    borderTopLeftRadius: 20,
+                                                    borderTopRightRadius: 20,
+                                                    borderBottomRightRadius: 20,
+                                                    borderBottomLeftRadius: 20,
+                                                };
+                                            } else if (isLast) {
+                                                borderRadiusStyle = {
+                                                    borderTopLeftRadius: 20,
+                                                    borderTopRightRadius: 20,
+                                                    borderBottomRightRadius: 4,
+                                                    borderBottomLeftRadius: 20,
+                                                };
+                                            } else if (isFirst) {
+                                                borderRadiusStyle = {
+                                                    borderTopLeftRadius: 20,
+                                                    borderTopRightRadius: 4,
+                                                    borderBottomRightRadius: 20,
+                                                    borderBottomLeftRadius: 20,
+                                                };
+                                            } else {
+                                                borderRadiusStyle = {
+                                                    borderTopLeftRadius: 20,
+                                                    borderTopRightRadius: 4,
+                                                    borderBottomRightRadius: 4,
+                                                    borderBottomLeftRadius: 20,
+                                                };
+                                            }
+                                        } else {
+                                            if (isFirst && isLast) {
+                                                borderRadiusStyle = {
+                                                    borderTopLeftRadius: 20,
+                                                    borderTopRightRadius: 20,
+                                                    borderBottomRightRadius: 20,
+                                                    borderBottomLeftRadius: 20,
+                                                };
+                                            } else if (isLast) {
+                                                borderRadiusStyle = {
+                                                    borderTopLeftRadius: 20,
+                                                    borderTopRightRadius: 20,
+                                                    borderBottomRightRadius: 20,
+                                                    borderBottomLeftRadius: 4,
+                                                };
+                                            } else if (isFirst) {
+                                                borderRadiusStyle = {
+                                                    borderTopLeftRadius: 4,
+                                                    borderTopRightRadius: 20,
+                                                    borderBottomRightRadius: 20,
+                                                    borderBottomLeftRadius: 4,
+                                                };
+                                            } else {
+                                                borderRadiusStyle = {
+                                                    borderTopLeftRadius: 4,
+                                                    borderTopRightRadius: 20,
+                                                    borderBottomRightRadius: 20,
+                                                    borderBottomLeftRadius: 4,
+                                                };
+                                            }
+                                        }
+
+                                        // Avatar chỉ hiện ở isLast của chuỗi người nhận
+                                        const showAvatar = !isMe && isFirst;
+
+                                        // --- Add isImageMsg here ---
+                                        const isImageMsg = item.type === 'image' || item.type === 'multiple-images';
+
+                                        return (
+                                            <View>
+                                                <View style={{ flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', marginBottom: isLast ? 8 : 2 }}>
+                                                    {showAvatar ? (
+                                                        <Image source={{ uri: getAvatar(item.sender) }} style={{ width: 40, height: 40, borderRadius: 9999, marginLeft: 4, marginRight: 4, padding: 2 }} />
+                                                    ) : (
+                                                        <View style={{ width: isMe ? 8 : 40, marginLeft: 4, marginRight: 4 }} />
+                                                    )}
+                                                    <View style={{
+                                                        backgroundColor: isImageMsg
+                                                            ? 'transparent'
+                                                            : (isMe ? '#009483' : '#F8F8F8'),
+                                                        paddingVertical: isImageMsg ? 0 : 8,
+                                                        paddingHorizontal: isImageMsg ? 0 : 14,
+                                                        maxWidth: '75%',
+                                                        position: 'relative',
+                                                        ...borderRadiusStyle,
+                                                    }}>
+                                                        {/* Message content rendering by type */}
+                                                        {item.type === 'file' && item.fileUrl && (
+                                                            <TouchableOpacity onPress={() => Linking.openURL(item.fileUrl)}>
+                                                                <Text style={{ color: '#0066CC', textDecorationLine: 'underline' }}>Tệp đính kèm</Text>
+                                                            </TouchableOpacity>
+                                                        )}
+                                                        {item.type === 'image' && item.fileUrl && (
+                                                            <TouchableOpacity onPress={() => {
+                                                                const fullUri = item.fileUrl.startsWith('http')
+                                                                    ? item.fileUrl
+                                                                    : `${API_BASE_URL}${item.fileUrl}`;
+                                                                setViewerImages([{ uri: fullUri }]);
+                                                                setViewerInitialIndex(0);
+                                                                setViewerVisible(true);
+                                                            }}>
+                                                                <Image 
+                                                                    source={{
+                                                                        uri: item.fileUrl.startsWith('http')
+                                                                            ? item.fileUrl
+                                                                            : `${API_BASE_URL}${item.fileUrl}`
+                                                                    }}
+                                                                    style={{ width: 200, height: 150, borderRadius: 12 }}
+                                                                    resizeMode="cover"
+                                                                />
+                                                            </TouchableOpacity>
+                                                        )}
+                                                        {item.type === 'multiple-images' && item.fileUrls && (
+                                                            <ImageGrid
+                                                                images={item.fileUrls.map((url: string) => url.startsWith('http') ? url : `${API_BASE_URL}${url}`)}
+                                                                onPress={(index) => {
+                                                                    console.log('Opening image viewer with images:', item.fileUrls);
+                                                                    setViewerImages(item.fileUrls.map((url: string) => ({
+                                                                        uri: url.startsWith('http') ? url : `${API_BASE_URL}${url}`
+                                                                    })));
+                                                                    setViewerInitialIndex(index);
+                                                                    setViewerVisible(true);
+                                                                }} 
+                                                            />
+                                                        )}
+                                                        {item.type === 'text' && (
+                                                            <Text style={{ color: isMe ? 'white' : '#222', fontSize: 16 }}>{item.content}</Text>
+                                                        )}
+                                                        <Text style={{ color: isMe ? '#fff' : '#888', fontSize: 12, marginTop: 4 }}>{formatMessageTime(item.createdAt)}</Text>
+                                                    </View>
+                                                </View>
+                                                {isMe && item._id === messages[messages.length - 1]?._id && (
+                                                    <View style={{
+                                                        alignSelf: 'flex-end',
+                                                        flexDirection: 'row',
+                                                        backgroundColor: '#2c2c2c',
+                                                        paddingHorizontal: 8,
+                                                        paddingVertical: 4,
+                                                        borderRadius: 12,
+                                                        marginTop: 4,
+                                                        marginRight: 16,
+                                                    }}>
+                                                        <MessageStatus message={item} currentUserId={currentUserId} chat={chat} />
+                                                        <Text style={{ color: '#fff', fontSize: 12, marginLeft: 4 }}>
+                                                            {item._id && item.readBy.includes(currentUserId) && chat && chat.participants.filter(p => p._id !== currentUserId).every(p => item.readBy.includes(p._id))
+                                                                ? 'Đã đọc'
+                                                                : item._id
+                                                                    ? 'Đã gửi'
+                                                                    : 'Đang gửi'}
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        );
+                                    }}
+                                    contentContainerStyle={{
+                                        paddingVertical: 10,
+                                    paddingBottom: insets.bottom + 70, // space for input
                                 }}
                             />
-                            <Text
-                                className={`text-xs ${isUserOnline(user._id) ? 'text-green-600' : 'text-gray-400'}`}
+                        )}
+                    </View>
+
+                    {/* Input chat */}
+                    <View
+                        style={{
+                            borderRadius: 32,
+                            paddingHorizontal: 20,
+                            paddingVertical: 6,
+                            backgroundColor: 'white',
+                            width: '100%',
+                            minHeight: 40,
+                        }}
+                    >
+                        {/* Dòng preview ảnh (nếu có) */}
+                        {imagesToSend.length > 0 && (
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={{
+                                    alignItems: 'center',
+                                    marginBottom: 8,
+                                    paddingVertical: 4
+                                }}
+                                style={{ maxHeight: 64 }}
                             >
-                                {isUserOnline(user._id) ? 'Đang hoạt động' : getFormattedLastSeen(user._id)}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-            </SafeAreaView>
-
-            <View style={{ flex: 1 }}>
-                {loading ? (
-                    <View className="flex-1 items-center justify-center">
-                        <Text>Đang tải tin nhắn...</Text>
-                    </View>
-                ) : (
-                    <FlatList
-                        ref={flatListRef}
-                            data={[...messages].reverse()}
-                            inverted
-                            keyExtractor={(item, index) => item._id || `message-${index}`}
-                            ListHeaderComponent={() => (
-                                // Hiển thị typing indicator như một tin nhắn đặc biệt
-                                // Vì FlatList đã bị đảo ngược nên ListHeaderComponent thực tế ở dưới cùng
-                                otherTyping ? (
-                                    <View className="flex-row justify-start items-end mx-2 mt-4 mb-6">
-                                        <View className="relative mr-1.5">
-                                            <Image
-                                                source={{ uri: getAvatar(user) }}
-                                                className="w-8 h-8 rounded-full"
-                                            />
-                                        </View>
-                                        <View className="bg-gray-200 rounded-2xl py-2 px-4 flex-row items-center">
-                                            <TypingIndicator />
-                                        </View>
-                                    </View>
-                                ) : null
-                            )}
-                            style={{ flex: 1, marginBottom: bottomSheetHeight }}
-                            renderItem={({ item, index }) => {
-                                const isMe = currentUserId && item.sender._id === currentUserId;
-
-                                // Xác định nếu tin nhắn tiếp theo cùng người gửi hay không
-                                const nextIndex = index + 1;
-                                const isNextSameSender = nextIndex < messages.length &&
-                                    messages[messages.length - 1 - nextIndex]?.sender._id === item.sender._id;
-
-                                // Hiển thị avatar của người **khác** chỉ ở tin nhắn đầu tiên trong chuỗi liên tiếp
-                                // Lưu ý: Vì inverted nên cách xác định isLast thay đổi
-                                let showAvatar = false;
-                                if (!isMe) {
-                                    // Với FlatList đảo ngược, tin nhắn cuối cùng trong một chuỗi
-                                    // bây giờ sẽ là tin nhắn đầu tiên khi hiển thị
-                                    const isLast = 
-                                        index === 0 ||
-                                        (index < messages.length - 1 && messages[messages.length - 1 - (index + 1)].sender._id !== item.sender._id);
-                                    showAvatar = isLast;
-                                }
-
-                                // Hiển thị nội dung tin nhắn
-                                let messageContent = null;
-                                let isMediaContent = false;
-
-                                if (item.fileUrls && item.fileUrls.length > 0) {
-                                    // Đây là tin nhắn hình ảnh nhiều ảnh
-                                    isMediaContent = true;
-                                    const imageUrls = item.fileUrls.map((url: string) => ({ uri: apiUrl + url }));
-                                    messageContent = (
-                                        <ImageGrid
-                                            images={imageUrls.map((img: { uri: string }) => img.uri)}
-                                            onPress={(index) => {
-                                                setViewerImages(imageUrls);
-                                                setViewerInitialIndex(index);
-                                                setViewerVisible(true);
-                                            }}
-                                        />
-                                    );
-                                } else if (item.type === 'image' && item.fileUrl) {
-                                    // Đây là tin nhắn hình ảnh một ảnh
-                                    isMediaContent = true;
-                                    messageContent = (
+                                {imagesToSend.map((img, idx) => (
+                                    <View key={idx} style={{ position: 'relative', marginRight: 8 }}>
+                                        <Image source={{ uri: img.uri }} style={{ width: 48, height: 48, borderRadius: 8 }} />
                                         <TouchableOpacity
-                                            onPress={() => {
-                                                setViewerImages([{ uri: apiUrl + item.fileUrl }]);
-                                                setViewerInitialIndex(0);
-                                                setViewerVisible(true);
+                                            onPress={() => removeImage(idx)}
+                                            style={{
+                                                position: 'absolute',
+                                                top: -5,
+                                                right: -5,
+                                                backgroundColor: '#fff',
+                                                borderRadius: 10,
+                                                padding: 2,
                                             }}
                                         >
-                                            <Image
-                                                source={{ uri: apiUrl + item.fileUrl }}
-                                                style={{ width: 180, height: 180, borderRadius: 12 }}
-                                                resizeMode="cover"
-                                            />
+                                            <MaterialIcons name="close" size={16} color="#002855" />
                                         </TouchableOpacity>
-                                    );
-                                } else if (item.type === 'file' && item.fileUrl) {
-                                    messageContent = (
-                                        <TouchableOpacity onPress={() => Linking.openURL(apiUrl + item.fileUrl)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                            <MaterialIcons name="attach-file" size={22} color="#002855" />
-                                            <Text style={{ color: '#002855', textDecorationLine: 'underline', marginLeft: 4 }} numberOfLines={1}>{item.content}</Text>
-                                        </TouchableOpacity>
-                                    );
-                                } else {
-                                    messageContent = (
-                                        <Text className={`${isMe ? 'text-white' : 'text-gray-800'} text-base`}>
-                                            {item.content}
-                                        </Text>
-                                    );
-                                }
-
-                                return (
-                                    <View
-                                        key={`msg-${item._id || index}`}
-                                        className={`flex-row ${isMe ? 'justify-end' : 'justify-start'} items-end mx-2`}
-                                        style={{
-                                            marginTop: 2,
-                                            marginBottom: isNextSameSender ? 2 : 8
-                                        }}
-                                    >
-                                        {/* Avatar (only for other user) → show on first bubble in a sequence when using inverted FlatList,
-                                otherwise render placeholder to keep left indent constant */}
-                                        {!isMe && (
-                                            showAvatar ? (
-                                                <View className="relative mr-1.5">
-                                                    <Image
-                                                        source={{ uri: getAvatar(item.sender) }}
-                                                        className="w-8 h-8 rounded-full"
-                                                    />
-                                                </View>
-                                            ) : (
-                                                // placeholder so earlier bubbles align with avatar space
-                                                <View className="w-8 mr-1.5" />
-                                            )
-                                        )}
-
-                                        <View style={{ maxWidth: '75%' }}>
-                                            {isMediaContent ? (
-                                                <View>
-                                                    {messageContent}
-                                                    {/* Timestamp và status bên dưới ảnh */}
-                                                    <View style={{
-                                                        flexDirection: 'row',
-                                                        alignItems: 'center',
-                                                        justifyContent: isMe ? 'flex-end' : 'flex-start',
-                                                        marginTop: 4,
-                                                        opacity: 0.8
-                                                    }}>
-                                                        <Text style={{
-                                                            fontSize: 10,
-                                                            color: '#666666',
-                                                            marginRight: isMe ? 4 : 0
-                                                        }}>
-                                                            {formatMessageTime(item.createdAt)}
-                                                        </Text>
-
-                                                        {isMe && <MessageStatus message={item} currentUserId={currentUserId} chat={chat} />}
-                                                    </View>
-                                                </View>
-                                            ) : (
-                                                    <View
-                                                        className={`${isMe ? 'bg-[#002855]' : 'bg-gray-200'} rounded-2xl py-2 px-3.5`}
-                                                    >
-                                                        {messageContent}
-
-                                                    {/* Timestamp và status bên trong bubble */}
-                                                    <View style={{
-                                                        flexDirection: 'row',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'flex-end',
-                                                        marginTop: 4,
-                                                        opacity: 0.8
-                                                    }}>
-                                                        <Text style={{
-                                                            fontSize: 10,
-                                                            color: isMe ? '#ffffff' : '#666666',
-                                                            marginRight: isMe ? 4 : 0
-                                                        }}>
-                                                            {formatMessageTime(item.createdAt)}
-                                                        </Text>
-
-                                                        {isMe && <MessageStatus message={item} currentUserId={currentUserId} chat={chat} />}
-                                                    </View>
-                                                </View>
-                                            )}
-                                        </View>
-                                        {isMe && <View className="w-8" />}
                                     </View>
-                                );
-                            }}
-                        contentContainerStyle={{
-                            paddingVertical: 10,
-                            paddingBottom: 10
-                        }}
-                    />
-                )}
-            </View>
+                                ))}
+                            </ScrollView>
+                        )}
 
-            {/* Bottom chat input container */}
-            <View
-                style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
-                    backgroundColor: 'white',
-                    borderTopWidth: 1,
-                    borderColor: '#e5e5e5',
-                    zIndex: 100,
-                    paddingHorizontal: 12,
-                    paddingTop: 8,
-                    height: imagesToSend.length > 0 ? bottomSheetHeight + 80 : bottomSheetHeight
-                }}
-            >
-                {/* Preview ảnh đã chọn */}
-                {imagesToSend.length > 0 && (
-                    <View style={{ height: 70, marginBottom: 10 }}>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ alignItems: 'center' }}
-                        >
-                            {imagesToSend.map((img, idx) => (
-                                <View key={idx} style={{ position: 'relative', marginRight: 8 }}>
-                                    <Image source={{ uri: img.uri }} style={{ width: 56, height: 56, borderRadius: 8 }} />
-                                    <TouchableOpacity
-                                        onPress={() => removeImage(idx)}
-                                        style={{
-                                            position: 'absolute',
-                                            top: -5,
-                                            right: -5,
-                                            backgroundColor: '#fff',
-                                            borderRadius: 10,
-                                            padding: 2,
-                                            elevation: 2,
-                                            shadowColor: '#000',
-                                            shadowOffset: { width: 0, height: 1 },
-                                            shadowOpacity: 0.2,
-                                            shadowRadius: 1
-                                        }}
-                                    >
-                                        <MaterialIcons name="close" size={16} color="#002855" />
+                        {/* Dòng chứa TextInput và các nút */}
+                        <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            borderRadius: 24,
+                            backgroundColor: 'white',
+                            width: '100%',
+                            minHeight: 44,
+                        }}>
+                            <TouchableOpacity style={{ marginRight: 10 }}>
+                                <FontAwesome name="smile-o" size={22} color="#002855" />
+                            </TouchableOpacity>
+                            <TextInput
+                                value={input}
+                                onChangeText={handleInputChange}
+                                placeholder="Nhập tin nhắn..."
+                                style={{
+                                    flex: 1,
+                                    fontSize: 16,
+                                    color: '#002855',
+                                    paddingVertical: 8,
+                                    minHeight: 24,
+                                    backgroundColor: 'white',
+                                }}
+                                multiline={false}
+                                autoFocus={false}
+                            />
+                            {/* Hiển thị nút chọn hình ảnh và file chỉ khi không đang typing */}
+                            {!input.trim() && (
+                                <>
+                                    <TouchableOpacity style={{ marginHorizontal: 10 }} onPress={handleImageAction}>
+                                        <Ionicons name="image-outline" size={24} color="#002855" />
                                     </TouchableOpacity>
-                                </View>
-                            ))}
-                        </ScrollView>
+                                    <TouchableOpacity style={{ marginLeft: 4 }} onPress={handlePickFile}>
+                                        <MaterialIcons name="attach-file" size={24} color="#002855" />
+                                    </TouchableOpacity>
+                                </>
+                            )}
+
+                            {(input.trim() !== '' || imagesToSend.length > 0) && (
+                                <TouchableOpacity onPress={handleSend} style={{ marginLeft: 12 }}>
+                                    <Ionicons name="send" size={24} color="#F05023" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
-                )}
-
-                <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    flex: 1,
-                    borderRadius: 24,
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    minHeight: 44,
-                }}>
-                    <TouchableOpacity style={{ marginRight: 10 }}>
-                        <FontAwesome name="smile-o" size={22} color="#002855" />
-                    </TouchableOpacity>
-
-                    <TextInput
-                        value={input}
-                        onChangeText={handleInputChange}
-                        placeholder="Nhập tin nhắn..."
-                        style={{
-                            flex: 1,
-                            fontSize: 16,
-                            color: '#002855',
-                            paddingVertical: 0,
-                            minHeight: 24
-                        }}
-                        multiline={false}
-                        autoFocus={false}
-                    />
-
-                    {/* Hiển thị nút chọn hình ảnh và file chỉ khi không đang typing */}
-                    {!input.trim() && (
-                        <>
-                            <TouchableOpacity style={{ marginHorizontal: 10 }} onPress={handleImageAction}>
-                                <Ionicons name="image-outline" size={24} color="#002855" />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={{ marginLeft: 4 }} onPress={handlePickFile}>
-                                <MaterialIcons name="attach-file" size={24} color="#002855" />
-                            </TouchableOpacity>
-                        </>
-                    )}
-
-                    {(input.trim() !== '' || imagesToSend.length > 0) && (
-                        <TouchableOpacity onPress={handleSend} style={{ marginLeft: 12 }}>
-                            <Ionicons name="send" size={24} color="#002855" />
-                        </TouchableOpacity>
-                    )}
-                </View>
-            </View>
+                </LinearGradient>
+            </KeyboardAvoidingView>
 
             {/* Thêm component ImageViewer vào render */}
             <ImageViewing
@@ -1412,7 +1453,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     </View>
                 )}
             />
-        </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 };
 

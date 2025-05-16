@@ -427,4 +427,75 @@ exports.deleteAllNotifications = async (req, res) => {
             message: 'Đã xảy ra lỗi khi xóa tất cả thông báo'
         });
     }
+};
+
+/**
+ * Gửi thông báo khi có tin nhắn chat mới
+ */
+exports.sendNewChatMessageNotification = async (message, senderName, chat) => {
+    try {
+        // Lấy thông tin người gửi và người nhận
+        const senderId = message.sender.toString();
+
+        // Lọc ra các người dùng trong cuộc trò chuyện trừ người gửi
+        const recipientIds = chat.participants
+            .filter(participantId => participantId.toString() !== senderId)
+            .map(participantId => participantId.toString());
+
+        if (recipientIds.length === 0) {
+            console.log('Không có người nhận thông báo cho tin nhắn');
+            return;
+        }
+
+        // Tìm thông tin chi tiết của người nhận
+        const recipients = await User.find({ _id: { $in: recipientIds } });
+
+        if (recipients.length === 0) {
+            console.log('Không tìm thấy thông tin người nhận');
+            return;
+        }
+
+        // Tạo nội dung thông báo
+        let title = `${senderName}`;
+        let body = '';
+
+        // Tùy chỉnh nội dung tùy theo loại tin nhắn
+        if (message.type === 'text') {
+            body = message.content.length > 30
+                ? `${message.content.substring(0, 30)}...`
+                : message.content;
+        } else if (message.type === 'image') {
+            body = 'Đã gửi một hình ảnh';
+        } else if (message.type === 'multiple-images') {
+            body = `Đã gửi ${message.fileUrls.length} hình ảnh`;
+        } else if (message.type === 'file') {
+            body = 'Đã gửi một tệp đính kèm';
+        }
+
+        const data = {
+            chatId: chat._id.toString(),
+            messageId: message._id.toString(),
+            senderId: senderId,
+            type: 'new_chat_message'
+        };
+
+        // Lưu thông báo vào cơ sở dữ liệu
+        await saveNotificationToDatabase(recipientIds, title, body, data, "chat");
+
+        // Lấy danh sách token thiết bị từ người nhận
+        const recipientTokens = recipients
+            .filter(user => user.deviceToken)
+            .map(user => user.deviceToken);
+
+        if (recipientTokens.length === 0) {
+            console.log('Không có người nhận nào đăng ký thiết bị nhận thông báo');
+            return;
+        }
+
+        // Gửi thông báo đẩy
+        await sendPushNotifications(recipientTokens, title, body, data);
+        console.log(`Đã gửi thông báo tin nhắn mới đến ${recipientTokens.length} người nhận`);
+    } catch (error) {
+        console.error('Lỗi khi gửi thông báo tin nhắn chat mới:', error);
+    }
 }; 

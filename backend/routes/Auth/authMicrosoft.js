@@ -108,7 +108,7 @@ router.get("/microsoft/callback", (req, res, next) => {
       const token = jwt.sign(
         { id: user._id, role: user.role },
         process.env.JWT_SECRET,
-        { expiresIn: "1d" }
+        { expiresIn: "365d" }
       );
       // Nếu đăng nhập từ mobile và có redirectUri thì chuyển về mobile
       if (isMobile && redirectUri) {

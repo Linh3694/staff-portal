@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "WellWorkspace",
-    "slug": "wellworkspace",
+    "slug": "workspace",
     "version": "1.0.0",
     "web": {
       "favicon": "./src/assets/favicon.png"
@@ -36,8 +36,12 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
+          "remote-notification",
           "remote-notification"
-        ]
+        ],
+        "NSCameraUsageDescription": "Ứng dụng cần quyền truy cập camera để chụp ảnh và gửi trong tin nhắn",
+        "NSPhotoLibraryUsageDescription": "Ứng dụng cần quyền truy cập thư viện ảnh để gửi ảnh trong tin nhắn",
+        "NSMicrophoneUsageDescription": "Ứng dụng cần quyền truy cập microphone để ghi âm"
       }
     },
     "android": {
@@ -48,7 +52,12 @@
       "package": "com.hailinh.n23.workspace",
       "permissions": [
         "NOTIFICATIONS",
-        "VIBRATE"
+        "VIBRATE",
+        "NOTIFICATIONS",
+        "VIBRATE",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "fonts": [
@@ -79,6 +88,12 @@
       "eas": {
         "projectId": "f6365a6d-3c57-4b54-aaa8-119f05e3698e"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f6365a6d-3c57-4b54-aaa8-119f05e3698e"
     }
   }
 }

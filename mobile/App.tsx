@@ -7,6 +7,9 @@ import * as Notifications from 'expo-notifications';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { RootStackParamList } from './src/navigation/AppNavigator';
 import 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from './src/config/constants';
+import { AuthProvider } from './src/context/AuthContext';
 
 import './global.css';
 
@@ -38,7 +41,9 @@ export default function App() {
   const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
     const data = response.notification.request.content.data as {
       ticketId?: string;
+      chatId?: string;
       type?: string;
+      senderId?: string;
     };
     console.log('Phản hồi thông báo:', data);
 
@@ -52,6 +57,42 @@ export default function App() {
         setInitialRoute({
           name: 'TicketDetail',
           params: { ticketId: data.ticketId }
+        });
+      }
+    } else if (data?.type === 'new_chat_message') {
+      // Xử lý khi nhận thông báo tin nhắn chat
+      if (navigationRef.current && data.chatId && data.senderId) {
+        // Tìm thông tin người gửi
+        const fetchUserAndNavigate = async () => {
+          try {
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) return;
+
+            const response = await fetch(`${API_BASE_URL}/api/users/${data.senderId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+              const userData = await response.json();
+              navigationRef.current?.navigate('ChatDetail', {
+                chatId: data.chatId,
+                user: userData
+              });
+            }
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+          }
+        };
+
+        fetchUserAndNavigate();
+      } else if (data.chatId && data.senderId) {
+        // Lưu thông tin để điều hướng sau khi khởi động
+        setInitialRoute({
+          name: 'ChatInit',
+          params: {
+            chatId: data.chatId,
+            senderId: data.senderId
+          }
         });
       }
     }
@@ -93,13 +134,15 @@ export default function App() {
   }
 
   return (
-    <OnlineStatusProvider>
-      <NavigationContainer
-        ref={navigationRef}
-      >
-        <AppNavigator />
-      </NavigationContainer>
-      <StatusBar style="auto" />
-    </OnlineStatusProvider>
+    <AuthProvider>
+      <OnlineStatusProvider>
+        <NavigationContainer
+          ref={navigationRef}
+        >
+          <AppNavigator />
+        </NavigationContainer>
+        <StatusBar style="auto" />
+      </OnlineStatusProvider>
+    </AuthProvider>
   );
 }

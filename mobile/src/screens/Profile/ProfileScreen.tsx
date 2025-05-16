@@ -3,11 +3,14 @@ import { View, Text, SafeAreaView, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuth } from '../../context/AuthContext';
 
 const ProfileScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<any>>();
+    const { logout } = useAuth();
+
     const handleLogout = async () => {
-        await AsyncStorage.removeItem('token');
+        await logout();
         navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     };
     return (

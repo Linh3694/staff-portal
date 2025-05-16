@@ -1,13 +1,13 @@
-// API URLs
+
 // Thay đổi IP này thành IP của máy chủ của bạn
-export const API_BASE_URL = 'http://localhost:5001';
+export const API_BASE_URL = 'http://10.1.33.214:5001';
 
 // Các địa chỉ API khác để kiểm tra thử
 export const API_URLS = {
     LOCAL: 'http://localhost:5001',
     LOCAL_NETWORK: 'http://10.1.33.214:5001',
-    DEV: 'https://api-dev.360wisers.com',
-    PROD: 'https://api.360wisers.com'
+    DEV: 'https://360wisers.wellspring.edu.vn',
+    PROD: 'https://360wisers.wellspring.edu.vn'
 };
 
 // Ticket constants

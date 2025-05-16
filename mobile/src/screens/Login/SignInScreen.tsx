@@ -11,6 +11,8 @@ import MicrosoftIcon from '../../assets/microsoft.svg';
 import VisibilityIcon from '../../assets/visibility.svg';
 import WarningIcon from '../../assets/warning.svg';
 import { ROUTES } from '../../constants/routes';
+import { API_BASE_URL } from '../../config/constants';
+import { useAuth } from '../../context/AuthContext';
 
 const schema = yup.object().shape({
     email: yup.string().required('Email là bắt buộc').email('Email không hợp lệ'),
@@ -25,18 +27,17 @@ const SignInScreen = () => {
     const [loading, setLoading] = useState(false);
     const [loginError, setLoginError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const { login } = useAuth();
 
     const { request, promptAsync } = useMicrosoftLogin((token) => {
         // Lưu token, chuyển màn hình, v.v.
     });
 
-    const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001';
-
     const onSubmit = async (data: any) => {
         setLoading(true);
         setLoginError('');
         try {
-            const response = await fetch(`${apiUrl}/api/auth/login`, {
+            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: data.email, password: data.password })
@@ -48,33 +49,21 @@ const SignInScreen = () => {
                 console.error('Lỗi đăng nhập:', resData.message);
             } else {
                 try {
-                    // Lưu token vào AsyncStorage
-                    if (resData.token) {
-                        await AsyncStorage.setItem('authToken', resData.token);
-                    } else {
-                        console.warn('Không có token từ API, đang tạo token giả');
-                        await AsyncStorage.setItem('authToken', `fake_token_${Date.now()}`);
-                    }
-
                     // Xử lý thông tin người dùng
                     let userId = '';
                     let userFullname = '';
-                    let userRole = 'user'; // Mặc định là user nếu không có vai trò
+                    let userRole = 'user';
 
                     if (resData.user) {
-                        // Xử lý thông tin người dùng khi có dữ liệu
+                        // Xử lý thông tin người dùng
                         const user = resData.user;
-
                         // Xử lý ID
                         userId = user._id || user.id || `user_${Date.now()}`;
-
                         // Xử lý tên hiển thị
                         userFullname = user.fullname || user.name || user.username || data.email.split('@')[0];
-
                         // Xử lý vai trò
                         userRole = user.role || 'user';
 
-                        // Đảm bảo đối tượng user có đầy đủ thông tin cần thiết
                         const completeUser = {
                             ...user,
                             _id: userId,
@@ -82,8 +71,8 @@ const SignInScreen = () => {
                             role: userRole
                         };
 
-                        // Lưu thông tin user đã hoàn thiện
-                        await AsyncStorage.setItem('user', JSON.stringify(completeUser));
+                        // Sử dụng context để đăng nhập
+                        await login(resData.token, completeUser);
                     } else {
                         // Tạo thông tin người dùng mặc định nếu không có
                         userId = `user_${Date.now()}`;
@@ -99,18 +88,6 @@ const SignInScreen = () => {
                         await AsyncStorage.setItem('user', JSON.stringify(defaultUser));
                         console.warn('Không có thông tin user từ API, đã tạo thông tin mặc định');
                     }
-
-                    // Luôn lưu các thông tin quan trọng riêng lẻ để dễ truy cập
-                    await AsyncStorage.setItem('userId', userId);
-                    await AsyncStorage.setItem('userFullname', userFullname);
-                    await AsyncStorage.setItem('userRole', userRole);
-
-                    console.log('Đã lưu thông tin người dùng:', {
-                        authToken: resData.token || `fake_token_${Date.now()}`,
-                        userId,
-                        userFullname,
-                        userRole
-                    });
 
                     // Chuyển đến màn hình chính
                     navigation.reset({

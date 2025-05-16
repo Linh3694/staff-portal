@@ -3,8 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 import io from 'socket.io-client';
 import { Platform, AppState, AppStateStatus } from 'react-native';
+import { API_BASE_URL } from '../config/constants';
 
-const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001';
+// Sử dụng API_BASE_URL từ constants để đảm bảo nhất quán giữa các phần của ứng dụng
 
 // Map để lưu trạng thái online và last seen
 interface OnlineStatusMap {
@@ -93,7 +94,7 @@ export const OnlineStatusProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // Tách riêng logic khởi tạo socket 
     const initializeSocket = async () => {
         try {
-            const token = await AsyncStorage.getItem('token');
+            const token = await AsyncStorage.getItem('authToken');
             if (!token) return;
 
             const decoded: any = jwtDecode(token);
@@ -112,7 +113,7 @@ export const OnlineStatusProvider: React.FC<{ children: React.ReactNode }> = ({ 
             }
 
             // Khởi tạo socket mới
-            socketRef.current = io(apiUrl, {
+            socketRef.current = io(API_BASE_URL, {
                 query: { token },
                 transports: ['websocket'],
                 reconnection: true,

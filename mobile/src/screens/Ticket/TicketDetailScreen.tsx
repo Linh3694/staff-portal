@@ -8,15 +8,25 @@ import {
     ActivityIndicator,
     TextInput,
     Image,
-    StyleSheet
+    StyleSheet,
+    StatusBar,
+    Alert
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { RootStackParamList } from '../../navigation/AppNavigator';
+import { API_BASE_URL } from '../../config/constants';
+import TicketInformation from './components/TicketInformation';
+import TicketProcessing from './components/TicketProcessing';
+import TicketChat from './components/TicketChat';
+import TicketHistory from './components/TicketHistory';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-type TicketDetailScreenRouteProp = RouteProp<RootStackParamList, 'TicketDetail'>;
+
+type Props = NativeStackScreenProps<RootStackParamList, 'TicketDetail'>;
 
 interface Message {
     _id: string;
@@ -40,11 +50,12 @@ interface Ticket {
     creator: {
         _id: string;
         fullname: string;
+        email: string;
     };
-    assignedTo?: {
+    assignedTo: {
         _id: string;
         fullname: string;
-        avatarUrl?: string;
+        email: string;
     };
     createdAt: string;
     updatedAt: string;
@@ -64,9 +75,9 @@ interface Ticket {
     };
 }
 
-const TicketDetailScreen = () => {
-    const navigation = useNavigation();
-    const route = useRoute<TicketDetailScreenRouteProp>();
+const TicketDetailScreen: React.FC<Props> = ({ route, navigation }) => {
+    const { ticketId } = route.params;
+    const [activeTab, setActiveTab] = useState('information');
     const [ticket, setTicket] = useState<Ticket | null>(null);
     const [loading, setLoading] = useState(true);
     const [newMessage, setNewMessage] = useState('');
@@ -85,21 +96,17 @@ const TicketDetailScreen = () => {
         };
         getUser();
 
-        if (route.params?.ticketId) {
-            fetchTicketDetails(route.params.ticketId);
+        if (ticketId) {
+            fetchTicketDetails(ticketId);
         }
-    }, [route.params?.ticketId]);
+    }, [ticketId]);
 
     const fetchTicketDetails = async (ticketId: string) => {
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem('authToken');
-
-            console.log('Thông tin token:', token, 'TicketId:', ticketId);
-
             if (!token) {
-                console.log('Sử dụng mock data vì token không tồn tại');
-                // Mock data khi không có token
+                console.log('Không có token, sử dụng mock data');
                 setTicket({
                     _id: ticketId,
                     ticketCode: 'Ticket-001',
@@ -109,64 +116,38 @@ const TicketDetailScreen = () => {
                     priority: 'High',
                     creator: {
                         _id: '123',
-                        fullname: 'Nguyễn Văn A'
+                        fullname: 'Nguyễn Văn A',
+                        email: 'nguyenvana@example.com'
                     },
                     assignedTo: {
                         _id: '456',
                         fullname: 'Hoàng Thị Thu Hiền',
-                        avatarUrl: ''
+                        email: 'hoangthithuien@example.com'
                     },
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
-                    messages: [
-                        {
-                            _id: '1',
-                            text: 'Xin chào, tôi sẽ hỗ trợ vấn đề của bạn. Vui lòng cho biết chi tiết hơn về sự cố.',
-                            sender: {
-                                _id: '456',
-                                fullname: 'Hoàng Thị Thu Hiền'
-                            },
-                            timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-                            type: 'text'
-                        },
-                        {
-                            _id: '2',
-                            text: 'Máy tính của tôi bị treo khi khởi động. Đã thử khởi động lại nhiều lần nhưng vẫn không được.',
-                            sender: {
-                                _id: '123',
-                                fullname: 'Nguyễn Văn A'
-                            },
-                            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-                            type: 'text'
-                        }
-                    ],
-                    history: [
-                        {
-                            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-                            action: 'Ticket đã được tạo'
-                        },
-                        {
-                            timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-                            action: 'Ticket đã được gán cho Hoàng Thị Thu Hiền'
-                        }
-                    ],
+                    messages: [],
+                    history: [],
                     attachments: []
                 });
-                setLoading(false);
                 return;
             }
 
             try {
-                const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001';
-                console.log('Gọi API với URL:', `${apiUrl}/api/tickets/${ticketId}`);
+                console.log('Gọi API với URL:', `${API_BASE_URL}/api/tickets/${ticketId}`);
 
-                const res = await axios.get(`${apiUrl}/api/tickets/${ticketId}`, {
+                const res = await axios.get(`${API_BASE_URL}/api/tickets/${ticketId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
                 if (res.data.success) {
                     console.log('API thành công, nhận được dữ liệu ticket');
-                    setTicket(res.data.ticket);
+                    setTicket({
+                        ...res.data.ticket,
+                        messages: res.data.ticket.messages || [],
+                        history: res.data.ticket.history || [],
+                        attachments: res.data.ticket.attachments || []
+                    });
                 } else {
                     console.error('Lỗi khi lấy chi tiết ticket:', res.data.message);
                     // Sử dụng mock data nếu API thất bại
@@ -179,47 +160,18 @@ const TicketDetailScreen = () => {
                         priority: 'High',
                         creator: {
                             _id: '123',
-                            fullname: 'Nguyễn Văn A'
+                            fullname: 'Nguyễn Văn A',
+                            email: 'nguyenvana@example.com'
                         },
                         assignedTo: {
                             _id: '456',
                             fullname: 'Hoàng Thị Thu Hiền',
-                            avatarUrl: ''
+                            email: 'hoangthithuien@example.com'
                         },
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
-                        messages: [
-                            {
-                                _id: '1',
-                                text: 'Xin chào, tôi sẽ hỗ trợ vấn đề của bạn. Vui lòng cho biết chi tiết hơn về sự cố.',
-                                sender: {
-                                    _id: '456',
-                                    fullname: 'Hoàng Thị Thu Hiền'
-                                },
-                                timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-                                type: 'text'
-                            },
-                            {
-                                _id: '2',
-                                text: 'Máy tính của tôi bị treo khi khởi động. Đã thử khởi động lại nhiều lần nhưng vẫn không được.',
-                                sender: {
-                                    _id: '123',
-                                    fullname: 'Nguyễn Văn A'
-                                },
-                                timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-                                type: 'text'
-                            }
-                        ],
-                        history: [
-                            {
-                                timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-                                action: 'Ticket đã được tạo'
-                            },
-                            {
-                                timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-                                action: 'Ticket đã được gán cho Hoàng Thị Thu Hiền'
-                            }
-                        ],
+                        messages: [],
+                        history: [],
                         attachments: []
                     });
                 }
@@ -235,52 +187,23 @@ const TicketDetailScreen = () => {
                     priority: 'High',
                     creator: {
                         _id: '123',
-                        fullname: 'Nguyễn Văn A'
+                        fullname: 'Nguyễn Văn A',
+                        email: 'nguyenvana@example.com'
                     },
                     assignedTo: {
                         _id: '456',
                         fullname: 'Hoàng Thị Thu Hiền',
-                        avatarUrl: ''
+                        email: 'hoangthithuien@example.com'
                     },
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
-                    messages: [
-                        {
-                            _id: '1',
-                            text: 'Xin chào, tôi sẽ hỗ trợ vấn đề của bạn. Vui lòng cho biết chi tiết hơn về sự cố.',
-                            sender: {
-                                _id: '456',
-                                fullname: 'Hoàng Thị Thu Hiền'
-                            },
-                            timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-                            type: 'text'
-                        },
-                        {
-                            _id: '2',
-                            text: 'Máy tính của tôi bị treo khi khởi động. Đã thử khởi động lại nhiều lần nhưng vẫn không được.',
-                            sender: {
-                                _id: '123',
-                                fullname: 'Nguyễn Văn A'
-                            },
-                            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-                            type: 'text'
-                        }
-                    ],
-                    history: [
-                        {
-                            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-                            action: 'Ticket đã được tạo'
-                        },
-                        {
-                            timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-                            action: 'Ticket đã được gán cho Hoàng Thị Thu Hiền'
-                        }
-                    ],
+                    messages: [],
+                    history: [],
                     attachments: []
                 });
             }
         } catch (error) {
-            console.error('Lỗi tổng thể:', error);
+            console.error('Lỗi:', error);
         } finally {
             setLoading(false);
         }
@@ -319,11 +242,10 @@ const TicketDetailScreen = () => {
             }
 
             try {
-                const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001';
-                console.log('Gửi tin nhắn đến API:', `${apiUrl}/api/tickets/${ticket._id}/messages`);
+                console.log('Gửi tin nhắn đến API:', `${API_BASE_URL}/api/tickets/${ticket._id}/messages`);
 
                 const res = await axios.post(
-                    `${apiUrl}/api/tickets/${ticket._id}/messages`,
+                    `${API_BASE_URL}/api/tickets/${ticket._id}/messages`,
                     { text: newMessage },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
@@ -383,6 +305,63 @@ const TicketDetailScreen = () => {
         }
     };
 
+    // Xác định màu sắc nút trạng thái theo trạng thái ticket
+    const getStatusButton = () => {
+        if (!ticket) return null;
+        switch (ticket.status) {
+            case 'Assigned':
+                return (
+                    <TouchableOpacity className="w-10 h-10 rounded-full bg-[#002855] items-center justify-center">
+                        <Ionicons name="checkmark" size={24} color="white" />
+                    </TouchableOpacity>
+                );
+            case 'Processing':
+                return (
+                    <TouchableOpacity className="w-10 h-10 rounded-full bg-[#F59E0B] items-center justify-center">
+                        <Ionicons name="refresh" size={24} color="white" />
+                    </TouchableOpacity>
+                );
+            case 'Done':
+                return (
+                    <TouchableOpacity className="w-10 h-10 rounded-full bg-[#BED232] items-center justify-center">
+                        <Ionicons name="pause" size={24} color="white" />
+                    </TouchableOpacity>
+                );
+            case 'Cancelled':
+                return (
+                    <TouchableOpacity className="w-10 h-10 rounded-full bg-[#F05023] items-center justify-center">
+                        <Ionicons name="square" size={20} color="white" />
+                    </TouchableOpacity>
+                );
+            default:
+                return null;
+        }
+    };
+
+    const handleStatusChange = async (newStatus: string) => {
+        try {
+            if (!ticket) return;
+
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) {
+                console.log('Không có token, không thể cập nhật trạng thái');
+                return;
+            }
+
+            const response = await axios.put(
+                `${API_BASE_URL}/api/tickets/${ticketId}`,
+                { status: newStatus },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data.success) {
+                fetchTicketDetails(ticketId);
+            }
+        } catch (error) {
+            console.error('Lỗi khi cập nhật trạng thái:', error);
+        }
+    };
+
     if (loading) {
         return (
             <SafeAreaView className="flex-1 bg-white justify-center items-center">
@@ -399,154 +378,134 @@ const TicketDetailScreen = () => {
         );
     }
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'Open':
-                return 'bg-blue-500';
-            case 'Processing':
-                return 'bg-yellow-500';
-            case 'Waiting for Customer':
-                return 'bg-orange-500';
-            case 'Closed':
-                return 'bg-green-500';
-            case 'Cancelled':
-                return 'bg-red-500';
-            default:
-                return 'bg-gray-500';
-        }
-    };
-
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'Open':
-                return 'Chưa nhận';
-            case 'Processing':
-                return 'Đang xử lý';
-            case 'Waiting for Customer':
-                return 'Chờ phản hồi';
-            case 'Closed':
-                return 'Đã xử lý';
-            case 'Cancelled':
-                return 'Đã hủy';
-            default:
-                return status;
-        }
-    };
-
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case 'High':
-                return 'text-red-700';
-            case 'Medium':
-                return 'text-yellow-700';
-            case 'Low':
-                return 'text-green-700';
-            default:
-                return 'text-gray-700';
-        }
-    };
-
-    const formatTimestamp = (timestamp: string) => {
-        const date = new Date(timestamp);
-        return date.toLocaleString('vi-VN');
-    };
-
     return (
         <SafeAreaView className="flex-1 bg-white">
-            <ScrollView className="flex-1">
-                {/* Header */}
-                <View className="px-4 py-4 border-b border-gray-200">
-                    <Text className="text-xl font-bold text-[#E84A37]">{ticket.title}</Text>
-                    <View className="flex-row justify-between items-center mt-2">
-                        <Text className="text-gray-500">Ticket #{ticket.ticketCode}</Text>
-                        {ticket.status === 'Open' ? (
-                            <Text className="text-gray-600 font-medium">Chưa nhận</Text>
-                        ) : (
-                            <View className={`${getStatusColor(ticket.status)} rounded-lg px-3 py-1`}>
-                                <Text className="text-white text-xs font-semibold">{getStatusLabel(ticket.status)}</Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-
-                {/* Thông tin ticket */}
-                <View className="px-4 py-4 border-b border-gray-200">
-                    <View className="flex-row justify-between items-center mb-2">
-                        <Text className="text-gray-500">Người tạo:</Text>
-                        <Text className="font-medium">{ticket.creator?.fullname || 'Không xác định'}</Text>
-                    </View>
-                    <View className="flex-row justify-between items-center mb-2">
-                        <Text className="text-gray-500">Người xử lý:</Text>
-                        <Text className="font-medium">{ticket.assignedTo?.fullname || 'Chưa phân công'}</Text>
-                    </View>
-                    <View className="flex-row justify-between items-center mb-2">
-                        <Text className="text-gray-500">Ngày tạo:</Text>
-                        <Text className="font-medium">{formatTimestamp(ticket.createdAt)}</Text>
-                    </View>
-                    <View className="flex-row justify-between items-center">
-                        <Text className="text-gray-500">Độ ưu tiên:</Text>
-                        <Text className={`font-medium ${getPriorityColor(ticket.priority)}`}>
-                            {ticket.priority}
-                        </Text>
-                    </View>
-                </View>
-
-                {/* Mô tả */}
-                <View className="px-4 py-4 border-b border-gray-200">
-                    <Text className="font-semibold mb-2 text-[#E84A37]">Mô tả:</Text>
-                    <Text className="text-gray-700">{ticket.description}</Text>
-                </View>
-
-                {/* Tin nhắn */}
-                <View className="px-4 py-4">
-                    <Text className="font-semibold mb-4 text-[#E84A37]">Tin nhắn trao đổi:</Text>
-                    {ticket.messages && ticket.messages.length > 0 ? (
-                        ticket.messages.map((message) => (
-                            <View
-                                key={message._id}
-                                className={`mb-4 ${message.sender._id === userId ? 'items-end' : 'items-start'} flex`}
+            <StatusBar barStyle="dark-content" />
+            {ticket && (
+                <>
+                    <View className="flex-row items-center justify-between px-4 pt-2 pb-4 border-b border-gray-200">
+                        <View className="flex-row items-center">
+                            <TouchableOpacity
+                                onPress={() => navigation.goBack()}
+                                className="mr-3"
                             >
-                                <View className={`max-w-[80%] rounded-lg p-3 ${message.sender._id === userId ? 'bg-blue-100 rounded-tr-none' : 'bg-gray-100 rounded-tl-none'}`}>
-                                    {message.type === 'text' ? (
-                                        <Text>{message.text}</Text>
-                                    ) : (
-                                        <Image
-                                            source={{ uri: message.text }}
-                                            style={{ width: 200, height: 150, borderRadius: 8 }}
-                                            resizeMode="cover"
-                                        />
-                                    )}
-                                    <Text className="text-xs text-gray-500 mt-1">
-                                        {message.sender.fullname} - {formatTimestamp(message.timestamp)}
-                                    </Text>
-                                </View>
+                                <Ionicons name="chevron-back" size={24} color="#333" />
+                            </TouchableOpacity>
+                            <View>
+                                <Text className="text-xl font-bold">{ticket.ticketCode}</Text>
+                                <Text className="text-red-500">{ticket.title}</Text>
                             </View>
-                        ))
-                    ) : (
-                        <Text className="text-gray-500 italic">Chưa có tin nhắn nào</Text>
-                    )}
-                </View>
-            </ScrollView>
-
-            {/* Footer - Nhập tin nhắn */}
-            {ticket.status !== 'Closed' && ticket.status !== 'Cancelled' && (
-                <View className="p-2 border-t border-gray-200 bg-white">
-                    <View className="flex-row items-center">
-                        <TextInput
-                            className="flex-1 bg-gray-100 rounded-full px-4 py-2 mr-2"
-                            placeholder="Nhập tin nhắn..."
-                            value={newMessage}
-                            onChangeText={setNewMessage}
-                            multiline
-                        />
-                        <TouchableOpacity
-                            className="bg-orange-500 w-10 h-10 rounded-full items-center justify-center"
-                            onPress={handleSendMessage}
-                        >
-                            <Ionicons name="send" size={20} color="white" />
+                        </View>
+                        <TouchableOpacity onPress={() => navigation.goBack()}>
+                            <Ionicons name="close" size={24} color="#333" />
                         </TouchableOpacity>
                     </View>
-                </View>
+
+                    <View className="flex-row justify-center space-x-4 py-2 px-4">
+                        {getStatusButton()}
+                        <TouchableOpacity
+                            className="w-10 h-10 rounded-full bg-[#009483] items-center justify-center"
+                            onPress={() => handleStatusChange('Processing')}
+                            disabled={ticket.status === 'Cancelled' || ticket.status === 'Done'}
+                        >
+                            <Ionicons name="refresh" size={20} color="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            className="w-10 h-10 rounded-full bg-[#F59E0B] items-center justify-center"
+                            onPress={() => handleStatusChange('Done')}
+                            disabled={ticket.status === 'Cancelled'}
+                        >
+                            <Ionicons name="checkmark" size={20} color="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            className="w-10 h-10 rounded-full bg-[#F05023] items-center justify-center"
+                            onPress={() => {
+                                Alert.alert(
+                                    'Xác nhận hủy',
+                                    'Bạn có chắc chắn muốn hủy ticket này không?',
+                                    [
+                                        { text: 'Hủy bỏ', style: 'cancel' },
+                                        { text: 'Xác nhận', onPress: () => handleStatusChange('Cancelled') }
+                                    ]
+                                );
+                            }}
+                            disabled={ticket.status === 'Cancelled'}
+                        >
+                            <Ionicons name="square" size={20} color="white" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View className="flex-row border-b border-gray-200">
+                        <TouchableOpacity
+                            onPress={() => setActiveTab('information')}
+                            className={`flex-1 py-3 px-2 ${activeTab === 'information' ? 'border-b-2 border-[#002855]' : ''}`}
+                        >
+                            <Text
+                                className={`text-center ${activeTab === 'information' ? 'text-[#002855] font-semibold' : 'text-gray-500'}`}
+                            >
+                                Thông tin
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setActiveTab('progress')}
+                            className={`flex-1 py-3 px-2 ${activeTab === 'progress' ? 'border-b-2 border-[#002855]' : ''}`}
+                        >
+                            <Text
+                                className={`text-center ${activeTab === 'progress' ? 'text-[#002855] font-semibold' : 'text-gray-500'}`}
+                            >
+                                Tiến trình
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setActiveTab('chat')}
+                            className={`flex-1 py-3 px-2 ${activeTab === 'chat' ? 'border-b-2 border-[#002855]' : ''}`}
+                        >
+                            <Text
+                                className={`text-center ${activeTab === 'chat' ? 'text-[#002855] font-semibold' : 'text-gray-500'}`}
+                            >
+                                Trao đổi
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setActiveTab('history')}
+                            className={`flex-1 py-3 px-2 ${activeTab === 'history' ? 'border-b-2 border-[#002855]' : ''}`}
+                        >
+                            <Text
+                                className={`text-center ${activeTab === 'history' ? 'text-[#002855] font-semibold' : 'text-gray-500'}`}
+                            >
+                                Lịch sử
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View className="flex-1">
+                        {activeTab === 'information' && <TicketInformation ticketId={ticketId} />}
+                        {activeTab === 'progress' && <TicketProcessing ticketId={ticketId} onRefresh={() => fetchTicketDetails(ticketId)} />}
+                        {activeTab === 'chat' && <TicketChat ticketId={ticketId} onRefresh={() => fetchTicketDetails(ticketId)} />}
+                        {activeTab === 'history' && <TicketHistory ticketId={ticketId} />}
+                    </View>
+
+                    {/* Footer - Nhập tin nhắn */}
+                    {ticket.status !== 'Closed' && ticket.status !== 'Cancelled' && (
+                        <View className="p-2 border-t border-gray-200 bg-white">
+                            <View className="flex-row items-center">
+                                <TextInput
+                                    className="flex-1 bg-gray-100 rounded-full px-4 py-2 mr-2"
+                                    placeholder="Nhập tin nhắn..."
+                                    value={newMessage}
+                                    onChangeText={setNewMessage}
+                                    multiline
+                                />
+                                <TouchableOpacity
+                                    className="bg-orange-500 w-10 h-10 rounded-full items-center justify-center"
+                                    onPress={handleSendMessage}
+                                >
+                                    <Ionicons name="send" size={20} color="white" />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+                </>
             )}
         </SafeAreaView>
     );

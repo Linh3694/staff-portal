@@ -6,6 +6,7 @@ import { RootStackParamList } from '../../navigation/AppNavigator';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config/constants';
 
 type TicketScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ticket'>;
 
@@ -57,8 +58,7 @@ const TicketGuestScreen = () => {
 
             try {
                 // Xây dựng URL với các tham số lọc
-                const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5001';
-                let url = `${apiUrl}/api/tickets`;
+                let url = `${API_BASE_URL}/api/tickets`;
 
                 // Thêm userId vào URL để lọc chỉ lấy ticket do user tạo ngay từ API
                 url += `?creator=${userId}`;
@@ -228,16 +228,16 @@ const TicketGuestScreen = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'Open':
-                return 'bg-blue-500';
+            case 'Assigned':
+                return 'bg-[#002855]';
             case 'Processing':
-                return 'bg-yellow-500';
-            case 'Waiting for Customer':
-                return 'bg-orange-500';
+                return 'bg-[#F59E0B]';
+            case 'Done':
+                return 'bg-[#BED232]';
             case 'Closed':
-                return 'bg-green-500';
+                return 'bg-[#009483]';
             case 'Cancelled':
-                return 'bg-red-500';
+                return 'bg-[#F05023]';
             default:
                 return 'bg-gray-500';
         }
@@ -245,14 +245,14 @@ const TicketGuestScreen = () => {
 
     const getStatusLabel = (status: string) => {
         switch (status) {
-            case 'Open':
-                return 'Chưa nhận';
-            case 'Processing':
+            case 'Assigned':
+                return 'Đã tiếp nhận';
+            case 'processing':
                 return 'Đang xử lý';
-            case 'Waiting for Customer':
-                return 'Chờ phản hồi';
-            case 'Closed':
+            case 'Done':
                 return 'Đã xử lý';
+            case 'Closed':
+                return 'Đã đóng';
             case 'Cancelled':
                 return 'Đã hủy';
             default:
@@ -279,24 +279,32 @@ const TicketGuestScreen = () => {
 
     const renderItem = ({ item }: { item: Ticket }) => (
         <TouchableOpacity
-            className="bg-gray-50 rounded-xl p-4 shadow-sm mb-3"
+            className="bg-[#F8F8F8] rounded-xl p-4 mb-3"
             onPress={() => handleViewTicketDetail(item._id)}
         >
             <View>
-                <Text className="text-[#E84A37] font-semibold text-base">{item.title}</Text>
-                <Text className="text-gray-500 text-xs mt-1">{item.ticketCode}</Text>
-                <View className="flex-row justify-between items-center mt-3">
-                    <Text className="text-gray-600 text-sm font-medium">
-                        {item.assignedTo ? item.assignedTo.fullname : 'Chưa phân công'}
-                    </Text>
-                    {item.status === 'Open' ? (
-                        <Text className="text-gray-600 font-medium">Chưa nhận</Text>
-                    ) : (
-                        <View className={`${getStatusColor(item.status)} rounded-lg px-3 py-1`}>
-                            <Text className="text-white text-xs font-semibold">{getStatusLabel(item.status)}</Text>
-                        </View>
-                    )}
+                <Text className="text-[#E84A37] font-semibold text-lg">{item.title}</Text>
+                <View className="flex-row justify-between items-center mt-2">
+                    <Text className="text-gray-500 text-sm font-semibold mt-1">{item.ticketCode || `Ticket-${item._id.padStart(3, '0')}`}</Text>
+                    <View>
+                        <Text className="text-[#757575] text-base font-medium text-right">
+                            {item.assignedTo?.fullname || 'Chưa phân công'}
+                        </Text>
+                    </View>
                 </View>
+                <View className="flex-row justify-between items-center mt-2">
+                    <View>
+                        <Text className="text-primary text-lg font-semibold">
+                            {item.creator?.fullname || 'Không xác định'}
+                        </Text>
+                    </View>
+                    <View className={`${getStatusColor(item.status)} rounded-lg px-3 py-1`}>
+                        <Text className="text-white text-base font-semibold">{getStatusLabel(item.status)}</Text>
+                    </View>
+
+                </View>
+
+
             </View>
         </TouchableOpacity>
     );
