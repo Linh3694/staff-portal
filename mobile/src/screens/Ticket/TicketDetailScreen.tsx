@@ -373,7 +373,7 @@ const TicketDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!ticket) {
         return (
             <SafeAreaView className="flex-1 bg-white justify-center items-center">
-                <Text className="text-gray-500">Không tìm thấy thông tin ticket</Text>
+                <Text className="text-gray-500 font-medium">Không tìm thấy thông tin ticket</Text>
             </SafeAreaView>
         );
     }
@@ -392,8 +392,8 @@ const TicketDetailScreen: React.FC<Props> = ({ route, navigation }) => {
                                 <Ionicons name="chevron-back" size={24} color="#333" />
                             </TouchableOpacity>
                             <View>
-                                <Text className="text-xl font-bold">{ticket.ticketCode}</Text>
-                                <Text className="text-red-500">{ticket.title}</Text>
+                                <Text className="text-xl font-medium">{ticket.ticketCode}</Text>
+                                <Text className="text-red-500 font-medium">{ticket.title}</Text>
                             </View>
                         </View>
                         <TouchableOpacity onPress={() => navigation.goBack()}>

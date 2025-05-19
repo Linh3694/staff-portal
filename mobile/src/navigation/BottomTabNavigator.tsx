@@ -15,7 +15,7 @@ import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 const Tab = createBottomTabNavigator();
 
 const tabBarLabel = (label: string, focused: boolean) => (
-    <Text className={focused ? 'text-sm font-bold text-[#0A2240] mt-1' : 'text-sm text-gray-400 mt-1'}>{label}</Text>
+    <Text className={focused ? 'text-sm font-medium text-[#0A2240] mt-1' : 'text-sm font-medium text-gray-400 mt-1'}>{label}</Text>
 );
 
 const HIDDEN_ROUTES = ['ChatDetail'];

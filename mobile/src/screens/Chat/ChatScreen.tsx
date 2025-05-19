@@ -191,7 +191,7 @@ const ChatScreen = () => {
                 <Image source={{ uri: getAvatar(item) }} className="w-16 h-16 rounded-full bg-gray-200" />
                 <View style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: isUserOnline(item._id) ? 'green' : '#bbb', borderWidth: 2, borderColor: 'white' }} />
             </View>
-            <Text className="mt-1 text-xs text-center w-20" numberOfLines={1}>{item.fullname}</Text>
+            <Text className="mt-1 text-xs text-center w-20 font-medium" numberOfLines={1}>{item.fullname}</Text>
         </TouchableOpacity>
     );
 
@@ -260,22 +260,22 @@ const ChatScreen = () => {
                     <View style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: isUserOnline(other._id) ? 'green' : '#bbb', borderWidth: 2, borderColor: 'white' }} />
                 </View>
                 <View className="flex-1 ml-4">
-                    <Text className={`${hasUnreadMessage ? 'font-bold' : 'font-semi'} text-lg`} numberOfLines={1}>{other.fullname}</Text>
+                    <Text className={`${hasUnreadMessage ? 'font-bold' : 'font-medium'} text-lg`} numberOfLines={1}>{other.fullname}</Text>
                     <View className="flex-row items-center">
                         <Text
-                            className={`${hasUnreadMessage ? 'text-secondary font-bold' : 'text-gray-500'} text-base mt-0.5 mr-1`}
+                            className={`${hasUnreadMessage ? 'text-secondary font-bold' : 'text-gray-500 font-medium'} text-base mt-0.5 mr-1`}
                             numberOfLines={1}
                             style={{ maxWidth: '70%' }}
                         >
                             {lastMessageContent}
                         </Text>
-                        <Text className="text-xs text-gray-400">
+                        <Text className="text-xs text-gray-400 font-medium">
                             • {isUserOnline(other._id) ? 'Đang hoạt động' : getFormattedLastSeen(other._id)}
                         </Text>
                     </View>
                 </View>
                 <View className="items-end">
-                    <Text className={`${hasUnreadMessage ? 'text-black font-bold' : 'text-gray-400'} text-xs mb-1`}>{formattedTime}</Text>
+                    <Text className={`${hasUnreadMessage ? 'text-black font-bold' : 'text-gray-400 font-medium'} text-xs mb-1`}>{formattedTime}</Text>
                     {/* Hiển thị dấu chấm đỏ thay vì số khi có tin nhắn chưa đọc */}
                     {hasUnreadMessage && (
                         <View className="bg-red-500 rounded-full w-3 h-3" />
@@ -288,7 +288,7 @@ const ChatScreen = () => {
     if (loading) return (
         <SafeAreaView className="flex-1 bg-white">
             <View className="p-4 bg-white">
-                <Text className="text-2xl font-bold text-gray-900">Trao đổi</Text>
+                <Text className="text-2xl font-medium text-gray-900">Trao đổi</Text>
             </View>
             <ActivityIndicator size="large" color="#002855" className="flex-1" />
         </SafeAreaView>
@@ -297,11 +297,11 @@ const ChatScreen = () => {
     return (
         <SafeAreaView className="flex-1 bg-white">
             <View className="p-4 bg-white">
-                <Text className="text-2xl font-bold text-gray-900">Trao đổi</Text>
+                <Text className="text-2xl font-medium text-gray-900">Trao đổi</Text>
                 <View className="flex-row items-center mt-3 bg-white border border-gray-200 rounded-full px-4 py-2">
                     <MaterialIcons name="search" size={22} color="#BDBDBD" />
                     <TextInput
-                        className="flex-1 ml-2 text-base text-gray-400"
+                        className="flex-1 ml-2 text-base text-gray-400 font-medium"
                         style={{
                             height: 36,
                             paddingVertical: 0,
@@ -330,12 +330,12 @@ const ChatScreen = () => {
                     contentContainerStyle={{ paddingHorizontal: 16 }}
                 />
             </View>
-            <Text className="text-lg font-bold text-gray-900 mt-[5%] ml-[5%]">
+            <Text className="text-lg font-medium text-gray-900 mt-[5%] ml-[5%]">
                 Trò chuyện
             </Text>
             {chats.length === 0 ? (
                 <View className="flex-1 items-center justify-center p-4">
-                    <Text className="text-gray-500 text-center">
+                    <Text className="text-gray-500 text-center font-medium">
                         {currentUserId
                             ? 'Không có cuộc trò chuyện nào. Hãy bắt đầu cuộc trò chuyện mới!'
                             : 'Đang đợi xác định người dùng...'}

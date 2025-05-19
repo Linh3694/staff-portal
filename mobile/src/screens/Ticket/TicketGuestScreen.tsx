@@ -47,182 +47,41 @@ const TicketGuestScreen = () => {
             const token = await AsyncStorage.getItem('authToken');
             const userId = await AsyncStorage.getItem('userId');
 
-            console.log('Thông tin người dùng:', { token, userId });
-
-            // Kiểm tra token để quyết định sử dụng API hay mock data
             if (!token || !userId) {
-                console.log('Sử dụng mock data vì token hoặc userId không tồn tại');
-                await getMockTickets();
+                console.log('Không tìm thấy token hoặc userId');
+                setTickets([]);
                 return;
             }
 
-            try {
-                // Xây dựng URL với các tham số lọc
-                let url = `${API_BASE_URL}/api/tickets`;
+            // Xây dựng URL với các tham số lọc
+            let url = `${API_BASE_URL}/api/tickets`;
 
-                // Thêm userId vào URL để lọc chỉ lấy ticket do user tạo ngay từ API
-                url += `?creator=${userId}`;
+            // Thêm userId vào URL để lọc chỉ lấy ticket do user tạo
+            url += `?creator=${userId}`;
 
-                // Thêm các tham số lọc khác
-                if (filterStatus) {
-                    url += `&status=${filterStatus}`;
-                }
-                if (searchTerm) {
-                    url += `&search=${searchTerm}`;
-                }
+            // Thêm các tham số lọc khác
+            if (filterStatus) {
+                url += `&status=${filterStatus}`;
+            }
+            if (searchTerm) {
+                url += `&search=${searchTerm}`;
+            }
 
-                console.log('Gọi API với URL:', url);
-                const res = await axios.get(url, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+            const res = await axios.get(url, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-                if (res.data.success) {
-                    console.log('API thành công, nhận được', res.data.tickets?.length || 0, 'tickets');
-
-                    // Đảm bảo chỉ lấy những ticket mà user là người tạo (lọc thêm ở phía client)
-                    const userTickets = res.data.tickets.filter((ticket: any) => {
-                        // Kiểm tra cả trường hợp creator là object hoặc string
-                        if (ticket.creator?._id) {
-                            return ticket.creator._id === userId;
-                        } else if (typeof ticket.creator === 'string') {
-                            return ticket.creator === userId;
-                        }
-                        return false; // Nếu không có thông tin creator, không hiển thị
-                    });
-
-                    console.log('Sau khi lọc còn', userTickets.length, 'tickets do user tạo');
-
-                    // Lọc theo từ khóa tìm kiếm nếu có
-                    let filteredTickets = userTickets;
-                    if (searchTerm) {
-                        filteredTickets = userTickets.filter((ticket: Ticket) =>
-                            ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            ticket.ticketCode.toLowerCase().includes(searchTerm.toLowerCase())
-                        );
-                    }
-
-                    setTickets(filteredTickets || []);
-                } else {
-                    console.error('Lỗi khi lấy danh sách ticket:', res.data.message);
-                    await getMockTickets();
-                }
-            } catch (apiError) {
-                console.error('Lỗi khi gọi API:', apiError);
-                await getMockTickets();
+            if (res.data.success) {
+                setTickets(res.data.tickets || []);
+            } else {
+                console.error('Lỗi khi lấy danh sách ticket:', res.data.message);
+                setTickets([]);
             }
         } catch (error) {
-            console.error('Lỗi tổng thể:', error);
-            await getMockTickets();
+            console.error('Lỗi khi gọi API:', error);
+            setTickets([]);
         } finally {
             setLoading(false);
-        }
-    };
-
-    // Tạo dữ liệu mẫu cải tiến
-    const getMockTickets = async () => {
-        try {
-            // Lấy thông tin người dùng từ AsyncStorage để tạo dữ liệu mẫu chính xác hơn
-            const userId = await AsyncStorage.getItem('userId') || 'user_mock';
-            const userFullname = await AsyncStorage.getItem('userFullname') || 'Người dùng';
-
-            const mockTickets = [
-                {
-                    _id: '1',
-                    ticketCode: 'Ticket-001',
-                    title: 'Đề xuất hỗ trợ setup cơ sở vật chất cho buổi đào tạo',
-                    status: 'Open',
-                    priority: 'High',
-                    createdAt: new Date().toISOString(),
-                    creator: {
-                        _id: userId,
-                        fullname: userFullname
-                    },
-                    assignedTo: {
-                        fullname: 'Hoàng Thị Thu Hiền'
-                    }
-                },
-                {
-                    _id: '2',
-                    ticketCode: 'Ticket-002',
-                    title: 'Yêu cầu sửa chữa máy tính văn phòng',
-                    status: 'Processing',
-                    priority: 'Medium',
-                    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-                    creator: {
-                        _id: userId,
-                        fullname: userFullname
-                    },
-                    assignedTo: {
-                        fullname: 'Hà Văn Cường'
-                    }
-                },
-                {
-                    _id: '3',
-                    ticketCode: 'Ticket-003',
-                    title: 'Đề xuất trang bị phần mềm Adobe cho phòng Marcom',
-                    status: 'Waiting for Customer',
-                    priority: 'Low',
-                    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-                    creator: {
-                        _id: userId,
-                        fullname: userFullname
-                    },
-                    assignedTo: {
-                        fullname: 'Nguyễn Văn Tuấn'
-                    }
-                },
-                {
-                    _id: '4',
-                    ticketCode: 'Ticket-004',
-                    title: 'Yêu cầu hỗ trợ mạng wifi cho phòng họp',
-                    status: 'Closed',
-                    priority: 'High',
-                    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-                    creator: {
-                        _id: userId,
-                        fullname: userFullname
-                    },
-                    assignedTo: {
-                        fullname: 'Trần Minh Đức'
-                    }
-                }
-            ];
-
-            // Lọc tickets theo trạng thái nếu có
-            let filteredTickets = mockTickets;
-            if (filterStatus) {
-                filteredTickets = mockTickets.filter(ticket => ticket.status === filterStatus);
-            }
-
-            // Lọc theo từ khóa tìm kiếm nếu có
-            if (searchTerm) {
-                filteredTickets = filteredTickets.filter(ticket =>
-                    ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    ticket.ticketCode.toLowerCase().includes(searchTerm.toLowerCase())
-                );
-            }
-
-            setTickets(filteredTickets);
-        } catch (error) {
-            console.error('Lỗi khi tạo dữ liệu mẫu:', error);
-            // Fallback khi không lấy được userId
-            setTickets([
-                {
-                    _id: '1',
-                    ticketCode: 'Ticket-001',
-                    title: 'Đề xuất hỗ trợ setup cơ sở vật chất cho buổi đào tạo',
-                    status: 'Open',
-                    priority: 'High',
-                    createdAt: new Date().toISOString(),
-                    creator: {
-                        _id: 'user_mock',
-                        fullname: 'Người dùng'
-                    },
-                    assignedTo: {
-                        fullname: 'Hoàng Thị Thu Hiền'
-                    }
-                }
-            ]);
         }
     };
 
@@ -261,7 +120,7 @@ const TicketGuestScreen = () => {
     };
 
     const handleViewTicketDetail = (ticketId: string) => {
-        navigation.navigate('TicketDetail', { ticketId });
+        navigation.navigate('TicketGuestDetail', { ticketId });
     };
 
     const handleSearch = () => {
@@ -283,9 +142,9 @@ const TicketGuestScreen = () => {
             onPress={() => handleViewTicketDetail(item._id)}
         >
             <View>
-                <Text className="text-[#E84A37] font-semibold text-lg">{item.title}</Text>
+                <Text className="text-[#E84A37] font-medium text-lg">{item.title}</Text>
                 <View className="flex-row justify-between items-center mt-2">
-                    <Text className="text-gray-500 text-sm font-semibold mt-1">{item.ticketCode || `Ticket-${item._id.padStart(3, '0')}`}</Text>
+                    <Text className="text-gray-500 text-sm font-medium mt-1">{item.ticketCode || `Ticket-${item._id.padStart(3, '0')}`}</Text>
                     <View>
                         <Text className="text-[#757575] text-base font-medium text-right">
                             {item.assignedTo?.fullname || 'Chưa phân công'}
@@ -294,12 +153,12 @@ const TicketGuestScreen = () => {
                 </View>
                 <View className="flex-row justify-between items-center mt-2">
                     <View>
-                        <Text className="text-primary text-lg font-semibold">
+                        <Text className="text-primary text-lg font-medium">
                             {item.creator?.fullname || 'Không xác định'}
                         </Text>
                     </View>
                     <View className={`${getStatusColor(item.status)} rounded-lg px-3 py-1`}>
-                        <Text className="text-white text-base font-semibold">{getStatusLabel(item.status)}</Text>
+                        <Text className="text-white text-base font-medium">{getStatusLabel(item.status)}</Text>
                     </View>
 
                 </View>
@@ -327,7 +186,7 @@ const TicketGuestScreen = () => {
                         <Ionicons name="arrow-back" size={24} color="#000" />
                     </TouchableOpacity>
                     <View className="flex-1 items-center justify-center">
-                        <Text className="text-xl font-bold">Ticket</Text>
+                        <Text className="text-xl font-medium">Ticket</Text>
                     </View>
                 </View>
 
@@ -414,7 +273,7 @@ const TicketGuestScreen = () => {
                     />
                 ) : (
                     <View className="flex-1 justify-center items-center p-4">
-                        <Text className="text-gray-500 text-center">Không tìm thấy ticket nào.</Text>
+                        <Text className="text-gray-500 text-center font-medium">Không tìm thấy ticket nào.</Text>
                     </View>
                 )}
 

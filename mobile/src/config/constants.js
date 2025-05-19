@@ -1,6 +1,6 @@
 
 // Thay đổi IP này thành IP của máy chủ của bạn
-export const API_BASE_URL = 'http://10.1.33.214:5001';
+export const API_BASE_URL = 'http://192.168.1.9:5001';
 
 // Các địa chỉ API khác để kiểm tra thử
 export const API_URLS = {

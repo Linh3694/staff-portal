@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { View, Text, SafeAreaView, TextInput, TouchableOpacity, FlatList, ScrollView, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -57,6 +57,12 @@ const TicketAdminScreen = () => {
         fetchTickets();
     }, [filterStatus, filterRole]);
 
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchTickets();
+        }, [filterStatus, filterRole, activeTab])
+    );
+
     const fetchTickets = async () => {
         try {
             setLoading(true);
@@ -64,168 +70,62 @@ const TicketAdminScreen = () => {
             const userId = await AsyncStorage.getItem('userId');
 
             if (!token) {
-                console.log('Sử dụng mock data vì token không tồn tại');
-                await getMockTickets();
+                console.log('Không tìm thấy token');
+                setTickets([]);
                 return;
             }
 
-            try {
-                // Xây dựng URL với các tham số lọc
-                let url = `${API_BASE_URL}/api/tickets`;
+            // Xây dựng URL với các tham số lọc
+            let url = `${API_BASE_URL}/api/tickets`;
 
-                // Thêm các tham số lọc
-                const params = new URLSearchParams();
-                if (filterStatus) {
-                    params.append('status', filterStatus);
-                }
-                if (searchTerm) {
-                    params.append('search', searchTerm);
-                }
+            // Thêm các tham số lọc
+            const params = new URLSearchParams();
+            if (filterStatus) {
+                params.append('status', filterStatus);
+            }
+            if (searchTerm) {
+                params.append('search', searchTerm);
+            }
 
-                // Logic lọc theo tab
-                if (activeTab === 'my' && userId) {
-                    // Nếu là tab "Ticket của tôi", lấy cả ticket được tạo và được giao
-                    params.append('userTickets', userId);
-                }
+            // Logic lọc theo tab
+            if (activeTab === 'my' && userId) {
+                params.append('userTickets', userId);
+            }
 
-                if (params.toString()) {
-                    url += `?${params.toString()}`;
-                }
+            if (params.toString()) {
+                url += `?${params.toString()}`;
+            }
 
-                console.log('Gọi API với URL:', url);
-                const res = await axios.get(url, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+            const res = await axios.get(url, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-                if (res.data.success) {
-                    console.log('API thành công, nhận được', res.data.tickets?.length || 0, 'tickets');
+            if (res.data.success) {
+                const formattedTickets = res.data.tickets.map((ticket: any) => ({
+                    id: ticket._id,
+                    _id: ticket._id,
+                    ticketCode: ticket.ticketCode || `Ticket-${ticket._id.substring(0, 3)}`,
+                    title: ticket.title,
+                    description: ticket.description || '',
+                    status: ticket.status.toLowerCase(),
+                    date: new Date(ticket.createdAt).toLocaleDateString('vi-VN'),
+                    priority: ticket.priority.toLowerCase(),
+                    requester: ticket.creator?.fullname || 'Không xác định',
+                    creator: ticket.creator,
+                    assignedTo: ticket.assignedTo
+                }));
 
-                    let filteredTickets = res.data.tickets;
-
-                    // Nếu là tab "Ticket của tôi", lọc theo creator hoặc assignedTo
-                    if (activeTab === 'my' && userId) {
-                        filteredTickets = filteredTickets.filter((ticket: any) =>
-                            ticket.creator?._id === userId || ticket.assignedTo?._id === userId
-                        );
-                    }
-
-                    // Chuyển đổi dữ liệu API để phù hợp với cấu trúc hiện tại
-                    const formattedTickets = filteredTickets.map((ticket: any) => ({
-                        id: ticket._id,
-                        _id: ticket._id,
-                        ticketCode: ticket.ticketCode || `Ticket-${ticket._id.substring(0, 3)}`,
-                        title: ticket.title,
-                        description: ticket.description || '',
-                        status: ticket.status.toLowerCase(),
-                        date: new Date(ticket.createdAt).toLocaleDateString('vi-VN'),
-                        priority: ticket.priority.toLowerCase(),
-                        requester: ticket.creator?.fullname || 'Không xác định',
-                        creator: ticket.creator,
-                        assignedTo: ticket.assignedTo
-                    }));
-
-                    setTickets(formattedTickets);
-                } else {
-                    console.error('Lỗi khi lấy danh sách ticket:', res.data.message);
-                    await getMockTickets();
-                }
-            } catch (apiError) {
-                console.error('Lỗi khi gọi API:', apiError);
-                await getMockTickets();
+                setTickets(formattedTickets);
+            } else {
+                console.error('Lỗi khi lấy danh sách ticket:', res.data.message);
+                setTickets([]);
             }
         } catch (error) {
-            console.error('Lỗi tổng thể:', error);
-            await getMockTickets();
+            console.error('Lỗi khi gọi API:', error);
+            setTickets([]);
         } finally {
             setLoading(false);
         }
-    };
-
-    const getMockTickets = async () => {
-        const userId = await AsyncStorage.getItem('userId') || 'mock_user_id';
-        const mockTickets = [
-            {
-                id: '1',
-                _id: '1',
-                ticketCode: 'Ticket-001',
-                title: 'Máy tính số 25 ở phòng ICT bị hỏng',
-                description: 'Máy tính của tôi không thể khởi động sau khi cập nhật Windows',
-                status: 'open',
-                date: '10/05/2023',
-                priority: 'high',
-                requester: 'Nguyễn Văn A',
-                creator: {
-                    _id: 'user1',
-                    fullname: 'Nguyễn Văn A'
-                },
-                assignedTo: {
-                    _id: userId,
-                    fullname: 'Hoàng Thị Thu Hiền'
-                }
-            },
-            {
-                id: '2',
-                _id: '2',
-                ticketCode: 'Ticket-002',
-                title: 'Không thể kết nối máy in',
-                description: 'Không thể kết nối với máy in trong mạng văn phòng',
-                status: 'inProgress',
-                date: '05/05/2023',
-                priority: 'medium',
-                requester: 'Trần Thị B',
-                creator: {
-                    _id: userId,
-                    fullname: 'Trần Thị B'
-                },
-                assignedTo: {
-                    _id: 'user2',
-                    fullname: 'Hà Văn Cường'
-                }
-            },
-            {
-                id: '3',
-                _id: '3',
-                ticketCode: 'Ticket-003',
-                title: 'Yêu cầu cài đặt phần mềm',
-                description: 'Cần cài đặt phần mềm Adobe Photoshop cho dự án mới',
-                status: 'resolved',
-                date: '01/05/2023',
-                priority: 'low',
-                requester: 'Lê Văn C',
-                creator: {
-                    _id: 'user3',
-                    fullname: 'Lê Văn C'
-                },
-                assignedTo: {
-                    _id: userId,
-                    fullname: 'Đỗ Minh Tuấn'
-                }
-            }
-        ];
-
-        // Lọc theo trạng thái
-        let filteredTickets = mockTickets;
-        if (filterStatus) {
-            filteredTickets = filteredTickets.filter(ticket => ticket.status === filterStatus);
-        }
-
-        // Lọc theo tab
-        if (activeTab === 'my') {
-            filteredTickets = filteredTickets.filter(ticket =>
-                ticket.creator?._id === userId || ticket.assignedTo?._id === userId
-            );
-        }
-
-        // Lọc theo từ khóa tìm kiếm
-        if (searchTerm) {
-            filteredTickets = filteredTickets.filter(ticket =>
-                ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                ticket.requester.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                ticket.ticketCode.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-
-        setTickets(filteredTickets);
     };
 
     const statusColor = (status: string) => {
@@ -347,7 +247,7 @@ const TicketAdminScreen = () => {
                     <Ionicons name="arrow-back" size={24} color="#000" />
                 </TouchableOpacity>
                 <View className="flex-1 items-center justify-center mr-[10%]">
-                    <Text className="text-xl font-bold">Ticket</Text>
+                    <Text className="text-xl font-medium">Ticket</Text>
                 </View>
             </View>
 
@@ -463,9 +363,9 @@ const TicketAdminScreen = () => {
                                 onPress={() => handleViewTicketDetail(item.id)}
                             >
                                 <View>
-                                    <Text className="text-[#E84A37] font-semibold text-lg">{item.title}</Text>
+                                    <Text className="text-[#E84A37] font-medium text-lg">{item.title}</Text>
                                     <View className="flex-row justify-between items-center mt-2">
-                                        <Text className="text-gray-500 text-sm font-semibold mt-1">{item.ticketCode || `Ticket-${item.id.padStart(3, '0')}`}</Text>
+                                        <Text className="text-gray-500 text-sm font-medium mt-1">{item.ticketCode || `Ticket-${item.id.padStart(3, '0')}`}</Text>
                                         <View>
                                             <Text className="text-[#757575] text-base font-medium text-right">
                                                 {item.assignedTo?.fullname || 'Chưa phân công'}
@@ -474,12 +374,12 @@ const TicketAdminScreen = () => {
                                     </View>
                                     <View className="flex-row justify-between items-center mt-2">
                                         <View>
-                                            <Text className="text-primary text-lg font-semibold">
+                                            <Text className="text-primary text-lg font-medium">
                                                 {item.creator?.fullname || 'Không xác định'}
                                             </Text>
                                         </View>
                                         <View className={`${statusColor(item.status)} rounded-lg px-3 py-1`}>
-                                            <Text className="text-white text-base font-semibold">{statusLabel(item.status)}</Text>
+                                            <Text className="text-white text-base font-medium">{statusLabel(item.status)}</Text>
                                         </View>
 
                                     </View>
@@ -491,7 +391,7 @@ const TicketAdminScreen = () => {
                     />
                 ) : (
                     <View className="flex-1 justify-center items-center p-4">
-                        <Text className="text-gray-500 text-center">Không tìm thấy ticket nào.</Text>
+                        <Text className="text-gray-500 text-center font-medium">Không tìm thấy ticket nào.</Text>
                     </View>
                 )}
 

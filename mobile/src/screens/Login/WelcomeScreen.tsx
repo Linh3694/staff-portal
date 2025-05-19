@@ -62,12 +62,14 @@ const WelcomeScreen = () => {
                         <Text className="text-lg font-bold text-primary text-center mb-5">
                             Chào mừng Thầy Cô đến với
                         </Text>
-                        <Text className="text-5xl font-extrabold text-secondary text-center mb-5">
-                            School Portal
+                        <Text
+                            className="text-5xl text-secondary text-center mb-5"
+                            style={{ fontFamily: 'Mulish-ExtraBold' }}
+                        >
+                            Digital Workspace
                         </Text>
                         <Text className="text-base font-semibold text-text-secondary mb-5 text-center">
-                            Đồng hành cùng thế hệ tương lai
-                        </Text>
+                            Vận hành thông minh - Trường học hiệu quả                        </Text>
                     </View>
                     {/* Banner động */}
                     <View

@@ -8,11 +8,14 @@ import {
     TouchableOpacity,
     Platform,
     ScrollView,
+    ActionSheetIOS,
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { API_BASE_URL } from '../../../config/constants';
+import DropDownPicker from 'react-native-dropdown-picker';
+import Toast from 'react-native-toast-message';
 
 interface TicketProcessingProps {
     ticketId: string;
@@ -22,6 +25,7 @@ interface TicketProcessingProps {
 interface SubTask {
     _id: string;
     status: string;
+    title: string;
 }
 
 interface Ticket {
@@ -29,7 +33,33 @@ interface Ticket {
     status: string;
     cancelReason?: string;
     subTasks: SubTask[];
+    feedback?: {
+        rating: number;
+        comment: string;
+    };
 }
+
+const getStatusLabel = (status: string) => {
+    switch (status) {
+        case 'Assigned':
+            return 'Đã nhận';
+        case 'Processing':
+            return 'Đang xử lý';
+        case 'Waiting for Customer':
+            return 'Chờ phản hồi';
+        case 'Done':
+            return 'Hoàn thành';
+        case 'Closed':
+            return 'Đã đóng';
+        case 'Cancelled':
+            return 'Đã huỷ';
+        default:
+            return status;
+    }
+};
+
+// Admin can only choose these statuses
+const statusOptions = ['Processing', 'Done', 'Cancelled'];
 
 const TicketProcessing: React.FC<TicketProcessingProps> = ({
     ticketId,
@@ -41,6 +71,10 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
     const [subTasks, setSubTasks] = useState<SubTask[]>([]);
     const [showCancelReasonInput, setShowCancelReasonInput] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
+    const [open, setOpen] = useState(false);
+    const [value, setValue] = useState(ticketStatus);
+    const [showAddSubTask, setShowAddSubTask] = useState(false);
+    const [newSubTaskTitle, setNewSubTaskTitle] = useState("");
 
     /* -------------------------------------------------------------------------- */
     /*                               FETCH DETAILS                                */
@@ -72,33 +106,22 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
     /*                            STATUS UPDATE HANDLER                           */
     /* -------------------------------------------------------------------------- */
     const handleUpdateStatus = async (newStatus: string) => {
-        // 1) Block Processing -> Done when any subTask still In Progress
-        if (
-            ticketStatus === 'Processing' &&
-            newStatus === 'Done' &&
-            subTasks.some((t) => t.status === 'In Progress')
-        ) {
-            Alert.alert(
-                'Thông báo',
-                'Bạn cần xử lý hết các công việc con trước khi hoàn thành ticket.',
-            );
+        if (newStatus === 'Done' && subTasks.some((t) => t.status === 'In Progress')) {
+            Toast.show({ type: 'error', text1: 'Bạn cần xử lý hết các subtask trước khi hoàn thành.' });
             return;
         }
-
-        // 2) Show cancel reason box
-        if (newStatus === 'Cancelled') {
+        if (newStatus === 'Cancelled' && !cancelReason.trim()) {
             setShowCancelReasonInput(true);
             return;
         }
-
-        await updateStatusAPI(newStatus);
+        await updateStatusAPI(newStatus, newStatus === 'Cancelled' ? cancelReason : '');
     };
 
-    const updateStatusAPI = async (status: string, reason = '') => {
+    const updateStatusAPI = async (newStatus: string, reason = '') => {
         try {
             const token = await AsyncStorage.getItem('authToken');
-            const payload: any = { status };
-            if (status === 'Cancelled' && reason) payload.cancelReason = reason;
+            const payload: any = { status: newStatus };
+            if (newStatus === 'Cancelled' && reason) payload.cancelReason = reason;
 
             const res = await axios.put(
                 `${API_BASE_URL}/api/tickets/${ticketId}`,
@@ -106,17 +129,30 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
                 { headers: { Authorization: `Bearer ${token}` } },
             );
 
-            if (res.data.success) {
-                Alert.alert('Thành công', 'Cập nhật trạng thái thành công!');
-                setTicketStatus(status);
-                onRefresh();
+            // In log để debug
+            console.log('API response:', res);
+            const httpStatus = res.status;
+            if (httpStatus && httpStatus >= 200 && httpStatus < 300) {
+                Toast.show({ type: 'success', text1: 'Cập nhật trạng thái thành công!' });
+                setTicketStatus(newStatus);
                 fetchTicketDetails();
             } else {
-                Alert.alert('Lỗi', 'Không thể cập nhật trạng thái.');
+                console.error('Lỗi cập nhật trạng thái:', res, res?.data);
+                Toast.show({ type: 'error', text1: 'Không thể cập nhật trạng thái.' });
             }
-        } catch (err) {
-            console.error('Lỗi cập nhật trạng thái:', err);
-            Alert.alert('Lỗi', 'Không thể cập nhật trạng thái.');
+        } catch (err: any) {
+            // Luôn fetch lại ticket để kiểm tra trạng thái thực tế
+            await fetchTicketDetails();
+            // Sau khi fetch xong, kiểm tra ticketStatus mới nhất
+            // (ticketStatus sẽ được cập nhật trong fetchTicketDetails)
+            setTimeout(() => {
+                if (ticketStatus === newStatus) {
+                    Toast.show({ type: 'success', text1: 'Cập nhật trạng thái thành công!' });
+                } else {
+                    console.error('Lỗi cập nhật trạng thái:', err, err?.response?.data);
+                    Toast.show({ type: 'error', text1: 'Không thể cập nhật trạng thái.' });
+                }
+            }, 500); // Đợi state cập nhật, có thể điều chỉnh thời gian nếu cần
         }
     };
 
@@ -125,7 +161,7 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
     /* -------------------------------------------------------------------------- */
     const confirmCancel = async () => {
         if (!cancelReason.trim()) {
-            Alert.alert('Thông báo', 'Vui lòng nhập lý do huỷ.');
+            Toast.show({ type: 'info', text1: 'Vui lòng nhập lý do huỷ.' });
             return;
         }
         await updateStatusAPI('Cancelled', cancelReason.trim());
@@ -138,28 +174,129 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
     /* -------------------------------------------------------------------------- */
     const normalizeStatus = (status = '') => {
         const lower = status.toLowerCase();
-        if (lower === 'processing' || lower === 'in progress') return 'Processing';
+        if (lower === 'processing' || lower === 'processing') return 'Processing';
         if (lower === 'done' || lower === 'completed') return 'Done';
         if (lower === 'cancelled') return 'Cancelled';
+        if (lower === 'closed') return 'Closed';
         return status;
-    };
-
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'Processing':
-                return 'Đang xử lý';
-            case 'Done':
-                return 'Hoàn thành';
-            case 'Cancelled':
-                return 'Đã huỷ';
-            default:
-                return status;
-        }
     };
 
     /* -------------------------------------------------------------------------- */
     /*                                   RENDER                                   */
     /* -------------------------------------------------------------------------- */
+    useEffect(() => {
+        setValue(ticketStatus);
+    }, [ticketStatus]);
+
+    // Create dropdown items based on current status
+    const getStatusItems = () => {
+        // If ticket is closed, show all status options
+        if (ticketStatus === 'Closed') {
+            // Make sure to include current status in the dropdown
+            return [
+                { label: getStatusLabel('Closed'), value: 'Closed' },
+                ...statusOptions.map(s => ({
+                    label: getStatusLabel(s),
+                    value: s,
+                }))
+            ];
+        }
+        // Otherwise, only show normal options
+        return statusOptions.map(s => ({
+            label: getStatusLabel(s),
+            value: s,
+        }));
+    };
+
+    // Hàm thêm subtask
+    const handleAddSubTask = async () => {
+        if (!newSubTaskTitle.trim()) {
+            Toast.show({ type: 'info', text1: 'Tiêu đề subtask không được để trống.' });
+            return;
+        }
+        try {
+            // Lấy user hiện tại từ AsyncStorage
+            const userStr = await AsyncStorage.getItem('user');
+            let assignedTo = '';
+            if (userStr) {
+                const userObj = JSON.parse(userStr);
+                assignedTo = userObj.fullname;
+            }
+            if (!assignedTo) {
+                Toast.show({ type: 'error', text1: 'Không tìm thấy thông tin người dùng hiện tại.' });
+                return;
+            }
+            const token = await AsyncStorage.getItem('authToken');
+            const res = await axios.post(
+                `${API_BASE_URL}/api/tickets/${ticketId}/subtasks`,
+                {
+                    title: newSubTaskTitle,
+                    assignedTo: assignedTo,
+                    status: "In Progress",
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (res.data.success) {
+                Toast.show({ type: 'success', text1: 'Thêm subtask thành công!' });
+                const updated = res.data.ticket;
+                setTicket(updated);
+                setNewSubTaskTitle("");
+                setShowAddSubTask(false);
+            }
+        } catch (error) {
+            Toast.show({ type: 'error', text1: 'Lỗi thêm subtask.' });
+        }
+    };
+
+    const handleUpdateSubTaskStatus = async (subTaskId: string, newStatus: string) => {
+        try {
+            const token = await AsyncStorage.getItem('authToken');
+            const res = await axios.put(
+                `${API_BASE_URL}/api/tickets/${ticketId}/subtasks/${subTaskId}`,
+                { status: newStatus },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (res.data.success) {
+                Toast.show({ type: 'success', text1: 'Cập nhật subtask thành công!' });
+                setTicket((prev) => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        subTasks: prev.subTasks.map((task) =>
+                            task._id === subTaskId ? { ...task, status: newStatus } : task
+                        ),
+                    };
+                });
+                fetchTicketDetails();
+            }
+        } catch (error) {
+            Toast.show({ type: 'error', text1: 'Lỗi cập nhật subtask.' });
+        }
+    };
+
+    // Function to render feedback if ticket is closed
+    const renderFeedback = () => {
+        if (ticketStatus !== 'Closed' || !ticket?.feedback) return null;
+        
+        return (
+            <View className="bg-gray-100 p-4 rounded-lg mt-4">
+                <Text className="font-bold text-primary text-lg mb-2">Phản hồi từ khách hàng:</Text>
+                <View className="flex-row items-center mb-2">
+                    <Text className="font-medium mr-2">Đánh giá:</Text>
+                    <Text className="font-medium">{ticket.feedback.rating}/5</Text>
+                </View>
+                {ticket.feedback.comment && (
+                    <View>
+                        <Text className="font-medium">Nhận xét:</Text>
+                        <Text className="font-normal mt-1">{ticket.feedback.comment}</Text>
+                    </View>
+                )}
+            </View>
+        );
+    };
+
     if (loading) {
         return (
             <View className="flex-1 justify-center items-center">
@@ -168,51 +305,83 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
         );
     }
 
-    const statusOptions = ['Processing', 'Done', 'Cancelled'];
+    console.log('ticket:', ticket);
+    console.log('ticketStatus:', ticketStatus);
 
     return (
-        <ScrollView className="flex-1 bg-white p-4">
+        <View className="flex-1 bg-white p-4">
             {/* STATUS BAR */}
-            <View className="flex-row items-center mb-4">
-                <Text className="font-semibold text-base mr-2">Trạng thái:</Text>
-                <View className="flex-1 border border-gray-300 rounded-lg overflow-hidden">
-                    {Platform.OS === 'ios' ? (
-                        <Picker
-                            selectedValue={ticketStatus}
-                            onValueChange={(value) =>
-                                value !== ticketStatus && handleUpdateStatus(value)
-                            }
-                            style={{ height: 45 }}>
-                            {statusOptions.map((s) => (
-                                <Picker.Item key={s} label={getStatusLabel(s)} value={s} />
-                            ))}
-                        </Picker>
-                    ) : (
-                        <View className="bg-gray-100 rounded-lg px-2">
-                            <Picker
-                                selectedValue={ticketStatus}
-                                onValueChange={(value) =>
-                                    value !== ticketStatus && handleUpdateStatus(value)
-                                }
-                                style={{ height: 45 }}>
-                                {statusOptions.map((s) => (
-                                    <Picker.Item key={s} label={getStatusLabel(s)} value={s} />
-                                ))}
-                            </Picker>
+            <View className="flex-row items-center mt-4 mb-2">
+                <Text className="font-semibold text-lg mr-2">Trạng thái:</Text>
+                <View style={{ zIndex: 1000, flex: 1 }}>
+                    {ticketStatus === 'Closed' ? (
+                        <View className="bg-gray-100 rounded-lg p-2">
+                            <Text className="font-semibold text-base">{getStatusLabel(ticketStatus)}</Text>
                         </View>
+                    ) : (
+                        <DropDownPicker
+                            open={open}
+                            value={value}
+                            items={getStatusItems()}
+                            setOpen={setOpen}
+                            setValue={(callback) => {
+                                const newValue = callback(value);
+                                if (newValue !== ticketStatus) handleUpdateStatus(newValue);
+                                setValue(newValue);
+                            }}
+                            placeholder="Chọn trạng thái"
+                            style={{ 
+                                borderWidth: 0, 
+                                backgroundColor: '#f3f4f6', 
+                                minHeight: 30, 
+                                height: 'auto', 
+                                borderRadius: 8
+                            }}
+                            dropDownContainerStyle={{ 
+                                borderWidth: 0, 
+                                backgroundColor: '#f3f4f6', 
+                                borderRadius: 8 
+                            }}
+                            textStyle={{ 
+                                fontSize: 16, 
+                                color: '#222', 
+                                fontFamily: 'Inter' 
+                            }}
+                            labelStyle={{ 
+                                fontFamily: 'Inter' 
+                            }}
+                            disabled={loading}
+                            containerStyle={{ width: '50%' }}
+                            listItemLabelStyle={{ 
+                                fontFamily: 'Inter', 
+                                fontSize: 16, 
+                                color: '#222' 
+                            }}
+                            placeholderStyle={{ 
+                                fontFamily: 'Inter', 
+                                fontSize: 16, 
+                                color: '#757575' 
+                            }}
+                            selectedItemLabelStyle={{ 
+                                fontFamily: 'Inter', 
+                                fontSize: 16, 
+                                color: '#002855', 
+                                fontWeight: '600' 
+                            }}
+                        />
                     )}
                 </View>
             </View>
 
             {/* CANCEL REASON INPUT */}
             {showCancelReasonInput && (
-                <View className="bg-gray-100 p-4 rounded-lg">
+                <View className=" p-4 rounded-lg">
                     <Text className="font-medium mb-2">Lý do huỷ ticket:</Text>
                     <TextInput
                         value={cancelReason}
                         onChangeText={setCancelReason}
                         placeholder="Nhập lý do huỷ..."
-                        className="bg-white p-3 rounded-lg mb-2"
+                        className="bg-gray-100 p-3 rounded-lg font-medium mb-2"
                         multiline
                     />
                     <View className="flex-row justify-end">
@@ -237,10 +406,126 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
             {ticketStatus === 'Cancelled' && ticket?.cancelReason && (
                 <View className="bg-red-100 p-4 rounded-lg mt-4">
                     <Text className="font-bold text-red-600">Lý do huỷ ticket:</Text>
-                    <Text className="text-red-600">{ticket.cancelReason}</Text>
+                    <Text className="text-red-600 font-medium">{ticket.cancelReason}</Text>
                 </View>
             )}
-        </ScrollView>
+
+            {/* HIỂN THỊ FEEDBACK NẾU TRẠNG THÁI LÀ CLOSED */}
+            {renderFeedback()}
+
+            {/* DANH SÁCH CÔNG VIỆC + NÚT THÊM VIỆC */}
+            <View className="mt-6 mb-2">
+                <View className="flex-row items-center justify-between mb-2">
+                    <Text className="font-semibold text-lg">Danh sách công việc</Text>
+                    <TouchableOpacity
+                        onPress={() => setShowAddSubTask(true)}
+                        className=" px-4  rounded-lg">
+                        <Text className="text-primary text-3xl font-medium">+</Text>
+                    </TouchableOpacity>
+                </View>
+                {showAddSubTask && (
+                    <View className="flex-row items-center mb-3">
+                        <TextInput
+                            value={newSubTaskTitle}
+                            onChangeText={setNewSubTaskTitle}
+                            placeholder="Nhập việc cần làm"
+                            className="flex-1 bg-gray-100 p-3 rounded-lg mr-2"
+                        />
+                        <TouchableOpacity
+                            onPress={handleAddSubTask}
+                            className="bg-green-600 px-3 py-2 rounded-lg mr-2">
+                            <Text className="text-white font-medium">Thêm</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => {
+                                setShowAddSubTask(false);
+                                setNewSubTaskTitle("");
+                            }}
+                            className="bg-gray-400 px-3 py-2 rounded-lg">
+                            <Text className="text-white font-medium">Huỷ</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+
+            {/* HIỂN THỊ SUBTASK */}
+            {ticket && ticket.subTasks && ticket.subTasks.length > 0 ? (
+                ticket.subTasks.map((task) => {
+                    // Xác định subtask đầu tiên "In Progress"
+                    const inProgressTasks = ticket.subTasks.filter(
+                        (t) => t.status === "In Progress"
+                    );
+                    const isFirstInProgress =
+                        inProgressTasks.length > 0 &&
+                        inProgressTasks[0]._id === task._id;
+
+                    // Xác định style dựa trên trạng thái
+                    let containerStyle = { marginBottom: 10, borderRadius: 8, padding: 12 };
+                    let textColor = '#222';
+                    let bgColor = '#fff';
+                    let textDecorationLine: 'none' | 'line-through' = 'none';
+                    if (task.status === "Completed") {
+                        bgColor = '#E4EFE6';
+                        textColor = '#009483';
+                    } else if (task.status === "Cancelled") {
+                        bgColor = '#EBEBEB';
+                        textColor = '#757575';
+                        textDecorationLine = 'line-through';
+                    } else if (task.status === "In Progress") {
+                        if (isFirstInProgress) {
+                            bgColor = '#E6EEF6';
+                            textColor = '#002855';
+                        } else {
+                            bgColor = '#EBEBEB';
+                            textColor = '#757575';
+                        }
+                    }
+
+                    // Hàm mở ActionSheet chọn trạng thái
+                    const showStatusActionSheet = () => {
+                        if (ticketStatus === 'Cancelled' || ticketStatus === 'Closed') return;
+                        ActionSheetIOS.showActionSheetWithOptions(
+                            {
+                                options: [
+                                    isFirstInProgress ? 'Đang xử lý' : 'Chờ xử lý',
+                                    'Hoàn thành',
+                                    'Huỷ',
+                                    'Huỷ bỏ',
+                                ],
+                                destructiveButtonIndex: 2,
+                                cancelButtonIndex: 3,
+                                title: 'Chọn trạng thái',
+                            },
+                            (buttonIndex) => {
+                                if (buttonIndex === 0) handleUpdateSubTaskStatus(task._id, 'In Progress');
+                                else if (buttonIndex === 1) handleUpdateSubTaskStatus(task._id, 'Completed');
+                                else if (buttonIndex === 2) handleUpdateSubTaskStatus(task._id, 'Cancelled');
+                            }
+                        );
+                    };
+
+                    return (
+                        <TouchableOpacity
+                            key={task._id}
+                            onPress={showStatusActionSheet}
+                            disabled={ticketStatus === 'Cancelled' || ticketStatus === 'Closed'}
+                            style={[containerStyle, { backgroundColor: bgColor, opacity: (ticketStatus === 'Cancelled' || ticketStatus === 'Closed') ? 0.5 : 1 }]}
+                        >
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Text className="font-semibold text-lg" style={{ color: textColor, textDecorationLine}}>{task.title}</Text>
+                                <Text className="font-semibold text-lg" style={{ color: textColor }}>{task.status === 'In Progress' 
+                                    ? (isFirstInProgress ? 'Đang xử lý' : 'Chờ xử lý')
+                                    : task.status === 'Completed' 
+                                        ? 'Hoàn thành' 
+                                        : 'Đã huỷ'}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    );
+                })
+            ) : (
+                <Text className="text-center text-sm text-gray-500 font-medium">Không có subtask</Text>
+            )}
+        </View>
     );
 };
 

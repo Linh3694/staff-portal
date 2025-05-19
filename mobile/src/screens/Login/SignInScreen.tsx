@@ -63,6 +63,7 @@ const SignInScreen = () => {
                         userFullname = user.fullname || user.name || user.username || data.email.split('@')[0];
                         // Xử lý vai trò
                         userRole = user.role || 'user';
+                        console.log('Thông tin vai trò người dùng sau khi đăng nhập:', userRole);
 
                         const completeUser = {
                             ...user,
@@ -118,13 +119,13 @@ const SignInScreen = () => {
                 />
                 <Text className="font-bold text-xl text-primary self-start">Đăng nhập</Text>
                 {/* Email */}
-                <Text className="self-start mt-6 text-primary">Tên đăng nhập <Text className="text-error">*</Text></Text>
+                <Text className="self-start mt-6 text-primary font-medium">Tên đăng nhập <Text className="text-error">*</Text></Text>
                 <Controller
                     control={control}
                     name="email"
                     render={({ field: { onChange, onBlur, value } }) => (
                         <TextInput
-                            className="w-full h-12 border border-[#ddd] rounded-xl px-3 mt-2 bg-white"
+                            className="w-full h-12 border border-[#ddd]  font-medium rounded-xl px-3 mt-2 bg-white"
                             placeholder="example@wellspring.edu.vn"
                             autoCapitalize="none"
                             keyboardType="email-address"
@@ -136,14 +137,14 @@ const SignInScreen = () => {
                 />
                 {errors.email && <Text className="text-error self-start ml-2">{errors.email.message}</Text>}
                 {/* Password */}
-                <Text className="self-start mt-4 text-primary">Mật khẩu <Text className="text-error">*</Text></Text>
+                <Text className="self-start mt-4 text-primary  font-medium">Mật khẩu <Text className="text-error">*</Text></Text>
                 <Controller
                     control={control}
                     name="password"
                     render={({ field: { onChange, onBlur, value } }) => (
                         <View className="relative w-full">
                             <TextInput
-                                className={`w-full h-12 border rounded-xl px-3 mt-2 bg-white pr-12 ${loginError ? 'border-error' : 'border-[#ddd]'}`}
+                                className={`w-full h-12 border font-medium rounded-xl px-3 mt-2 bg-white pr-12 ${loginError ? 'border-error' : 'border-[#ddd]'}`}
                                 placeholder="Nhập mật khẩu"
                                 secureTextEntry={!showPassword}
                                 onBlur={onBlur}
@@ -184,12 +185,12 @@ const SignInScreen = () => {
                 </TouchableOpacity>
                 {/* Quên mật khẩu */}
                 <TouchableOpacity className="w-full items-center mt-4">
-                    <Text className="text-text-secondary text-base">Quên mật khẩu?</Text>
+                    <Text className="text-text-secondary  font-medium text-base">Quên mật khẩu?</Text>
                 </TouchableOpacity>
                 {/* Phân cách */}
                 <View className="flex-row items-center my-6">
                     <View className="flex-1 h-px bg-[#E0E0E0]" />
-                    <Text className="mx-2 text-text-secondary text-sm">Đăng nhập với phương thức khác</Text>
+                    <Text className="mx-2 text-text-secondary  font-medium text-sm">Đăng nhập với phương thức khác</Text>
                     <View className="flex-1 h-px bg-[#E0E0E0]" />
                 </View>
                 {/* Nút đăng nhập Microsoft */}
@@ -205,7 +206,7 @@ const SignInScreen = () => {
                 </TouchableOpacity>
             </View>
             <View className="absolute bottom-12 w-full items-center mt-4">
-                <Text className="text-text-secondary text-xs text-center mt-8">
+                <Text className="text-text-secondary  font-medium text-xs text-center mt-8">
                     © Copyright 2025 Wellspring International Bilingual Schools.{"\n"}All Rights Reserved.
                 </Text>
             </View>

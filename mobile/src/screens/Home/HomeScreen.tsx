@@ -35,10 +35,45 @@ const HomeScreen = () => {
         fetchUser();
     }, []);
 
-    const navigateToTicket = () => {
-        // Điều hướng dựa trên vai trò của người dùng
-        // @ts-ignore - Bypass TypeScript navigation error
-        navigation.navigate('Ticket', {});
+    const navigateToTicket = async () => {
+        try {
+            console.log('HomeScreen navigateToTicket - State userRole:', userRole);
+            // Kiểm tra từ AsyncStorage một cách cụ thể
+            const storedRole = await AsyncStorage.getItem('userRole');
+            console.log('HomeScreen navigateToTicket - AsyncStorage userRole:', storedRole);
+            
+            // Kiểm tra quyền người dùng trước
+            const userData = await AsyncStorage.getItem('user');
+            if (userData) {
+                const user = JSON.parse(userData);
+                const role = (user.role || '').toLowerCase().trim();
+                console.log('HomeScreen - Current user role from user object:', role);
+                
+                if (role === 'user' || storedRole === 'user') {
+                    console.log('Người dùng có vai trò USER -> điều hướng đến Ticket (Guest)');
+                    navigation.navigate('Ticket');
+                    return;
+                }
+                
+                // Phân quyền: superadmin, admin, technical -> TicketAdminScreen
+                if (['superadmin', 'admin', 'technical'].includes(role)) {
+                    console.log('Điều hướng đến TicketAdminScreen vì người dùng có vai trò', role);
+                    navigation.navigate('TicketAdminScreen');
+                } else {
+                    console.log('Điều hướng đến Ticket vì người dùng có vai trò không xác định:', role);
+                    navigation.navigate('Ticket');
+                }
+            } else {
+                // Không tìm thấy thông tin người dùng, điều hướng đến dạng guest
+                console.log('Không tìm thấy thông tin người dùng, điều hướng đến Ticket');
+                navigation.navigate('Ticket');
+            }
+        } catch (error) {
+            console.error('Lỗi khi kiểm tra quyền người dùng:', error);
+            // Mặc định điều hướng đến dạng guest nếu có lỗi
+            console.log('Xảy ra lỗi, điều hướng đến Ticket');
+            navigation.navigate('Ticket');
+        }
     };
 
     const menuItems = [

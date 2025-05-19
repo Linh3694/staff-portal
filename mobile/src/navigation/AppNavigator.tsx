@@ -12,6 +12,7 @@ import TicketCreate from '../screens/Ticket/TicketCreate';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ChatInitScreen from '../screens/Chat/ChatInitScreen';
 import TicketAdminDetail from '../screens/Ticket/TicketAdminDetail';
+import TicketGuestDetail from '../screens/Ticket/TicketGuestDetail';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -38,25 +39,54 @@ export type RootStackParamList = {
     ChatInit: { chatId: string; senderId: string };
     TicketAdminScreen: undefined;
     TicketAdminDetail: { ticketId: string };
+    TicketGuestDetail: { ticketId: string };
 };
 
 const AppNavigator = () => {
     const [ticketComponent, setTicketComponent] = useState(() => TicketGuestScreen);
 
+    // Thêm hàm tiện ích kiểm tra quyền và tái sử dụng trong ứng dụng
+    const checkUserRoleForAdmin = async () => {
+        try {
+            const userData = await AsyncStorage.getItem('user');
+            if (userData) {
+                const user = JSON.parse(userData);
+                const role = (user.role || '').toLowerCase().trim();
+                return ['superadmin', 'admin', 'technical'].includes(role);
+            }
+            return false;
+        } catch (error) {
+            console.error('Lỗi khi kiểm tra quyền người dùng:', error);
+            return false;
+        }
+    };
+
     useEffect(() => {
         const checkUserRole = async () => {
             try {
+                // Kiểm tra trực tiếp từ AsyncStorage
+                const storedRole = await AsyncStorage.getItem('userRole');
+                console.log('AppNavigator - UserRole from AsyncStorage:', storedRole);
+                
                 const userData = await AsyncStorage.getItem('user');
                 if (userData) {
                     const user = JSON.parse(userData);
-                    const role = user.role?.toLowerCase() || '';
+                    const role = (user.role || '').toLowerCase().trim();
+                    console.log('AppNavigator - Current user role from user object:', role);
+                    
+                    // Kiểm tra cụ thể cho user
+                    if (role === 'user' || storedRole === 'user') {
+                        console.log('Người dùng có vai trò USER -> setTicketComponent to TicketGuestScreen');
+                        setTicketComponent(() => TicketGuestScreen);
+                        return;
+                    }
 
                     // Phân quyền: superadmin, admin, technical -> TicketAdminScreen
                     if (['superadmin', 'admin', 'technical'].includes(role)) {
                         console.log('Người dùng có vai trò', role, '-> điều hướng đến TicketAdminScreen');
                         setTicketComponent(() => TicketAdminScreen);
                     } else {
-                        console.log('Người dùng có vai trò', role, '-> điều hướng đến TicketGuestScreen');
+                        console.log('Người dùng có vai trò không xác định:', role, '-> điều hướng đến TicketGuestScreen');
                         setTicketComponent(() => TicketGuestScreen);
                     }
                 } else {
@@ -121,6 +151,11 @@ const AppNavigator = () => {
             <Stack.Screen
                 name="TicketAdminDetail"
                 component={TicketAdminDetail}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="TicketGuestDetail"
+                component={TicketGuestDetail}
                 options={{ headerShown: false }}
             />
         </Stack.Navigator>

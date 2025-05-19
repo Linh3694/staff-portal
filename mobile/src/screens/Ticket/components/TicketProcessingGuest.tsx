@@ -1,0 +1,533 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, ActivityIndicator, ScrollView, Image, TouchableOpacity, TextInput } from 'react-native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../../config/constants';
+import { AntDesign, FontAwesome } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
+
+interface TicketProcessingGuestProps {
+    ticketId: string;
+}
+
+interface SubTask {
+    _id: string;
+    status: string;
+    title: string;
+    assignedTo?: {
+        _id: string;
+        fullname: string;
+        avatarUrl?: string;
+    };
+}
+
+interface Feedback {
+    rating: number;
+    comment?: string;
+    badges?: string[];
+}
+
+interface Ticket {
+    _id: string;
+    status: string;
+    subTasks: SubTask[];
+    assignedTo?: {
+        _id: string;
+        fullname: string;
+        avatarUrl?: string;
+        jobTitle?: string;
+    };
+    cancellationReason?: string;
+    feedback?: Feedback;
+}
+
+const getStatusLabel = (status: string) => {
+    switch (status) {
+        case 'Assigned':
+        case 'assigned':
+            return 'Đã nhận';
+        case 'Processing':
+        case 'processing':
+        case 'In Progress':
+            return 'Đang xử lý';
+        case 'Waiting for Customer':
+        case 'waiting for customer':
+            return 'Chờ phản hồi';
+        case 'Done':
+        case 'done':
+        case 'Completed':
+        case 'completed':
+            return 'Hoàn thành';
+        case 'Closed':
+        case 'closed':
+            return 'Đã đóng';
+        case 'Cancelled':
+        case 'cancelled':
+            return 'Đã huỷ';
+        default:
+            return status;
+    }
+};
+
+const getStatusColor = (status: string) => {
+    switch (status) {
+        case 'Assigned':
+        case 'assigned':
+            return 'bg-[#002855]';
+        case 'Processing':
+        case 'processing':
+        case 'In Progress':
+            return 'bg-[#F59E0B]';
+        case 'Waiting for Customer':
+        case 'waiting for customer':
+            return 'bg-orange-500';
+        case 'Done':
+        case 'done':
+        case 'Completed':
+        case 'completed':
+            return 'bg-[#BED232]';
+        case 'Closed':
+        case 'closed':
+            return 'bg-[#009483]';
+        case 'Cancelled':
+        case 'cancelled':
+            return 'bg-[#F05023]';
+        default:
+            return 'bg-gray-500';
+    }
+};
+
+const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId }) => {
+    const [loading, setLoading] = useState(true);
+    const [ticket, setTicket] = useState<Ticket | null>(null);
+    const [subTasks, setSubTasks] = useState<SubTask[]>([]);
+    const [selectedOption, setSelectedOption] = useState<string | null>(null);
+    const [rating, setRating] = useState(0);
+    const [review, setReview] = useState('');
+    const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
+    const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        fetchTicketDetails();
+    }, [ticketId]);
+
+    const fetchTicketDetails = async () => {
+        try {
+            setLoading(true);
+            const token = await AsyncStorage.getItem('authToken');
+            const res = await axios.get(`${API_BASE_URL}/api/tickets/${ticketId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data: Ticket = res.data.success && res.data.ticket ? res.data.ticket : res.data;
+            setTicket(data);
+            setSubTasks(data.subTasks || []);
+        } catch (err) {
+            console.error('Lỗi khi lấy ticket:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Thêm hàm xác nhận đánh giá
+    const handleSubmitFeedback = async () => {
+        if (rating === 0) {
+            Toast.show({
+                type: 'error',
+                text1: 'Vui lòng chọn số sao',
+            });
+            return;
+        }
+        
+        try {
+            setSubmitting(true);
+            const token = await AsyncStorage.getItem('authToken');
+            const response = await axios.post(
+                `${API_BASE_URL}/api/tickets/${ticketId}/feedback`,
+                {
+                    rating,
+                    comment: review,
+                    badges: selectedBadges
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            if (response.data.success) {
+                Toast.show({
+                    type: 'success',
+                    text1: 'Đánh giá đã được gửi thành công',
+                });
+                
+                // Thêm đoạn này: Cập nhật trạng thái ticket thành "Closed"
+                try {
+                    const updateResponse = await axios.put(
+                        `${API_BASE_URL}/api/tickets/${ticketId}`,
+                        { 
+                            status: "Closed",
+                            notifyAction: "feedback_added" // Thêm tham số để xác định loại notification
+                        },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                } catch (updateError) {
+                    console.error('Lỗi khi cập nhật trạng thái ticket:', updateError);
+                }
+                
+                fetchTicketDetails(); // Refresh ticket
+            }
+        } catch (error) {
+            console.error('Lỗi khi gửi đánh giá', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Không thể gửi đánh giá',
+            });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+    
+    // Thêm hàm mở lại ticket
+    const handleReopenTicket = async () => {
+        try {
+            setSubmitting(true);
+            const token = await AsyncStorage.getItem('authToken');
+            const response = await axios.put(
+                `${API_BASE_URL}/api/tickets/${ticketId}`,
+                { 
+                    status: 'Processing',
+                    notifyAction: 'reopen_ticket' // Thêm action để xác định loại thông báo
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            if (response.data.success) {
+                Toast.show({
+                    type: 'success',
+                    text1: 'Ticket đã được mở lại',
+                });
+                fetchTicketDetails(); // Làm mới dữ liệu ticket
+            }
+        } catch (error) {
+            console.error('Lỗi khi mở lại ticket', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Không thể mở lại ticket',
+            });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <View className="flex-1 justify-center items-center">
+                <ActivityIndicator size="large" color="#F05023" />
+            </View>
+        );
+    }
+
+    // Hiển thị khi không có ticket
+    if (!ticket) {
+        return (
+            <ScrollView className="flex-1 p-4">
+                <Text className="text-gray-500 text-center">Không thể tải thông tin ticket</Text>
+            </ScrollView>
+        );
+    }
+
+    // Hiển thị UI dựa vào trạng thái ticket
+    return (
+        <ScrollView className="flex-1 p-4">
+            {/* Header - Trạng thái ticket */}
+            <View className="flex-row items-center my-4">
+                <Text className="text-lg font-bold mr-2">Trạng thái Ticket:</Text>
+                <View className={`px-3 py-1 rounded-full ${getStatusColor(ticket.status)}`}>
+                    <Text className="text-white font-semibold text-base">{getStatusLabel(ticket.status)}</Text>
+                </View>
+            </View>
+
+            {/* Nội dung dựa vào trạng thái */}
+            {ticket.status.toLowerCase() === 'assigned' && (
+                <View className="bg-gray-50 p-4 rounded-xl">
+                    <Text className="text-base font-bold mb-3 text-gray-700">Thông tin kỹ thuật viên</Text>
+                    {ticket.assignedTo ? (
+                        <View className="flex-row">
+                            <View className="w-20 h-20 rounded-xl mr-3 overflow-hidden bg-gray-200">
+                                {ticket.assignedTo.avatarUrl ? (
+                                    <Image 
+                                        source={{ uri: `${API_BASE_URL}/uploads/Avatar/${ticket.assignedTo.avatarUrl}` }}
+                                        className="w-full h-full"
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <View className="w-full h-full items-center justify-center bg-gray-300">
+                                        <Text className="text-gray-600 text-xl font-bold">
+                                            {ticket.assignedTo.fullname?.charAt(0)}
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                            <View className="flex-1">
+                                <Text className="font-bold text-base">{ticket.assignedTo.fullname}</Text>
+                                <Text className="text-gray-500 text-sm">
+                                    {ticket.assignedTo.jobTitle === 'technical' ? 'Kỹ thuật viên' : ticket.assignedTo.jobTitle || ''}
+                                </Text>
+                                
+                                {/* Rating stars */}
+                                <View className="flex-row mt-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <FontAwesome 
+                                            key={star} 
+                                            name="star" 
+                                            size={16} 
+                                            color="#FFD700" 
+                                            style={{ marginRight: 2 }}
+                                        />
+                                    ))}
+                                </View>
+                            </View>
+                        </View>
+                    ) : (
+                        <Text className="text-gray-500">Chưa có kỹ thuật viên được phân công</Text>
+                    )}
+                </View>
+            )}
+
+            {ticket.status.toLowerCase() === 'processing' && (
+                <View className="bg-gray-50 p-4 rounded-xl">
+                    {subTasks && subTasks.length > 0 ? (
+                        <>
+                            <Text className="text-base font-bold mb-3 text-gray-700">
+                                Ticket đang được xử lý. Vui lòng chờ kĩ thuật viên hoàn thành các hạng mục sau
+                            </Text>
+                            {subTasks.map((task, index) => {
+                                const isCompleted = task.status === 'Completed';
+                                const isCancelled = task.status === 'Cancelled';
+                                
+                                // Cập nhật màu sắc theo TicketProcessing
+                                let bgColor = '#fff';
+                                let textColor = '#222';
+                                let textDecorationLine = 'none';
+                                
+                                if (isCompleted) {
+                                    bgColor = '#E4EFE6';
+                                    textColor = '#009483';
+                                } else if (isCancelled) {
+                                    bgColor = '#EBEBEB';
+                                    textColor = '#757575';
+                                    textDecorationLine = 'line-through';
+                                } else {
+                                    // Kiểm tra nếu là task đầu tiên In Progress
+                                    const isFirstInProgress = subTasks.filter(
+                                        t => t.status === 'In Progress'
+                                    )[0]?._id === task._id;
+                                    
+                                    if (isFirstInProgress) {
+                                        bgColor = '#E6EEF6';
+                                        textColor = '#002855';
+                                    } else {
+                                        bgColor = '#EBEBEB';
+                                        textColor = '#757575';
+                                    }
+                                }
+                                
+                                return (
+                                    <View 
+                                        key={task._id} 
+                                        className="flex-row justify-between items-center p-3 rounded-lg mb-2"
+                                        style={{ backgroundColor: bgColor }}
+                                    >
+                                        <Text style={{ color: textColor, fontWeight: '500', textDecorationLine: textDecorationLine as any }}>
+                                            {index + 1}. {task.title}
+                                        </Text>
+                                        <Text style={{ color: textColor, fontWeight: '500' }}>
+                                            {isCompleted ? 'Hoàn thành' : isCancelled ? 'Huỷ' : 'Đang làm'}
+                                        </Text>
+                                    </View>
+                                );
+                            })}
+                        </>
+                    ) : (
+                        <Text className="text-base text-gray-700">
+                            Ticket đang được xử lý, vui lòng chờ.
+                        </Text>
+                    )}
+                </View>
+            )}
+
+            {ticket.status.toLowerCase() === 'done' && (
+                <View className="bg-gray-50 p-4 rounded-xl">
+                    <Text className="text-base font-bold mb-3 text-gray-700">
+                        Yêu cầu đã được xử lý xong. Vui lòng nhận kết quả và kiểm tra chất lượng phục vụ
+                    </Text>
+                    
+                    <Text className="text-gray-500 mb-3">
+                        Bạn có thể nhận kết quả hoặc yêu cầu kỹ thuật viên xử lý lại nếu chưa đạt yêu cầu.
+                    </Text>
+                    
+                    <View className="space-y-3">
+                        <TouchableOpacity 
+                            onPress={() => setSelectedOption('accept')}
+                            className={`flex-row items-center p-3 rounded-lg ${selectedOption === 'accept' ? '' : ''}`}
+                        >
+                            <View className={`w-6 h-6 rounded-full border-2 mr-2 items-center justify-center ${selectedOption === 'accept' ? 'border-[#002855]' : 'border-gray-400'}`}>
+                                {selectedOption === 'accept' && (
+                                    <View className="w-3 h-3 rounded-full bg-[#002855]" />
+                                )}
+                            </View>
+                            <Text className={`text-base font-medium ${selectedOption === 'accept' ? 'text-primary' : 'text-gray-700'}`}>
+                                Chấp nhận kết quả
+                            </Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity 
+                            onPress={() => setSelectedOption('reject')}
+                            className={`flex-row items-center p-3 rounded-lg  ${selectedOption === 'reject' ? '' : ''}`}
+                        >
+                            <View className={`w-6 h-6 rounded-full border-2 mr-2 items-center justify-center ${selectedOption === 'reject' ? 'border-[#002855]' : 'border-gray-400'}`}>
+                                {selectedOption === 'reject' && (
+                                    <View className="w-3 h-3 rounded-full bg-[#002855]" />
+                                )}
+                            </View>
+                            <Text className={`text-base font-medium ${selectedOption === 'reject' ? 'text-primary' : 'text-gray-700'}`}>
+                                Chưa đạt yêu cầu, cần xử lý lại
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                    
+                    {selectedOption === 'accept' && (
+                        <View className="mt-5 items-center">
+                            {/* Đánh giá sao - Cập nhật để hoạt động */}
+                            <View className="flex-row justify-center mb-3">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <TouchableOpacity 
+                                        key={star}
+                                        onPress={() => setRating(star)}
+                                    >
+                                        <FontAwesome 
+                                            name={star <= rating ? "star" : "star-o"} 
+                                            size={30} 
+                                            color="#FFD700"
+                                            style={{ marginHorizontal: 5 }}
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                            
+                            {/* Thêm phần nhận xét */}
+                            <TextInput
+                                placeholder="Nhận xét của bạn (không bắt buộc)"
+                                value={review}
+                                onChangeText={setReview}
+                                multiline
+                                className="w-full bg-gray-100 p-3 rounded-lg mb-3"
+                                style={{ height: 80 }}
+                            />
+                            
+                            {/* Thêm phần chọn huy hiệu */}
+                            <View className="w-full mb-3">
+                                <Text className="font-medium mb-2 text-center">Chọn huy hiệu (không bắt buộc)</Text>
+                                <View className="flex-row flex-wrap justify-center">
+                                    {["Nhiệt Huyết", "Chu Đáo", "Vui Vẻ", "Tận Tình", "Chuyên Nghiệp"].map(
+                                        (badge) => {
+                                            const isSelected = selectedBadges.includes(badge);
+                                            return (
+                                                <TouchableOpacity
+                                                    key={badge}
+                                                    onPress={() => {
+                                                        if (isSelected) {
+                                                            setSelectedBadges(selectedBadges.filter(b => b !== badge));
+                                                        } else {
+                                                            setSelectedBadges([...selectedBadges, badge]);
+                                                        }
+                                                    }}
+                                                    className={`m-1 px-3 py-1 rounded-full ${
+                                                        isSelected ? "bg-[#002855]" : "bg-gray-200"
+                                                    }`}
+                                                >
+                                                    <Text
+                                                        className={`text-sm ${
+                                                            isSelected ? "text-white" : "text-gray-700"
+                                                        }`}
+                                                    >
+                                                        {badge}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        }
+                                    )}
+                                </View>
+                            </View>
+                            
+                            <TouchableOpacity 
+                                className="mt-3 bg-[#FF5733] py-2 px-5 rounded-lg"
+                                onPress={handleSubmitFeedback}
+                                disabled={submitting}
+                            >
+                                <Text className="text-white font-bold">
+                                    {submitting ? 'Đang xử lý...' : 'Xác nhận'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    
+                    {selectedOption === 'reject' && (
+                        <View className="mt-4 items-center">
+                            <TouchableOpacity 
+                                className="bg-[#FF5733] py-2 px-5 rounded-lg"
+                                onPress={handleReopenTicket}
+                                disabled={submitting}
+                            >
+                                <Text className="text-white font-bold">
+                                    {submitting ? 'Đang xử lý...' : 'Mở lại ticket'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
+            )}
+
+            {ticket.status.toLowerCase() === 'cancelled' && ticket.cancellationReason && (
+                <View className="bg-red-50 p-4 rounded-xl">
+                    <Text className="text-base font-bold mb-2 text-red-700">Lý do huỷ ticket:</Text>
+                    <Text className="text-red-600">{ticket.cancellationReason}</Text>
+                </View>
+            )}
+
+            {ticket.status.toLowerCase() === 'closed' && ticket.feedback && (
+                <View className="bg-gray-50 p-4 rounded-xl">
+                    <Text className="text-base font-bold mb-3 text-gray-700">Phản hồi của bạn:</Text>
+                    
+                    {/* Rating hiển thị */}
+                    <View className="flex-row justify-center mb-3">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                            <FontAwesome 
+                                key={star}
+                                name={star <= (ticket.feedback?.rating || 0) ? "star" : "star-o"}
+                                size={24}
+                                color="#FFD700"
+                                style={{ marginHorizontal: 3 }}
+                            />
+                        ))}
+                    </View>
+                    
+                    {ticket.feedback?.comment && (
+                        <View className="mb-3 p-3 bg-gray-100 rounded-lg">
+                            <Text className="text-gray-700 italic">"{ticket.feedback.comment}"</Text>
+                        </View>
+                    )}
+                    
+                    {ticket.feedback?.badges && ticket.feedback.badges.length > 0 && (
+                        <View className="flex-row flex-wrap">
+                            {ticket.feedback.badges.map((badge, index) => (
+                                <View key={index} className="bg-blue-100 rounded-full px-3 py-1 m-1">
+                                    <Text className="text-blue-700 text-sm">{badge}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+                </View>
+            )}
+        </ScrollView>
+    );
+};
+
+export default TicketProcessingGuest; 

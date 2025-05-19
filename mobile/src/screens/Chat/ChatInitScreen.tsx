@@ -57,7 +57,7 @@ const ChatInitScreen = ({ route, navigation }: Props) => {
     return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
             <ActivityIndicator size="large" color="#009483" />
-            <Text style={{ marginTop: 16, color: '#666' }}>Đang tải cuộc trò chuyện...</Text>
+            <Text style={{ marginTop: 16, color: '#666', fontFamily: 'Inter', fontWeight: 'medium' }}>Đang tải cuộc trò chuyện...</Text>
         </View>
     );
 };

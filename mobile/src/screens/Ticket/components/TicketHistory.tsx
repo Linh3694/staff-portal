@@ -97,19 +97,16 @@ const TicketHistory: React.FC<TicketHistoryProps> = ({ ticketId }) => {
         <View className="flex-1">
             {history.length === 0 ? (
                 <View className="flex-1 justify-center items-center py-8">
-                    <Text className="text-gray-500">Chưa có lịch sử hoạt động</Text>
+                    <Text className="text-gray-500 font-medium">Chưa có lịch sử hoạt động</Text>
                 </View>
             ) : (
                 <ScrollView className="flex-1">
                     {[...history].reverse().map((item, index) => (
                         <View key={index} className="mb-4">
-                            <View className="flex-row items-center mb-2">
-                                <View className="w-3 h-3 rounded-full bg-[#002855]" />
-                                <Text className="ml-2 text-gray-500 text-sm">
+                            <View className="ml-6 bg-[#F8F8F8] rounded-xl p-3 font-medium">
+                                <Text className=" text-gray-500 text-sm font-medium mb-1">
                                     {formatDate(item.timestamp)}
                                 </Text>
-                            </View>
-                            <View className="ml-6 bg-[#F8F8F8] rounded-xl p-4">
                                 {/* Sử dụng WebView để hiển thị HTML */}
                                 <WebView
                                     originWhitelist={['*']}

@@ -90,7 +90,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 await AsyncStorage.setItem('user', JSON.stringify(userData));
                 await AsyncStorage.setItem('userId', userData._id || userData.id);
                 await AsyncStorage.setItem('userFullname', userData.fullname);
-                await AsyncStorage.setItem('userRole', userData.role || 'user');
+                
+                const role = userData.role || 'user';
+                console.log('AuthContext - Role being saved:', role);
+                await AsyncStorage.setItem('userRole', role);
+                
                 setUser(userData);
             }
         } catch (error) {

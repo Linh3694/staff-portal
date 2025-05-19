@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, Image, KeyboardAvoidingView, SafeAreaView, Linking, Alert, ActionSheetIOS, ScrollView, Dimensions, Modal, StatusBar, PanResponder, GestureResponderEvent } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, Image, KeyboardAvoidingView, SafeAreaView, Linking, Alert, ActionSheetIOS, ScrollView, Dimensions, Modal, StatusBar, PanResponder, GestureResponderEvent, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LayoutAnimation, Platform, UIManager } from 'react-native';
 // Enable LayoutAnimation on Android
@@ -371,6 +371,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
     const [isScreenActive, setIsScreenActive] = useState(true);
     const chatIdRef = useRef<string | null>(null);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
 
     // Focus & blur handlers for tracking when screen is active/inactive
     useEffect(() => {
@@ -1079,12 +1080,35 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         fetchFullChatInfo();
     }, [chat?._id, currentUserId]);
 
+    // Listen for keyboard events
+    useEffect(() => {
+        const keyboardWillShowListener = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+            () => {
+                setKeyboardVisible(true);
+            }
+        );
+        
+        const keyboardWillHideListener = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+            () => {
+                setKeyboardVisible(false);
+            }
+        );
+
+        return () => {
+            keyboardWillShowListener.remove();
+            keyboardWillHideListener.remove();
+        };
+    }, []);
+
     return (
         <SafeAreaView style={{ flex: 1 }}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={0}
+                behavior="padding"
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                enabled
             >
                 <View className="flex-row items-center p-3 border-b border-gray-200">
                     <TouchableOpacity onPress={() => navigationProp.goBack()} className="mr-2">
@@ -1110,8 +1134,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                         />
                     </View>
                     <View style={{ justifyContent: 'center' }}>
-                        <Text className="font-bold text-lg" style={{ marginBottom: 0 }}>{user.fullname}</Text>
-                        <Text style={{ fontSize: 12, color: '#444' }}>
+                        <Text className="font-medium text-lg" style={{ marginBottom: 0 }}>{user.fullname}</Text>
+                        <Text style={{ fontSize: 12, color: '#444', fontFamily: 'Inter', fontWeight: 'medium' }}>
                             {isUserOnline(user._id) ? 'Đang hoạt động' : getFormattedLastSeen(user._id)}
                         </Text>
                     </View>
@@ -1127,7 +1151,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     <View style={{ flex: 1 }}>
                         {loading ? (
                             <View className="flex-1 items-center justify-center">
-                                <Text>Đang tải tin nhắn...</Text>
+                                <Text style={{ fontFamily: 'Inter', fontWeight: 'medium' }}>Đang tải tin nhắn...</Text>
                             </View>
                         ) : (
                             <FlatList
@@ -1297,9 +1321,9 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                                             />
                                                         )}
                                                         {item.type === 'text' && (
-                                                            <Text style={{ color: isMe ? 'white' : '#222', fontSize: 16 }}>{item.content}</Text>
+                                                            <Text style={{ color: isMe ? 'white' : '#222', fontSize: 16, fontFamily: 'Inter', fontWeight: 'medium' }}>{item.content}</Text>
                                                         )}
-                                                        <Text style={{ color: isMe ? '#fff' : '#888', fontSize: 12, marginTop: 4 }}>{formatMessageTime(item.createdAt)}</Text>
+                                                        <Text style={{ color: isMe ? '#fff' : '#888', fontSize: 12, marginTop: 4, fontFamily: 'Inter', fontWeight: 'medium' }}>{formatMessageTime(item.createdAt)}</Text>
                                                     </View>
                                                 </View>
                                                 {isMe && item._id === messages[messages.length - 1]?._id && (
@@ -1314,7 +1338,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                                         marginRight: 16,
                                                     }}>
                                                         <MessageStatus message={item} currentUserId={currentUserId} chat={chat} />
-                                                        <Text style={{ color: '#fff', fontSize: 12, marginLeft: 4 }}>
+                                                        <Text style={{ color: '#fff', fontSize: 12, marginLeft: 4, fontFamily: 'Inter', fontWeight: 'medium' }}>
                                                             {item._id && item.readBy.includes(currentUserId) && chat && chat.participants.filter(p => p._id !== currentUserId).every(p => item.readBy.includes(p._id))
                                                                 ? 'Đã đọc'
                                                                 : item._id
@@ -1328,8 +1352,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                     }}
                                     contentContainerStyle={{
                                         paddingVertical: 10,
-                                    paddingBottom: insets.bottom + 70, // space for input
-                                }}
+                                        paddingBottom: keyboardVisible ? 10 : (insets.bottom + 50), // less padding when keyboard is visible
+                                    }}
                             />
                         )}
                     </View>
@@ -1343,6 +1367,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                             backgroundColor: 'white',
                             width: '100%',
                             minHeight: 40,
+                            paddingBottom: Platform.OS === 'ios' ? 2 : (keyboardVisible ? 2 : insets.bottom),
                         }}
                     >
                         {/* Dòng preview ảnh (nếu có) */}
@@ -1447,9 +1472,9 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                         width: '100%'
                     }}>
                         <TouchableOpacity onPress={() => setViewerVisible(false)} style={{ padding: 8 }}>
-                            <Text style={{ color: 'white', fontSize: 16 }}>✕</Text>
+                            <Text style={{ color: 'white', fontSize: 16, fontFamily: 'Inter', fontWeight: 'medium' }}>✕</Text>
                         </TouchableOpacity>
-                        <Text style={{ color: 'white', fontSize: 16 }}>{imageIndex + 1}/{viewerImages.length}</Text>
+                        <Text style={{ color: 'white', fontSize: 16, fontFamily: 'Inter', fontWeight: 'medium' }}>{imageIndex + 1}/{viewerImages.length}</Text>
                     </View>
                 )}
             />

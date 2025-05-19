@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../../../config/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Modal from 'react-native-modal';
 
 interface TicketInformationProps {
     ticketId: string;
@@ -28,13 +29,14 @@ interface Ticket {
         email: string;
     };
     createdAt: string;
-    note: string;
+    notes: string;
     attachments: Attachment[];
 }
 
 const TicketInformation: React.FC<TicketInformationProps> = ({ ticketId }) => {
     const [ticket, setTicket] = useState<Ticket | null>(null);
     const [loading, setLoading] = useState(true);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     useEffect(() => {
         fetchTicketDetails();
@@ -112,7 +114,7 @@ const TicketInformation: React.FC<TicketInformationProps> = ({ ticketId }) => {
     if (!ticket) {
         return (
             <View className="flex-1 justify-center items-center">
-                <Text className="text-gray-500">Không tìm thấy thông tin ticket</Text>
+                <Text className="text-gray-500 font-medium">Không tìm thấy thông tin ticket</Text>
             </View>
         );
     }
@@ -123,26 +125,26 @@ const TicketInformation: React.FC<TicketInformationProps> = ({ ticketId }) => {
                 <Text className="text-lg font-semibold text-[#002855] mb-2">Thông tin chung</Text>
 
                 <View className="mb-3 flex flex-row items-center justify-between">
-                    <Text className="text-[#757575] text-base">Mã yêu cầu</Text>
+                    <Text className="text-[#757575] text-base font-semibold">Mã yêu cầu</Text>
                     <Text className="text-base text-[#002855] font-medium">{ticket.ticketCode}</Text>
                 </View>
 
                 <View className="mb-3 flex flex-row items-center justify-between">
-                    <Text className="text-[#757575] text-base">Người thực hiện</Text>
+                    <Text className="text-[#757575] text-base font-semibold">Người thực hiện</Text>
                     <Text className="text-base text-[#002855] font-medium">{ticket.assignedTo?.fullname || 'Chưa phân công'}</Text>
                 </View>
 
                 <View className="mb-3 flex flex-row items-center justify-between">
-                    <Text className="text-[#757575] text-base">Ngày yêu cầu</Text>
+                    <Text className="text-[#757575] text-base font-semibold">Ngày yêu cầu</Text>
                     <View className="flex-row items-center">
                         <Text className="text-base text-[#002855] font-medium">{formatDate(ticket.createdAt)}</Text>
                     </View>
                 </View>
 
                 <View className="mb-3 flex flex-row items-center justify-between">
-                    <Text className="text-[#757575] text-base">Trạng thái</Text>
+                    <Text className="text-[#757575] text-base font-semibold">Trạng thái</Text>
                     <View className={`${statusColor(ticket.status)} rounded-lg px-3 py-1`}>
-                        <Text className="text-base text-white">{statusLabel(ticket.status)}</Text>
+                        <Text className="text-base text-white font-semibold">{statusLabel(ticket.status)}</Text>
                     </View>
                 </View>
             </View>
@@ -151,41 +153,59 @@ const TicketInformation: React.FC<TicketInformationProps> = ({ ticketId }) => {
                 <Text className="text-lg font-bold text-[#002855] mb-2">Nội dung yêu cầu</Text>
 
                 <View className="mb-3">
-                    <Text className=" text-[#002855] font-semibold text-sm">Tiêu đề</Text>
-                    <Text className="text-sm text-[#757575] mt-1">{ticket.title}</Text>
+                    <Text className=" text-[#002855] font-semibold text-base">Tiêu đề</Text>
+                    <Text className="text-base text-[#757575] font-medium mt-1">{ticket.title}</Text>
                 </View>
 
                 <View className="mb-3">
-                    <Text className="text-[#002855] font-semibold text-sm">Chi tiết</Text>
-                    <Text className="text-sm text-[#757575] mt-1">{ticket.description}</Text>
+                    <Text className="text-[#002855] font-semibold text-base">Chi tiết</Text>
+                    <Text className="text-base text-[#757575] font-medium mt-1">{ticket.description}</Text>
                 </View>
 
                 <View className="mb-3">
-                    <Text className="text-[#002855] font-semibold text-sm">Ảnh</Text>
-                    <View className="flex-row items-center mt-1 flex-wrap">
+                    <Text className="text-[#002855] font-semibold text-base">Ảnh</Text>
+                    <View className="flex-row items-center mt-1 flex-wrap gap-2">
                         {ticket.attachments && ticket.attachments.length > 0 ? (
                             ticket.attachments.map((attachment, index) => (
-                                <Image
-                                    key={index}
-                                    source={{ uri: `${API_BASE_URL}/${attachment.url}` }}
-                                    className="w-20 h-20 rounded-lg mr-2 mb-2"
-                                />
+                                <TouchableOpacity key={index} onPress={() => setPreviewImage(`${API_BASE_URL}/uploads/Tickets/${attachment.url}`)}>
+                                    <Image
+                                        source={{ uri: `${API_BASE_URL}/uploads/Tickets/${attachment.url}` }}
+                                        className="w-20 h-20 rounded-lg"
+                                        onError={(e) => console.error('Lỗi tải ảnh:', e.nativeEvent.error)}
+                                    />
+                                </TouchableOpacity>
                             ))
                         ) : (
-                            <Text className="text-sm text-[#757575]">Không có ảnh đính kèm</Text>
+                            <Text className="text-sm text-[#757575] font-medium">Không có ảnh đính kèm</Text>
                         )}
                     </View>
                 </View>
 
                 <View className="mb-3">
-                    <Text className="text-[#002855] font-semibold text-sm">Ghi chú</Text>
+                    <Text className="text-[#002855] font-semibold text-base">Ghi chú</Text>
                     <View className="flex-row items-center mt-1">
-                        <Text className="text-sm text-[#757575] mt-1">{ticket.note}</Text>
+                        <Text className="text-base text-[#757575] font-medium mt-1">{ticket.notes}</Text>
                     </View>
                 </View>
             </View>
 
-
+            <Modal
+                isVisible={!!previewImage}
+                onBackdropPress={() => setPreviewImage(null)}
+                onSwipeComplete={() => setPreviewImage(null)}
+                swipeDirection={['down']}
+                style={{ margin: 0, justifyContent: 'center', alignItems: 'center' }}
+            >
+                <View style={{ width: '100%', alignItems: 'center' }}>
+                    
+                    {previewImage && (
+                        <Image
+                            source={{ uri: previewImage }}
+                            style={{ width: '90%', height: '70%', resizeMode: 'contain' }}
+                        />
+                    )}
+                </View>
+            </Modal>
         </ScrollView >
     );
 };

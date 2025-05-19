@@ -3,16 +3,16 @@ import { View, Text, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'r
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
-import { Ionicons, MaterialIcons, AntDesign, FontAwesome5, FontAwesome } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, AntDesign, FontAwesome5 } from '@expo/vector-icons';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TicketInformation from './components/TicketInformation';
-import TicketProcessing from './components/TicketProcessing';
 import TicketChat from './components/TicketChat';
 import TicketHistory from './components/TicketHistory';
+import TicketProcessingGuest from './components/TicketProcessingGuest';
 
-type TicketDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TicketAdminDetail'>;
+type TicketDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TicketDetail'>;
 
 interface RouteParams {
     ticketId: string;
@@ -30,7 +30,7 @@ interface Ticket {
     };
 }
 
-const TicketAdminDetail = () => {
+const TicketGuestDetail = () => {
     const navigation = useNavigation<TicketDetailScreenNavigationProp>();
     const route = useRoute();
     const { ticketId } = route.params as RouteParams;
@@ -62,37 +62,16 @@ const TicketAdminDetail = () => {
         navigation.goBack();
     };
 
-    const renderStars = (rating: number) => {
-        return Array(5).fill(0).map((_, index) => (
-            <MaterialIcons
-                key={index}
-                name="star-border"
-                size={24}
-                color="#9CA3AF"
-            />
-        ));
-    };
-
     const renderContent = () => {
         switch (activeTab) {
             case 'information':
-                return (
-
-                    <TicketInformation ticketId={ticketId} />
-
-                );
+                return <TicketInformation ticketId={ticketId} />;
             case 'processing':
-                return (
-                    <TicketProcessing ticketId={ticketId} onRefresh={fetchTicketData} />
-                );
+                return <TicketProcessingGuest ticketId={ticketId} />;
             case 'chat':
-                return (
-                    <TicketChat ticketId={ticketId} />
-                );
+                return <TicketChat ticketId={ticketId} />;
             case 'history':
-                return (
-                    <TicketHistory ticketId={ticketId} />
-                );
+                return <TicketHistory ticketId={ticketId} />;
             default:
                 return null;
         }
@@ -132,10 +111,6 @@ const TicketAdminDetail = () => {
         }
     };
 
-    if (ticket && ticket.feedback) {
-        console.log('Ticket rating:', ticket.feedback.rating);
-    }
-
     return (
         <SafeAreaView className="flex-1 bg-white">
             {/* Header */}
@@ -146,23 +121,7 @@ const TicketAdminDetail = () => {
             ) : ticket ? (
                 <View className="bg-white">
                     <View className="w-full flex-row items-start justify-between px-4 py-4">
-                        <View className="flex-row items-center">
-                            <Text className="text-black font-medium text-lg mr-2">{ticket.ticketCode}</Text>
-                            {ticket.feedback && (
-                                <View className="flex-row">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                        <FontAwesome
-                                            key={star}
-                                            name={star <= ((ticket.feedback && ticket.feedback.rating) ?? 0) ? "star" : "star-o"}
-                                            size={16}
-                                            color="#FFD700"
-                                            style={{ marginHorizontal: 1 }}
-                                        />
-                                    ))}
-                                </View>
-                            )}
-                        </View>
-
+                        <Text className="text-black font-medium text-lg">{ticket.ticketCode}</Text>
                         <TouchableOpacity onPress={handleGoBack}>
                             <AntDesign name="close" size={24} color="black" />
                         </TouchableOpacity>
@@ -172,23 +131,7 @@ const TicketAdminDetail = () => {
                         <Text className="text-[#E84A37] font-medium text-xl">{ticket.title}</Text>
                     </View>
 
-                    <View className="flex-row justify-between items-center pr-[48%] pl-5 mb-6">
-                        <View className="w-11 h-11 rounded-full bg-green-600 items-center justify-center">
-                            <Ionicons name="checkmark" size={24} color="white" />
-                        </View>
-
-                        <View className="w-11 h-11 rounded-full bg-teal-600 items-center justify-center">
-                            <FontAwesome5 name="sync-alt" size={16} color="white" />
-                        </View>
-
-                        <View className="w-11 h-11 rounded-full bg-yellow-500 items-center justify-center">
-                            <FontAwesome5 name="pause" size={16} color="white" />
-                        </View>
-
-                        <View className="w-11 h-11 rounded-full bg-red-600 items-center justify-center">
-                            <Ionicons name="square" size={16} color="white" />
-                        </View>
-                    </View>
+                   
                 </View>
             ) : null}
 
@@ -210,7 +153,6 @@ const TicketAdminDetail = () => {
                         Tiến trình
                     </Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                     onPress={() => setActiveTab('chat')}
                     className={`py-3 mr-6 ${activeTab === 'chat' ? 'border-b-2 border-black' : ''}`}
@@ -219,7 +161,6 @@ const TicketAdminDetail = () => {
                         Trao đổi
                     </Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                     onPress={() => setActiveTab('history')}
                     className={`py-3 ${activeTab === 'history' ? 'border-b-2 border-black' : ''}`}
@@ -238,4 +179,4 @@ const TicketAdminDetail = () => {
     );
 };
 
-export default TicketAdminDetail; 
+export default TicketGuestDetail; 

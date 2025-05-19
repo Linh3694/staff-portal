@@ -7,6 +7,24 @@ const { Expo } = require('expo-server-sdk');
 let expo = new Expo();
 
 /**
+ * Hàm dịch trạng thái sang tiếng Việt
+ */
+function translateStatus(status) {
+  const statusMap = {
+    "Assigned": "Đã nhận",
+    "Processing": "Đang xử lý",
+    "In Progress": "Đang xử lý",
+    "Completed": "Hoàn thành",
+    "Done": "Hoàn thành",
+    "Cancelled": "Đã huỷ",
+    "Waiting for Customer": "Chờ phản hồi",
+    "Closed": "Đã đóng",
+  };
+
+  return statusMap[status] || status;
+}
+
+/**
  * Gửi thông báo đến các thiết bị theo danh sách token
  * @param {Array} pushTokens - Danh sách token thiết bị
  * @param {String} title - Tiêu đề thông báo
@@ -132,26 +150,130 @@ exports.sendNewTicketNotification = async (ticket) => {
 };
 
 /**
- * Gửi thông báo khi ticket được cập nhật
+ * Gửi thông báo khi có đánh giá mới từ khách hàng
  */
-exports.sendTicketUpdateNotification = async (ticket, action) => {
+exports.sendFeedbackNotification = async (ticket) => {
     try {
         const recipientsList = [];
 
-        // Luôn thêm người tạo ticket vào danh sách nhận thông báo
+        // Thêm người tạo ticket vào danh sách (nếu là admin/staff)
         if (ticket.creator) {
+            const creator = await User.findById(ticket.creator);
+            if (creator && (creator.role === 'admin' || creator.role === 'technical' || creator.role === 'superadmin')) {
+                recipientsList.push(creator);
+            }
+        }
+
+        // Thêm người được gán ticket
+        if (ticket.assignedTo) {
+            const assignedUser = await User.findById(ticket.assignedTo);
+            if (assignedUser &&
+                !recipientsList.some(user => user._id.toString() === assignedUser._id.toString())) {
+                recipientsList.push(assignedUser);
+            }
+        }
+
+        // Thêm tất cả admin và superadmin
+        const admins = await User.find({ role: { $in: ['admin', 'superadmin'] } });
+        for (const admin of admins) {
+            if (!recipientsList.some(user => user._id.toString() === admin._id.toString())) {
+                recipientsList.push(admin);
+            }
+        }
+
+        if (recipientsList.length === 0) {
+            console.log('Không có người nhận thông báo đánh giá cho ticket:', ticket.ticketCode);
+            return;
+        }
+
+        // Lấy danh sách ID người nhận
+        const recipientIds = recipientsList.map(user => user._id);
+
+        // Tạo nội dung thông báo
+        let title = `Ticket #${ticket.ticketCode} đã được đánh giá`;
+        let body;
+        
+        if (ticket.feedback && ticket.feedback.rating) {
+            body = `Khách hàng đã đánh giá ${ticket.feedback.rating}/5 sao`;
+        } else {
+            body = `Khách hàng đã từ chối xác nhận hoàn thành`;
+        }
+
+        const data = {
+            ticketId: ticket._id.toString(),
+            ticketCode: ticket.ticketCode,
+            type: 'ticket_feedback',
+        };
+
+        // Lưu thông báo vào cơ sở dữ liệu
+        await saveNotificationToDatabase(recipientIds, title, body, data, "ticket");
+
+        // Lấy danh sách token từ những người dùng có đăng ký thiết bị
+        const tokens = recipientsList
+            .filter(user => user.deviceToken)
+            .map(user => user.deviceToken);
+
+        console.log('Tokens to send notification:', tokens);
+
+        // Gửi thông báo
+        if (tokens.length > 0) {
+            await sendPushNotifications(tokens, title, body, data);
+            console.log(`Đã gửi thông báo đánh giá cho ticket #${ticket.ticketCode} đến ${tokens.length} người`);
+        }
+    } catch (error) {
+        console.error('Lỗi khi gửi thông báo đánh giá ticket:', error);
+    }
+};
+
+/**
+ * Gửi thông báo khi ticket được cập nhật
+ * @param {Object} ticket - Ticket object
+ * @param {String} action - Loại hành động (assigned, status_updated, comment_added, etc)
+ * @param {String} excludeUserId - ID của người dùng sẽ không nhận thông báo (người gửi tin nhắn)
+ */
+exports.sendTicketUpdateNotification = async (ticket, action, excludeUserId = null) => {
+    try {
+        const recipientsList = [];
+
+        // Luôn thêm người tạo ticket vào danh sách nhận thông báo (trừ khi là người bị loại trừ)
+        if (ticket.creator && (!excludeUserId || ticket.creator.toString() !== excludeUserId.toString())) {
             const creator = await User.findById(ticket.creator);
             if (creator) {
                 recipientsList.push(creator);
             }
         }
 
-        // Nếu ticket được gán cho ai đó, thêm họ vào danh sách
-        if (ticket.assignedTo) {
+        // Nếu ticket được gán cho ai đó, thêm họ vào danh sách (trừ khi là người bị loại trừ)
+        if (ticket.assignedTo && (!excludeUserId || ticket.assignedTo.toString() !== excludeUserId.toString())) {
             const assignedUser = await User.findById(ticket.assignedTo);
             if (assignedUser &&
                 !recipientsList.some(user => user._id.toString() === assignedUser._id.toString())) {
                 recipientsList.push(assignedUser);
+            }
+        }
+
+        // Nếu action là status_updated (cập nhật trạng thái), thêm tất cả superadmin vào danh sách nhận thông báo
+        if (action === 'status_updated') {
+            const superAdmins = await User.find({ role: "superadmin" });
+            for (const admin of superAdmins) {
+                // Kiểm tra xem admin đã có trong danh sách chưa và không phải là người bị loại trừ
+                if (!recipientsList.some(user => user._id.toString() === admin._id.toString()) && 
+                    (!excludeUserId || admin._id.toString() !== excludeUserId.toString())) {
+                    recipientsList.push(admin);
+                }
+            }
+        }
+
+        // Nếu trạng thái là Closed hoặc chuyển từ Done sang Processing (mở lại ticket),
+        // thêm tất cả admin và người được gán vào danh sách
+        if (ticket.status === 'Closed' || 
+            (ticket.status === 'Processing' && action === 'status_updated')) {
+            const admins = await User.find({ role: { $in: ['admin', 'technical'] } });
+            for (const admin of admins) {
+                if (!recipientsList.some(user => user._id.toString() === admin._id.toString()) && 
+                    (!excludeUserId || admin._id.toString() !== excludeUserId.toString())) {
+                    recipientsList.push(admin);
+                }
             }
         }
 
@@ -172,12 +294,23 @@ exports.sendTicketUpdateNotification = async (ticket, action) => {
                 body = `Ticket đã được gán cho nhân viên hỗ trợ`;
                 break;
             case 'status_updated':
-                title = `Ticket #${ticket.ticketCode} đã cập nhật`;
-                body = `Trạng thái mới: ${ticket.status}`;
+                title = `Ticket #${ticket.ticketCode} đã cập nhật trạng thái`;
+                // Nếu trạng thái từ Done sang Processing, đó là khách hàng mở lại ticket
+                if (ticket.status === 'Processing') {
+                    body = `Khách hàng đã yêu cầu xử lý lại ticket`;
+                } else {
+                    body = `Trạng thái mới: ${translateStatus(ticket.status)}`;
+                }
                 break;
             case 'comment_added':
                 title = `Ticket #${ticket.ticketCode} có tin nhắn mới`;
                 body = `Có tin nhắn mới trong ticket của bạn`;
+                break;
+            case 'feedback_added':
+                title = `Ticket #${ticket.ticketCode} đã nhận đánh giá`;
+                body = ticket.feedback && ticket.feedback.rating 
+                    ? `Khách hàng đã đánh giá ${ticket.feedback.rating}/5 sao` 
+                    : `Khách hàng đã gửi đánh giá`;
                 break;
             default:
                 title = `Ticket #${ticket.ticketCode} đã cập nhật`;
@@ -196,8 +329,27 @@ exports.sendTicketUpdateNotification = async (ticket, action) => {
 
         // Lấy danh sách token từ những người dùng có đăng ký thiết bị
         const tokens = recipientsList
-            .filter(user => user.deviceToken)
+            .filter(user => {
+                // Kiểm tra xem user có phải là người gửi không
+                const isSender = excludeUserId && user._id.toString() === excludeUserId.toString();
+                console.log('Checking user:', {
+                    userId: user._id.toString(),
+                    excludeUserId: excludeUserId?.toString(),
+                    isSender,
+                    hasDeviceToken: !!user.deviceToken,
+                    deviceToken: user.deviceToken
+                });
+                // Chỉ lấy token của người không phải là người gửi và có device token
+                return !isSender && user.deviceToken;
+            })
             .map(user => user.deviceToken);
+
+        console.log('Final tokens to send:', tokens);
+        console.log('excludeUserId:', excludeUserId);
+        console.log('recipientsList:', recipientsList.map(u => ({
+            id: u._id.toString(),
+            deviceToken: u.deviceToken
+        })));
 
         // Gửi thông báo
         if (tokens.length > 0) {

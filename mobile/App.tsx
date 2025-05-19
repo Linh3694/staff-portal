@@ -10,6 +10,9 @@ import 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from './src/config/constants';
 import { AuthProvider } from './src/context/AuthContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
+import CustomToastConfig from './src/components/CustomToastConfig';
 
 import './global.css';
 
@@ -27,9 +30,22 @@ Notifications.setNotificationHandler({
 export default function App() {
   const [fontsLoaded] = useFonts({
     'Mulish-Regular': require('./src/assets/fonts/Mulish-Regular.ttf'),
+    'Mulish-Italic': require('./src/assets/fonts/Mulish-Italic.ttf'),
     'Mulish-Medium': require('./src/assets/fonts/Mulish-Medium.ttf'),
+    'Mulish-MediumItalic': require('./src/assets/fonts/Mulish-MediumItalic.ttf'),
     'Mulish-SemiBold': require('./src/assets/fonts/Mulish-SemiBold.ttf'),
+    'Mulish-SemiBoldItalic': require('./src/assets/fonts/Mulish-SemiBoldItalic.ttf'),
     'Mulish-Bold': require('./src/assets/fonts/Mulish-Bold.ttf'),
+    'Mulish-BoldItalic': require('./src/assets/fonts/Mulish-BoldItalic.ttf'),
+    'Mulish-ExtraBold': require('./src/assets/fonts/Mulish-ExtraBold.ttf'),
+    'Mulish-ExtraBoldItalic': require('./src/assets/fonts/Mulish-ExtraBoldItalic.ttf'),
+    'Mulish-Light': require('./src/assets/fonts/Mulish-Light.ttf'),
+    'Mulish-LightItalic': require('./src/assets/fonts/Mulish-LightItalic.ttf'),
+    'Mulish-ExtraLight': require('./src/assets/fonts/Mulish-ExtraLight.ttf'),
+    'Mulish-ExtraLightItalic': require('./src/assets/fonts/Mulish-ExtraLightItalic.ttf'),
+    'Mulish-Black': require('./src/assets/fonts/Mulish-Black.ttf'),
+    'Mulish-BlackItalic': require('./src/assets/fonts/Mulish-BlackItalic.ttf'),
+    'SpaceMono-Regular': require('./src/assets/fonts/SpaceMono-Regular.ttf'),
   });
 
   const notificationListener = useRef<Notifications.Subscription | null>(null);
@@ -134,15 +150,18 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <OnlineStatusProvider>
-        <NavigationContainer
-          ref={navigationRef}
-        >
-          <AppNavigator />
-        </NavigationContainer>
-        <StatusBar style="auto" />
-      </OnlineStatusProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <OnlineStatusProvider>
+          <NavigationContainer
+            ref={navigationRef}
+          >
+            <AppNavigator />
+          </NavigationContainer>
+          <StatusBar style="auto" />
+          <Toast config={CustomToastConfig} topOffset={60} />
+        </OnlineStatusProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
