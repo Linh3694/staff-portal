@@ -94,4 +94,29 @@ router.get('/:chatId', authenticate, async (req, res) => {
     }
 });
 
+// === THÊM MỚI: API XỬ LÝ REACTION VÀ REPLY ===
+
+// API thêm reaction cho tin nhắn
+router.post('/message/:messageId/react', authenticate, chatController.addReaction);
+
+// API xóa reaction cho tin nhắn
+router.delete('/message/:messageId/react', authenticate, chatController.removeReaction);
+
+// API gửi tin nhắn trả lời một tin nhắn khác
+router.post('/message/reply', authenticate, chatController.replyToMessage);
+
+// API lấy tất cả reactions của một tin nhắn
+router.get('/message/:messageId/reactions', authenticate, chatController.getMessageReactions);
+
+// === THÊM MỚI: API XỬ LÝ GHIM TIN NHẮN ===
+
+// API ghim tin nhắn
+router.post('/message/:messageId/pin', authenticate, chatController.pinMessage);
+
+// API bỏ ghim tin nhắn
+router.delete('/message/:messageId/pin', authenticate, chatController.unpinMessage);
+
+// API lấy danh sách tin nhắn ghim của một chat
+router.get('/:chatId/pinned-messages', authenticate, chatController.getPinnedMessages);
+
 module.exports = router; 

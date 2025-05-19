@@ -86,6 +86,87 @@ module.exports = function(io) {
       }
     });
 
+    // Người dùng thêm reaction cho tin nhắn
+    socket.on("addReaction", async ({ messageId, emoji }) => {
+      if (!socket.data.userId) return;
+
+      try {
+        // Tìm tin nhắn trong database
+        const Message = require('./models/Message');
+        const message = await Message.findById(messageId);
+
+        if (!message) return;
+
+        const userId = socket.data.userId;
+
+        // Kiểm tra xem người dùng đã reaction chưa
+        const existingReactionIndex = message.reactions.findIndex(
+          reaction => reaction.user.toString() === userId
+        );
+
+        if (existingReactionIndex !== -1) {
+          // Nếu đã reaction với emoji khác, cập nhật emoji mới
+          message.reactions[existingReactionIndex].emoji = emoji;
+        } else {
+          // Nếu chưa reaction, thêm reaction mới
+          message.reactions.push({
+            user: userId,
+            emoji
+          });
+        }
+
+        await message.save();
+
+        // Populate thông tin người dùng
+        const populatedMessage = await Message.findById(messageId)
+          .populate('reactions.user', 'fullname avatarUrl email');
+
+        // Gửi thông báo tới phòng chat
+        io.to(message.chat.toString()).emit('messageReaction', {
+          messageId,
+          reactions: populatedMessage.reactions
+        });
+
+        // Reset timeout khi có hoạt động
+        setUserInactiveTimeout(userId);
+      } catch (error) {
+        console.error('Error processing reaction:', error);
+      }
+    });
+
+    // Người dùng xóa reaction khỏi tin nhắn
+    socket.on("removeReaction", async ({ messageId }) => {
+      if (!socket.data.userId) return;
+
+      try {
+        // Tìm tin nhắn trong database
+        const Message = require('./models/Message');
+        const message = await Message.findById(messageId);
+
+        if (!message) return;
+
+        const userId = socket.data.userId;
+
+        // Lọc ra các reactions không phải của người dùng hiện tại
+        message.reactions = message.reactions.filter(
+          reaction => reaction.user.toString() !== userId
+        );
+
+        await message.save();
+
+        // Gửi thông báo tới phòng chat
+        io.to(message.chat.toString()).emit('messageReaction', {
+          messageId,
+          reactions: message.reactions
+        });
+
+        // Reset timeout khi có hoạt động
+        setUserInactiveTimeout(userId);
+      } catch (error) {
+        console.error('Error removing reaction:', error);
+      }
+    });
+
     // Xử lý ping để duy trì trạng thái online
     socket.on("ping", ({ userId }) => {
       if (userId) {

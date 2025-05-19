@@ -59,16 +59,16 @@ const WelcomeScreen = () => {
             <View className="flex-1 justify-center mb-[20%] items-center">
                 <View className="w-full items-center space-y-5">
                     <View className="mb-5">
-                        <Text className="text-lg font-bold text-primary text-center mb-5">
+                        <Text className="text-lg font-bold text-primary text-center mb-3">
                             Chào mừng Thầy Cô đến với
                         </Text>
                         <Text
-                            className="text-5xl text-secondary text-center mb-5"
+                            className="text-4xl text-secondary text-center mb-3"
                             style={{ fontFamily: 'Mulish-ExtraBold' }}
                         >
                             Digital Workspace
                         </Text>
-                        <Text className="text-base font-semibold text-text-secondary mb-5 text-center">
+                        <Text className="text-base font-semibold text-text-secondary mb-3 text-center">
                             Vận hành thông minh - Trường học hiệu quả                        </Text>
                     </View>
                     {/* Banner động */}

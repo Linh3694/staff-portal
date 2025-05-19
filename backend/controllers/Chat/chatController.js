@@ -54,7 +54,16 @@ exports.getUserChats = async (req, res) => {
 // Gửi tin nhắn
 exports.sendMessage = async (req, res) => {
     try {
-        const { chatId, content, type = 'text' } = req.body;
+        const {
+            chatId,
+            content,
+            type = 'text',
+            isEmoji = false,
+            emojiId = null,
+            emojiType = null,
+            emojiName = null,
+            emojiUrl = null
+        } = req.body;
         const senderId = req.user._id;
 
         // Tạo tin nhắn mới
@@ -63,7 +72,12 @@ exports.sendMessage = async (req, res) => {
             sender: senderId,
             content,
             type,
-            readBy: [senderId]
+            readBy: [senderId],
+            isEmoji,
+            emojiId,
+            emojiType,
+            emojiName,
+            emojiUrl
         });
 
         // Lấy thông tin chat để gửi thông báo
@@ -113,6 +127,13 @@ exports.getChatMessages = async (req, res) => {
         const { chatId } = req.params;
         const messages = await Message.find({ chat: chatId })
             .populate('sender', 'fullname avatarUrl email')
+            .populate({
+                path: 'replyTo',
+                populate: {
+                    path: 'sender',
+                    select: 'fullname avatarUrl email'
+                }
+            })
             .sort({ createdAt: 1 });
 
         res.status(200).json(messages);
@@ -275,6 +296,321 @@ exports.uploadMultipleImages = async (req, res) => {
         res.status(201).json(populatedMessage);
     } catch (error) {
         console.error('Error uploading multiple images:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// === THÊM MỚI: XỬ LÝ REACTION VÀ REPLY ===
+
+// Thêm reaction vào tin nhắn
+exports.addReaction = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { emojiCode, isCustom } = req.body;
+        const userId = req.user._id;
+
+        if (!emojiCode) {
+            return res.status(400).json({ message: 'Thiếu thông tin emoji' });
+        }
+
+        const message = await Message.findById(messageId);
+        if (!message) {
+            return res.status(404).json({ message: 'Không tìm thấy tin nhắn' });
+        }
+
+        // Kiểm tra xem người dùng đã reaction chưa
+        const existingReactionIndex = message.reactions.findIndex(
+            reaction => reaction.user.toString() === userId.toString()
+        );
+
+        if (existingReactionIndex !== -1) {
+            // Nếu đã reaction, cập nhật emoji mới
+            message.reactions[existingReactionIndex].emojiCode = emojiCode;
+            message.reactions[existingReactionIndex].isCustom = isCustom || false;
+        } else {
+            // Nếu chưa reaction, thêm reaction mới
+            message.reactions.push({
+                user: userId,
+                emojiCode,
+                isCustom: isCustom || false
+            });
+        }
+
+        await message.save();
+
+        const populatedMessage = await Message.findById(messageId)
+            .populate('sender', 'fullname avatarUrl email')
+            .populate('reactions.user', 'fullname avatarUrl email');
+
+        // Emit socket event
+        const io = req.app.get('io');
+        io.to(message.chat.toString()).emit('messageReaction', {
+            messageId: message._id,
+            reactions: populatedMessage.reactions
+        });
+
+        res.status(200).json(populatedMessage);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Xóa reaction khỏi tin nhắn
+exports.removeReaction = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const userId = req.user._id;
+
+        const message = await Message.findById(messageId);
+        if (!message) {
+            return res.status(404).json({ message: 'Không tìm thấy tin nhắn' });
+        }
+
+        // Lọc ra những reaction không phải của người dùng hiện tại
+        message.reactions = message.reactions.filter(
+            reaction => reaction.user.toString() !== userId.toString()
+        );
+
+        await message.save();
+
+        // Emit socket event
+        const io = req.app.get('io');
+        io.to(message.chat.toString()).emit('messageReaction', {
+            messageId: message._id,
+            reactions: message.reactions
+        });
+
+        res.status(200).json({ message: 'Đã xóa reaction' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Trả lời tin nhắn
+exports.replyToMessage = async (req, res) => {
+    try {
+        const { chatId, content, replyToId, type = 'text' } = req.body;
+        const senderId = req.user._id;
+
+        // Kiểm tra tin nhắn được reply có tồn tại không
+        const originalMessage = await Message.findById(replyToId);
+        if (!originalMessage) {
+            return res.status(404).json({ message: 'Không tìm thấy tin nhắn cần trả lời' });
+        }
+
+        // Tạo tin nhắn reply mới
+        const message = await Message.create({
+            chat: chatId,
+            sender: senderId,
+            content,
+            type,
+            replyTo: replyToId,
+            readBy: [senderId]
+        });
+
+        // Cập nhật lastMessage trong chat
+        await Chat.findByIdAndUpdate(chatId, {
+            lastMessage: message._id,
+            updatedAt: Date.now()
+        });
+
+        // Populate thông tin người gửi và tin nhắn reply
+        const populatedMessage = await Message.findById(message._id)
+            .populate('sender', 'fullname avatarUrl email')
+            .populate({
+                path: 'replyTo',
+                populate: {
+                    path: 'sender',
+                    select: 'fullname avatarUrl email'
+                }
+            });
+
+        // Emit socket event
+        const io = req.app.get('io');
+        io.to(chatId).emit('receiveMessage', populatedMessage);
+
+        // Lấy thông tin chat để gửi thông báo
+        const chat = await Chat.findById(chatId)
+            .populate('participants', 'fullname avatarUrl email');
+
+        // Gửi thông báo push cho người nhận
+        notificationController.sendNewChatMessageNotification(
+            message,
+            req.user.fullname,
+            chat
+        );
+
+        res.status(201).json(populatedMessage);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Lấy tất cả reactions của một tin nhắn
+exports.getMessageReactions = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+
+        const message = await Message.findById(messageId)
+            .populate('reactions.user', 'fullname avatarUrl email');
+
+        if (!message) {
+            return res.status(404).json({ message: 'Không tìm thấy tin nhắn' });
+        }
+
+        res.status(200).json(message.reactions);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// === THÊM MỚI: XỬ LÝ GHIM TIN NHẮN ===
+
+// Ghim tin nhắn
+exports.pinMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const userId = req.user._id;
+
+        // Tìm tin nhắn
+        const message = await Message.findById(messageId);
+        if (!message) {
+            return res.status(404).json({ message: 'Không tìm thấy tin nhắn' });
+        }
+
+        // Tìm chat
+        const chat = await Chat.findById(message.chat);
+        if (!chat) {
+            return res.status(404).json({ message: 'Không tìm thấy chat' });
+        }
+
+        // Kiểm tra xem người dùng có trong chat không
+        const isParticipant = chat.participants.some(
+            participant => participant.toString() === userId.toString()
+        );
+
+        if (!isParticipant) {
+            return res.status(403).json({ message: 'Bạn không có quyền ghim tin nhắn trong chat này' });
+        }
+
+        // Kiểm tra số lượng tin nhắn đã ghim (giới hạn 3 tin nhắn ghim mỗi chat)
+        if (chat.pinnedMessages && chat.pinnedMessages.length >= 3) {
+            return res.status(400).json({
+                message: 'Đã đạt giới hạn tin ghim (tối đa 3 tin nhắn)',
+                pinnedCount: chat.pinnedMessages.length
+            });
+        }
+
+        // Cập nhật tin nhắn thành đã ghim
+        message.isPinned = true;
+        message.pinnedBy = userId;
+        message.pinnedAt = new Date();
+        await message.save();
+
+        // Thêm vào danh sách tin nhắn ghim của chat nếu chưa có
+        if (!chat.pinnedMessages.includes(messageId)) {
+            chat.pinnedMessages.push(messageId);
+            await chat.save();
+        }
+
+        // Populate tin nhắn đã ghim
+        const populatedMessage = await Message.findById(messageId)
+            .populate('sender', 'fullname avatarUrl email')
+            .populate('pinnedBy', 'fullname avatarUrl email');
+
+        // Emit socket event
+        const io = req.app.get('io');
+        io.to(chat._id.toString()).emit('messagePinned', populatedMessage);
+
+        res.status(200).json(populatedMessage);
+    } catch (error) {
+        console.error('Error pinning message:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Bỏ ghim tin nhắn
+exports.unpinMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const userId = req.user._id;
+
+        // Tìm tin nhắn
+        const message = await Message.findById(messageId);
+        if (!message) {
+            return res.status(404).json({ message: 'Không tìm thấy tin nhắn' });
+        }
+
+        // Tìm chat
+        const chat = await Chat.findById(message.chat);
+        if (!chat) {
+            return res.status(404).json({ message: 'Không tìm thấy chat' });
+        }
+
+        // Kiểm tra xem người dùng có trong chat không
+        const isParticipant = chat.participants.some(
+            participant => participant.toString() === userId.toString()
+        );
+
+        if (!isParticipant) {
+            return res.status(403).json({ message: 'Bạn không có quyền thao tác ghim tin nhắn trong chat này' });
+        }
+
+        // Cập nhật tin nhắn thành không ghim
+        message.isPinned = false;
+        message.pinnedBy = undefined;
+        message.pinnedAt = undefined;
+        await message.save();
+
+        // Xóa khỏi danh sách tin nhắn ghim của chat
+        chat.pinnedMessages = chat.pinnedMessages.filter(
+            id => id.toString() !== messageId.toString()
+        );
+        await chat.save();
+
+        // Emit socket event
+        const io = req.app.get('io');
+        io.to(chat._id.toString()).emit('messageUnpinned', { messageId });
+
+        res.status(200).json({ message: 'Đã bỏ ghim tin nhắn' });
+    } catch (error) {
+        console.error('Error unpinning message:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Lấy danh sách tin nhắn ghim của chat
+exports.getPinnedMessages = async (req, res) => {
+    try {
+        const { chatId } = req.params;
+        const userId = req.user._id;
+
+        // Tìm chat
+        const chat = await Chat.findById(chatId);
+        if (!chat) {
+            return res.status(404).json({ message: 'Không tìm thấy chat' });
+        }
+
+        // Kiểm tra xem người dùng có trong chat không
+        const isParticipant = chat.participants.some(
+            participant => participant.toString() === userId.toString()
+        );
+
+        if (!isParticipant) {
+            return res.status(403).json({ message: 'Bạn không có quyền xem tin nhắn ghim trong chat này' });
+        }
+
+        // Lấy danh sách tin nhắn ghim
+        const pinnedMessages = await Message.find({
+            _id: { $in: chat.pinnedMessages }
+        })
+            .populate('sender', 'fullname avatarUrl email')
+            .populate('pinnedBy', 'fullname avatarUrl email')
+            .sort({ pinnedAt: -1 });
+
+        res.status(200).json(pinnedMessages);
+    } catch (error) {
+        console.error('Error getting pinned messages:', error);
         res.status(500).json({ message: error.message });
     }
 }; 

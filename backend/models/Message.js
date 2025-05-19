@@ -1,5 +1,21 @@
 const mongoose = require("mongoose");
 
+const reactionSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Users"
+  },
+  emojiCode: String,
+  isCustom: {
+    type: Boolean,
+    default: false
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 const messageSchema = new mongoose.Schema(
   {
     chat: {
@@ -21,6 +37,24 @@ const messageSchema = new mongoose.Schema(
       enum: ["text", "image", "file", "multiple-images"],
       default: "text",
     },
+    // Sticker / custom emoji metadata
+    isEmoji: {
+      type: Boolean,
+      default: false
+    },
+    emojiId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CustomEmoji"
+    },
+    emojiType: {
+      type: String
+    },
+    emojiName: {
+      type: String
+    },
+    emojiUrl: {
+      type: String
+    },
     fileUrl: {
       type: String,
     },
@@ -33,6 +67,23 @@ const messageSchema = new mongoose.Schema(
         ref: "Users",
       },
     ],
+    reactions: [reactionSchema],
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+    },
+    // Thêm trường cho tính năng ghim tin nhắn
+    isPinned: {
+      type: Boolean,
+      default: false
+    },
+    pinnedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Users"
+    },
+    pinnedAt: {
+      type: Date
+    },
     createdAt: {
       type: Date,
       default: Date.now,

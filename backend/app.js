@@ -43,6 +43,7 @@ const chatRoutes = require("./routes/Chat/chatRoutes");
 const chatSocket = require('./socketChat');
 const socketTicketChat = require('./socketTicketChat');
 const notificationRoutes = require("./routes/Notification/notificationRoutes");
+const emojiRoutes = require('./routes/Chat/emojiRoutes');
 
 const app = express();
 // Tạo HTTP server và tích hợp Socket.IO
@@ -140,6 +141,7 @@ app.use("/api/email", require("./routes/Ticket/emailRoutes"));
 app.use("/api/admission", admissionRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/emoji", emojiRoutes);
 
 // Khởi động server
 const PORT = process.env.PORT;

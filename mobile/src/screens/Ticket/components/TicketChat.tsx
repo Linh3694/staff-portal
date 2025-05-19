@@ -398,9 +398,9 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, onRefresh }) => {
             if (isFirst && isLast) {
                 borderRadiusStyle = { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomRightRadius: 20, borderBottomLeftRadius: 20 };
             } else if (isLast) {
-                borderRadiusStyle = { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomRightRadius: 20, borderBottomLeftRadius: 4 };
-            } else if (isFirst) {
                 borderRadiusStyle = { borderTopLeftRadius: 4, borderTopRightRadius: 20, borderBottomRightRadius: 20, borderBottomLeftRadius: 4 };
+            } else if (isFirst) {
+                borderRadiusStyle = { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomRightRadius: 20, borderBottomLeftRadius: 4 };
             } else {
                 borderRadiusStyle = { borderTopLeftRadius: 4, borderTopRightRadius: 20, borderBottomRightRadius: 20, borderBottomLeftRadius: 4 };
             }
@@ -422,7 +422,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, onRefresh }) => {
                         style={{ width: 36, height: 36, borderRadius: 18, marginHorizontal: 4 }}
                     />
                 ) : (
-                    <View style={{ width: isMe ? 4 : 36 }} />
+                        <View style={{ width: isMe ? 4 : 44 }} />
                 )}
 
                 <View style={{
@@ -459,147 +459,147 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, onRefresh }) => {
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-            <KeyboardAvoidingView
+        <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+            <FlatList
+                data={messages}
+                renderItem={renderItem}
+                keyExtractor={(item, index) => item._id || index.toString()}
+                ref={flatListRef}
+                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+                onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-            >
-                <FlatList
-                    data={messages}
-                    renderItem={renderItem}
-                    keyExtractor={(item, index) => item._id || index.toString()}
-                    ref={flatListRef}
-                    onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-                    onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
-                    style={{ flex: 1 }}
-                    contentContainerStyle={{ 
-                        paddingHorizontal: 16, 
-                        paddingTop: 8, 
-                        paddingBottom: keyboardVisible ? 10 : 80
+                contentContainerStyle={{
+                    paddingHorizontal: 16,
+                    paddingTop: 8, 
+                    paddingBottom: keyboardVisible ? keyboardHeight + 20 : 80
+                }}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
+                ListEmptyComponent={
+                    <View className="flex-1 justify-center items-center py-8">
+                        <Text className="text-gray-500 font-medium">Chưa có tin nhắn nào</Text>
+                    </View>
+                }
+            />
+
+            {imagesToSend.length > 0 && (
+                <View style={styles.imagePreviewContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8 }}>
+                        {imagesToSend.map((uri, idx) => (
+                            <View key={idx} style={styles.imagePreviewItem}>
+                                <Image source={{ uri }} style={styles.previewImage} />
+                                <TouchableOpacity
+                                    onPress={() => removeImage(idx)}
+                                    style={styles.removeImageButton}
+                                >
+                                    <Ionicons name="close" size={16} color="#ffffff" />
+                                </TouchableOpacity>
+                            </View>
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
+
+            <View style={[
+                styles.inputContainer,
+                {
+                    position: 'absolute',
+                    bottom: keyboardVisible ? keyboardHeight : 0,
+                    left: 0,
+                    right: 0,
+                    paddingBottom: Platform.OS === 'ios' ? 2 : (keyboardVisible ? 2 : 0)
+                }
+            ]}>
+                <TouchableOpacity
+                    onPress={handleAttachmentOptions}
+                    style={styles.iconButton}
+                >
+                    <Ionicons name="attach-outline" size={24} color="#002855" />
+                </TouchableOpacity>
+
+                <TextInput
+                    style={styles.textInput}
+                    placeholder="Nhập tin nhắn..."
+                    value={newMessage}
+                    onChangeText={setNewMessage}
+                    multiline
+                    maxLength={500}
+                    onFocus={() => {
+                        setTimeout(() => {
+                            flatListRef.current?.scrollToEnd({ animated: true });
+                        }, 100);
                     }}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="interactive"
-                    ListEmptyComponent={
-                        <View className="flex-1 justify-center items-center py-8">
-                            <Text className="text-gray-500 font-medium">Chưa có tin nhắn nào</Text>
-                        </View>
-                    }
                 />
 
-                {imagesToSend.length > 0 && (
-                    <View style={styles.imagePreviewContainer}>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8 }}>
-                            {imagesToSend.map((uri, idx) => (
-                                <View key={idx} style={styles.imagePreviewItem}>
-                                    <Image source={{ uri }} style={styles.previewImage} />
-                                    <TouchableOpacity
-                                        onPress={() => removeImage(idx)}
-                                        style={styles.removeImageButton}
-                                    >
-                                        <Ionicons name="close" size={16} color="#ffffff" />
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-                        </ScrollView>
+                <TouchableOpacity
+                    onPress={handleSend}
+                    disabled={sending || (!newMessage.trim() && imagesToSend.length === 0)}
+                    style={[
+                        styles.sendButton,
+                        (!newMessage.trim() && imagesToSend.length === 0 || sending) && { opacity: 0.5 }
+                    ]}
+                >
+                    {sending ? (
+                        <ActivityIndicator size="small" color="#002855" />
+                    ) : (
+                        <Ionicons name="send" size={24} color="#F05023" />
+                    )}
+                </TouchableOpacity>
+            </View>
+
+            {Platform.OS === 'android' && (
+                <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={() => setShowImageOptions(false)}
+                    style={[
+                        styles.modalOverlay,
+                        { display: showImageOptions ? 'flex' : 'none' }
+                    ]}
+                />
+            )}
+
+            {Platform.OS === 'android' && showImageOptions && (
+                <View
+                    style={[
+                        styles.optionsPanel,
+                        { bottom: keyboardVisible ? keyboardHeight + 60 : 70 }
+                    ]}
+                >
+                    <View style={styles.optionsPanelContent}>
+                        <TouchableOpacity
+                            style={styles.optionItem}
+                            onPress={() => {
+                                setShowImageOptions(false);
+                                takePhoto();
+                            }}
+                        >
+                            <Ionicons name="camera-outline" size={24} color="#002855" />
+                            <Text style={styles.optionText}>Chụp ảnh mới</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.optionItem}
+                            onPress={() => {
+                                setShowImageOptions(false);
+                                pickImage();
+                            }}
+                        >
+                            <Ionicons name="images-outline" size={24} color="#002855" />
+                            <Text style={styles.optionText}>Chọn từ thư viện</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.optionItem, { borderBottomWidth: 0 }]}
+                            onPress={() => {
+                                setShowImageOptions(false);
+                                handlePickDocument();
+                            }}
+                        >
+                            <Ionicons name="document-outline" size={24} color="#002855" />
+                            <Text style={styles.optionText}>Chọn tệp</Text>
+                        </TouchableOpacity>
                     </View>
-                )}
-
-                <View style={[
-                    styles.inputContainer,
-                    Platform.OS === 'android' && { position: 'absolute', bottom: 0, left: 0, right: 0 }
-                ]}>
-                    <TouchableOpacity
-                        onPress={handleAttachmentOptions}
-                        style={styles.iconButton}
-                    >
-                        <Ionicons name="attach-outline" size={24} color="#002855" />
-                    </TouchableOpacity>
-
-                    <TextInput
-                        style={styles.textInput}
-                        placeholder="Nhập tin nhắn..."
-                        value={newMessage}
-                        onChangeText={setNewMessage}
-                        multiline
-                        maxLength={500}
-                        onFocus={() => {
-                            setTimeout(() => {
-                                flatListRef.current?.scrollToEnd({ animated: true });
-                            }, 100);
-                        }}
-                    />
-
-                    <TouchableOpacity
-                        onPress={handleSend}
-                        disabled={sending || (!newMessage.trim() && imagesToSend.length === 0)}
-                        style={[
-                            styles.sendButton,
-                            (!newMessage.trim() && imagesToSend.length === 0 || sending) && { opacity: 0.5 }
-                        ]}
-                    >
-                        {sending ? (
-                            <ActivityIndicator size="small" color="#002855" />
-                        ) : (
-                            <Ionicons name="send" size={24} color="#F05023" />
-                        )}
-                    </TouchableOpacity>
                 </View>
-
-                {Platform.OS === 'android' && (
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        onPress={() => setShowImageOptions(false)}
-                        style={[
-                            styles.modalOverlay,
-                            { display: showImageOptions ? 'flex' : 'none' }
-                        ]}
-                    />
-                )}
-
-                {Platform.OS === 'android' && showImageOptions && (
-                    <View 
-                        style={[
-                            styles.optionsPanel,
-                            { bottom: keyboardVisible ? keyboardHeight + 60 : 70 }
-                        ]}
-                    >
-                        <View style={styles.optionsPanelContent}>
-                            <TouchableOpacity
-                                style={styles.optionItem}
-                                onPress={() => {
-                                    setShowImageOptions(false);
-                                    takePhoto();
-                                }}
-                            >
-                                <Ionicons name="camera-outline" size={24} color="#002855" />
-                                <Text style={styles.optionText}>Chụp ảnh mới</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.optionItem}
-                                onPress={() => {
-                                    setShowImageOptions(false);
-                                    pickImage();
-                                }}
-                            >
-                                <Ionicons name="images-outline" size={24} color="#002855" />
-                                <Text style={styles.optionText}>Chọn từ thư viện</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.optionItem, { borderBottomWidth: 0 }]}
-                                onPress={() => {
-                                    setShowImageOptions(false);
-                                    handlePickDocument();
-                                }}
-                            >
-                                <Ionicons name="document-outline" size={24} color="#002855" />
-                                <Text style={styles.optionText}>Chọn tệp</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                )}
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+            )}
+        </View>
     );
 };
 

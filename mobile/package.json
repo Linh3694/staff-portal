@@ -56,7 +56,8 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-webview": "^13.13.5",
     "socket.io-client": "^4.8.1",
-    "yup": "^1.6.1"
+    "yup": "^1.6.1",
+    "expo-blur": "~14.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
