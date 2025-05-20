@@ -1,37 +1,96 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Image, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { typography } from '../../theme/typography';
 import { useMicrosoftLogin } from './useMicrosoftLogin';
 import MicrosoftIcon from '../../assets/microsoft.svg';
 import VisibilityIcon from '../../assets/visibility.svg';
 import WarningIcon from '../../assets/warning.svg';
+import FaceIdIcon from '../../assets/face-id.svg';
 import { ROUTES } from '../../constants/routes';
 import { API_BASE_URL } from '../../config/constants';
 import { useAuth } from '../../context/AuthContext';
+import { useBiometricAuth } from '../../hooks/useBiometricAuth';
+import NotificationModal from '../../components/NotificationModal';
+
+type RootStackParamList = {
+    Main: { screen: string };
+    Login: undefined;
+};
 
 const schema = yup.object().shape({
     email: yup.string().required('Email là bắt buộc').email('Email không hợp lệ'),
     password: yup.string().required('Mật khẩu là bắt buộc'),
 });
 
+// Define the key name for AsyncStorage
+const LAST_EMAIL_KEY = 'WELLSPRING_LAST_EMAIL';
+
 const SignInScreen = () => {
-    const navigation = useNavigation();
-    const { control, handleSubmit, formState: { errors } } = useForm({
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const { control, handleSubmit, formState: { errors }, setValue, getValues } = useForm({
         resolver: yupResolver(schema),
     });
     const [loading, setLoading] = useState(false);
     const [loginError, setLoginError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const { login } = useAuth();
+    const {
+        isBiometricAvailable,
+        hasSavedCredentials,
+        isAuthenticating,
+        authenticate
+    } = useBiometricAuth();
+    const [showBiometricModal, setShowBiometricModal] = useState(false);
+    const [showNotificationModal, setShowNotificationModal] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
+    const [notificationType, setNotificationType] = useState<'success' | 'error'>('error');
 
     const { request, promptAsync } = useMicrosoftLogin((token) => {
         // Lưu token, chuyển màn hình, v.v.
     });
+
+    const showNotification = (message: string, type: 'success' | 'error' = 'error') => {
+        setNotificationMessage(message);
+        setNotificationType(type);
+        setShowNotificationModal(true);
+    };
+
+    const handleBiometricLogin = async () => {
+        console.log('Bắt đầu xử lý FaceID login');
+        console.log('hasSavedCredentials:', hasSavedCredentials);
+        console.log('isBiometricAvailable:', isBiometricAvailable);
+
+        if (!hasSavedCredentials) {
+            console.log('Chưa lưu credentials, hiển thị thông báo');
+            showNotification('Bạn cần bật đăng nhập bằng FaceID/TouchID trong hồ sơ cá nhân trước.');
+            return;
+        }
+
+        try {
+            console.log('Bắt đầu xác thực sinh trắc học');
+            const credentials = await authenticate();
+            console.log('Kết quả xác thực:', credentials ? 'Thành công' : 'Thất bại');
+
+            if (credentials) {
+                console.log('Đã lấy được credentials, tiến hành đăng nhập');
+                setValue('email', credentials.email);
+                setValue('password', credentials.password);
+                onSubmit({ email: credentials.email, password: credentials.password });
+            } else {
+                console.log('Không lấy được credentials');
+                showNotification('Xác thực sinh trắc học thất bại. Vui lòng thử lại.');
+            }
+        } catch (error) {
+            console.error('Lỗi khi đăng nhập bằng sinh trắc học:', error);
+            showNotification('Không thể xác thực sinh trắc học. Vui lòng thử lại.');
+        }
+    };
 
     const onSubmit = async (data: any) => {
         setLoading(true);
@@ -46,9 +105,13 @@ const SignInScreen = () => {
 
             if (!response.ok) {
                 setLoginError(resData.message || 'Đăng nhập thất bại');
+                showNotification('Tài khoản hoặc mật khẩu không chính xác', 'error');
                 console.error('Lỗi đăng nhập:', resData.message);
             } else {
                 try {
+                    // Lưu email đăng nhập cho xác thực sinh trắc học
+                    await AsyncStorage.setItem(LAST_EMAIL_KEY, data.email);
+
                     // Xử lý thông tin người dùng
                     let userId = '';
                     let userFullname = '';
@@ -97,11 +160,12 @@ const SignInScreen = () => {
                     });
                 } catch (storageError) {
                     console.error('Lỗi khi lưu thông tin đăng nhập:', storageError);
-                    setLoginError('Đã xảy ra lỗi khi xử lý thông tin đăng nhập');
+                    showNotification('Đã xảy ra lỗi khi xử lý thông tin đăng nhập', 'error');
                 }
             }
-        } catch (err) {
-            console.error('Lỗi đăng nhập:', err);
+        } catch (error) {
+            console.error('Lỗi kết nối:', error);
+            showNotification('Lỗi kết nối máy chủ', 'error');
             setLoginError('Lỗi kết nối máy chủ');
         } finally {
             setLoading(false);
@@ -168,31 +232,47 @@ const SignInScreen = () => {
                     )}
                 />
                 {errors.password && <Text className="text-error self-start ml-2">{errors.password.message}</Text>}
-                {/* Hiển thị lỗi đăng nhập */}
-                {loginError ? (
-                    <View className="flex-row items-center mt-2">
-                        <WarningIcon width={20} height={20} style={{ marginRight: 6 }} />
-                        <Text className="text-error text-base font-semibold">Tài khoản hoặc mật khẩu không chính xác</Text>
-                    </View>
-                ) : null}
+
+                {/* Nút FaceID - luôn hiển thị */}
+                <TouchableOpacity
+                    className="items-center mt-6 mb-4"
+                    onPress={handleBiometricLogin}
+                    disabled={loading || isAuthenticating}
+                    style={{ opacity: loading || isAuthenticating ? 0.5 : 1 }}
+                >
+                    {isAuthenticating ? (
+                        <ActivityIndicator size="large" color="#009483" />
+                    ) : (
+                        <View className="items-center">
+                            <FaceIdIcon width={48} height={48} color="#009483" />
+                            <Text className="text-secondary text-sm font-medium mt-1">Đăng nhập nhanh với FaceID</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+
                 {/* Nút đăng nhập */}
                 <TouchableOpacity
-                    className="w-full bg-secondary rounded-full py-3 items-center mt-6"
+                    className="w-full bg-secondary rounded-full py-3 items-center mt-2"
                     onPress={handleSubmit(onSubmit)}
-                    disabled={loading}
+                    disabled={loading || isAuthenticating}
                 >
-                    <Text className="text-white font-bold text-base">{loading ? 'Đang đăng nhập...' : 'Đăng nhập'}</Text>
+                    <Text className="text-white font-bold text-base">
+                        {loading || isAuthenticating ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                    </Text>
                 </TouchableOpacity>
+
                 {/* Quên mật khẩu */}
                 <TouchableOpacity className="w-full items-center mt-4">
                     <Text className="text-text-secondary  font-medium text-base">Quên mật khẩu?</Text>
                 </TouchableOpacity>
+
                 {/* Phân cách */}
                 <View className="flex-row items-center my-6">
                     <View className="flex-1 h-px bg-[#E0E0E0]" />
                     <Text className="mx-2 text-text-secondary  font-medium text-sm">Đăng nhập với phương thức khác</Text>
                     <View className="flex-1 h-px bg-[#E0E0E0]" />
                 </View>
+
                 {/* Nút đăng nhập Microsoft */}
                 <TouchableOpacity
                     className="w-full flex-row items-center justify-center rounded-full bg-secondary/10 py-3 mb-2"
@@ -210,6 +290,12 @@ const SignInScreen = () => {
                     © Copyright 2025 Wellspring International Bilingual Schools.{"\n"}All Rights Reserved.
                 </Text>
             </View>
+            <NotificationModal
+                visible={showNotificationModal}
+                type={notificationType}
+                message={notificationMessage}
+                onClose={() => setShowNotificationModal(false)}
+            />
         </View>
     );
 };

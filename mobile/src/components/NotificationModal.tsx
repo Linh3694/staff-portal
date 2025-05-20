@@ -3,6 +3,7 @@ import {
     View,
     Text,
     Modal,
+    TouchableOpacity,
     Animated,
     Dimensions,
     TouchableWithoutFeedback
@@ -25,7 +26,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
     onClose
 }) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(-100)).current;
+    const slideAnim = useRef(new Animated.Value(height)).current;
 
     useEffect(() => {
         if (visible) {
@@ -42,32 +43,21 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                     useNativeDriver: true,
                 })
             ]).start();
-
-            // Tự động đóng sau 2 giây
-            const timer = setTimeout(() => {
-                handleClose();
-            }, 2000);
-
-            return () => clearTimeout(timer);
+        } else {
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(slideAnim, {
+                    toValue: height,
+                    duration: 200,
+                    useNativeDriver: true,
+                })
+            ]).start();
         }
     }, [visible]);
-
-    const handleClose = () => {
-        Animated.parallel([
-            Animated.timing(fadeAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-            }),
-            Animated.timing(slideAnim, {
-                toValue: -100,
-                duration: 200,
-                useNativeDriver: true,
-            })
-        ]).start(() => {
-            onClose();
-        });
-    };
 
     return (
         <Modal
@@ -76,33 +66,41 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
             animationType="none"
             statusBarTranslucent
         >
-            <TouchableWithoutFeedback onPress={handleClose}>
-                <View className="flex-1 justify-start items-center pt-12">
+            <TouchableWithoutFeedback onPress={onClose}>
+                <Animated.View
+                    className="flex-1 bg-black/40 justify-center items-center"
+                    style={{ opacity: fadeAnim }}
+                >
                     <TouchableWithoutFeedback>
                         <Animated.View
-                            className="w-[90%] bg-white rounded-2xl overflow-hidden shadow-lg"
+                            className="w-[80%] bg-white rounded-[14px] overflow-hidden"
                             style={{
-                                opacity: fadeAnim,
                                 transform: [{
                                     translateY: slideAnim
                                 }]
                             }}
                         >
-                            <View className={`flex-row items-center p-4 ${type === 'success' ? 'bg-[#E7F3E8]' : 'bg-[#FFEBEB]'}`}>
-                                <View className={`w-8 h-8 rounded-full ${type === 'success' ? 'bg-[#4CAF50]' : 'bg-[#FF3B30]'} items-center justify-center mr-3`}>
-                                    <Ionicons
-                                        name={type === 'success' ? 'checkmark' : 'close'}
-                                        size={20}
-                                        color="white"
-                                    />
-                                </View>
-                                <Text className={`flex-1 text-base ${type === 'success' ? 'text-[#2E7D32]' : 'text-[#C41E3A]'} font-medium`}>
+                            <View className="p-5">
+                                <Text className="text-lg font-semibold text-black text-center mb-2.5">
+                                    {type === 'success' ? 'Thành công' : 'Thông báo'}
+                                </Text>
+                                <Text className="text-base text-[#666666] text-center mb-5 leading-[22px]">
                                     {message}
                                 </Text>
+                                <View className="flex-row mt-2.5 -mx-5 border-t border-[#E5E5E5]">
+                                    <TouchableOpacity
+                                        className="flex-1 py-3 items-center justify-center bg-transparent"
+                                        onPress={onClose}
+                                    >
+                                        <Text className={`text-[17px] font-medium ${type === 'success' ? 'text-secondary' : 'text-[#FF3B30]'}`}>
+                                            OK
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </Animated.View>
                     </TouchableWithoutFeedback>
-                </View>
+                </Animated.View>
             </TouchableWithoutFeedback>
         </Modal>
     );

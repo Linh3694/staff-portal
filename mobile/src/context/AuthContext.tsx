@@ -2,6 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 import api from '../utils/api';
+import * as SecureStore from 'expo-secure-store';
+
+// Khóa cho thông tin đăng nhập sinh trắc học
+const CREDENTIALS_KEY = 'WELLSPRING_SECURE_CREDENTIALS';
 
 type AuthContextType = {
     isAuthenticated: boolean;
@@ -10,6 +14,7 @@ type AuthContextType = {
     login: (token: string, userData: any) => Promise<void>;
     logout: () => Promise<void>;
     checkAuth: () => Promise<boolean>;
+    clearBiometricCredentials: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -103,8 +108,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    // Hàm xóa thông tin đăng nhập sinh trắc học (chỉ gọi khi muốn xóa thủ công)
+    const clearBiometricCredentials = async () => {
+        try {
+            await SecureStore.deleteItemAsync(CREDENTIALS_KEY);
+            console.log('Đã xóa thông tin đăng nhập FaceID/TouchID');
+        } catch (error) {
+            console.error('Lỗi khi xóa thông tin đăng nhập FaceID/TouchID:', error);
+        }
+    };
+
     const logout = async () => {
         try {
+            // KHÔNG xóa thông tin đăng nhập sinh trắc học khi đăng xuất
+            // await clearBiometricCredentials();
+
+            // Xóa các thông tin khác
             await AsyncStorage.removeItem('authToken');
             await AsyncStorage.removeItem('user');
             await AsyncStorage.removeItem('userId');
@@ -125,6 +144,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 login,
                 logout,
                 checkAuth,
+                clearBiometricCredentials,
             }}
         >
             {children}

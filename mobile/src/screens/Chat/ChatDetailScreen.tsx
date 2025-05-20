@@ -33,6 +33,7 @@ import NotificationModal from '../../components/NotificationModal';
 import { Message, Chat, CustomEmoji, ChatDetailParams, MessageReaction, NotificationType } from '../../types/chat';
 import ImageGrid from './Component/ImageGrid';
 import MessageBubble from './Component/MessageBubble';
+import ImageViewerModal from './Component/ImageViewerModal';
 
 const getAvatar = (user: User) => {
     if (user.avatarUrl) {
@@ -1066,15 +1067,13 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             () => {
                 setKeyboardVisible(true);
             }
-        );
-        
+        );  
         const keyboardWillHideListener = Keyboard.addListener(
             Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
             () => {
                 setKeyboardVisible(false);
             }
         );
-
         return () => {
             keyboardWillShowListener.remove();
             keyboardWillHideListener.remove();
@@ -1541,7 +1540,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         );
     };
 
-    // Component PinnedMessageBanner đã được chuyển vào file riêng
 
     // Thêm hàm xử lý nhấp vào tin nhắn ghim
     const handlePinnedMessagePress = (message: Message) => {
@@ -1714,10 +1712,19 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                         }
                                         if (!item._id) return null;
                                         const isMe = currentUserId && item.sender._id === currentUserId;
-                                        const prevMsg = messages[messages.length - index] || {};
+
+                                        // Lấy tin nhắn trước và sau (trong data gốc, không bị đảo ngược)
+                                        const prevMsg = messagesWithTime[index + 1] || {};
+                                        const nextMsg = messagesWithTime[index - 1] || {};
+
+                                        // Kiểm tra người gửi của tin nhắn trước và sau
                                         const isPrevSameSender = prevMsg?.sender?._id === item.sender._id;
-                                        const isFirst = !isPrevSameSender;
-                                        const isLast = !isPrevSameSender;
+                                        const isNextSameSender = nextMsg?.sender?._id === item.sender._id;
+
+                                        // Xác định tin nhắn đầu và cuối trong chuỗi tin nhắn cùng người gửi
+                                        const isFirst = !isPrevSameSender || prevMsg.type === 'time';
+                                        const isLast = !isNextSameSender || nextMsg.type === 'time';
+
                                         const showAvatar = !isMe && isFirst;
                                         return (
                                             <MessageBubble
@@ -1988,6 +1995,14 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     </View>
                 )}
             />
+
+                    {/* Thêm component ImageViewerModal vào render */}
+                    <ImageViewerModal
+                        images={viewerImages}
+                        imageIndex={viewerInitialIndex}
+                        visible={viewerVisible}
+                        onRequestClose={() => setViewerVisible(false)}
+                    />
 
                     {/* Message Reaction Modal */}
                     <MessageReactionModal

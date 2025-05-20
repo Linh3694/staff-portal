@@ -127,6 +127,7 @@ const MessageBubble = ({
     const isImageMsg = message.type === 'image';
     const isMultipleImagesMsg = message.type === 'multiple-images';
     const isStickerMsg = message.type === 'text' && message.isEmoji === true;
+    const isFileMsg = message.type === 'file';
     
     // Helper function to safely check if a message is forwarded
     const isMessageForwarded = () => {
@@ -135,66 +136,34 @@ const MessageBubble = ({
 
     // Tính border radius theo yêu cầu
     let borderRadiusStyle = {};
-    if (isMe) {
-        if (isFirst && isLast) {
+    const isTextMsg = message.type === 'text' && !message.isEmoji;
+
+    if (isTextMsg && !message.replyTo) {
+        if (isMe) {
+            // Tin nhắn của người dùng hiện tại (bên phải)
             borderRadiusStyle = {
                 borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                borderBottomRightRadius: 20,
-                borderBottomLeftRadius: 20,
-            };
-        } else if (isLast) {
-            borderRadiusStyle = {
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                borderBottomRightRadius: 4,
-                borderBottomLeftRadius: 20,
-            };
-        } else if (isFirst) {
-            borderRadiusStyle = {
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 4,
-                borderBottomRightRadius: 20,
+                borderTopRightRadius: isFirst ? 20 : 4,
+                borderBottomRightRadius: isLast ? 20 : 4,
                 borderBottomLeftRadius: 20,
             };
         } else {
+            // Tin nhắn của người khác (bên trái)
             borderRadiusStyle = {
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 4,
-                borderBottomRightRadius: 4,
-                borderBottomLeftRadius: 20,
+                borderTopLeftRadius: isFirst ? 20 : 4,
+                borderTopRightRadius: 20,
+                borderBottomRightRadius: 20,
+                borderBottomLeftRadius: isLast ? 20 : 4,
             };
         }
     } else {
-        if (isFirst && isLast) {
-            borderRadiusStyle = {
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                borderBottomRightRadius: 20,
-                borderBottomLeftRadius: 20,
-            };
-        } else if (isLast) {
-            borderRadiusStyle = {
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                borderBottomRightRadius: 20,
-                borderBottomLeftRadius: 4,
-            };
-        } else if (isFirst) {
-            borderRadiusStyle = {
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                borderBottomRightRadius: 20,
-                borderBottomLeftRadius: 4,
-            };
-        } else {
-            borderRadiusStyle = {
-                borderTopLeftRadius: 4,
-                borderTopRightRadius: 20,
-                borderBottomRightRadius: 20,
-                borderBottomLeftRadius: 4,
-            };
-        }
+        // Tin nhắn không phải text thường hoặc tin nhắn reply thì bo tròn 4 góc
+        borderRadiusStyle = {
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            borderBottomRightRadius: 20,
+            borderBottomLeftRadius: 20,
+        };
     }
 
     return (
@@ -228,6 +197,7 @@ const MessageBubble = ({
                         flexDirection: 'column',
                         maxWidth: '75%',
                         alignItems: isMe ? 'flex-end' : 'flex-start',
+                        alignSelf: isMe ? 'flex-end' : 'flex-start',
                     }}>
                         {/* Preview tin nhắn reply */}
                         {message.replyTo && (
@@ -244,10 +214,11 @@ const MessageBubble = ({
                                 shadowOpacity: 0.05,
                                 shadowRadius: 1,
                                 elevation: 1,
-                                alignSelf: isMe ? 'flex-end' : 'flex-start',
                                 flexDirection: 'row',
                                 alignItems: 'center',
-                                minHeight: 40
+                                minHeight: 40,
+                                alignSelf: isMe ? 'flex-end' : 'flex-start',
+                                maxWidth: '100%'
                             }}>
                                 {/* Thumbnail nếu là ảnh hoặc nhiều ảnh */}
                                 {(message.replyTo.type === 'image' || message.replyTo.type === 'multiple-images') && (
@@ -259,20 +230,19 @@ const MessageBubble = ({
                                                     ? (message.replyTo.fileUrls[0].startsWith('http') ? message.replyTo.fileUrls[0] : `${API_BASE_URL}${message.replyTo.fileUrls[0]}`)
                                                     : undefined)
                                         }}
-                                        style={{ width: 50, height: 50, borderRadius: 8, marginRight: 8 }}
+                                        style={{ width: 50, height: 50, borderRadius: 8, marginRight: 8, flexShrink: 0 }}
                                         resizeMode="cover"
                                     />
                                 )}
-                                <View style={{ flex: 1 }}>
-                                   
+                                <View style={{ minWidth: 0, maxWidth: 150 }}>
                                     {message.replyTo.type === 'file' && (
-                                        <Text style={{ fontSize: 16, color: '#666' }}>[Tệp đính kèm]</Text>
+                                        <Text style={{ fontSize: 14, color: '#666' }} numberOfLines={1}>[Tệp đính kèm]</Text>
                                     )}
                                     {message.replyTo.type !== 'image' && message.replyTo.type !== 'multiple-images' && message.replyTo.type !== 'file' && (
                                         <Text style={{
-                                            fontSize: 16,
+                                            fontSize: 14,
                                             color: isMe ? '#757575' : 'white',
-                                            fontFamily: 'Mulish-Italic'
+                                            fontFamily: 'Mulish-Regular'
                                         }} numberOfLines={1}>
                                             {message.replyTo.content}
                                         </Text>
@@ -290,7 +260,21 @@ const MessageBubble = ({
                             paddingHorizontal: (isImageMsg || isMultipleImagesMsg || isStickerMsg) ? 0 : 14,
                             position: 'relative',
                             ...borderRadiusStyle,
+                            ...(isTextMsg && !message.replyTo && isMe ? {
+                                borderTopLeftRadius: 12,
+                                borderTopRightRadius: isFirst ? 12 : 4,
+                                borderBottomRightRadius: isLast ? 12 : 4,
+                                borderBottomLeftRadius: 12,
+                            } : {}),
+                            ...(isTextMsg && !message.replyTo && !isMe ? {
+                                borderTopLeftRadius: isFirst ? 12 : 4,
+                                borderTopRightRadius: 12,
+                                borderBottomRightRadius: 12,
+                                borderBottomLeftRadius: isLast ? 12 : 4,
+                            } : {}),
                             marginBottom: !isMe ? 0 : 0,
+                            alignSelf: 'flex-start',
+                            maxWidth: '100%'
                         }}>
                             <View style={{ position: 'relative' }}>
                                 {/* Hiển thị nhãn chuyển tiếp nếu tin nhắn được chuyển tiếp */}
@@ -322,24 +306,19 @@ const MessageBubble = ({
                                     </TouchableOpacity>
                                 )}
                                 {isMultipleImagesMsg && message.fileUrls && message.fileUrls.length > 0 && (
-                                    <TouchableOpacity
-                                        onLongPress={(e) => onLongPressIn(message, e)}
-                                        onPressOut={onLongPressOut}
-                                        delayLongPress={500}
-                                        activeOpacity={1}
-                                    >
-                                        <ImageGrid
-                                            images={message.fileUrls.map((url: string) =>
+                                    <ImageGrid
+                                        images={message.fileUrls.map((url: string) =>
+                                            url.startsWith('http') ? url : `${API_BASE_URL}${url}`
+                                        )}
+                                        onPress={(index) => onImagePress(
+                                            message.fileUrls?.map((url: string) =>
                                                 url.startsWith('http') ? url : `${API_BASE_URL}${url}`
-                                            )}
-                                            onPress={(index) => onImagePress(
-                                                message.fileUrls?.map((url: string) =>
-                                                    url.startsWith('http') ? url : `${API_BASE_URL}${url}`
-                                                ) || [],
-                                                index
-                                            )}
-                                        />
-                                    </TouchableOpacity>
+                                            ) || [],
+                                            index
+                                        )}
+                                        onLongPress={(index, event) => onLongPressIn(message, event)}
+                                        onPressOut={onLongPressOut}
+                                    />
                                 )}
                                 {isStickerMsg && message.emojiUrl && (
                                     <Image

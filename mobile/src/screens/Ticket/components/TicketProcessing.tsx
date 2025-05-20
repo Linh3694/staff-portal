@@ -345,25 +345,25 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
                             textStyle={{ 
                                 fontSize: 16, 
                                 color: '#222', 
-                                fontFamily: 'Inter' 
+                                fontFamily: 'Muslish-Regular' 
                             }}
                             labelStyle={{ 
-                                fontFamily: 'Inter' 
+                                fontFamily: 'Muslish-Regular' 
                             }}
                             disabled={loading}
-                            containerStyle={{ width: '50%' }}
+                                containerStyle={{ width: '70%' }}
                             listItemLabelStyle={{ 
-                                fontFamily: 'Inter', 
+                                fontFamily: 'Muslish-Regular', 
                                 fontSize: 16, 
                                 color: '#222' 
                             }}
                             placeholderStyle={{ 
-                                fontFamily: 'Inter', 
+                                fontFamily: 'Muslish-Regular', 
                                 fontSize: 16, 
                                 color: '#757575' 
                             }}
                             selectedItemLabelStyle={{ 
-                                fontFamily: 'Inter', 
+                                fontFamily: 'Muslish-Regular', 
                                 fontSize: 16, 
                                 color: '#002855', 
                                 fontWeight: '600' 

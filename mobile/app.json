@@ -17,6 +17,12 @@
           "icon": "./src/assets/notifications/notification-icon.png",
           "color": "#ffffff"
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Ứng dụng cần sử dụng FaceID để xác thực đăng nhập an toàn"
+        }
       ]
     ],
     "orientation": "portrait",
@@ -36,12 +42,12 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ],
         "NSCameraUsageDescription": "Ứng dụng cần quyền truy cập camera để chụp ảnh và gửi trong tin nhắn",
         "NSPhotoLibraryUsageDescription": "Ứng dụng cần quyền truy cập thư viện ảnh để gửi ảnh trong tin nhắn",
-        "NSMicrophoneUsageDescription": "Ứng dụng cần quyền truy cập microphone để ghi âm"
+        "NSMicrophoneUsageDescription": "Ứng dụng cần quyền truy cập microphone để ghi âm",
+        "NSFaceIDUsageDescription": "Ứng dụng cần sử dụng FaceID để xác thực đăng nhập an toàn"
       }
     },
     "android": {

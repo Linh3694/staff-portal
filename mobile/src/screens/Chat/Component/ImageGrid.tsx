@@ -1,19 +1,26 @@
 import React from 'react';
-import { View, Image, TouchableOpacity, Text, Dimensions } from 'react-native';
+import { View, Image, TouchableOpacity, Text, Dimensions, GestureResponderEvent } from 'react-native';
 
 type ImageGridProps = {
     images: string[];
     onPress: (index: number) => void;
+    onLongPress?: (index: number, event: GestureResponderEvent) => void;
+    onPressOut?: () => void;
 };
 
-const ImageGrid = ({ images, onPress }: ImageGridProps) => {
+const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps) => {
     const screenWidth = Dimensions.get('window').width;
     const maxWidth = screenWidth * 0.7; // Chiếm khoảng 70% chiều rộng màn hình
     const gap = 2; // Khoảng cách giữa các ảnh
 
     if (images.length === 1) {
         return (
-            <TouchableOpacity onPress={() => onPress(0)}>
+            <TouchableOpacity
+                onPress={() => onPress(0)}
+                onLongPress={(event) => onLongPress && onLongPress(0, event)}
+                onPressOut={onPressOut}
+                delayLongPress={500}
+            >
                 <Image
                     source={{ uri: images[0] }}
                     style={{ width: maxWidth, height: maxWidth * 0.75, borderRadius: 12 }}
@@ -24,14 +31,26 @@ const ImageGrid = ({ images, onPress }: ImageGridProps) => {
     } else if (images.length === 2) {
         return (
             <View style={{ flexDirection: 'row', width: maxWidth }}>
-                <TouchableOpacity onPress={() => onPress(0)} style={{ flex: 1, marginRight: gap / 2 }}>
+                <TouchableOpacity
+                    onPress={() => onPress(0)}
+                    onLongPress={(event) => onLongPress && onLongPress(0, event)}
+                    onPressOut={onPressOut}
+                    delayLongPress={500}
+                    style={{ flex: 1, marginRight: gap / 2 }}
+                >
                     <Image
                         source={{ uri: images[0] }}
                         style={{ width: '100%', height: maxWidth / 2, borderRadius: 12 }}
                         resizeMode="cover"
                     />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => onPress(1)} style={{ flex: 1, marginLeft: gap / 2 }}>
+                <TouchableOpacity
+                    onPress={() => onPress(1)}
+                    onLongPress={(event) => onLongPress && onLongPress(1, event)}
+                    onPressOut={onPressOut}
+                    delayLongPress={500}
+                    style={{ flex: 1, marginLeft: gap / 2 }}
+                >
                     <Image
                         source={{ uri: images[1] }}
                         style={{ width: '100%', height: maxWidth / 2, borderRadius: 12 }}
@@ -44,7 +63,13 @@ const ImageGrid = ({ images, onPress }: ImageGridProps) => {
         // Ba ảnh: 1 lớn bên trái, 2 nhỏ bên phải xếp dọc
         return (
             <View style={{ flexDirection: 'row', width: maxWidth }}>
-                <TouchableOpacity onPress={() => onPress(0)} style={{ width: maxWidth / 2 - gap / 2, marginRight: gap / 2 }}>
+                <TouchableOpacity
+                    onPress={() => onPress(0)}
+                    onLongPress={(event) => onLongPress && onLongPress(0, event)}
+                    onPressOut={onPressOut}
+                    delayLongPress={500}
+                    style={{ width: maxWidth / 2 - gap / 2, marginRight: gap / 2 }}
+                >
                     <Image
                         source={{ uri: images[0] }}
                         style={{ width: '100%', height: maxWidth / 2, borderRadius: 12 }}
@@ -52,14 +77,26 @@ const ImageGrid = ({ images, onPress }: ImageGridProps) => {
                     />
                 </TouchableOpacity>
                 <View style={{ flexDirection: 'column', width: maxWidth / 2 - gap / 2, marginLeft: gap / 2 }}>
-                    <TouchableOpacity onPress={() => onPress(1)} style={{ marginBottom: gap / 2 }}>
+                    <TouchableOpacity
+                        onPress={() => onPress(1)}
+                        onLongPress={(event) => onLongPress && onLongPress(1, event)}
+                        onPressOut={onPressOut}
+                        delayLongPress={500}
+                        style={{ marginBottom: gap / 2 }}
+                    >
                         <Image
                             source={{ uri: images[1] }}
                             style={{ width: '100%', height: maxWidth / 4 - gap / 2, borderRadius: 12 }}
                             resizeMode="cover"
                         />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => onPress(2)} style={{ marginTop: gap / 2 }}>
+                    <TouchableOpacity
+                        onPress={() => onPress(2)}
+                        onLongPress={(event) => onLongPress && onLongPress(2, event)}
+                        onPressOut={onPressOut}
+                        delayLongPress={500}
+                        style={{ marginTop: gap / 2 }}
+                    >
                         <Image
                             source={{ uri: images[2] }}
                             style={{ width: '100%', height: maxWidth / 4 - gap / 2, borderRadius: 12 }}
@@ -73,14 +110,26 @@ const ImageGrid = ({ images, onPress }: ImageGridProps) => {
         return (
             <View style={{ width: maxWidth }}>
                 <View style={{ flexDirection: 'row' }}>
-                    <TouchableOpacity onPress={() => onPress(0)} style={{ width: maxWidth / 2 - gap / 2, marginRight: gap / 2, marginBottom: gap / 2 }}>
+                    <TouchableOpacity
+                        onPress={() => onPress(0)}
+                        onLongPress={(event) => onLongPress && onLongPress(0, event)}
+                        onPressOut={onPressOut}
+                        delayLongPress={500}
+                        style={{ width: maxWidth / 2 - gap / 2, marginRight: gap / 2, marginBottom: gap / 2 }}
+                    >
                         <Image
                             source={{ uri: images[0] }}
                             style={{ width: '100%', height: maxWidth / 2 - gap / 2, borderRadius: 12 }}
                             resizeMode="cover"
                         />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => onPress(1)} style={{ width: maxWidth / 2 - gap / 2, marginLeft: gap / 2, marginBottom: gap / 2 }}>
+                    <TouchableOpacity
+                        onPress={() => onPress(1)}
+                        onLongPress={(event) => onLongPress && onLongPress(1, event)}
+                        onPressOut={onPressOut}
+                        delayLongPress={500}
+                        style={{ width: maxWidth / 2 - gap / 2, marginLeft: gap / 2, marginBottom: gap / 2 }}
+                    >
                         <Image
                             source={{ uri: images[1] }}
                             style={{ width: '100%', height: maxWidth / 2 - gap / 2, borderRadius: 12 }}
@@ -89,14 +138,26 @@ const ImageGrid = ({ images, onPress }: ImageGridProps) => {
                     </TouchableOpacity>
                 </View>
                 <View style={{ flexDirection: 'row' }}>
-                    <TouchableOpacity onPress={() => onPress(2)} style={{ width: maxWidth / 2 - gap / 2, marginRight: gap / 2, marginTop: gap / 2 }}>
+                    <TouchableOpacity
+                        onPress={() => onPress(2)}
+                        onLongPress={(event) => onLongPress && onLongPress(2, event)}
+                        onPressOut={onPressOut}
+                        delayLongPress={500}
+                        style={{ width: maxWidth / 2 - gap / 2, marginRight: gap / 2, marginTop: gap / 2 }}
+                    >
                         <Image
                             source={{ uri: images[2] }}
                             style={{ width: '100%', height: maxWidth / 2 - gap / 2, borderRadius: 12 }}
                             resizeMode="cover"
                         />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => onPress(3)} style={{ width: maxWidth / 2 - gap / 2, marginLeft: gap / 2, marginTop: gap / 2 }}>
+                    <TouchableOpacity
+                        onPress={() => onPress(3)}
+                        onLongPress={(event) => onLongPress && onLongPress(3, event)}
+                        onPressOut={onPressOut}
+                        delayLongPress={500}
+                        style={{ width: maxWidth / 2 - gap / 2, marginLeft: gap / 2, marginTop: gap / 2 }}
+                    >
                         <Image
                             source={{ uri: images[3] }}
                             style={{ width: '100%', height: maxWidth / 2 - gap / 2, borderRadius: 12 }}
@@ -123,6 +184,9 @@ const ImageGrid = ({ images, onPress }: ImageGridProps) => {
                                 <TouchableOpacity
                                     key={idx}
                                     onPress={() => onPress(idx)}
+                                    onLongPress={(event) => onLongPress && onLongPress(idx, event)}
+                                    onPressOut={onPressOut}
+                                    delayLongPress={500}
                                     style={{ width: itemWidth, height: itemHeight }}
                                 >
                                     <Image
@@ -145,6 +209,9 @@ const ImageGrid = ({ images, onPress }: ImageGridProps) => {
                                 <TouchableOpacity
                                     key={idx}
                                     onPress={() => onPress(idx)}
+                                    onLongPress={(event) => onLongPress && onLongPress(idx, event)}
+                                    onPressOut={onPressOut}
+                                    delayLongPress={500}
                                     style={{ width: itemWidth, height: itemHeight }}
                                 >
                                     <Image
