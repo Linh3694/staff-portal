@@ -31,15 +31,15 @@ export type ChatStackParamList = {
 export type RootStackParamList = {
   [ROUTES.WELCOME]: undefined;
   [ROUTES.AUTH.LOGIN]: undefined;
-  Main: undefined;
+  Main: { screen?: string; params?: { forwardMode?: boolean } };
   ChatDetail: { user: User; chatId?: string };
-    Ticket: undefined;
-    TicketDetail: { ticketId: string };
-    TicketCreate: undefined;
-    ChatInit: { chatId: string; senderId: string };
-    TicketAdminScreen: undefined;
-    TicketAdminDetail: { ticketId: string };
-    TicketGuestDetail: { ticketId: string };
+  Ticket: undefined;
+  TicketDetail: { ticketId: string };
+  TicketCreate: undefined;
+  ChatInit: { chatId: string; senderId: string };
+  TicketAdminScreen: undefined;
+  TicketAdminDetail: { ticketId: string };
+  TicketGuestDetail: { ticketId: string };
 };
 
 const AppNavigator = () => {

@@ -16,6 +16,10 @@ export type Message = {
     emojiName?: string;
     emojiUrl?: string;
     replyTo?: Message;
+    // Forwarding related fields
+    isForwarded?: boolean;
+    originalMessage?: string;
+    originalSender?: User;
     reactions: {
         user: string;
         emojiCode: string;

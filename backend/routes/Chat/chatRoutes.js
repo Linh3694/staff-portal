@@ -119,4 +119,9 @@ router.delete('/message/:messageId/pin', authenticate, chatController.unpinMessa
 // API lấy danh sách tin nhắn ghim của một chat
 router.get('/:chatId/pinned-messages', authenticate, chatController.getPinnedMessages);
 
+// === THÊM MỚI: API XỬ LÝ CHUYỂN TIẾP TIN NHẮN ===
+
+// API chuyển tiếp tin nhắn
+router.post('/message/forward', authenticate, chatController.forwardMessage);
+
 module.exports = router; 

@@ -37,6 +37,19 @@ const messageSchema = new mongoose.Schema(
       enum: ["text", "image", "file", "multiple-images"],
       default: "text",
     },
+    // Forwarding related fields
+    isForwarded: {
+      type: Boolean,
+      default: false
+    },
+    originalMessage: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message"
+    },
+    originalSender: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Users"
+    },
     // Sticker / custom emoji metadata
     isEmoji: {
       type: Boolean,

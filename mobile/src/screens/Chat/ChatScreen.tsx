@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, SafeAreaView, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, SafeAreaView, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import debounce from 'lodash.debounce';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChatStackParamList } from '../../navigation/ChatStackNavigator';
 import { jwtDecode } from 'jwt-decode';
@@ -48,13 +48,37 @@ const ChatScreen = () => {
     const [chats, setChats] = useState<Chat[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [forwardMode, setForwardMode] = useState(false);
+    const [messageToForwardId, setMessageToForwardId] = useState<string | null>(null);
     const { isUserOnline, getFormattedLastSeen } = useOnlineStatus();
     const navigation = useNavigation<NativeStackNavigationProp<ChatStackParamList>>();
+    const route = useRoute();
     const parentTabNav: any = (navigation as any).getParent?.();
     const hideTabBar = () => {
         parentTabNav?.setOptions({ tabBarStyle: { display: 'none' } });
     };
     const socketRef = useRef<any>(null);
+
+    // Check if we're in forwarding mode based on route params
+    useEffect(() => {
+        const params = route.params as any;
+        if (params && params.forwardMode) {
+            const checkForwardMessage = async () => {
+                try {
+                    const messageId = await AsyncStorage.getItem('messageToForward');
+                    if (messageId) {
+                        setMessageToForwardId(messageId);
+                        setForwardMode(true);
+                        Alert.alert('Chuyển tiếp tin nhắn', 'Chọn người nhận để chuyển tiếp tin nhắn');
+                    }
+                } catch (error) {
+                    console.error('Error checking for forwarded message:', error);
+                }
+            };
+            
+            checkForwardMessage();
+        }
+    }, [route.params]);
 
     useEffect(() => {
         // Chỉ fetch users 1 lần khi load màn hình
@@ -179,6 +203,50 @@ const ChatScreen = () => {
 
     const debouncedSearch = useCallback(debounce(handleSearch, 400), []);
 
+    const handleChatPress = async (chat: Chat, other: User) => {
+        if (forwardMode && messageToForwardId) {
+            // Forward the message to this chat
+            try {
+                const token = await AsyncStorage.getItem('authToken');
+                if (!token) return;
+                
+                const response = await fetch(`${API_BASE_URL}/api/chats/message/forward`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        messageId: messageToForwardId,
+                        targetChatId: chat._id
+                    })
+                });
+                
+                if (response.ok) {
+                    Alert.alert('Thành công', 'Đã chuyển tiếp tin nhắn');
+                    // Clear forwarding mode and stored message ID
+                    setForwardMode(false);
+                    setMessageToForwardId(null);
+                    await AsyncStorage.removeItem('messageToForward');
+                    
+                    // Navigate to the chat
+                    hideTabBar();
+                    navigation.navigate('ChatDetail', { user: other, chatId: chat._id });
+                } else {
+                    const errorData = await response.json();
+                    Alert.alert('Lỗi', errorData.message || 'Không thể chuyển tiếp tin nhắn');
+                }
+            } catch (error) {
+                console.error('Error forwarding message:', error);
+                Alert.alert('Lỗi', 'Đã xảy ra lỗi khi chuyển tiếp tin nhắn');
+            }
+        } else {
+            // Normal navigation to chat
+            hideTabBar();
+            navigation.navigate('ChatDetail', { user: other, chatId: chat._id });
+        }
+    };
+
     const renderUser = ({ item }: { item: User }) => (
         <TouchableOpacity
             className="items-center mr-4 w-20"
@@ -250,10 +318,7 @@ const ChatScreen = () => {
             <TouchableOpacity
                 key={`chat-item-${item._id || index}`}
                 className="flex-row items-center py-3 px-4 border-b border-gray-100"
-                onPress={() => {
-                    hideTabBar();
-                    navigation.navigate('ChatDetail', { user: other, chatId: item._id });
-                }}
+                onPress={() => handleChatPress(item, other)}
             >
                 <View className="relative">
                     <Image source={{ uri: getAvatar(other) }} className="w-14 h-14 rounded-full bg-gray-200" />

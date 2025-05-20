@@ -24,6 +24,7 @@ import { Video, ResizeMode } from 'expo-av';
 import ImageViewing from 'react-native-image-viewing';
 import { AppState, AppStateStatus } from 'react-native';
 import { API_BASE_URL } from '../../config/constants';
+import { ROUTES } from '../../constants/routes';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import MessageReactionModal from './Component/MessageReactionModal';
@@ -1255,6 +1256,9 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             case 'unpin':
                 handleUnpinMessage(selectedMessage._id);
                 break;
+            case 'forward':
+                handleForwardMessage(selectedMessage._id);
+                break;
             default:
                 console.log('Action chưa được xử lý:', action);
                 break;
@@ -1445,8 +1449,11 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     const ReplyPreview = ({ message, onCancel }: { message: Message | null, onCancel: () => void }) => {
         if (!message) return null;
 
-        const isImage = message.type === 'image' || message.type === 'multiple-images';
+        const isImage = message.type === 'image';
+        const isMultipleImages = message.type === 'multiple-images';
         const isFile = message.type === 'file';
+        const imageUrl = isImage ? (message.fileUrl?.startsWith('http') ? message.fileUrl : `${API_BASE_URL}${message.fileUrl}`) :
+            isMultipleImages && message.fileUrls && message.fileUrls.length > 0 ? (message.fileUrls[0].startsWith('http') ? message.fileUrls[0] : `${API_BASE_URL}${message.fileUrls[0]}`) : null;
 
         return (
             <View style={{
@@ -1457,8 +1464,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 padding: 10,
                 paddingHorizontal: 16,
                 marginBottom: -8,
-                overflow: 'hidden', // Thêm overflow hidden để BlurView không tràn ra ngoài
-                position: 'relative' // Thêm position relative để BlurView có thể absolute bên trong
+                overflow: 'hidden',
+                position: 'relative'
             }}>
                 {/* Thêm BlurView */}
                 <BlurView
@@ -1482,6 +1489,15 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     borderRadius: 3
                 }} />
 
+                {/* Thumbnail ảnh nếu là ảnh hoặc nhiều ảnh */}
+                {(isImage || isMultipleImages) && imageUrl && (
+                    <Image
+                        source={{ uri: imageUrl }}
+                        style={{ width: 36, height: 36, borderRadius: 8, marginRight: 8 }}
+                        resizeMode="cover"
+                    />
+                )}
+
                 <View style={{ flex: 1 }}>
                     <Text style={{ color: '#3F4246', fontFamily: 'Mulish-SemiBold', fontSize: 14 }}>
                         Trả lời {message.sender.fullname}
@@ -1495,7 +1511,14 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                             </Text>
                         </View>
                     )}
-
+                    {isMultipleImages && message.fileUrls && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Ionicons name="images-outline" size={14} color="#666" style={{ marginRight: 4 }} />
+                            <Text style={{ color: '#666', fontSize: 14, fontFamily: 'Mulish-Regular' }} numberOfLines={1}>
+                                {message.fileUrls.length} hình ảnh
+                            </Text>
+                        </View>
+                    )}
                     {isFile && (
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             <Ionicons name="document-outline" size={14} color="#666" style={{ marginRight: 4 }} />
@@ -1504,8 +1527,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                             </Text>
                         </View>
                     )}
-
-                    {!isImage && !isFile && (
+                    {!isImage && !isMultipleImages && !isFile && (
                         <Text style={{ color: '#666', fontSize: 14, fontFamily: 'Mulish-Regular' }} numberOfLines={1}>
                             {message.content}
                         </Text>
@@ -1542,6 +1564,52 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             setTimeout(() => {
                 setHighlightedMessageId(null);
             }, 2000);
+        }
+    };
+
+    // Tạo mảng mới có cả message và time separator
+    const messagesWithTime: any[] = [];
+    for (let i = 0; i < messages.length; i++) {
+        const item = messages[i];
+        const prevMsg = messages[i - 1];
+        const isPrevSameSender = prevMsg?.sender?._id === item.sender._id;
+        const isDifferentDay = prevMsg?.createdAt && (new Date(item.createdAt).toDateString() !== new Date(prevMsg.createdAt).toDateString());
+        const timeGap = prevMsg?.createdAt ? (new Date(item.createdAt).getTime() - new Date(prevMsg.createdAt).getTime()) : null;
+        const showTime = !prevMsg?.createdAt || !isPrevSameSender || isDifferentDay || (!!timeGap && timeGap > 5 * 60 * 1000);
+        if (showTime) {
+            messagesWithTime.push({
+                type: 'time',
+                time: item.createdAt,
+                _id: `time-${item._id || i}`
+            });
+        }
+        messagesWithTime.push(item);
+    }
+
+    // Thêm hàm xử lý chuyển tiếp tin nhắn
+    const handleForwardMessage = async (messageId: string) => {
+        try {
+            // Lưu messageId vào AsyncStorage để chuyển tiếp
+            await AsyncStorage.setItem('messageToForward', messageId);
+            
+            // Chuyển người dùng đến màn hình danh sách chat để chọn người nhận
+            navigation.navigate('Main', { 
+                screen: ROUTES.MAIN.CHAT, 
+                params: { forwardMode: true } 
+            });
+            
+            setNotification({
+                visible: true,
+                type: 'success',
+                message: 'Chọn người nhận để chuyển tiếp tin nhắn'
+            });
+        } catch (error) {
+            console.error('Lỗi khi chuẩn bị chuyển tiếp tin nhắn:', error);
+            setNotification({
+                visible: true,
+                type: 'error',
+                message: 'Không thể chuyển tiếp tin nhắn'
+            });
         }
     };
 
@@ -1606,7 +1674,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                             ) : (
                                 <FlatList
                                     ref={flatListRef}
-                                    data={[...messages].reverse()}
+                                    data={[...messagesWithTime].reverse()}
                                     inverted
                                     keyExtractor={(item, index) => item._id || `message-${index}`}
                                     ListHeaderComponent={() => (
@@ -1628,27 +1696,32 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                     )}
                                     style={{ flex: 1 }}
                                     renderItem={({ item, index }) => {
-                                        // Nếu là ảnh đang preview (chưa gửi), không render bubble
+                                        if (item.type === 'time') {
+                                            // Render block thời gian
+                                            const d = new Date(item.time);
+                                            const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+                                            const dayStr = days[d.getDay()];
+                                            const dateStr = `${d.getDate()} Tháng ${d.getMonth() + 1}`;
+                                            const hour = d.getHours().toString().padStart(2, '0');
+                                            const min = d.getMinutes().toString().padStart(2, '0');
+                                            return (
+                                                <View style={{ alignItems: 'center', marginVertical: 16 }}>
+                                                    <Text style={{ color: '#BEBEBE', fontSize: 14, fontFamily: 'Mulish-Semibold' }}>
+                                                        {`${dayStr}, ${dateStr}, lúc ${hour}:${min}`}
+                                                    </Text>
+                                                </View>
+                                            );
+                                        }
                                         if (!item._id) return null;
-
                                         const isMe = currentUserId && item.sender._id === currentUserId;
                                         const prevMsg = messages[messages.length - index] || {};
-                                        const nextMsg = messages[messages.length - 1 - (index + 1)] || {};
-
-                                        // Cùng người gửi?
                                         const isPrevSameSender = prevMsg?.sender?._id === item.sender._id;
-                                        const isNextSameSender = nextMsg?.sender?._id === item.sender._id;
-
-                                        // isFirst: trên cùng chuỗi (không cùng sender với tin nhắn phía trên)
                                         const isFirst = !isPrevSameSender;
-                                        // isLast: dưới cùng chuỗi (không cùng sender với tin nhắn phía dưới)
-                                        const isLast = !isNextSameSender;
-
-                                        // Avatar chỉ hiện ở isFirst của chuỗi người nhận
+                                        const isLast = !isPrevSameSender;
                                         const showAvatar = !isMe && isFirst;
-
                                         return (
                                             <MessageBubble
+                                                chat={chat}
                                                 message={item}
                                                 currentUserId={currentUserId}
                                                 customEmojis={customEmojis}

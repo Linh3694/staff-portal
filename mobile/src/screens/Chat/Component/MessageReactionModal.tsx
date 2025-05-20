@@ -18,6 +18,7 @@ import CopySvg from '../../../assets/copy.svg';
 import RevokeSvg from '../../../assets/revoke.svg';
 import PinSvg from '../../../assets/pin.svg';
 import PinOffSvg from '../../../assets/pin-off.svg';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -32,6 +33,8 @@ type MessageReactionModalProps = {
     onActionSelect: (action: string) => void;
     selectedMessage?: {
         content: string;
+        type: string;
+        fileUrls?: string[];
         sender: {
             fullname: string;
         };
@@ -54,12 +57,16 @@ type CustomEmoji = {
 
 const REACTION_CODES = ['clap', 'laugh', 'wow', 'cry', 'heart'];
 
-const initializeActions = (isPinned: boolean) => {
+const initializeActions = (isPinned: boolean, messageType: string) => {
     const actions = [
         { icon: 'forward', text: 'Chuyển tiếp', value: 'forward', Svg: ForwardSvg },
         { icon: 'reply', text: 'Trả lời', value: 'reply', Svg: ReplySvg },
-        { icon: 'copy', text: 'Sao chép', value: 'copy', Svg: CopySvg },
     ];
+
+    // Chỉ thêm nút copy cho tin nhắn text
+    if (messageType === 'text') {
+        actions.push({ icon: 'copy', text: 'Sao chép', value: 'copy', Svg: CopySvg });
+    }
 
     // Thêm tùy chọn ghim hoặc bỏ ghim dựa vào trạng thái hiện tại
     if (isPinned) {
@@ -167,8 +174,8 @@ const MessageReactionModal = ({
         { emoji: "🙏", isCustom: false },
     ];
 
-    // Danh sách actions (sử dụng hàm khởi tạo mới)
-    const actions = initializeActions(isPinned);
+    // Danh sách actions (sử dụng hàm khởi tạo mới với messageType)
+    const actions = initializeActions(isPinned, selectedMessage?.type || 'text');
 
     // Xác định vị trí của modal
     const modalPosition = position ? {
@@ -224,9 +231,31 @@ const MessageReactionModal = ({
                     {selectedMessage && (
                         <View className="bg-white p-3 rounded-xl max-w-[80%] mb-3 ml-[3%]">
                             <Text className="text-sm font-bold text-[#00687F] mb-1">{selectedMessage.sender.fullname}</Text>
-                            <Text className="text-base text-[#333]" numberOfLines={1}>
-                                {selectedMessage.content}
-                            </Text>
+                            {selectedMessage.type === 'image' && (
+                                <View className="flex-row items-center">
+                                    <Ionicons name="image-outline" size={14} color="#666" style={{ marginRight: 4 }} />
+                                    <Text className="text-base text-[#333]">Hình ảnh</Text>
+                                </View>
+                            )}
+                            {selectedMessage.type === 'multiple-images' && selectedMessage.fileUrls && (
+                                <View className="flex-row items-center">
+                                    <Ionicons name="images-outline" size={14} color="#666" style={{ marginRight: 4 }} />
+                                    <Text className="text-base text-[#333]">
+                                        {selectedMessage.fileUrls.length} hình ảnh
+                                    </Text>
+                                </View>
+                            )}
+                            {selectedMessage.type === 'file' && (
+                                <View className="flex-row items-center">
+                                    <Ionicons name="document-outline" size={14} color="#666" style={{ marginRight: 4 }} />
+                                    <Text className="text-base text-[#333]">Tệp đính kèm</Text>
+                                </View>
+                            )}
+                            {selectedMessage.type === 'text' && (
+                                <Text className="text-base text-[#333]" numberOfLines={1}>
+                                    {selectedMessage.content}
+                                </Text>
+                            )}
                         </View>
                     )}
 

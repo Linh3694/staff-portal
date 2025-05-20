@@ -127,6 +127,7 @@ exports.getChatMessages = async (req, res) => {
         const { chatId } = req.params;
         const messages = await Message.find({ chat: chatId })
             .populate('sender', 'fullname avatarUrl email')
+            .populate('originalSender', 'fullname avatarUrl email')
             .populate({
                 path: 'replyTo',
                 populate: {
@@ -611,6 +612,95 @@ exports.getPinnedMessages = async (req, res) => {
         res.status(200).json(pinnedMessages);
     } catch (error) {
         console.error('Error getting pinned messages:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// === THÊM MỚI: XỬ LÝ CHUYỂN TIẾP TIN NHẮN ===
+
+// Chuyển tiếp tin nhắn
+exports.forwardMessage = async (req, res) => {
+    try {
+        const { messageId, targetChatId } = req.body;
+        const senderId = req.user._id;
+
+        // Tìm tin nhắn gốc
+        const originalMessage = await Message.findById(messageId).populate('sender', 'fullname avatarUrl email');
+        if (!originalMessage) {
+            return res.status(404).json({ message: 'Không tìm thấy tin nhắn gốc' });
+        }
+
+        // Tìm chat đích
+        const targetChat = await Chat.findById(targetChatId);
+        if (!targetChat) {
+            return res.status(404).json({ message: 'Không tìm thấy chat đích' });
+        }
+
+        // Kiểm tra xem người dùng có quyền truy cập chat đích không
+        const isParticipant = targetChat.participants.some(
+            participant => participant.toString() === senderId.toString()
+        );
+
+        if (!isParticipant) {
+            return res.status(403).json({ message: 'Bạn không có quyền truy cập chat đích' });
+        }
+
+        // Tạo tin nhắn chuyển tiếp
+        const forwardedMessage = new Message({
+            chat: targetChatId,
+            sender: senderId,
+            content: originalMessage.content,
+            type: originalMessage.type,
+            isForwarded: true,
+            originalMessage: messageId,
+            originalSender: originalMessage.sender._id,
+            readBy: [senderId],
+            // Sao chép các trường khác cần thiết
+            fileUrl: originalMessage.fileUrl,
+            fileUrls: originalMessage.fileUrls,
+            isEmoji: originalMessage.isEmoji,
+            emojiId: originalMessage.emojiId,
+            emojiType: originalMessage.emojiType,
+            emojiName: originalMessage.emojiName,
+            emojiUrl: originalMessage.emojiUrl
+        });
+
+        await forwardedMessage.save();
+
+        // Cập nhật lastMessage trong chat đích
+        await Chat.findByIdAndUpdate(targetChatId, {
+            lastMessage: forwardedMessage._id,
+            updatedAt: Date.now()
+        });
+
+        // Populate các trường cần thiết cho tin nhắn chuyển tiếp
+        const populatedMessage = await Message.findById(forwardedMessage._id)
+            .populate('sender', 'fullname avatarUrl email')
+            .populate('originalSender', 'fullname avatarUrl email');
+
+        // Emit socket event
+        const io = req.app.get('io');
+        io.to(targetChatId).emit('receiveMessage', populatedMessage);
+
+        // Lấy lại chat đã cập nhật kèm populate
+        const updatedChat = await Chat.findById(targetChatId)
+            .populate('participants', 'fullname avatarUrl email')
+            .populate('lastMessage');
+
+        updatedChat.participants.forEach(p =>
+            io.to(p._id.toString()).emit('newChat', updatedChat)
+        );
+
+        // Gửi thông báo push cho người nhận
+        notificationController.sendNewChatMessageNotification(
+            forwardedMessage,
+            req.user.fullname,
+            targetChat
+        );
+
+        res.status(201).json(populatedMessage);
+    } catch (error) {
+        console.error('Error forwarding message:', error);
         res.status(500).json({ message: error.message });
     }
 }; 
