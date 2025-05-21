@@ -5,35 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { API_BASE_URL } from '../../../config/constants';
 import ConfirmModal from '../../../components/ConfirmModal';
 import NotificationModal from '../../../components/NotificationModal';
-
-type Message = {
-    _id: string;
-    sender: {
-        _id: string;
-        fullname: string;
-        avatarUrl?: string;
-    };
-    content: string;
-    chat: string;
-    readBy: string[];
-    createdAt: string;
-    type: string;
-    fileUrl?: string;
-    fileUrls?: string[];
-    isEmoji?: boolean;
-    emojiId?: string;
-    emojiType?: string;
-    emojiName?: string;
-    emojiUrl?: string;
-    replyTo?: Message;
-    reactions: {
-        user: string;
-        emojiCode: string;
-        isCustom: boolean;
-    }[];
-    isPinned?: boolean;
-    pinnedBy?: string;
-};
+import { Message, MessageReaction } from '../../../types/message';
 
 // Hàm lấy avatar cho người dùng
 const getAvatar = (user: { fullname: string; avatarUrl?: string }) => {

@@ -188,6 +188,15 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
         setValue(ticketStatus);
     }, [ticketStatus]);
 
+    // Mapping ticket status to pill background colors
+    const statusColors: Record<string, string> = {
+        Processing: '#FFAA00',       // vàng/hoạt động
+        Done: '#4CAF50',             // xanh lá cây
+        Cancelled: '#F44336',        // đỏ
+        Closed: '#9E9E9E',           // ghi
+    };
+    const currentStatusColor = statusColors[ticketStatus] || '#FFFFFF';
+
     // Create dropdown items based on current status
     const getStatusItems = () => {
         // If ticket is closed, show all status options
@@ -279,20 +288,67 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
     // Function to render feedback if ticket is closed
     const renderFeedback = () => {
         if (ticketStatus !== 'Closed' || !ticket?.feedback) return null;
-        
+
         return (
-            <View className="bg-gray-100 p-4 rounded-lg mt-4">
-                <Text className="font-bold text-primary text-lg mb-2">Phản hồi từ khách hàng:</Text>
-                <View className="flex-row items-center mb-2">
-                    <Text className="font-medium mr-2">Đánh giá:</Text>
-                    <Text className="font-medium">{ticket.feedback.rating}/5</Text>
+            <View className="bg-[#f8f8f8] p-4 rounded-2xl mt-4">
+                {/* Title */}
+                <View className="flex-row items-center gap-4">
+                    <Text className="text-primary font-semibold text-lg mb-3">Phản hồi</Text>
+
+                    {/* Star Rating */}
+                    <View className="flex-row mb-3">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <Text
+                                key={i}
+                                style={{
+                                    fontSize: 30,
+                                    color: i <= ticket.feedback.rating ? '#FFD700' : '#E0E0E0',
+                                    marginRight: 4,
+                                }}
+                            >
+                                ★
+                            </Text>
+                        ))}
+                    </View>
                 </View>
-                {ticket.feedback.comment && (
-                    <View>
-                        <Text className="font-medium">Nhận xét:</Text>
-                        <Text className="font-normal mt-1">{ticket.feedback.comment}</Text>
+
+                {/* Badges (if any) */}
+                {ticket.feedback.badges && ticket.feedback.badges.length > 0 && (
+                    <View className="flex-row flex-wrap mb-3">
+                        {ticket.feedback.badges.map(badge => (
+                            <View
+                                key={badge}
+                                style={{
+                                    backgroundColor: '#FFEBCC',
+                                    borderRadius: 20,
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 4,
+                                    marginRight: 8,
+                                    marginBottom: 8,
+                                }}
+                            >
+                                <Text style={{ color: '#FFAA00', fontFamily: 'Mulish-Bold' }}>
+                                    {badge}
+                                </Text>
+                            </View>
+                        ))}
                     </View>
                 )}
+
+                {/* Comment Box */}
+                <View
+                    style={{
+                        borderWidth: 1,
+                        borderColor: '#D1D5DB',
+                        borderRadius: 12,
+                        padding: 12,
+                        minHeight: 150,
+                    }}
+                >
+                    <Text style={{ color: '#374151', fontSize: 16, lineHeight: 24 }}>
+                        {ticket.feedback.comment}
+                    </Text>
+                </View>
             </View>
         );
     };
@@ -305,71 +361,60 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
         );
     }
 
-    console.log('ticket:', ticket);
-    console.log('ticketStatus:', ticketStatus);
-
     return (
         <View className="flex-1 bg-white p-4">
             {/* STATUS BAR */}
-            <View className="flex-row items-center mt-4 mb-2">
+            <View className="h-[20%] flex-col items-start justify-center p-4 gap-4 bg-[#f8f8f8] mt-4 rounded-2xl mb-2">
                 <Text className="font-semibold text-lg mr-2">Trạng thái:</Text>
                 <View style={{ zIndex: 1000, flex: 1 }}>
-                    {ticketStatus === 'Closed' ? (
-                        <View className="bg-gray-100 rounded-lg p-2">
-                            <Text className="font-semibold text-base">{getStatusLabel(ticketStatus)}</Text>
-                        </View>
-                    ) : (
-                        <DropDownPicker
-                            open={open}
-                            value={value}
-                            items={getStatusItems()}
-                            setOpen={setOpen}
-                            setValue={(callback) => {
-                                const newValue = callback(value);
-                                if (newValue !== ticketStatus) handleUpdateStatus(newValue);
-                                setValue(newValue);
-                            }}
-                            placeholder="Chọn trạng thái"
-                            style={{ 
-                                borderWidth: 0, 
-                                backgroundColor: '#f3f4f6', 
-                                minHeight: 30, 
-                                height: 'auto', 
-                                borderRadius: 8
-                            }}
-                            dropDownContainerStyle={{ 
-                                borderWidth: 0, 
-                                backgroundColor: '#f3f4f6', 
-                                borderRadius: 8 
-                            }}
-                            textStyle={{ 
-                                fontSize: 16, 
-                                color: '#222', 
-                                fontFamily: 'Muslish-Regular' 
-                            }}
-                            labelStyle={{ 
-                                fontFamily: 'Muslish-Regular' 
-                            }}
-                            disabled={loading}
-                                containerStyle={{ width: '70%' }}
-                            listItemLabelStyle={{ 
-                                fontFamily: 'Muslish-Regular', 
-                                fontSize: 16, 
-                                color: '#222' 
-                            }}
-                            placeholderStyle={{ 
-                                fontFamily: 'Muslish-Regular', 
-                                fontSize: 16, 
-                                color: '#757575' 
-                            }}
-                            selectedItemLabelStyle={{ 
-                                fontFamily: 'Muslish-Regular', 
-                                fontSize: 16, 
-                                color: '#002855', 
-                                fontWeight: '600' 
-                            }}
-                        />
-                    )}
+                    <DropDownPicker
+                        open={open}
+                        value={value}
+                        items={getStatusItems()}
+                        setOpen={setOpen}
+                        setValue={(callback) => {
+                            const newValue = callback(value);
+                            if (newValue !== ticketStatus) handleUpdateStatus(newValue);
+                            setValue(newValue);
+                        }}
+                        disabled={loading || ticketStatus === 'Closed'}
+                        placeholder="Chọn trạng thái"
+                        style={{
+                            borderWidth: 0,
+                            backgroundColor: '#fff',
+                            borderRadius: 25,
+                            height: 50,
+                            justifyContent: 'center',
+                            paddingHorizontal: 16,
+                        }}
+                        dropDownContainerStyle={{
+                            borderWidth: 0,
+                            backgroundColor: '#f9f9f9',
+                            borderRadius: 25,
+                            paddingHorizontal: 8,
+                        }}
+                        textStyle={{
+                            fontSize: 16,
+                            color: currentStatusColor,
+                            fontFamily: 'Mulish-Bold',
+                            fontWeight: '700',
+                        }}
+                        labelStyle={{
+                            fontFamily: 'Mulish-Bold',
+                            fontWeight: '700',
+                        }}
+                        placeholderStyle={{
+                            fontFamily: 'Muslish-Bold',
+                            fontSize: 16,
+                            color: '#757575',
+                        }}
+                        selectedItemLabelStyle={{
+                            fontFamily: 'Muslish-Bold',
+                            fontSize: 16,
+                            color: '#002855',
+                            fontWeight: '600',
+                        }}
+                    />
                 </View>
             </View>
 
@@ -381,7 +426,7 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
                         value={cancelReason}
                         onChangeText={setCancelReason}
                         placeholder="Nhập lý do huỷ..."
-                        className="bg-gray-100 p-3 rounded-lg font-medium mb-2"
+                        className="bg-[#f8f8f8] p-3 rounded-lg font-medium mb-2"
                         multiline
                     />
                     <View className="flex-row justify-end">
@@ -390,7 +435,7 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
                                 setCancelReason('');
                                 setShowCancelReasonInput(false);
                             }}
-                            className="bg-gray-300 px-4 py-2 rounded-lg mr-2">
+                            className="bg-gray-200 px-4 py-2 rounded-lg mr-2">
                             <Text className="font-medium">Huỷ bỏ</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -413,117 +458,127 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
             {/* HIỂN THỊ FEEDBACK NẾU TRẠNG THÁI LÀ CLOSED */}
             {renderFeedback()}
 
-            {/* DANH SÁCH CÔNG VIỆC + NÚT THÊM VIỆC */}
-            <View className="mt-6 mb-2">
-                <View className="flex-row items-center justify-between mb-2">
-                    <Text className="font-semibold text-lg">Danh sách công việc</Text>
-                    <TouchableOpacity
-                        onPress={() => setShowAddSubTask(true)}
-                        className=" px-4  rounded-lg">
-                        <Text className="text-primary text-3xl font-medium">+</Text>
-                    </TouchableOpacity>
-                </View>
-                {showAddSubTask && (
-                    <View className="flex-row items-center mb-3">
-                        <TextInput
-                            value={newSubTaskTitle}
-                            onChangeText={setNewSubTaskTitle}
-                            placeholder="Nhập việc cần làm"
-                            className="flex-1 bg-gray-100 p-3 rounded-lg mr-2"
-                        />
-                        <TouchableOpacity
-                            onPress={handleAddSubTask}
-                            className="bg-green-600 px-3 py-2 rounded-lg mr-2">
-                            <Text className="text-white font-medium">Thêm</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => {
-                                setShowAddSubTask(false);
-                                setNewSubTaskTitle("");
-                            }}
-                            className="bg-gray-400 px-3 py-2 rounded-lg">
-                            <Text className="text-white font-medium">Huỷ</Text>
-                        </TouchableOpacity>
+            {/* SUBTASKS OR COMPLETION BANNER */}
+            {ticketStatus !== 'Closed' && (
+                ticketStatus === 'Done' ? (
+                    <View className="mt-2 mb-2 bg-[#f3f4f6] rounded-2xl p-4">
+                        <Text className="text-center text-gray-600" style={{ fontSize: 16, lineHeight: 24 }}>
+                            Vui lòng thông báo tới người dùng kiểm tra kết quả và chất lượng phục vụ
+                        </Text>
                     </View>
-                )}
-            </View>
+                ) : (
+                    <View className="mt-6 mb-2 bg-[#f8f8f8] rounded-2xl p-4">
+                        <View className="flex-row items-center justify-between mb-2">
+                            <Text className="font-semibold text-lg">Danh sách công việc</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowAddSubTask(true)}
+                                className=" px-4  rounded-lg">
+                                <Text className="text-primary text-3xl font-medium">+</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {showAddSubTask && (
+                            <View className="flex-row items-center mb-3">
+                                <TextInput
+                                    value={newSubTaskTitle}
+                                    onChangeText={setNewSubTaskTitle}
+                                    placeholder="Nhập việc cần làm"
+                                        className="flex-1 bg-[#ebebeb] p-3 rounded-lg mr-2"
+                                    />
+                                    <TouchableOpacity
+                                        onPress={handleAddSubTask}
+                                        className="bg-[#009483] px-3 py-2 rounded-lg mr-2">
+                                        <Text className="text-white font-medium">Thêm</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setShowAddSubTask(false);
+                                            setNewSubTaskTitle("");
+                                        }}
+                                        className="bg-gray-400 px-3 py-2 rounded-lg">
+                                        <Text className="text-white font-medium">Huỷ</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
 
-            {/* HIỂN THỊ SUBTASK */}
-            {ticket && ticket.subTasks && ticket.subTasks.length > 0 ? (
-                ticket.subTasks.map((task) => {
-                    // Xác định subtask đầu tiên "In Progress"
-                    const inProgressTasks = ticket.subTasks.filter(
-                        (t) => t.status === "In Progress"
-                    );
-                    const isFirstInProgress =
-                        inProgressTasks.length > 0 &&
-                        inProgressTasks[0]._id === task._id;
+                            {/* HIỂN THỊ SUBTASK */}
+                            {ticket && ticket.subTasks && ticket.subTasks.length > 0 ? (
+                                ticket.subTasks.map((task) => {
+                                    // Xác định subtask đầu tiên "In Progress"
+                                    const inProgressTasks = ticket.subTasks.filter(
+                                        (t) => t.status === "In Progress"
+                                    );
+                                    const isFirstInProgress =
+                                        inProgressTasks.length > 0 &&
+                                        inProgressTasks[0]._id === task._id;
 
-                    // Xác định style dựa trên trạng thái
-                    let containerStyle = { marginBottom: 10, borderRadius: 8, padding: 12 };
-                    let textColor = '#222';
-                    let bgColor = '#fff';
-                    let textDecorationLine: 'none' | 'line-through' = 'none';
-                    if (task.status === "Completed") {
-                        bgColor = '#E4EFE6';
-                        textColor = '#009483';
-                    } else if (task.status === "Cancelled") {
-                        bgColor = '#EBEBEB';
-                        textColor = '#757575';
-                        textDecorationLine = 'line-through';
-                    } else if (task.status === "In Progress") {
-                        if (isFirstInProgress) {
-                            bgColor = '#E6EEF6';
-                            textColor = '#002855';
-                        } else {
-                            bgColor = '#EBEBEB';
-                            textColor = '#757575';
-                        }
-                    }
+                                    // Xác định style dựa trên trạng thái
+                                    let containerStyle = { marginBottom: 10, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12 };
+                                    let textColor = '#222';
+                                    let bgColor = '#fff';
+                                    let textDecorationLine: 'none' | 'line-through' = 'none';
+                                    if (task.status === "Completed") {
+                                        bgColor = '#E4EFE6';
+                                        textColor = '#009483';
+                                    } else if (task.status === "Cancelled") {
+                                        bgColor = '#EBEBEB';
+                                        textColor = '#757575';
+                                        textDecorationLine = 'line-through';
+                                    } else if (task.status === "In Progress") {
+                                        if (isFirstInProgress) {
+                                            bgColor = '#E6EEF6';
+                                            textColor = '#002855';
+                                        } else {
+                                            bgColor = '#EBEBEB';
+                                            textColor = '#757575';
+                                        }
+                                    }
 
-                    // Hàm mở ActionSheet chọn trạng thái
-                    const showStatusActionSheet = () => {
-                        if (ticketStatus === 'Cancelled' || ticketStatus === 'Closed') return;
-                        ActionSheetIOS.showActionSheetWithOptions(
-                            {
-                                options: [
-                                    isFirstInProgress ? 'Đang xử lý' : 'Chờ xử lý',
-                                    'Hoàn thành',
-                                    'Huỷ',
-                                    'Huỷ bỏ',
-                                ],
-                                destructiveButtonIndex: 2,
-                                cancelButtonIndex: 3,
-                                title: 'Chọn trạng thái',
-                            },
-                            (buttonIndex) => {
-                                if (buttonIndex === 0) handleUpdateSubTaskStatus(task._id, 'In Progress');
-                                else if (buttonIndex === 1) handleUpdateSubTaskStatus(task._id, 'Completed');
-                                else if (buttonIndex === 2) handleUpdateSubTaskStatus(task._id, 'Cancelled');
-                            }
-                        );
-                    };
+                                    // Hàm mở ActionSheet chọn trạng thái
+                                    const showStatusActionSheet = () => {
+                                        if (ticketStatus === 'Cancelled' || ticketStatus === 'Closed') return;
+                                        ActionSheetIOS.showActionSheetWithOptions(
+                                            {
+                                                options: [
+                                                    isFirstInProgress ? 'Đang xử lý' : 'Chờ xử lý',
+                                                    'Hoàn thành',
+                                                    'Huỷ',
+                                                    'Huỷ bỏ',
+                                                ],
+                                                destructiveButtonIndex: 2,
+                                                cancelButtonIndex: 3,
+                                                title: 'Chọn trạng thái',
+                                            },
+                                            (buttonIndex) => {
+                                                if (buttonIndex === 0) handleUpdateSubTaskStatus(task._id, 'In Progress');
+                                                else if (buttonIndex === 1) handleUpdateSubTaskStatus(task._id, 'Completed');
+                                                else if (buttonIndex === 2) handleUpdateSubTaskStatus(task._id, 'Cancelled');
+                                            }
+                                        );
+                                    };
 
-                    return (
-                        <TouchableOpacity
-                            key={task._id}
-                            onPress={showStatusActionSheet}
-                            disabled={ticketStatus === 'Cancelled' || ticketStatus === 'Closed'}
-                            style={[containerStyle, { backgroundColor: bgColor, opacity: (ticketStatus === 'Cancelled' || ticketStatus === 'Closed') ? 0.5 : 1 }]}
-                        >
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text className="font-semibold text-lg" style={{ color: textColor, textDecorationLine}}>{task.title}</Text>
-                                <Text className="font-semibold text-lg" style={{ color: textColor }}>{task.status === 'In Progress' 
-                                    ? (isFirstInProgress ? 'Đang xử lý' : 'Chờ xử lý')
-                                    : task.status === 'Completed' 
-                                        ? 'Hoàn thành' 
-                                        : 'Đã huỷ'}</Text>
-                            </View>
-                        </TouchableOpacity>
-                    );
-                })
-            ) : (
-                <Text className="text-center text-sm text-gray-500 font-medium">Không có subtask</Text>
+                                    return (
+                                        <TouchableOpacity
+                                            key={task._id}
+                                            onPress={showStatusActionSheet}
+                                            disabled={ticketStatus === 'Cancelled' || ticketStatus === 'Closed'}
+                                            style={[containerStyle, { backgroundColor: bgColor, opacity: (ticketStatus === 'Cancelled' || ticketStatus === 'Closed') ? 0.5 : 1 }]}
+                                        >
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Text className="font-semibold text-lg" style={{ color: textColor, textDecorationLine }}>{task.title}</Text>
+                                                <Text className="font-semibold text-lg" style={{ color: textColor }}>{task.status === 'In Progress'
+                                                    ? (isFirstInProgress ? 'Đang xử lý' : 'Chờ xử lý')
+                                                    : task.status === 'Completed'
+                                                        ? 'Hoàn thành'
+                                                        : 'Đã huỷ'}</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    );
+                                })
+                            ) : (
+                                <Text className="text-center text-sm text-gray-500 font-medium">Không có subtask</Text>
+                            )}
+                        </View>
+                    )
             )}
         </View>
     );

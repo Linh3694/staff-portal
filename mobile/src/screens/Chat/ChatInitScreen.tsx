@@ -8,9 +8,6 @@ import { ROUTES } from '../../constants/routes';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChatInit'>;
 
-/**
- * Màn hình trung gian để xử lý chuyển hướng từ thông báo đến màn hình chat
- */
 const ChatInitScreen = ({ route, navigation }: Props) => {
     const { chatId, senderId } = route.params;
 
@@ -42,12 +39,12 @@ const ChatInitScreen = ({ route, navigation }: Props) => {
                     });
                 } else {
                     // Nếu không lấy được thông tin người dùng, quay về màn hình chính
-                    navigation.replace('Main');
+                    navigation.replace('Main', {});
                 }
             } catch (error) {
                 console.error('Lỗi khi lấy thông tin người dùng:', error);
                 // Nếu có lỗi, quay về màn hình chính
-                navigation.replace('Main');
+                navigation.replace('Main', {});
             }
         };
 

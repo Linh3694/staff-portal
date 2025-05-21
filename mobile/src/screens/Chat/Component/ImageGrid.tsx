@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Image, TouchableOpacity, Text, Dimensions, GestureResponderEvent } from 'react-native';
+import { API_BASE_URL } from '../../../config/constants';
 
 type ImageGridProps = {
     images: string[];
@@ -13,6 +14,14 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
     const maxWidth = screenWidth * 0.7; // Chiếm khoảng 70% chiều rộng màn hình
     const gap = 2; // Khoảng cách giữa các ảnh
 
+    // Xử lý URL ảnh
+    const processImageUrl = (url: string) => {
+        if (!url) return '';
+        return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+    };
+
+    const processedImages = images.map(processImageUrl);
+
     if (images.length === 1) {
         return (
             <TouchableOpacity
@@ -22,7 +31,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                 delayLongPress={500}
             >
                 <Image
-                    source={{ uri: images[0] }}
+                    source={{ uri: processedImages[0] }}
                     style={{ width: maxWidth, height: maxWidth * 0.75, borderRadius: 12 }}
                     resizeMode="cover"
                 />
@@ -39,7 +48,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                     style={{ flex: 1, marginRight: gap / 2 }}
                 >
                     <Image
-                        source={{ uri: images[0] }}
+                        source={{ uri: processedImages[0] }}
                         style={{ width: '100%', height: maxWidth / 2, borderRadius: 12 }}
                         resizeMode="cover"
                     />
@@ -52,7 +61,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                     style={{ flex: 1, marginLeft: gap / 2 }}
                 >
                     <Image
-                        source={{ uri: images[1] }}
+                        source={{ uri: processedImages[1] }}
                         style={{ width: '100%', height: maxWidth / 2, borderRadius: 12 }}
                         resizeMode="cover"
                     />
@@ -71,7 +80,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                     style={{ width: maxWidth / 2 - gap / 2, marginRight: gap / 2 }}
                 >
                     <Image
-                        source={{ uri: images[0] }}
+                        source={{ uri: processedImages[0] }}
                         style={{ width: '100%', height: maxWidth / 2, borderRadius: 12 }}
                         resizeMode="cover"
                     />
@@ -85,7 +94,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                         style={{ marginBottom: gap / 2 }}
                     >
                         <Image
-                            source={{ uri: images[1] }}
+                            source={{ uri: processedImages[1] }}
                             style={{ width: '100%', height: maxWidth / 4 - gap / 2, borderRadius: 12 }}
                             resizeMode="cover"
                         />
@@ -98,7 +107,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                         style={{ marginTop: gap / 2 }}
                     >
                         <Image
-                            source={{ uri: images[2] }}
+                            source={{ uri: processedImages[2] }}
                             style={{ width: '100%', height: maxWidth / 4 - gap / 2, borderRadius: 12 }}
                             resizeMode="cover"
                         />
@@ -118,7 +127,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                         style={{ width: maxWidth / 2 - gap / 2, marginRight: gap / 2, marginBottom: gap / 2 }}
                     >
                         <Image
-                            source={{ uri: images[0] }}
+                            source={{ uri: processedImages[0] }}
                             style={{ width: '100%', height: maxWidth / 2 - gap / 2, borderRadius: 12 }}
                             resizeMode="cover"
                         />
@@ -131,7 +140,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                         style={{ width: maxWidth / 2 - gap / 2, marginLeft: gap / 2, marginBottom: gap / 2 }}
                     >
                         <Image
-                            source={{ uri: images[1] }}
+                            source={{ uri: processedImages[1] }}
                             style={{ width: '100%', height: maxWidth / 2 - gap / 2, borderRadius: 12 }}
                             resizeMode="cover"
                         />
@@ -146,7 +155,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                         style={{ width: maxWidth / 2 - gap / 2, marginRight: gap / 2, marginTop: gap / 2 }}
                     >
                         <Image
-                            source={{ uri: images[2] }}
+                            source={{ uri: processedImages[2] }}
                             style={{ width: '100%', height: maxWidth / 2 - gap / 2, borderRadius: 12 }}
                             resizeMode="cover"
                         />
@@ -159,7 +168,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                         style={{ width: maxWidth / 2 - gap / 2, marginLeft: gap / 2, marginTop: gap / 2 }}
                     >
                         <Image
-                            source={{ uri: images[3] }}
+                            source={{ uri: processedImages[3] }}
                             style={{ width: '100%', height: maxWidth / 2 - gap / 2, borderRadius: 12 }}
                             resizeMode="cover"
                         />
@@ -190,7 +199,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                                     style={{ width: itemWidth, height: itemHeight }}
                                 >
                                     <Image
-                                        source={{ uri: displayImages[idx] }}
+                                        source={{ uri: processedImages[idx] }}
                                         style={{ width: '100%', height: '100%', borderRadius: 8 }}
                                         resizeMode="cover"
                                     />
@@ -215,7 +224,7 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
                                     style={{ width: itemWidth, height: itemHeight }}
                                 >
                                     <Image
-                                        source={{ uri: displayImages[idx] }}
+                                        source={{ uri: processedImages[idx] }}
                                         style={{ width: '100%', height: '100%', borderRadius: 8 }}
                                         resizeMode="cover"
                                     />

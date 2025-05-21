@@ -146,7 +146,8 @@ const SignInScreen = () => {
                             _id: userId,
                             fullname: userFullname,
                             email: data.email,
-                            role: 'user'
+                            role: 'user',
+                            department: 'user'
                         };
 
                         await AsyncStorage.setItem('user', JSON.stringify(defaultUser));
@@ -244,8 +245,7 @@ const SignInScreen = () => {
                         <ActivityIndicator size="large" color="#009483" />
                     ) : (
                         <View className="items-center">
-                            <FaceIdIcon width={48} height={48} color="#009483" />
-                            <Text className="text-secondary text-sm font-medium mt-1">Đăng nhập nhanh với FaceID</Text>
+                                <FaceIdIcon width={62} height={62} color="#F05023" />
                         </View>
                     )}
                 </TouchableOpacity>

@@ -1,62 +1,57 @@
-import type { User } from '../navigation/AppNavigator';
+import { User } from './user';
+import { User as AppNavigatorUser } from '../navigation/AppNavigator';
 
-export type Message = {
+export interface Message {
     _id: string;
-    sender: User;
     content: string;
+    sender: User;
     chat: string;
-    readBy: string[];
     createdAt: string;
-    type: string;
+    updatedAt: string;
+    readBy: string[];
+    type: 'text' | 'image' | 'file' | 'multiple-images';
     fileUrl?: string;
     fileUrls?: string[];
-    isEmoji?: boolean;
-    emojiId?: string;
-    emojiType?: string;
-    emojiName?: string;
-    emojiUrl?: string;
-    replyTo?: Message;
-    // Forwarding related fields
-    isForwarded?: boolean;
-    originalMessage?: string;
-    originalSender?: User;
-    reactions: {
-        user: string;
-        emojiCode: string;
-        isCustom: boolean;
-    }[];
+    fileName?: string;
+    fileSize?: number;
     isPinned?: boolean;
     pinnedBy?: string;
-};
+    reactions?: MessageReaction[];
+    replyTo?: Message;
+    isEmoji?: boolean;
+    emojiUrl?: string;
+    isForwarded?: boolean;
+    originalSender?: User;
+}
 
-export type Chat = {
-    _id: string;
-    participants: User[];
-};
-
-export type CustomEmoji = {
-    _id: string;
-    code: string;
-    name: string;
-    type: string;
-    url: string;
-    category: string;
-    isDefault: boolean;
-};
-
-export type ChatDetailParams = {
-    user: User;
-    chatId?: string
-};
-
-export type MessageReaction = {
-    user: string;
+export interface MessageReaction {
+    userId: string;
     emojiCode: string;
     isCustom: boolean;
-};
+    createdAt: string;
+}
 
-export type NotificationType = {
-    visible: boolean;
-    type: 'success' | 'error';
-    message: string;
-}; 
+export interface Chat {
+    _id: string;
+    participants: User[];
+    lastMessage?: Message;
+    createdAt: string;
+    updatedAt: string;
+    unreadCount?: number;
+}
+
+export interface ChatDetailParams {
+    user: User;
+    chatId?: string;
+}
+
+export interface CustomEmoji {
+    _id: string;
+    name: string;
+    code: string;
+    url: string;
+    type: string;
+    category: string;
+}
+
+export type NotificationType = 'success' | 'error'; 

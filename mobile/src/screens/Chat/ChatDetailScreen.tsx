@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, Image, KeyboardAvoidingView, SafeAreaView, Linking, Alert, ActionSheetIOS, ScrollView, Dimensions, Modal, StatusBar, PanResponder, GestureResponderEvent, Keyboard, ImageBackground, Animated, Pressable, Clipboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LayoutAnimation, Platform, UIManager } from 'react-native';
+import * as ImageManipulator from 'expo-image-manipulator';
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -30,19 +31,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MessageReactionModal from './Component/MessageReactionModal';
 import PinnedMessageBanner from './Component/PinnedMessageBanner';
 import NotificationModal from '../../components/NotificationModal';
-import { Message, Chat, CustomEmoji, ChatDetailParams, MessageReaction, NotificationType } from '../../types/chat';
+import { Message, Chat } from '../../types/message';
+import { CustomEmoji, NotificationType, ChatDetailParams } from '../../types/chat';
 import ImageGrid from './Component/ImageGrid';
 import MessageBubble from './Component/MessageBubble';
 import ImageViewerModal from './Component/ImageViewerModal';
-
-const getAvatar = (user: User) => {
-    if (user.avatarUrl) {
-        return `${API_BASE_URL}/uploads/Avatar/${user.avatarUrl}`;
-    }
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}`;
-};
-
-type Props = NativeStackScreenProps<RootStackParamList, 'ChatDetail'>;
+import ForwardMessageSheet from './Component/ForwardMessageSheet';
+import { formatMessageTime, formatMessageDate, getAvatar, isDifferentDay } from '../../utils/messageUtils';
+import MessageStatus from './Component/MessageStatus';
+import { getMessageGroupPosition } from '../../utils/messageGroupUtils';
 
 const TypingIndicator = () => {
     const [dots, setDots] = useState('.');
@@ -65,112 +62,7 @@ const TypingIndicator = () => {
     );
 };
 
-const formatMessageTime = (timestamp: string): string => {
-    const messageDate = new Date(timestamp);
-    // Format giờ (HH:MM)
-    const hours = messageDate.getHours().toString().padStart(2, '0');
-    const minutes = messageDate.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-};
-
-const formatMessageDate = (timestamp: string): string => {
-    const messageDate = new Date(timestamp);
-    const now = new Date();
-
-    // Format ngày tháng
-    const day = messageDate.getDate().toString().padStart(2, '0');
-    const month = (messageDate.getMonth() + 1).toString().padStart(2, '0');
-
-    if (messageDate.toDateString() === now.toDateString()) {
-        return `Hôm nay, ${day} tháng ${month}`;
-    }
-
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    if (messageDate.toDateString() === yesterday.toDateString()) {
-        return `Hôm qua, ${day} tháng ${month}`;
-    }
-
-    const diff = Math.floor((now.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24));
-    if (diff < 7) {
-        const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-        return `${days[messageDate.getDay()]}, ${day} tháng ${month}`;
-    }
-
-    // Hiển thị ngày đầy đủ
-    return `Thứ ${messageDate.getDay() + 1}, ${day} tháng ${month}`;
-};
-
-// Kiểm tra 2 tin nhắn có khác ngày không
-const isDifferentDay = (timestamp1: string, timestamp2: string): boolean => {
-    const date1 = new Date(timestamp1);
-    const date2 = new Date(timestamp2);
-    return date1.toDateString() !== date2.toDateString();
-};
-
-const MessageStatus = ({ message, currentUserId, chat }: { message: Message, currentUserId: string | null, chat: Chat | null }) => {
-    // Chỉ hiển thị status cho tin nhắn của mình
-    if (!currentUserId || message.sender._id !== currentUserId) {
-        return null;
-    }
-
-    // Log thông tin debug để phân tích lỗi
-    console.log(`Status check for message ${message._id?.substring(0, 5)}... | readBy:`, message.readBy,
-        '| chat participants:', chat?.participants?.map(p => p._id));
-
-    // Nếu chưa gửi hoặc đang gửi (không có _id)
-    if (!message._id) {
-        return <MaterialCommunityIcons name="clock-outline" size={12} color="#8aa0bc" />;
-    }
-
-    // Không có chat hoặc không có người tham gia
-    if (!chat || !Array.isArray(chat.participants) || chat.participants.length === 0) {
-        console.log('No chat or no participants');
-        return <MaterialCommunityIcons name="check" size={12} color="#757575" />;
-    }
-
-    // Lấy danh sách người tham gia trừ người gửi
-    const otherParticipants = chat.participants
-        .filter(user => user._id !== currentUserId)
-        .map(user => user._id);
-
-    console.log('Other participants:', otherParticipants);
-
-    // Nếu không có người tham gia khác
-    if (otherParticipants.length === 0) {
-        return <MaterialCommunityIcons name="check" size={14} color="#757575" />;
-    }
-
-    // Đảm bảo readBy là một mảng
-    const readByArray = Array.isArray(message.readBy) ? [...message.readBy] : [];
-
-    // Lọc ra ID của người đã đọc, không tính người gửi
-    const readByOthers = readByArray.filter(id =>
-        id !== currentUserId && otherParticipants.includes(id)
-    );
-
-    console.log(`Message ${message._id?.substring(0, 5)}... | readByOthers:`, readByOthers);
-
-    // Kiểm tra xem tất cả người tham gia khác đã đọc chưa
-    const allParticipantsRead = otherParticipants.length > 0 &&
-        otherParticipants.every(participantId => readByArray.includes(participantId));
-
-    // Log kết quả cuối cùng
-    console.log(`Message ${message._id?.substring(0, 5)}... | allParticipantsRead:`, allParticipantsRead);
-
-    // Nếu tất cả đã đọc - hiển thị tick xanh đậm
-    if (allParticipantsRead) {
-        return <MaterialCommunityIcons name="check-all" size={14} color="#757575" fontWeight="bold" />;
-    }
-
-    // Nếu có người đã đọc nhưng không phải tất cả - hiển thị tick xanh nhạt
-    if (readByOthers.length > 0) {
-        return <MaterialCommunityIcons name="check-all" size={14} color="#757575" />;
-    }
-
-    // Mặc định là đã gửi - hiển thị một tick xám
-    return <MaterialCommunityIcons name="check" size={14} color="#757575" />;
-};
+type Props = NativeStackScreenProps<RootStackParamList, 'ChatDetail'>;
 
 // Thêm hàm kiểm tra một chuỗi có phải là một emoji duy nhất không
 const isSingleEmoji = (str: string): boolean => {
@@ -178,14 +70,14 @@ const isSingleEmoji = (str: string): boolean => {
     return str.length <= 2;
 };
 
-
 const ChatDetailScreen = ({ route, navigation }: Props) => {
-    const { user, chatId: routeChatId } = route.params;
+    const { user: chatPartner, chatId: routeChatId } = route.params;
     const [chat, setChat] = useState<Chat | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
     const navigationProp = useNavigation<NativeStackNavigationProp<{ ChatDetail: ChatDetailParams }, 'ChatDetail'>>();
     const socketRef = useRef<any>(null);
     const flatListRef = useRef<FlatList>(null);
@@ -201,7 +93,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     const [isScreenActive, setIsScreenActive] = useState(true);
     const chatIdRef = useRef<string | null>(null);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
-    const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
     const [showReactionModal, setShowReactionModal] = useState(false);
     const [reactionModalPosition, setReactionModalPosition] = useState<{ x: number, y: number } | null>(null);
     const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -209,6 +100,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     const [customEmojis, setCustomEmojis] = useState<CustomEmoji[]>([]);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [replyTo, setReplyTo] = useState<Message | null>(null);
+    const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
     // Thêm state cho tính năng ghim tin nhắn
     const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
@@ -221,6 +113,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         type: 'success',
         message: ''
     });
+    const [showForwardSheet, setShowForwardSheet] = useState(false);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
 
     // Focus & blur handlers for tracking when screen is active/inactive
     useEffect(() => {
@@ -259,11 +153,21 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 try {
                     const decoded: any = jwtDecode(token);
                     const userId = decoded._id || decoded.id;
-                    if (userId) {
+
+                    // Lấy thông tin đầy đủ của current user từ API
+                    const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const userData = await response.json();
+                        setCurrentUser(userData);
                         setCurrentUserId(userId);
                     }
                 } catch (err) {
-                    console.log('Token decode error:', err);
+                    console.log('Error fetching current user:', err);
                 }
             }
         };
@@ -348,7 +252,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                             'Content-Type': 'application/json',
                             Authorization: `Bearer ${authToken}`,
                         },
-                        body: JSON.stringify({ participantId: user._id }),
+                        body: JSON.stringify({ participantId: chatPartner._id }),
                     });
                     const chatData = await res.json();
                     setChat(chatData);
@@ -397,7 +301,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 socketRef.current.disconnect();
             }
         };
-    }, [user, routeChatId, currentUserId]);
+    }, [chatPartner._id, routeChatId, currentUserId]);
 
     const markMessagesAsRead = async (chatId: string | null, userId: string, token: string) => {
         if (!chatId) return;
@@ -691,16 +595,16 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
         // Hàm xử lý sự kiện người dùng online
         const handleUserOnline = ({ userId }: { userId: string }) => {
-            console.log('User online event received:', userId, 'comparing with:', user._id);
-            if (userId === user._id) {
+            console.log('User online event received:', userId, 'comparing with:', chatPartner._id);
+            if (userId === chatPartner._id) {
                 console.log('Setting other user to online');
             }
         };
 
         // Hàm xử lý sự kiện người dùng offline
         const handleUserOffline = ({ userId }: { userId: string }) => {
-            console.log('User offline event received:', userId, 'comparing with:', user._id);
-            if (userId === user._id) {
+            console.log('User offline event received:', userId, 'comparing with:', chatPartner._id);
+            if (userId === chatPartner._id) {
                 console.log('Setting other user to offline');
                 // Khi người dùng offline, đảm bảo trạng thái typing cũng bị reset
                 setOtherTyping(false);
@@ -709,8 +613,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
         // Xử lý sự kiện userStatus từ server
         const handleUserStatus = ({ userId, status }: { userId: string, status: string }) => {
-            console.log('User status received:', userId, status, 'comparing with:', user._id);
-            if (userId === user._id) {
+            console.log('User status received:', userId, status, 'comparing with:', chatPartner._id);
+            if (userId === chatPartner._id) {
                 console.log('Setting other user status to:', status);
                 // Khi người dùng offline, đảm bảo trạng thái typing cũng bị reset
                 if (status === 'offline') {
@@ -720,8 +624,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         };
 
         // Kiểm tra trạng thái online ngay khi kết nối
-        console.log('Checking online status for user:', user._id);
-        socketRef.current.emit('checkUserStatus', { userId: user._id });
+        console.log('Checking online status for user:', chatPartner._id);
+        socketRef.current.emit('checkUserStatus', { userId: chatPartner._id });
 
         // Thiết lập các listeners
         socketRef.current.on('userOnline', handleUserOnline);
@@ -737,7 +641,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         // Kiểm tra trạng thái online mỗi 20 giây
         const statusCheckInterval = setInterval(() => {
             if (socketRef.current && socketRef.current.connected) {
-                socketRef.current.emit('checkUserStatus', { userId: user._id });
+                socketRef.current.emit('checkUserStatus', { userId: chatPartner._id });
                 // Đồng thời cập nhật trạng thái online của mình
                 if (currentUserId) {
                     socketRef.current.emit('userOnline', { userId: currentUserId, chatId: chat._id });
@@ -751,15 +655,15 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             socketRef.current.off('userStatus', handleUserStatus);
             clearInterval(statusCheckInterval);
         };
-    }, [user._id, currentUserId, chat?._id, socketRef.current]);
+    }, [chatPartner._id, currentUserId, chat?._id, socketRef.current]);
 
     useEffect(() => {
         if (!socketRef.current || !chat?._id) return;
 
         // Hàm xử lý sự kiện người dùng đang nhập
         const handleTyping = ({ userId }: { userId: string }) => {
-            console.log('User typing event received:', userId, 'comparing with:', user._id);
-            if (userId === user._id) {
+            console.log('User typing event received:', userId, 'comparing with:', chatPartner._id);
+            if (userId === chatPartner._id) {
                 console.log('Setting typing indicator to true');
                 setOtherTyping(true);
             }
@@ -767,8 +671,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
         // Hàm xử lý sự kiện người dùng ngừng nhập
         const handleStopTyping = ({ userId }: { userId: string }) => {
-            console.log('User stop typing event received:', userId, 'comparing with:', user._id);
-            if (userId === user._id) {
+            console.log('User stop typing event received:', userId, 'comparing with:', chatPartner._id);
+            if (userId === chatPartner._id) {
                 console.log('Setting typing indicator to false');
                 setOtherTyping(false);
             }
@@ -782,7 +686,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             socketRef.current.off('userTyping', handleTyping);
             socketRef.current.off('userStopTyping', handleStopTyping);
         };
-    }, [user._id, chat?._id, socketRef.current]);
+    }, [chatPartner._id, chat?._id, socketRef.current]);
 
     const handleInputChange = (text: string) => {
         setInput(text);
@@ -871,8 +775,9 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
                     const result = await ImagePicker.launchCameraAsync({
                         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                        quality: 1,
-                        allowsEditing: true,
+                        quality: 0.7, // Giảm chất lượng xuống 70%
+                        allowsEditing: false, // Bỏ tính năng crop
+                        exif: true, // Giữ thông tin EXIF
                     });
                     if (!result.canceled && result.assets && result.assets.length > 0) {
                         setImagesToSend(prev => [...prev, ...result.assets]);
@@ -889,8 +794,9 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     const result = await ImagePicker.launchImageLibraryAsync({
                         mediaTypes: ImagePicker.MediaTypeOptions.Images,
                         allowsMultipleSelection: true,
-                        quality: 1,
-                        allowsEditing: false,
+                        quality: 0.7, // Giảm chất lượng xuống 70%
+                        allowsEditing: false, // Bỏ tính năng crop
+                        exif: true, // Giữ thông tin EXIF
                     });
                     if (!result.canceled && result.assets && result.assets.length > 0) {
                         setImagesToSend(prev => [...prev, ...result.assets]);
@@ -938,6 +844,32 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         }
     };
 
+    const forwardSingleMessage = async (toUserId: string) => {
+        if (!forwardMessage) return;                 // forwardMessage đã lưu tin gốc
+        const token = await AsyncStorage.getItem('authToken');
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/chats/message/forward`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    messageId: forwardMessage._id,
+                    toUserId
+                })
+            });
+            const data = await res.json();
+
+            // nếu forward tới chính phòng đang mở → chèn ngay vào UI
+            if (data && chat && data.chat === chat._id) {
+                setMessages(prev => [...prev, data]);
+            }
+        } catch (err) {
+            console.error('Error forwarding message:', err);
+        }
+    };
+
     // Thêm hàm mới để upload nhiều ảnh
     const uploadMultipleImages = async (images: any[]) => {
         if (!chat) return;
@@ -947,18 +879,32 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             console.log('Preparing to upload multiple images:', images.length);
             const formData = new FormData();
             formData.append('chatId', chat._id);
-            formData.append('type', 'multiple-images'); // Thêm type để server biết đây là tin nhắn nhiều ảnh
+            formData.append('type', 'multiple-images');
 
-            // Thêm nhiều file vào formData
-            images.forEach((img, index) => {
-                const fileInfo = {
-                    uri: img.uri,
-                    name: img.fileName || img.name || `image_${index}.jpg`,
-                    type: img.mimeType || img.type || 'image/jpeg',
-                };
-                console.log(`Adding image ${index} to formData:`, fileInfo);
-                formData.append('files', fileInfo as any);
-            });
+            // Chuyển đổi và thêm các ảnh vào formData
+            await Promise.all(images.map(async (img, index) => {
+                try {
+                    // Chuyển đổi ảnh sang WebP
+                    const webpUri = await convertToWebP(img.uri);
+
+                    const fileInfo = {
+                        uri: webpUri,
+                        name: `image_${index}.webp`, // Đổi phần mở rộng thành .webp
+                        type: 'image/webp', // Đổi kiểu MIME thành image/webp
+                    };
+                    console.log(`Adding WebP image ${index} to formData:`, fileInfo);
+                    formData.append('files', fileInfo as any);
+                } catch (error) {
+                    console.error(`Error processing image ${index}:`, error);
+                    // Nếu có lỗi, sử dụng ảnh gốc
+                    const fileInfo = {
+                        uri: img.uri,
+                        name: img.fileName || img.name || `image_${index}.jpg`,
+                        type: img.mimeType || img.type || 'image/jpeg',
+                    };
+                    formData.append('files', fileInfo as any);
+                }
+            }));
 
             console.log('Sending request to upload-multiple endpoint');
             const res = await fetch(`${API_BASE_URL}/api/chats/upload-multiple`, {
@@ -1235,9 +1181,14 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
     // Sửa lại hàm xử lý action
     const handleActionSelect = (action: string) => {
-        if (!selectedMessage) return;
+        if (!selectedMessage?._id) return;
 
         switch (action) {
+            case 'forward':
+                setForwardMessage(selectedMessage);
+                setShowForwardSheet(true);
+                closeReactionModal();
+                break;
             case 'reply':
                 setReplyTo(selectedMessage);
                 break;
@@ -1254,9 +1205,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 break;
             case 'unpin':
                 handleUnpinMessage(selectedMessage._id);
-                break;
-            case 'forward':
-                handleForwardMessage(selectedMessage._id);
                 break;
             default:
                 console.log('Action chưa được xử lý:', action);
@@ -1583,32 +1531,102 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         }
         messagesWithTime.push(item);
     }
+    // FlatList sẽ hiển thị mảng đảo ngược (mới → cũ)
+    const dataForFlatList = [...messagesWithTime].reverse();
 
     // Thêm hàm xử lý chuyển tiếp tin nhắn
-    const handleForwardMessage = async (messageId: string) => {
+    const handleForwardMessage = async (userId: string) => {
+        if (!selectedMessage?._id) return; // Thêm check null/undefined
+
         try {
-            // Lưu messageId vào AsyncStorage để chuyển tiếp
-            await AsyncStorage.setItem('messageToForward', messageId);
-            
-            // Chuyển người dùng đến màn hình danh sách chat để chọn người nhận
-            navigation.navigate('Main', { 
-                screen: ROUTES.MAIN.CHAT, 
-                params: { forwardMode: true } 
+            const response = await fetch(`${API_BASE_URL}/api/messages/forward`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({
+                    messageId: selectedMessage._id,
+                    toUserId: userId,
+                    fromUserId: currentUser?._id
+                })
             });
-            
+
+            if (!response.ok) {
+                throw new Error('Không thể chuyển tiếp tin nhắn');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Lỗi khi chuyển tiếp tin nhắn:', error);
+            throw error;
+        }
+    };
+
+    const handleForwardToUser = async (userId: string) => {
+        try {
+            if (!selectedMessage || !currentUserId) return;
+
+            const response = await fetch(`${API_BASE_URL}/api/messages/forward`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({
+                    messageId: selectedMessage._id,
+                    toUserId: userId,
+                    fromUserId: currentUserId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Không thể chuyển tiếp tin nhắn');
+            }
+
             setNotification({
                 visible: true,
                 type: 'success',
-                message: 'Chọn người nhận để chuyển tiếp tin nhắn'
+                message: 'Đã chuyển tiếp tin nhắn thành công'
             });
+            setShowForwardSheet(false);
+            setSelectedMessage(null);
         } catch (error) {
-            console.error('Lỗi khi chuẩn bị chuyển tiếp tin nhắn:', error);
+            console.error('Lỗi khi chuyển tiếp tin nhắn:', error);
             setNotification({
                 visible: true,
                 type: 'error',
                 message: 'Không thể chuyển tiếp tin nhắn'
             });
         }
+    };
+
+    // Thêm hàm chuyển đổi ảnh sang WebP
+    const convertToWebP = async (uri: string): Promise<string> => {
+        try {
+            const result = await ImageManipulator.manipulateAsync(
+                uri,
+                [], // Không thay đổi kích thước hoặc xoay ảnh
+                {
+                    compress: 0.7, // Nén ảnh với chất lượng 70%
+                    format: ImageManipulator.SaveFormat.WEBP,
+                }
+            );
+            return result.uri;
+        } catch (error) {
+            console.error('Lỗi khi chuyển đổi ảnh sang WebP:', error);
+            return uri; // Trả về URI gốc nếu có lỗi
+        }
+    };
+
+    // Hàm xử lý khi nhấn vào ảnh
+    const handleImagePress = (images: string[], index: number) => {
+        const processedImages = images.map(url => ({
+            uri: url.startsWith('http') ? url : `${API_BASE_URL}${url}`
+        }));
+        setViewerImages(processedImages);
+        setViewerInitialIndex(index);
+        setViewerVisible(true);
     };
 
     return (
@@ -1630,7 +1648,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                             </TouchableOpacity>
                             <View style={{ position: 'relative', marginRight: 12 }}>
                                 <Image
-                                    source={{ uri: getAvatar(user) }}
+                                    source={{ uri: getAvatar(chatPartner) }}
                                     style={{ width: 48, height: 48, borderRadius: 24 }}
                                 />
                                 <View
@@ -1641,16 +1659,16 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                         width: 14,
                                         height: 14,
                                         borderRadius: 9999,
-                                        backgroundColor: isUserOnline(user._id) ? 'green' : '#bbb',
+                                        backgroundColor: isUserOnline(chatPartner._id) ? 'green' : '#bbb',
                                         borderWidth: 2,
                                         borderColor: 'white',
                                     }}
                                 />
                             </View>
                             <View style={{ justifyContent: 'center' }}>
-                                <Text className="font-bold text-lg" style={{ marginBottom: 0 }}>{user.fullname}</Text>
+                                <Text className="font-bold text-lg" style={{ marginBottom: 0 }}>{chatPartner.fullname}</Text>
                                 <Text style={{ fontSize: 12, color: '#444', fontFamily: 'Inter', fontWeight: 'medium' }}>
-                                    {isUserOnline(user._id) ? 'Đang hoạt động' : getFormattedLastSeen(user._id)}
+                                    {isUserOnline(chatPartner._id) ? 'Đang hoạt động' : getFormattedLastSeen(chatPartner._id)}
                                 </Text>
                             </View>
                         </View>
@@ -1672,7 +1690,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                             ) : (
                                 <FlatList
                                     ref={flatListRef}
-                                    data={[...messagesWithTime].reverse()}
+                                        data={dataForFlatList}
                                     inverted
                                     keyExtractor={(item, index) => item._id || `message-${index}`}
                                     ListHeaderComponent={() => (
@@ -1682,7 +1700,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                             <View className="flex-row justify-start items-end mx-2 mt-4 mb-1">
                                                 <View className="relative mr-1.5">
                                                     <Image
-                                                        source={{ uri: getAvatar(user) }}
+                                                        source={{ uri: getAvatar(chatPartner) }}
                                                         className="w-8 h-8 rounded-full"
                                                     />
                                                 </View>
@@ -1693,7 +1711,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                         ) : null
                                     )}
                                     style={{ flex: 1 }}
-                                    renderItem={({ item, index }) => {
+                                        renderItem={({ item, index }: { item: Message | any; index: number }) => {
                                         if (item.type === 'time') {
                                             // Render block thời gian
                                             const d = new Date(item.time);
@@ -1711,20 +1729,14 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                             );
                                         }
                                         if (!item._id) return null;
+
+                                        const { isFirst, isLast } = getMessageGroupPosition(
+                                            dataForFlatList,
+                                            index,
+                                            isDifferentDay
+                                        );
+
                                         const isMe = currentUserId && item.sender._id === currentUserId;
-
-                                        // Lấy tin nhắn trước và sau (trong data gốc, không bị đảo ngược)
-                                        const prevMsg = messagesWithTime[index + 1] || {};
-                                        const nextMsg = messagesWithTime[index - 1] || {};
-
-                                        // Kiểm tra người gửi của tin nhắn trước và sau
-                                        const isPrevSameSender = prevMsg?.sender?._id === item.sender._id;
-                                        const isNextSameSender = nextMsg?.sender?._id === item.sender._id;
-
-                                        // Xác định tin nhắn đầu và cuối trong chuỗi tin nhắn cùng người gửi
-                                        const isFirst = !isPrevSameSender || prevMsg.type === 'time';
-                                        const isLast = !isNextSameSender || nextMsg.type === 'time';
-
                                         const showAvatar = !isMe && isFirst;
                                         return (
                                             <MessageBubble
@@ -1737,11 +1749,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                                 showAvatar={showAvatar}
                                                 onLongPressIn={handleMessageLongPressIn}
                                                 onLongPressOut={handleMessageLongPressOut}
-                                                onImagePress={(images, index) => {
-                                                    setViewerImages(images.map(uri => ({ uri })));
-                                                    setViewerInitialIndex(index);
-                                                    setViewerVisible(true);
-                                                }}
+                                                onImagePress={handleImagePress}
                                                 messageScaleAnim={messageScaleAnim}
                                                 formatMessageTime={formatMessageTime}
                                                 getAvatar={getAvatar}
@@ -1872,8 +1880,9 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
                                         const result = await ImagePicker.launchCameraAsync({
                                             mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                                            quality: 1,
-                                            allowsEditing: true,
+                                            quality: 0.7, // Giảm chất lượng xuống 70%
+                                            allowsEditing: false, // Bỏ tính năng crop
+                                            exif: true, // Giữ thông tin EXIF
                                         });
                                         if (!result.canceled && result.assets && result.assets.length > 0) {
                                             setImagesToSend(prev => [...prev, ...result.assets]);
@@ -1936,8 +1945,9 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                                     const result = await ImagePicker.launchImageLibraryAsync({
                                                         mediaTypes: ImagePicker.MediaTypeOptions.Images,
                                                         allowsMultipleSelection: true,
-                                                        quality: 1,
-                                                        allowsEditing: false,
+                                                        quality: 0.7, // Giảm chất lượng xuống 70%
+                                                        allowsEditing: false, // Bỏ tính năng crop
+                                                        exif: true, // Giữ thông tin EXIF
                                                     });
                                                     if (!result.canceled && result.assets && result.assets.length > 0) {
                                                         setImagesToSend(prev => [...prev, ...result.assets]);
@@ -2017,6 +2027,18 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                         onSuccess={refreshMessages}
                     />
 
+                    {forwardMessage && currentUserId && currentUser && (
+                        <ForwardMessageSheet
+                            visible={showForwardSheet}
+                            onClose={() => {
+                                setShowForwardSheet(false);
+                                setForwardMessage(null);
+                            }}
+                            message={forwardMessage}
+                            currentUser={currentUser} // Sửa: Truyền đúng currentUser
+                            onForward={forwardSingleMessage}
+                        />
+                    )}
 
                 </SafeAreaView >
             </ImageBackground >

@@ -97,6 +97,28 @@ const getStatusColor = (status: string) => {
     }
 };
 
+// Mapping ticket status to text colors for non-editable pill
+const getStatusTextColor = (status: string) => {
+    switch (status.toLowerCase()) {
+        case 'assigned':
+            return '#002855';
+        case 'processing':
+        case 'in progress':
+            return '#F59E0B';
+        case 'waiting for customer':
+            return '#F97316';
+        case 'done':
+        case 'completed':
+            return '#4CAF50';
+        case 'closed':
+            return '#9E9E9E';
+        case 'cancelled':
+            return '#F05023';
+        default:
+            return '#222222';
+    }
+};
+
 const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId }) => {
     const [loading, setLoading] = useState(true);
     const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -233,24 +255,33 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
         );
     }
 
+    // Determine text color for status pill
+    const statusTextColor = getStatusTextColor(ticket?.status || '');
+
     // Hiển thị UI dựa vào trạng thái ticket
     return (
         <ScrollView className="flex-1 p-4">
-            {/* Header - Trạng thái ticket */}
-            <View className="flex-row items-center my-4">
-                <Text className="text-lg font-bold mr-2">Trạng thái Ticket:</Text>
-                <View className={`px-3 py-1 rounded-full ${getStatusColor(ticket.status)}`}>
-                    <Text className="text-white font-semibold text-base">{getStatusLabel(ticket.status)}</Text>
+            {/* Header - Trạng thái */}
+            <View className="bg-gray-50 p-4 rounded-2xl my-4">
+                <Text className="text-lg font-semibold text-gray-700 mb-2">Trạng thái</Text>
+                <View className="bg-white py-2 px-4 rounded-full">
+                    <Text style={{
+                        fontFamily: 'Mulish-Bold',
+                        fontSize: 16,
+                        color: statusTextColor,
+                    }}>
+                        {getStatusLabel(ticket.status)}
+                    </Text>
                 </View>
             </View>
 
             {/* Nội dung dựa vào trạng thái */}
             {ticket.status.toLowerCase() === 'assigned' && (
                 <View className="bg-gray-50 p-4 rounded-xl">
-                    <Text className="text-base font-bold mb-3 text-gray-700">Thông tin kỹ thuật viên</Text>
+                    <Text className="text-base font-bold mb-3 text-gray-700">Kỹ thuật viên</Text>
                     {ticket.assignedTo ? (
                         <View className="flex-row">
-                            <View className="w-20 h-20 rounded-xl mr-3 overflow-hidden bg-gray-200">
+                            <View className="w-20 h-20 rounded-full mr-5 overflow-hidden bg-gray-200">
                                 {ticket.assignedTo.avatarUrl ? (
                                     <Image 
                                         source={{ uri: `${API_BASE_URL}/uploads/Avatar/${ticket.assignedTo.avatarUrl}` }}
@@ -271,23 +302,26 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
                                     {ticket.assignedTo.jobTitle === 'technical' ? 'Kỹ thuật viên' : ticket.assignedTo.jobTitle || ''}
                                 </Text>
                                 
-                                {/* Rating stars */}
-                                <View className="flex-row mt-1">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                        <FontAwesome 
-                                            key={star} 
-                                            name="star" 
-                                            size={16} 
-                                            color="#FFD700" 
-                                            style={{ marginRight: 2 }}
-                                        />
-                                    ))}
+                                {/* Numeric rating */}
+                                <View className="flex-row items-center mt-1">
+                                    <Text style={{ fontSize: 16, color: '#374151', marginRight: 4 }}>
+                                        {ticket.assignedTo.rating?.toFixed(1) || '0.0'}
+                                    </Text>
+                                    <FontAwesome name="star" size={16} color="#FFD700" />
                                 </View>
                             </View>
                         </View>
                     ) : (
                         <Text className="text-gray-500">Chưa có kỹ thuật viên được phân công</Text>
                     )}
+                </View>
+            )}
+
+            {ticket.status.toLowerCase() === 'assigned' && (
+                /* Công việc cần làm */
+                <View className="bg-gray-50 p-4 rounded-xl mt-4">
+                    <Text className="text-lg font-bold mb-2 text-gray-700">Công việc cần làm</Text>
+                    <Text className="text-gray-400">Các bước thực hiện sẽ được hiển thị tại đây</Text>
                 </View>
             )}
 

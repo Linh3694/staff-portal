@@ -48,7 +48,7 @@ const CustomEmoji = mongoose.model('CustomEmoji', new mongoose.Schema({
     }
 }));
 
-const emojiFolder = path.join(__dirname, '../uploads/Emoji');
+const emojiFolder = path.join(__dirname, '../assests/Emoji');
 
 // Ánh xạ tên file với tên và category
 const emojiMapping = {
@@ -86,7 +86,7 @@ async function importEmojis() {
             };
 
             // Đường dẫn URL của file
-            const url = `/uploads/Emoji/${file}`;
+            const url = `/assests/Emoji/${file}`;
 
             // Kiểm tra xem emoji đã tồn tại chưa
             const existingEmoji = await CustomEmoji.findOne({ code: emojiInfo.code });
