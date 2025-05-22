@@ -60,7 +60,6 @@ const ForwardMessageSheet = ({ message, currentUser, onClose, onForward, visible
             });
             console.log(deptResponse)
             const deptData = await deptResponse.json();
-
             setDepartmentUsers(deptData.users?.filter((user: User) => user._id !== currentUser._id) || []);
             setLoading(false);
         } catch (error) {

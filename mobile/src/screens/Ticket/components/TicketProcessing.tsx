@@ -391,25 +391,35 @@ const TicketProcessing: React.FC<TicketProcessingProps> = ({
                             borderWidth: 0,
                             backgroundColor: '#f9f9f9',
                             borderRadius: 25,
-                            paddingHorizontal: 8,
+                            paddingHorizontal: 0,
+                        }}
+                        listItemContainerStyle={{
+                            backgroundColor: '#fff',
+                            paddingVertical: 5,
+                        }}
+                        listItemLabelStyle={{
+                            fontFamily: 'Mulish-SemiBold',
+                            fontSize: 16,
+                            color: '#222222',
                         }}
                         textStyle={{
                             fontSize: 16,
                             color: currentStatusColor,
-                            fontFamily: 'Mulish-Bold',
-                            fontWeight: '700',
+                            fontFamily: 'Mulish-SemiBold',
+                            fontWeight: '600',
                         }}
                         labelStyle={{
-                            fontFamily: 'Mulish-Bold',
+                            fontFamily: 'Mulish-SemiBold',
                             fontWeight: '700',
                         }}
                         placeholderStyle={{
-                            fontFamily: 'Muslish-Bold',
+                            fontFamily: 'Mulish-SemiBold',
                             fontSize: 16,
-                            color: '#757575',
+                            color: '#9E9E9E',
+                            fontWeight: '600',
                         }}
                         selectedItemLabelStyle={{
-                            fontFamily: 'Muslish-Bold',
+                            fontFamily: 'Muslish-SemiBold',
                             fontSize: 16,
                             color: '#002855',
                             fontWeight: '600',

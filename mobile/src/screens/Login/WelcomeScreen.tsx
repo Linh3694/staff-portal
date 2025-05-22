@@ -14,6 +14,7 @@ import { useMicrosoftLogin } from './useMicrosoftLogin';
 import MicrosoftIcon from '../../assets/microsoft.svg';
 import { ROUTES } from '../../constants/routes';
 import { API_BASE_URL } from '../../config/constants';
+import ApplogoFull from '../../assets/app-logo-full.svg';
 
 type RootStackParamList = {
     Welcome: undefined;
@@ -56,17 +57,15 @@ const WelcomeScreen = () => {
 
     return (
         <View className="flex-1 bg-white">
-            <View className="flex-1 justify-center mb-[25%] items-center">
-                <View className="w-full items-center space-y-5">
-                    <View className="mb-5">
-                        <Text className="text-xl text-primary text-center mb-1" style={{ fontFamily: 'Mulish-ExtraBold' }}>
+            <View className="flex-1 w-full items-center justify-center mt-[5%]">
+                <View>
+                    <Text className="text-xl text-primary text-center mb-3" style={{ fontFamily: 'Mulish-ExtraBold' }}>
                             Chào mừng Thầy Cô đến với
                         </Text>
-                        <Image
-                            source={require('../../assets/splash.png')}
-                            style={{ width: 220, height: 100, alignSelf: 'center', marginBottom: 10 }}
-                            resizeMode="contain"
-                        />
+                    <ApplogoFull width={390} height={40} />
+                    <Text className="text-xl text-primary text-center mt-6" style={{ fontFamily: 'Mulish-SemiBold' }}>
+                        Không cần mò mẫm, làm việc sáng suốt
+                    </Text>
                     </View>
                     {/* Banner động */}
                     <View
@@ -78,6 +77,7 @@ const WelcomeScreen = () => {
                             justifyContent: 'center',
                             alignSelf: 'center',
                         }}
+                    className="my-[5%]"
                     >
                         <Animated.View
                             style={{
@@ -104,22 +104,21 @@ const WelcomeScreen = () => {
                             />
                         </Animated.View>
                     </View>
+                <View className=" w-full items-center">
+                    <TouchableOpacity
+                        onPress={() => promptAsync()}
+                        className="w-4/5 flex-row items-center justify-center rounded-full bg-secondary/10 py-4"
+                        disabled={!request}
+                    >
+                        <View style={{ marginRight: 8 }}>
+                            <MicrosoftIcon width={24} height={24} />
+                        </View>
+                        <Text className="text-secondary font-bold">Đăng nhập với Microsoft</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate(ROUTES.SCREENS.LOGIN)}>
+                        <Text className="mt-4 text-text-secondary text-base font-semibold">Đăng nhập bằng tài khoản</Text>
+                    </TouchableOpacity>
                 </View>
-            </View>
-            <View className="absolute bottom-12 w-full items-center">
-                <TouchableOpacity
-                    onPress={() => promptAsync()}
-                    className="w-4/5 flex-row items-center justify-center rounded-full bg-secondary/10 py-4"
-                    disabled={!request}
-                >
-                    <View style={{ marginRight: 8 }}>
-                        <MicrosoftIcon width={24} height={24} />
-                    </View>
-                    <Text className="text-secondary font-bold">Đăng nhập với Microsoft</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate(ROUTES.AUTH.LOGIN)}>
-                    <Text className="mt-4 text-text-secondary text-base font-semibold">Đăng nhập bằng tài khoản</Text>
-                </TouchableOpacity>
             </View>
         </View>
     );

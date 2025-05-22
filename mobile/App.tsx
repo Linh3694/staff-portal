@@ -1,4 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Animated, Dimensions, View, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -13,6 +15,10 @@ import { AuthProvider } from './src/context/AuthContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import CustomToastConfig from './src/components/CustomToastConfig';
+import * as SplashScreen from 'expo-splash-screen';
+import SvgSplash from './src/assets/splash.svg';
+import { Image } from 'react-native';
+
 
 import './global.css';
 
@@ -28,6 +34,13 @@ Notifications.setNotificationHandler({
 });
 
 export default function App() {
+  // Prevent splash auto-hide immediately
+  useEffect(() => {
+    (async () => {
+      await SplashScreen.preventAutoHideAsync();
+    })();
+  }, []);
+
   const [fontsLoaded] = useFonts({
     'Mulish-Regular': require('./src/assets/fonts/Mulish-Regular.ttf'),
     'Mulish-Italic': require('./src/assets/fonts/Mulish-Italic.ttf'),
@@ -52,6 +65,23 @@ export default function App() {
   const responseListener = useRef<Notifications.Subscription | null>(null);
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [initialRoute, setInitialRoute] = useState({ name: 'Home', params: {} });
+
+  // Sweep animation setup
+  const { width } = Dimensions.get('window');
+  const sweep = useRef(new Animated.Value(-width)).current;
+
+  // Splash sweep and hide handled on layout
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      Animated.timing(sweep, {
+        toValue: width,
+        duration: 800,
+        useNativeDriver: true,
+      }).start(async () => {
+        await SplashScreen.hideAsync();
+      });
+    }
+  }, [fontsLoaded, sweep, width]);
 
   // Xử lý điều hướng khi nhận được thông báo
   const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
@@ -145,23 +175,55 @@ export default function App() {
     getInitialNotification();
   }, []);
 
+  // (Sweep/hide effect handled by onLayoutRootView)
+
   if (!fontsLoaded) {
-    return null;
+    return (
+      <View style={styles.splashContainer}>
+        <SvgSplash width={200} height={200} />
+      </View>
+    );
   }
 
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <OnlineStatusProvider>
-          <NavigationContainer
-            ref={navigationRef}
-          >
-            <AppNavigator />
-          </NavigationContainer>
-          <StatusBar style="auto" />
-          <Toast config={CustomToastConfig} topOffset={60} />
-        </OnlineStatusProvider>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <OnlineStatusProvider>
+            <NavigationContainer
+              ref={navigationRef}
+            >
+              <AppNavigator />
+            </NavigationContainer>
+            <StatusBar style="auto" />
+            <Toast config={CustomToastConfig} topOffset={60} />
+          </OnlineStatusProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+      {/* Sweep overlay */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          { transform: [{ translateX: sweep }] },
+        ]}
+      >
+        <LinearGradient
+          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  splashContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+});

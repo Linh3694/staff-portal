@@ -7,6 +7,7 @@ import Modal from 'react-native-modal';
 
 interface TicketInformationProps {
     ticketId: string;
+    onRefresh?: () => void;
 }
 
 interface Attachment {
@@ -33,7 +34,7 @@ interface Ticket {
     attachments: Attachment[];
 }
 
-const TicketInformation: React.FC<TicketInformationProps> = ({ ticketId }) => {
+const TicketInformation: React.FC<TicketInformationProps> = ({ ticketId, onRefresh }) => {
     const [ticket, setTicket] = useState<Ticket | null>(null);
     const [loading, setLoading] = useState(true);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -50,6 +51,7 @@ const TicketInformation: React.FC<TicketInformationProps> = ({ ticketId }) => {
             });
             if (response.data.success) {
                 setTicket(response.data.ticket);
+                onRefresh?.();
             }
         } catch (error) {
             console.error('Lỗi khi lấy thông tin ticket:', error);

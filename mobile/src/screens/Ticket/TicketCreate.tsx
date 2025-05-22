@@ -21,6 +21,7 @@ import axios from 'axios';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { API_BASE_URL, TICKET_PRIORITIES, MAX_IMAGES_UPLOAD } from '../../config/constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Định nghĩa kiểu dữ liệu cho hình ảnh
 interface ImageItem {
@@ -121,6 +122,8 @@ const TicketCreate = () => {
         notes: '',
         priority: 'Medium',
     });
+
+    const insets = useSafeAreaInsets();
 
     useLayoutEffect(() => {
         navigation.setOptions({ headerShown: false });
@@ -719,7 +722,10 @@ const TicketCreate = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView
+            className="flex-1 bg-white"
+            style={{ paddingTop: Platform.OS === 'android' ? insets.top : 0 }}
+        >
             {/* Loading overlay */}
             {loading && (
                 <View className="absolute inset-0 bg-white bg-opacity-80 items-center justify-center z-50">

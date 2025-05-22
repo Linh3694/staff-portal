@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, Animated, Pressable, Linking } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Animated, Pressable, Linking, StyleSheet } from 'react-native';
 import { Message, Chat } from '../../../types/message';
 import { CustomEmoji } from '../../../types/chat';
-import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Entypo } from '@expo/vector-icons';
 import { API_BASE_URL } from '../../../config/constants';
 import ImageGrid from './ImageGrid';
 import MessageStatus from './MessageStatus';
@@ -54,6 +55,20 @@ const ForwardedLabel = ({ message, isMe }: { message: Message, isMe: boolean }) 
     );
 };
 
+const styles = StyleSheet.create({
+    container: {
+        width: '100%',
+    },
+    bubble: {
+        backgroundColor: 'transparent',
+        alignSelf: 'flex-start' as const,
+        maxWidth: '100%',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+    }
+});
+
 const MessageBubble = ({
     message,
     currentUserId,
@@ -69,47 +84,138 @@ const MessageBubble = ({
     getAvatar,
     isLatestMessage,
     chat,
-    showTime,
+    showTime = false,
     prevMsg
 }: MessageBubbleProps) => {
     const isMe = currentUserId && message.sender._id === currentUserId;
-    const isImageMsg = message.type === 'image';
-    const isMultipleImagesMsg = message.type === 'multiple-images';
-    const isStickerMsg = message.type === 'text' && message.isEmoji === true;
-    const isFileMsg = message.type === 'file';
 
-    // ─── Explicit text categories ────────────────────────────────
-    const isTextNormal = message.type === 'text' && !message.isEmoji && !message.replyTo && !message.isForwarded;
-    const isTextReply = message.type === 'text' && !!message.replyTo;
-    const isTextForward = message.type === 'text' && message.isForwarded === true;
-
-    // Tính border radius theo yêu cầu
-    let borderRadiusStyle: any = {};
-
-    if (isTextNormal) {
-        // Text thường ⇒ bo theo isFirst / isLast
-        borderRadiusStyle = isMe
-            ? {
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: !isFirst && !isLast ? 4 : (isFirst ? 4 : 20),
-                borderBottomRightRadius: !isFirst && !isLast ? 4 : (isLast ? 4 : 20),
-                borderBottomLeftRadius: 20,
-            }
-            : {
-                borderTopLeftRadius: !isFirst && !isLast ? 4 : (isFirst ? 4 : 20),
-                borderTopRightRadius: 20,
-                borderBottomRightRadius: 20,
-                borderBottomLeftRadius: !isFirst && !isLast ? 4 : (isLast ? 4 : 20),
-            };
-    } else {
-        // Reply, forward, emoji, image, file … ⇒ bo đều 4 góc
-        borderRadiusStyle = {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            borderBottomRightRadius: 20,
-            borderBottomLeftRadius: 20,
-        };
+    // Kiểm tra tin nhắn có hợp lệ không
+    if (!message || !message.sender) {
+        console.error('Invalid message:', message);
+        return null;
     }
+
+    // Tính toán style cho bubble
+    const getBubbleStyle = () => {
+        const isMediaContent = message.type === 'image' || message.type === 'multiple-images' || (message.type === 'text' && message.isEmoji);
+
+        const isAlone = isFirst && isLast;
+        return {
+            ...styles.bubble,
+            backgroundColor: isMediaContent ? 'transparent' : (isMe ? '#009483' : '#F5F5ED'),
+            paddingHorizontal: isMediaContent ? 0 : 14,
+            paddingVertical: isMediaContent ? 0 : 8,
+            borderTopLeftRadius: isMe ? 20 : (isAlone ? 20 : (isFirst ? 4 : 20)),
+            borderTopRightRadius: isMe ? (isAlone ? 20 : (isFirst ? 4 : 20)) : 20,
+            borderBottomRightRadius: isMe ? (isAlone ? 20 : (isLast ? 4 : 20)) : 20,
+            borderBottomLeftRadius: isMe ? 20 : (isAlone ? 20 : (isLast ? 4 : 20)),
+        };
+    };
+
+    // Xử lý hiển thị tin nhắn dựa trên loại
+    const renderMessageContent = () => {
+        if (!message.content && !message.fileUrl && !message.fileUrls) {
+            console.error('Message has no content:', message);
+            return null;
+        }
+
+        switch (message.type) {
+            case 'image':
+                return (
+                    <TouchableOpacity
+                        onPress={() => message.fileUrl && onImagePress([message.fileUrl], 0)}
+                        style={{ marginTop: 4 }}
+                    >
+                        <Image
+                            source={{
+                                uri: message.fileUrl?.startsWith('http')
+                                    ? message.fileUrl
+                                    : `${API_BASE_URL}${message.fileUrl}`
+                            }}
+                            style={{
+                                width: 200,
+                                height: 200,
+                                borderRadius: 12
+                            }}
+                            resizeMode="cover"
+                        />
+                    </TouchableOpacity>
+                );
+            case 'multiple-images':
+                if (!message.fileUrls || message.fileUrls.length === 0) {
+                    return null;
+                }
+                return (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                        {message.fileUrls.map((url, index) => (
+                            <TouchableOpacity
+                                key={index}
+                                onPress={() => onImagePress(message.fileUrls || [], index)}
+                            >
+                                <Image
+                                    source={{
+                                        uri: url.startsWith('http') ? url : `${API_BASE_URL}${url}`
+                                    }}
+                                    style={{
+                                        width: 98,
+                                        height: 98,
+                                        borderRadius: 8
+                                    }}
+                                    resizeMode="cover"
+                                />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                );
+            default:
+                return (
+                    <Text
+                        style={{
+                            fontSize: message.isEmoji ? 40 : 15,
+                            color: isMe ? '#fff' : '#000',
+                            fontFamily: 'Mulish-Regular'
+                        }}
+                    >
+                        {message.content}
+                    </Text>
+                );
+        }
+    };
+
+    // Xử lý trạng thái tin nhắn
+    const renderMessageStatus = () => {
+        if (!isMe || !isLatestMessage) return null;
+
+        if (message.readBy && message.readBy.length > 0) {
+            return (
+                <>
+                    <Text style={{
+                        color: '#757575',
+                        fontSize: 12,
+                        fontFamily: 'Mulish-Regular',
+                        marginRight: 4
+                    }}>
+                        Đã xem
+                    </Text>
+                    <MaterialCommunityIcons name="check-all" size={16} color="#009483" />
+                </>
+            );
+        }
+
+        return (
+            <>
+                <Text style={{
+                    color: '#757575',
+                    fontSize: 12,
+                    fontFamily: 'Mulish-Regular',
+                    marginRight: 4
+                }}>
+                    Đã gửi
+                </Text>
+                <MaterialCommunityIcons name="check" size={16} color="#757575" />
+            </>
+        );
+    };
 
     return (
         <View>
@@ -241,121 +347,17 @@ const MessageBubble = ({
                                 {/* gap */}
                                 <View style={{ width: 8 }} />
                                 {/* bubble */}
-                                <View style={{
-                                    backgroundColor: (isImageMsg || isMultipleImagesMsg || isStickerMsg)
-                                        ? 'transparent'
-                                        : (isMe ? '#009483' : '#F5F5ED'),
-                                    position: 'relative',
-                                    ...borderRadiusStyle,
-                                    alignSelf: 'flex-start',
-                                    maxWidth: '100%',
-                                    paddingHorizontal: (isImageMsg || isMultipleImagesMsg || isStickerMsg) ? 0 : 14,
-                                    paddingVertical: (isImageMsg || isMultipleImagesMsg || isStickerMsg) ? 0 : 8
-                                }}>
+                                <View style={getBubbleStyle()}>
                                     <View style={{ position: 'relative' }}>
                                         {/* Nội dung chính */}
-                                        {message.type === 'file' && message.fileUrl && (
-                                            <TouchableOpacity onPress={() => message.fileUrl && Linking.openURL(message.fileUrl)}>
-                                                <Text style={{ color: '#0066CC', textDecorationLine: 'underline' }}>Tệp đính kèm</Text>
-                                            </TouchableOpacity>
-                                        )}
-                                        {isImageMsg && message.fileUrl && (
-                                            <TouchableOpacity
-                                                onPress={() => onImagePress([message.fileUrl || ''], 0)}
-                                                onLongPress={(e) => onLongPressIn(message, e)}
-                                                onPressOut={onLongPressOut}
-                                                delayLongPress={500}
-                                            >
-                                                <Image
-                                                    source={{
-                                                        uri: message.fileUrl.startsWith('http')
-                                                            ? message.fileUrl
-                                                            : `${API_BASE_URL}${message.fileUrl}`
-                                                    }}
-                                                    style={{ width: 200, height: 200, borderRadius: 12 }}
-                                                    resizeMode="cover"
-                                                />
-                                            </TouchableOpacity>
-                                        )}
-                                        {isMultipleImagesMsg && message.fileUrls && message.fileUrls.length > 0 && (
-                                            <ImageGrid
-                                                images={message.fileUrls.map((url: string) =>
-                                                    url.startsWith('http') ? url : `${API_BASE_URL}${url}`
-                                                )}
-                                                onPress={(index) => onImagePress(
-                                                    message.fileUrls?.map((url: string) =>
-                                                        url.startsWith('http') ? url : `${API_BASE_URL}${url}`
-                                                    ) || [],
-                                                    index
-                                                )}
-                                                onLongPress={(index, event) => onLongPressIn(message, event)}
-                                                onPressOut={onLongPressOut}
-                                            />
-                                        )}
-                                        {isStickerMsg && message.emojiUrl && (
-                                            <Image
-                                                source={{
-                                                    uri: message.emojiUrl.startsWith('http')
-                                                        ? message.emojiUrl
-                                                        : `${API_BASE_URL}${message.emojiUrl}`
-                                                }}
-                                                style={{ width: 120, height: 120, borderRadius: 12 }}
-                                                resizeMode="contain"
-                                            />
-                                        )}
-                                        {message.type === 'text' && !message.isEmoji && (
-                                            <Text style={{
-                                                color: isMe ? 'white' : '#757575',
-                                                fontSize: 16,
-                                                fontFamily: 'Mulish-Semibold'
-                                            }}>
-                                                {message.content}
-                                            </Text>
-                                        )}
-
-                                        {/* Thời gian cho tin nhắn */}
-                                        {/* {isFirst && (
-                                            isImageMsg || isMultipleImagesMsg || isStickerMsg ? (
-                                                <View style={{
-                                                    position: 'absolute',
-                                                    bottom: -20,
-                                                    right: 0,
-                                                    flexDirection: 'row',
-                                                    alignItems: 'center',
-                                                }}>
-                                                    <Text style={{
-                                                        color: '#757575',
-                                                        fontSize: 12,
-                                                        fontFamily: 'Mulish-Regular',
-                                                    }}>
-                                                        {formatMessageTime(message.createdAt)}
-                                                    </Text>
-                                                </View>
-                                            ) : (
-                                                    <View style={{
-                                                        position: 'absolute',
-                                                        bottom: -20,
-                                                        right: 0,
-                                                        flexDirection: 'row',
-                                                        alignItems: 'center',
-                                                    }}>
-                                                        <Text style={{
-                                                            color: '#757575',
-                                                            fontSize: 12,
-                                                            fontFamily: 'Mulish-Regular',
-                                                        }}>
-                                                            {formatMessageTime(message.createdAt)}
-                                                        </Text>
-                                                    </View>
-                                            )
-                                        )} */}
+                                        {renderMessageContent()}
 
                                         {/* Reactions */}
                                         {(message.reactions && message.reactions.length > 0) ? (
                                             <View style={{
                                                 position: 'absolute',
                                                 bottom: 20,
-                                                right: (isImageMsg || isMultipleImagesMsg) ? 12 : 0,
+                                                right: (message.type === 'image' || message.type === 'multiple-images') ? 12 : 0,
                                                 flexDirection: 'row',
                                                 backgroundColor: 'white',
                                                 borderRadius: 12,
@@ -394,121 +396,17 @@ const MessageBubble = ({
                             </View>
                         ) : (
                             // Original bubble (non-forwarded)
-                            <View style={{
-                                backgroundColor: (isImageMsg || isMultipleImagesMsg || isStickerMsg)
-                                    ? 'transparent'
-                                    : (isMe ? '#009483' : '#F5F5ED'),
-                                position: 'relative',
-                                ...borderRadiusStyle,
-                                alignSelf: 'flex-start',
-                                maxWidth: '100%',
-                                paddingHorizontal: (isImageMsg || isMultipleImagesMsg || isStickerMsg) ? 0 : 14,
-                                paddingVertical: (isImageMsg || isMultipleImagesMsg || isStickerMsg) ? 0 : 8
-                            }}>
+                                <View style={getBubbleStyle()}>
                                 <View style={{ position: 'relative' }}>
                                     {/* Nội dung chính */}
-                                    {message.type === 'file' && message.fileUrl && (
-                                        <TouchableOpacity onPress={() => message.fileUrl && Linking.openURL(message.fileUrl)}>
-                                            <Text style={{ color: '#0066CC', textDecorationLine: 'underline' }}>Tệp đính kèm</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                    {isImageMsg && message.fileUrl && (
-                                        <TouchableOpacity
-                                            onPress={() => onImagePress([message.fileUrl || ''], 0)}
-                                            onLongPress={(e) => onLongPressIn(message, e)}
-                                            onPressOut={onLongPressOut}
-                                            delayLongPress={500}
-                                        >
-                                            <Image
-                                                source={{
-                                                    uri: message.fileUrl.startsWith('http')
-                                                        ? message.fileUrl
-                                                        : `${API_BASE_URL}${message.fileUrl}`
-                                                }}
-                                                style={{ width: 200, height: 200, borderRadius: 12 }}
-                                                resizeMode="cover"
-                                            />
-                                        </TouchableOpacity>
-                                    )}
-                                    {isMultipleImagesMsg && message.fileUrls && message.fileUrls.length > 0 && (
-                                        <ImageGrid
-                                            images={message.fileUrls.map((url: string) =>
-                                                url.startsWith('http') ? url : `${API_BASE_URL}${url}`
-                                            )}
-                                            onPress={(index) => onImagePress(
-                                                message.fileUrls?.map((url: string) =>
-                                                    url.startsWith('http') ? url : `${API_BASE_URL}${url}`
-                                                ) || [],
-                                                index
-                                            )}
-                                            onLongPress={(index, event) => onLongPressIn(message, event)}
-                                            onPressOut={onLongPressOut}
-                                        />
-                                    )}
-                                    {isStickerMsg && message.emojiUrl && (
-                                        <Image
-                                            source={{
-                                                uri: message.emojiUrl.startsWith('http')
-                                                    ? message.emojiUrl
-                                                    : `${API_BASE_URL}${message.emojiUrl}`
-                                            }}
-                                            style={{ width: 120, height: 120, borderRadius: 12 }}
-                                            resizeMode="contain"
-                                        />
-                                    )}
-                                    {message.type === 'text' && !message.isEmoji && (
-                                        <Text style={{
-                                            color: isMe ? 'white' : '#757575',
-                                            fontSize: 16,
-                                            fontFamily: 'Mulish-Semibold'
-                                        }}>
-                                            {message.content}
-                                        </Text>
-                                    )}
-
-                                    {/* Thời gian cho tin nhắn */}
-                                    {/* {isFirst && (
-                                            isImageMsg || isMultipleImagesMsg || isStickerMsg ? (
-                                                <View style={{
-                                                    position: 'absolute',
-                                                    bottom: -20,
-                                                    right: 0,
-                                                    flexDirection: 'row',
-                                                    alignItems: 'center',
-                                                }}>
-                                                    <Text style={{
-                                                        color: '#757575',
-                                                        fontSize: 12,
-                                                        fontFamily: 'Mulish-Regular',
-                                                    }}>
-                                                        {formatMessageTime(message.createdAt)}
-                                                    </Text>
-                                                </View>
-                                            ) : (
-                                                <View style={{
-                                                    position: 'absolute',
-                                                    bottom: -20,
-                                                    right: 0,
-                                                    flexDirection: 'row',
-                                                    alignItems: 'center',
-                                                }}>
-                                                    <Text style={{
-                                                        color: '#757575',
-                                                        fontSize: 12,
-                                                        fontFamily: 'Mulish-Regular',
-                                                    }}>
-                                                        {formatMessageTime(message.createdAt)}
-                                                    </Text>
-                                                </View>
-                                            )
-                                        )} */}
+                                        {renderMessageContent()}
 
                                         {/* Reactions */}
                                         {(message.reactions && message.reactions.length > 0) ? (
                                             <View style={{
                                                 position: 'absolute',
                                                 bottom: -10,
-                                                right: (isImageMsg || isMultipleImagesMsg) ? 12 : 0,
+                                                right: (message.type === 'image' || message.type === 'multiple-images') ? 12 : 0,
                                                 flexDirection: 'row',
                                                 backgroundColor: 'white',
                                                 borderRadius: 12,
@@ -552,14 +450,10 @@ const MessageBubble = ({
                                 alignSelf: 'flex-end',
                                 marginTop: 4,
                                 marginRight: 4,
+                                flexDirection: 'row',
+                                alignItems: 'center'
                             }}>
-                                <Text style={{
-                                    color: '#757575',
-                                    fontSize: 12,
-                                    fontFamily: 'Mulish-Regular',
-                                }}>
-                                    Đã gửi
-                                </Text>
+                                {renderMessageStatus()}
                             </View>
                         )}
                     </View>
@@ -569,4 +463,4 @@ const MessageBubble = ({
     );
 };
 
-export default MessageBubble;
+export default React.memo(MessageBubble);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { View, Text, SafeAreaView, TextInput, TouchableOpacity, FlatList, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, SafeAreaView, TextInput, TouchableOpacity, FlatList, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -7,6 +7,7 @@ import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TicketScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ticket'>;
 
@@ -36,6 +37,7 @@ const TicketGuestScreen = () => {
     const [loading, setLoading] = useState(false);
     const [filterStatus, setFilterStatus] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         fetchUserTickets();
@@ -178,7 +180,10 @@ const TicketGuestScreen = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView
+            className="flex-1 bg-white"
+            style={{ paddingTop: Platform.OS === 'android' ? insets.top : 0 }}
+        >
             <View className="w-full flex-1 pb-16">
                 {/* Header với tiêu đề và nút back */}
                 <View className="w-full flex-row items-center px-4 py-4">

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, SafeAreaView, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, SafeAreaView, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import debounce from 'lodash.debounce';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,6 +10,7 @@ import { jwtDecode } from 'jwt-decode';
 import io from 'socket.io-client';
 import { useOnlineStatus } from '../../context/OnlineStatusContext';
 import { API_BASE_URL } from '../../config/constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface User {
     _id: string;
@@ -58,6 +59,7 @@ const ChatScreen = () => {
         parentTabNav?.setOptions({ tabBarStyle: { display: 'none' } });
     };
     const socketRef = useRef<any>(null);
+    const insets = useSafeAreaInsets();
 
     // Check if we're in forwarding mode based on route params
     useEffect(() => {
@@ -360,7 +362,10 @@ const ChatScreen = () => {
     );
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView
+            className="flex-1 bg-white"
+            style={{ paddingTop: Platform.OS === 'android' ? insets.top : 0 }}
+        >
             <View className="p-4 bg-white">
                 <Text className="text-2xl font-medium text-gray-900">Trao đổi</Text>
                 <View className="flex-row items-center mt-3 bg-white border border-gray-200 rounded-full px-4 py-2">

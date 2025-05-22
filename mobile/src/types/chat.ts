@@ -1,5 +1,6 @@
-import { User } from './user';
-import { User as AppNavigatorUser } from '../navigation/AppNavigator';
+import type { User } from '../navigation/AppNavigator';
+
+export type NotificationType = 'success' | 'error';
 
 export interface Message {
     _id: string;
@@ -8,20 +9,25 @@ export interface Message {
     chat: string;
     createdAt: string;
     updatedAt: string;
-    readBy: string[];
-    type: 'text' | 'image' | 'file' | 'multiple-images';
+    type: string;
     fileUrl?: string;
     fileUrls?: string[];
-    fileName?: string;
-    fileSize?: number;
-    isPinned?: boolean;
-    pinnedBy?: string;
-    reactions?: MessageReaction[];
-    replyTo?: Message;
     isEmoji?: boolean;
+    emojiId?: string;
+    emojiType?: string;
+    emojiName?: string;
     emojiUrl?: string;
+    readBy?: string[];
+    reactions?: {
+        userId: string;
+        emojiCode: string;
+        isCustom: boolean;
+    }[];
+    replyTo?: Message;
     isForwarded?: boolean;
     originalSender?: User;
+    isPinned?: boolean;
+    pinnedBy?: string;
 }
 
 export interface MessageReaction {
@@ -37,7 +43,7 @@ export interface Chat {
     lastMessage?: Message;
     createdAt: string;
     updatedAt: string;
-    unreadCount?: number;
+    category: string;
 }
 
 export interface ChatDetailParams {
@@ -52,6 +58,4 @@ export interface CustomEmoji {
     url: string;
     type: string;
     category: string;
-}
-
-export type NotificationType = 'success' | 'error'; 
+} 

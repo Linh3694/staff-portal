@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_URL } from '../../core/config';
 import { toast } from 'react-toastify';
+import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext(null);
 
@@ -10,13 +11,41 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      fetchUserProfile(token);
-    } else {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      // Kiểm tra token hết hạn
+      try {
+        const decoded = jwtDecode(token);
+        const currentTime = Date.now() / 1000;
+
+        if (decoded.exp && decoded.exp < currentTime) {
+          // Token đã hết hạn
+          await logout();
+          return;
+        }
+
+        // Token còn hạn, lấy thông tin user
+        await fetchUserProfile(token);
+      } catch (error) {
+        console.error('Lỗi decode token:', error);
+        await logout();
+      }
+    } catch (error) {
+      console.error('Lỗi kiểm tra trạng thái auth:', error);
+      await logout();
+    } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   const fetchUserProfile = async (token) => {
     try {
@@ -26,16 +55,12 @@ export const AuthProvider = ({ children }) => {
       if (response.data.success) {
         const userData = response.data.user;
         setUser(userData);
-        // Lưu role vào localStorage
         localStorage.setItem('role', userData.role);
       }
     } catch (error) {
       console.error('Lỗi khi lấy thông tin người dùng:', error);
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('role');
+      await logout();
       toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -84,7 +109,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    checkAuthStatus
   };
 
   return (

@@ -45,6 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 if (decoded.exp && decoded.exp < currentTime) {
                     // Token đã hết hạn
                     await logout();
+                    setLoading(false);
                     return false;
                 }
 
@@ -53,6 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 if (userStr) {
                     const userData = JSON.parse(userStr);
                     setUser(userData);
+                    setLoading(false);
                     return true;
                 } else {
                     // Nếu không có thông tin user, lấy từ API
@@ -65,28 +67,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             await AsyncStorage.setItem('userId', userData._id);
                             await AsyncStorage.setItem('userFullname', userData.fullname);
                             await AsyncStorage.setItem('userRole', userData.role || 'user');
+                            setLoading(false);
                             return true;
                         }
                     } catch (error) {
                         console.error('Lỗi khi lấy thông tin người dùng:', error);
                         await logout();
+                        setLoading(false);
                         return false;
                     }
                 }
             } catch (error) {
                 console.error('Token decode error:', error);
                 await logout();
+                setLoading(false);
                 return false;
             }
-        } finally {
+        } catch (error) {
+            console.error('Lỗi kiểm tra trạng thái auth:', error);
+            await logout();
             setLoading(false);
+            return false;
         }
 
+        setLoading(false);
         return false;
     };
 
     const login = async (token: string, userData: any) => {
         try {
+            setLoading(true);
             // Lưu token
             await AsyncStorage.setItem('authToken', token);
 
@@ -105,6 +115,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error) {
             console.error('Lỗi khi đăng nhập:', error);
             throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const logout = async () => {
+        try {
+            setLoading(true);
+            // Xóa các thông tin
+            await AsyncStorage.removeItem('authToken');
+            await AsyncStorage.removeItem('user');
+            await AsyncStorage.removeItem('userId');
+            await AsyncStorage.removeItem('userFullname');
+            await AsyncStorage.removeItem('userRole');
+            setUser(null);
+        } catch (error) {
+            console.error('Lỗi khi đăng xuất:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -118,35 +147,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const logout = async () => {
-        try {
-            // KHÔNG xóa thông tin đăng nhập sinh trắc học khi đăng xuất
-            // await clearBiometricCredentials();
-
-            // Xóa các thông tin khác
-            await AsyncStorage.removeItem('authToken');
-            await AsyncStorage.removeItem('user');
-            await AsyncStorage.removeItem('userId');
-            await AsyncStorage.removeItem('userFullname');
-            await AsyncStorage.removeItem('userRole');
-            setUser(null);
-        } catch (error) {
-            console.error('Lỗi khi đăng xuất:', error);
-        }
-    };
-
     return (
-        <AuthContext.Provider
-            value={{
-                isAuthenticated: !!user,
-                loading,
-                user,
-                login,
-                logout,
-                checkAuth,
-                clearBiometricCredentials,
-            }}
-        >
+        <AuthContext.Provider value={{
+            user,
+            loading,
+            isAuthenticated: !!user,
+            login,
+            logout,
+            checkAuth,
+            clearBiometricCredentials
+        }}>
             {children}
         </AuthContext.Provider>
     );

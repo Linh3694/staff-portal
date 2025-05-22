@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -11,6 +11,7 @@ import TicketInformation from './components/TicketInformation';
 import TicketChat from './components/TicketChat';
 import TicketHistory from './components/TicketHistory';
 import TicketProcessingGuest from './components/TicketProcessingGuest';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TicketDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TicketDetail'>;
 
@@ -37,6 +38,7 @@ const TicketGuestDetail = () => {
     const [activeTab, setActiveTab] = useState('information');
     const [ticket, setTicket] = useState<Ticket | null>(null);
     const [loading, setLoading] = useState(true);
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         fetchTicketData();
@@ -112,7 +114,10 @@ const TicketGuestDetail = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView
+            className="flex-1 bg-white"
+            style={{ paddingTop: Platform.OS === 'android' ? insets.top : 0 }}
+        >
             {/* Header */}
             {loading ? (
                 <View className="p-4">

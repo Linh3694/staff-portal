@@ -307,7 +307,7 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
                                     <Text style={{ fontSize: 16, color: '#374151', marginRight: 4 }}>
                                         {ticket.assignedTo.rating?.toFixed(1) || '0.0'}
                                     </Text>
-                                    <FontAwesome name="star" size={16} color="#FFD700" />
+                                    <AntDesign name="star" size={16} color="#FFD700" />
                                 </View>
                             </View>
                         </View>
@@ -326,9 +326,49 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
             )}
 
             {ticket.status.toLowerCase() === 'processing' && (
-                <View className="bg-gray-50 p-4 rounded-xl">
+                <View className=" rounded-xl">
+                    {/* Kỹ thuật viên */}
+                    <View className="bg-[#f8f8f8] p-4 rounded-xl mb-4">
+                        <Text className="text-base font-bold mb-3 text-gray-700">Kỹ thuật viên</Text>
+                        {ticket.assignedTo ? (
+                            <View className="flex-row">
+                                <View className="w-20 h-20 rounded-full mr-5 overflow-hidden bg-gray-200">
+                                    {ticket.assignedTo.avatarUrl ? (
+                                        <Image
+                                            source={{ uri: `${API_BASE_URL}/uploads/Avatar/${ticket.assignedTo.avatarUrl}` }}
+                                            className="w-full h-full"
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <View className="w-full h-full items-center justify-center bg-gray-300">
+                                            <Text className="text-gray-600 text-xl font-bold">
+                                                {ticket.assignedTo.fullname?.charAt(0)}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="font-bold text-base">{ticket.assignedTo.fullname}</Text>
+                                    <Text className="text-gray-500 text-sm">
+                                        {ticket.assignedTo.jobTitle === 'technical'
+                                            ? 'Kỹ thuật viên'
+                                            : ticket.assignedTo.jobTitle || ''}
+                                    </Text>
+                                    <View className="flex-row items-center mt-1">
+                                        <Text style={{ fontSize: 16, color: '#374151', marginRight: 4 }}>
+                                            {ticket.assignedTo.rating?.toFixed(1) || '0.0'}
+                                        </Text>
+                                        <FontAwesome name="star" size={16} color="#FFD700" />
+                                    </View>
+                                </View>
+                            </View>
+                        ) : (
+                            <Text className="text-gray-500">Chưa có kỹ thuật viên được phân công</Text>
+                        )}
+                    </View>
+                    {/* Header với nút + */}
                     {subTasks && subTasks.length > 0 ? (
-                        <>
+                        <View className="bg-[#f8f8f8] p-4 rounded-xl mb-4">
                             <Text className="text-base font-bold mb-3 text-gray-700">
                                 Ticket đang được xử lý. Vui lòng chờ kĩ thuật viên hoàn thành các hạng mục sau
                             </Text>
@@ -378,7 +418,7 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
                                     </View>
                                 );
                             })}
-                        </>
+                        </View>
                     ) : (
                         <Text className="text-base text-gray-700">
                             Ticket đang được xử lý, vui lòng chờ.
@@ -387,17 +427,16 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
                 </View>
             )}
 
+
             {ticket.status.toLowerCase() === 'done' && (
-                <View className="bg-gray-50 p-4 rounded-xl">
-                    <Text className="text-base font-bold mb-3 text-gray-700">
-                        Yêu cầu đã được xử lý xong. Vui lòng nhận kết quả và kiểm tra chất lượng phục vụ
-                    </Text>
-                    
-                    <Text className="text-gray-500 mb-3">
-                        Bạn có thể nhận kết quả hoặc yêu cầu kỹ thuật viên xử lý lại nếu chưa đạt yêu cầu.
-                    </Text>
-                    
-                    <View className="space-y-3">
+                <View className="rounded-2xl">
+                    <View className="bg-[#f8f8f8] p-4 rounded-xl mb-4">
+                        <Text className="text-base font-bold mb-3 text-gray-700">
+                            Phản hồi
+                        </Text>
+                        <Text className="text-base font-bold mb-3 text-gray-700">
+                            Yêu cầu đã được xử lý xong. Vui lòng nhận kết quả và kiểm tra chất lượng phục vụ
+                        </Text>
                         <TouchableOpacity 
                             onPress={() => setSelectedOption('accept')}
                             className={`flex-row items-center p-3 rounded-lg ${selectedOption === 'accept' ? '' : ''}`}
@@ -428,73 +467,68 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
                     </View>
                     
                     {selectedOption === 'accept' && (
-                        <View className="mt-5 items-center">
-                            {/* Đánh giá sao - Cập nhật để hoạt động */}
+                        <View>
+                            <View className="bg-[#f8f8f8] p-4 rounded-2xl mt-4">
+                                {/* Đánh giá */}
+                                <Text className="text-base font-semibold text-gray-700 mb-3">Đánh giá</Text>
+
+                                {/* Stars */}
                             <View className="flex-row justify-center mb-3">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <TouchableOpacity 
-                                        key={star}
-                                        onPress={() => setRating(star)}
-                                    >
-                                        <FontAwesome 
-                                            name={star <= rating ? "star" : "star-o"} 
-                                            size={30} 
+                                    {[1, 2, 3, 4, 5].map(i => (
+                                        <TouchableOpacity key={i} onPress={() => setRating(i)}>
+                                            <AntDesign
+                                                name={i <= rating ? 'star' : 'staro'}
+                                                size={30}
                                             color="#FFD700"
                                             style={{ marginHorizontal: 5 }}
                                         />
                                     </TouchableOpacity>
                                 ))}
                             </View>
-                            
-                            {/* Thêm phần nhận xét */}
-                            <TextInput
-                                placeholder="Nhận xét của bạn (không bắt buộc)"
-                                value={review}
-                                onChangeText={setReview}
-                                multiline
-                                className="w-full bg-gray-100 p-3 rounded-lg mb-3"
-                                style={{ height: 80 }}
-                            />
-                            
-                            {/* Thêm phần chọn huy hiệu */}
-                            <View className="w-full mb-3">
-                                <Text className="font-medium mb-2 text-center">Chọn huy hiệu (không bắt buộc)</Text>
-                                <View className="flex-row flex-wrap justify-center">
-                                    {["Nhiệt Huyết", "Chu Đáo", "Vui Vẻ", "Tận Tình", "Chuyên Nghiệp"].map(
-                                        (badge) => {
-                                            const isSelected = selectedBadges.includes(badge);
-                                            return (
-                                                <TouchableOpacity
-                                                    key={badge}
-                                                    onPress={() => {
-                                                        if (isSelected) {
-                                                            setSelectedBadges(selectedBadges.filter(b => b !== badge));
-                                                        } else {
-                                                            setSelectedBadges([...selectedBadges, badge]);
-                                                        }
-                                                    }}
-                                                    className={`m-1 px-3 py-1 rounded-full ${
-                                                        isSelected ? "bg-[#002855]" : "bg-gray-200"
+
+                                {/* Badges */}
+                                <View className="flex-row flex-wrap justify-center mb-3">
+                                    {['Nhiệt Huyết', 'Chu Đáo', 'Vui Vẻ', 'Tận Tình', 'Chuyên Nghiệp'].map(badge => {
+                                        const isSelected = selectedBadges.includes(badge);
+                                        return (
+                                            <TouchableOpacity
+                                                key={badge}
+                                                onPress={() => {
+                                                    if (isSelected) {
+                                                        setSelectedBadges(selectedBadges.filter(b => b !== badge));
+                                                    } else {
+                                                        setSelectedBadges([...selectedBadges, badge]);
+                                                    }
+                                                }}
+                                                className={`m-1 px-4 py-1 rounded-full ${isSelected ? 'bg-[#FFEBCC]' : 'bg-gray-200'
                                                     }`}
-                                                >
-                                                    <Text
-                                                        className={`text-sm ${
-                                                            isSelected ? "text-white" : "text-gray-700"
-                                                        }`}
-                                                    >
-                                                        {badge}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            );
-                                        }
-                                    )}
-                                </View>
+                                            >
+                                                <Text className={`text-sm ${isSelected ? 'text-[#FFAA00]' : 'text-gray-600'
+                                                    }`}>
+                                                    {badge}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
                             </View>
-                            
-                            <TouchableOpacity 
-                                className="mt-3 bg-[#FF5733] py-2 px-5 rounded-lg"
+
+                                {/* Comment */}
+                                <TextInput
+                                    placeholder="Nhận xét của bạn (không bắt buộc)"
+                                    value={review}
+                                    onChangeText={setReview}
+                                    multiline
+                                    className="w-full p-3 mb-3 bg-gray-100 rounded-lg border border-gray-300"
+                                    style={{ minHeight: 80, textAlignVertical: 'top' }}
+                                />
+
+                                {/* Confirm button */}
+
+                            </View>
+                            <TouchableOpacity
                                 onPress={handleSubmitFeedback}
                                 disabled={submitting}
+                                className="bg-[#FF5733] py-3 rounded-full items-center mt-5"
                             >
                                 <Text className="text-white font-bold">
                                     {submitting ? 'Đang xử lý...' : 'Xác nhận'}
@@ -504,9 +538,9 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
                     )}
                     
                     {selectedOption === 'reject' && (
-                        <View className="mt-4 items-center">
+                        <View className="mt-4">
                             <TouchableOpacity 
-                                className="bg-[#FF5733] py-2 px-5 rounded-lg"
+                                className="bg-[#FF5733] py-3 rounded-full items-center"
                                 onPress={handleReopenTicket}
                                 disabled={submitting}
                             >
@@ -533,10 +567,10 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
                     {/* Rating hiển thị */}
                     <View className="flex-row justify-center mb-3">
                         {[1, 2, 3, 4, 5].map((star) => (
-                            <FontAwesome 
+                            <AntDesign 
                                 key={star}
-                                name={star <= (ticket.feedback?.rating || 0) ? "star" : "star-o"}
-                                size={24}
+                                name={star <= (ticket.feedback?.rating || 0) ? "star" : "staro"}
+                                size={30}
                                 color="#FFD700"
                                 style={{ marginHorizontal: 3 }}
                             />
@@ -550,10 +584,12 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
                     )}
                     
                     {ticket.feedback?.badges && ticket.feedback.badges.length > 0 && (
-                        <View className="flex-row flex-wrap">
+                        <View className="flex-row flex-wrap justify-center">
                             {ticket.feedback.badges.map((badge, index) => (
-                                <View key={index} className="bg-blue-100 rounded-full px-3 py-1 m-1">
-                                    <Text className="text-blue-700 text-sm">{badge}</Text>
+                                <View key={index} className="bg-[#FFEBCC] rounded-full px-3 py-1 m-1">
+                                    <Text style={{ color: '#FFAA00', fontFamily: 'Mulish-Bold', fontSize: 12 }}>
+                                        {badge}
+                                    </Text>
                                 </View>
                             ))}
                         </View>

@@ -1,12 +1,10 @@
-import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import React, { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, Image, KeyboardAvoidingView, SafeAreaView, Linking, Alert, ActionSheetIOS, ScrollView, Dimensions, Modal, StatusBar, PanResponder, GestureResponderEvent, Keyboard, ImageBackground, Animated, Pressable, Clipboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LayoutAnimation, Platform, UIManager } from 'react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
 // Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -41,6 +39,12 @@ import { formatMessageTime, formatMessageDate, getAvatar, isDifferentDay } from 
 import MessageStatus from './Component/MessageStatus';
 import { getMessageGroupPosition } from '../../utils/messageGroupUtils';
 
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+
 const TypingIndicator = () => {
     const [dots, setDots] = useState('.');
 
@@ -72,11 +76,19 @@ const isSingleEmoji = (str: string): boolean => {
 
 const ChatDetailScreen = ({ route, navigation }: Props) => {
     const { user: chatPartner, chatId: routeChatId } = route.params;
-    const [chat, setChat] = useState<Chat | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
+    const [chat, setChat] = useState<Chat | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [isOnline, setIsOnline] = useState(false);
+    const [customEmojis, setCustomEmojis] = useState<CustomEmoji[]>([]);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
+    const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
+
     const [input, setInput] = useState('');
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
     const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
     const navigationProp = useNavigation<NativeStackNavigationProp<{ ChatDetail: ChatDetailParams }, 'ChatDetail'>>();
     const socketRef = useRef<any>(null);
@@ -97,12 +109,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     const [reactionModalPosition, setReactionModalPosition] = useState<{ x: number, y: number } | null>(null);
     const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const messageScaleAnim = useRef(new Animated.Value(1)).current;
-    const [customEmojis, setCustomEmojis] = useState<CustomEmoji[]>([]);
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [replyTo, setReplyTo] = useState<Message | null>(null);
-    const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
     // Thêm state cho tính năng ghim tin nhắn
-    const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
     const [notification, setNotification] = useState<{
         visible: boolean;
@@ -115,6 +123,91 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     });
     const [showForwardSheet, setShowForwardSheet] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+    // Hàm lưu tin nhắn vào AsyncStorage
+    const saveMessagesToStorage = async (chatId: string, messages: Message[]) => {
+        try {
+            const key = `chat_messages_${chatId}`;
+            await AsyncStorage.setItem(key, JSON.stringify(messages));
+            console.log('Saved messages to storage:', messages.length); // Thêm log
+        } catch (error) {
+            console.error('Error saving messages to storage:', error);
+        }
+    };
+
+    // Hàm lấy tin nhắn từ AsyncStorage
+    const loadMessagesFromStorage = async (chatId: string) => {
+        try {
+            const key = `chat_messages_${chatId}`;
+            const stored = await AsyncStorage.getItem(key);
+            console.log('Loading from storage, found data:', !!stored); // Thêm log
+            if (stored) {
+                const messages = JSON.parse(stored) as Message[];
+                console.log('Loaded messages from storage:', messages.length); // Thêm log
+                return messages;
+            }
+        } catch (error) {
+            console.error('Error loading messages from storage:', error);
+        }
+        return [];
+    };
+
+    // Hàm load tin nhắn từ server
+    const loadMessages = async (chatId: string, pageNum: number = 1, append: boolean = false) => {
+        try {
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) return;
+
+            setIsLoadingMore(true);
+            console.log('Loading messages for chat:', chatId);
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/chats/messages/${chatId}`,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('API Response:', data);
+
+                if (!Array.isArray(data)) {
+                    console.error('Invalid response format:', data);
+                    return;
+                }
+
+                // Sắp xếp tin nhắn theo thời gian
+                const sortedMessages = data.sort(
+                    (a: Message, b: Message) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                );
+
+                console.log('Sorted messages:', sortedMessages.length);
+
+                setMessages(sortedMessages);
+                setHasMoreMessages(false); // Tạm thời tắt load more
+
+                // Lưu vào storage
+                await saveMessagesToStorage(chatId, sortedMessages);
+            } else {
+                const errorText = await response.text();
+                console.error('API Error:', errorText);
+            }
+        } catch (error) {
+            console.error('Error loading messages:', error);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
+    // Xử lý load more khi scroll lên trên
+    const handleLoadMore = () => {
+        if (!isLoadingMore && hasMoreMessages && chat?._id) {
+            const nextPage = page + 1;
+            setPage(nextPage);
+            loadMessages(chat._id, nextPage, true);
+        }
+    };
 
     // Focus & blur handlers for tracking when screen is active/inactive
     useEffect(() => {
@@ -183,134 +276,68 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     }, [navigation]);
 
     useEffect(() => {
-        if (!currentUserId) return; // Chưa có userId thì không fetch
+        if (!currentUserId) return;
+
         const fetchData = async () => {
             setLoading(true);
-            const authToken = await AsyncStorage.getItem('authToken');
-            if (!authToken) {
-                setLoading(false);
-                return;
-            }
-
             try {
-                // Hàm lấy tin nhắn đã ghim
-                const fetchPinnedMessages = async (chatId: string) => {
-                    try {
-                        const pinnedRes = await fetch(`${API_BASE_URL}/api/chats/${chatId}/pinned-messages`, {
-                            headers: { Authorization: `Bearer ${authToken}` },
-                        });
-                        const pinnedData = await pinnedRes.json();
-                        if (Array.isArray(pinnedData)) {
-                            setPinnedMessages(pinnedData);
-                        }
-                    } catch (error) {
-                        console.error('Lỗi khi lấy tin nhắn đã ghim:', error);
-                    }
-                };
-
-                if (!authToken) return;
+                const authToken = await AsyncStorage.getItem('authToken');
+                if (!authToken) {
+                    setLoading(false);
+                    return;
+                }
 
                 if (routeChatId) {
-                    // Nếu đã có chatId, lấy thông tin chat và tin nhắn
+                    console.log('Fetching chat data for:', routeChatId);
+
+                    // Lấy thông tin chat
                     const chatRes = await fetch(`${API_BASE_URL}/api/chats/${routeChatId}`, {
                         headers: { Authorization: `Bearer ${authToken}` },
                     });
-                    const chatData = await chatRes.json();
-                    setChat(chatData);
 
-                    // Lưu chatId vào ref
+                    if (!chatRes.ok) {
+                        throw new Error('Failed to fetch chat data');
+                    }
+
+                    const chatData = await chatRes.json();
+                    console.log('Chat data received:', chatData);
+                    setChat(chatData);
                     chatIdRef.current = routeChatId;
+
+                    // Load tin nhắn từ server
+                    console.log('Loading messages from server');
+                    await loadMessages(routeChatId);
 
                     // Lấy tin nhắn đã ghim
                     await fetchPinnedMessages(routeChatId);
 
-                    // Lấy tin nhắn
-                    const msgRes = await fetch(`${API_BASE_URL}/api/chats/messages/${routeChatId}`, {
-                        headers: { Authorization: `Bearer ${authToken}` },
-                    });
-                    const msgData = await msgRes.json();
-                    if (Array.isArray(msgData)) {
-                        // Sắp xếp tin nhắn từ cũ đến mới
-                        const sortedMessages = [...msgData].sort((a, b) =>
-                            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-                        );
-                        setMessages(sortedMessages);
-
-                        // Đánh dấu tin nhắn là đã đọc nếu có currentUserId
-                        if (currentUserId && msgData.length > 0) {
-                            markMessagesAsRead(routeChatId, currentUserId, authToken);
-                        }
-                    }
-
                     // Thiết lập Socket.IO
                     setupSocket(authToken, routeChatId);
-                } else {
-                    // Tạo chat mới nếu không có sẵn chatId
-                    const res = await fetch(`${API_BASE_URL}/api/chats/create`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${authToken}`,
-                        },
-                        body: JSON.stringify({ participantId: chatPartner._id }),
-                    });
-                    const chatData = await res.json();
-                    setChat(chatData);
-
-                    // Lưu chatId vào ref
-                    chatIdRef.current = chatData._id;
-
-                    // Lấy tin nhắn đã ghim
-                    await fetchPinnedMessages(chatData._id);
-
-                    // Lấy tin nhắn
-                    const msgRes = await fetch(`${API_BASE_URL}/api/chats/messages/${chatData._id}`, {
-                        headers: { Authorization: `Bearer ${authToken}` },
-                    });
-                    const msgData = await msgRes.json();
-                    if (Array.isArray(msgData)) {
-                        // Sắp xếp tin nhắn từ cũ đến mới
-                        const sortedMessages = [...msgData].sort((a, b) =>
-                            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-                        );
-                        setMessages(sortedMessages);
-
-                        // Đánh dấu tin nhắn là đã đọc nếu có currentUserId
-                        if (currentUserId && msgData.length > 0) {
-                            markMessagesAsRead(chatData._id, currentUserId, authToken);
-                        }
-                    }
-
-                    // Thiết lập Socket.IO
-                    setupSocket(authToken, chatData._id);
                 }
             } catch (err) {
-                console.error('Error fetching data:', err);
+                console.error('Error in fetchData:', err);
             } finally {
                 setLoading(false);
             }
         };
 
-        if (currentUserId) {
-            fetchData();
-        }
-
-        return () => {
-            // Dọn dẹp socket khi component unmount
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-            }
-        };
+        fetchData();
     }, [chatPartner._id, routeChatId, currentUserId]);
 
     const markMessagesAsRead = async (chatId: string | null, userId: string, token: string) => {
         if (!chatId) return;
 
         try {
+            const timestamp = new Date().toISOString();
+
             // Sử dụng API mới để đánh dấu tất cả tin nhắn đã đọc
             const response = await fetch(`${API_BASE_URL}/api/chats/read-all/${chatId}`, {
                 method: 'PUT',
-                headers: { Authorization: `Bearer ${token}` }
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ timestamp })
             });
 
             if (response.ok) {
@@ -332,7 +359,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     console.log('Emitting messageRead event for chat:', chatId);
                     socketRef.current.emit('messageRead', {
                         userId: userId,
-                        chatId: chatId
+                        chatId: chatId,
+                        timestamp: timestamp
                     });
                 }
             }
@@ -341,108 +369,79 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         }
     };
 
+    // Socket.IO setup
     const setupSocket = async (authToken: string | null, chatId: string) => {
         if (!authToken) return;
 
-        // Dọn dẹp socket cũ nếu có
-        if (socketRef.current) {
-            socketRef.current.disconnect();
+        try {
+            // Kết nối socket
+            const socket = io(API_BASE_URL, {
+                query: { token: authToken },
+                transports: ['websocket']
+            });
+
+            socketRef.current = socket;
+
+            // Join vào phòng chat
+            socket.emit('joinChat', chatId);
+
+            // Lắng nghe tin nhắn mới
+            socket.on('receiveMessage', (newMessage: Message) => {
+                console.log('Received new message:', newMessage);
+                setMessages(prev => {
+                    // Kiểm tra tin nhắn đã tồn tại chưa
+                    const exists = prev.some(msg => msg._id === newMessage._id);
+                    if (exists) return prev;
+
+                    // Thêm tin nhắn mới và sắp xếp lại
+                    const updatedMessages = [...prev, newMessage].sort(
+                        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                    );
+
+                    // Lưu vào storage
+                    saveMessagesToStorage(chatId, updatedMessages);
+                    return updatedMessages;
+                });
+            });
+
+            // Lắng nghe trạng thái đã đọc
+            socket.on('messageRead', ({ userId, chatId: updatedChatId }) => {
+                if (updatedChatId === chatId) {
+                    setMessages(prev => prev.map(msg => ({
+                        ...msg,
+                        readBy: msg.readBy?.includes(userId) ? msg.readBy : [...(msg.readBy || []), userId]
+                    })));
+                }
+            });
+
+            // Lắng nghe trạng thái online/offline
+            socket.on('userOnline', ({ userId }) => {
+                if (chatPartner._id === userId) {
+                    setIsOnline(true);
+                }
+            });
+
+            socket.on('userOffline', ({ userId }) => {
+                if (chatPartner._id === userId) {
+                    setIsOnline(false);
+                }
+            });
+
+            // Ping để duy trì kết nối
+            const pingInterval = setInterval(() => {
+                if (socket.connected) {
+                    socket.emit('ping', { userId: currentUserId });
+                }
+            }, 30000);
+
+            return () => {
+                clearInterval(pingInterval);
+                socket.disconnect();
+            };
+        } catch (error) {
+            console.error('Socket setup error:', error);
         }
-
-        // Kết nối Socket.IO với token
-        socketRef.current = io(API_BASE_URL, {
-            query: { token: authToken },
-            transports: ['websocket']
-        });
-
-        socketRef.current.on('connect', () => {
-            console.log('Socket connected');
-
-            // Tham gia phòng chat
-            socketRef.current.emit('joinChat', chatId);
-
-            // Đánh dấu tin nhắn là đã đọc khi kết nối thành công
-            if (currentUserId) {
-                markMessagesAsRead(chatId, currentUserId, authToken);
-            }
-        });
-
-        // Lắng nghe tin nhắn mới
-        socketRef.current.on('receiveMessage', (newMessage: Message) => {
-            console.log('Nhận tin nhắn mới:', newMessage);
-            if (newMessage.chat === chatId) {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setMessages(prevMessages => {
-                    // Nếu tin nhắn đã tồn tại (_id trùng) thì bỏ qua
-                    const exists = prevMessages.some(m => m._id === newMessage._id);
-                    return exists ? prevMessages : [...prevMessages, newMessage];
-                });
-
-                // Đánh dấu tin nhắn mới là đã đọc nếu bạn không phải người gửi và đang ở trong màn hình chat
-                if (currentUserId && newMessage.sender._id !== currentUserId && isScreenActive) {
-                    markMessagesAsRead(chatId, currentUserId, authToken);
-                }
-            }
-        });
-
-        // Lắng nghe sự kiện messageRead để cập nhật trạng thái đã đọc của tin nhắn
-        socketRef.current.on('messageRead', ({ userId, chatId: updatedChatId, timestamp }: { userId: string, chatId: string, timestamp?: string }) => {
-            console.log('Message read event received:', userId, updatedChatId, timestamp);
-
-            // Chỉ xử lý nếu sự kiện thuộc về chat hiện tại
-            if (updatedChatId === chatId) {
-                setMessages(prevMessages => {
-                    console.log('Updating messages readBy status for user:', userId);
-                    return prevMessages.map(msg => {
-                        // Đảm bảo readBy luôn là mảng
-                        const readBy = Array.isArray(msg.readBy) ? [...msg.readBy] : [];
-
-                        // Chỉ cập nhật tin nhắn chưa được đọc bởi người dùng này
-                        if (!readBy.includes(userId)) {
-                            console.log(`Adding ${userId} to readBy for message ${msg._id?.substring(0, 5)}...`);
-                            return {
-                                ...msg,
-                                readBy: [...readBy, userId]
-                            };
-                        }
-                        return msg;
-                    });
-                });
-
-                // Cập nhật lại thông tin chat từ server để đảm bảo participants được cập nhật
-                if (currentUserId) {
-                    const fetchFullChatInfo = async () => {
-                        try {
-                            const token = await AsyncStorage.getItem('authToken');
-                            if (!token) return;
-
-                            const response = await fetch(`${API_BASE_URL}/api/chats/${chatId}`, {
-                                headers: { Authorization: `Bearer ${token}` }
-                            });
-
-                            if (response.ok) {
-                                const fullChatData = await response.json();
-                                setChat(fullChatData);
-                            }
-                        } catch (error) {
-                            console.error('Error fetching updated chat info:', error);
-                        }
-                    };
-
-                    fetchFullChatInfo();
-                }
-            }
-        });
-
-        socketRef.current.on('disconnect', () => {
-            console.log('Socket disconnected');
-        });
-
-        socketRef.current.on('connect_error', (error: any) => {
-            console.error('Socket connection error:', error);
-        });
     };
-
 
     // Component bảng chọn emoji
     const EmojiPicker = () => {
@@ -1521,18 +1520,27 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         const isPrevSameSender = prevMsg?.sender?._id === item.sender._id;
         const isDifferentDay = prevMsg?.createdAt && (new Date(item.createdAt).toDateString() !== new Date(prevMsg.createdAt).toDateString());
         const timeGap = prevMsg?.createdAt ? (new Date(item.createdAt).getTime() - new Date(prevMsg.createdAt).getTime()) : null;
-        const showTime = !prevMsg?.createdAt || !isPrevSameSender || isDifferentDay || (!!timeGap && timeGap > 5 * 60 * 1000);
+        const showTime = !prevMsg?.createdAt || isDifferentDay || (!!timeGap && timeGap > 10 * 60 * 1000);
         if (showTime) {
             messagesWithTime.push({
                 type: 'time',
                 time: item.createdAt,
-                _id: `time-${item._id || i}`
+                _id: `time-${item.createdAt}-${item._id}` // Thêm message ID vào key để đảm bảo unique
             });
         }
         messagesWithTime.push(item);
     }
+
     // FlatList sẽ hiển thị mảng đảo ngược (mới → cũ)
     const dataForFlatList = [...messagesWithTime].reverse();
+
+    // Stable key extractor
+    const keyExtractor = useCallback((item: Message | any) => {
+        if (item.type === 'time') {
+            return item._id;
+        }
+        return item._id;
+    }, []);
 
     // Thêm hàm xử lý chuyển tiếp tin nhắn
     const handleForwardMessage = async (userId: string) => {
@@ -1629,13 +1637,139 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         setViewerVisible(true);
     };
 
+    // Memoized renderItem để FlatList không phải tái tạo hàm mỗi lần
+    const renderItem = useCallback(
+        ({ item, index }: { item: Message | any; index: number }) => {
+            if (item.type === 'time') {
+                // Giữ nguyên logic render time separator hiện tại
+                const d = new Date(item.time);
+                const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+                const dayStr = days[d.getDay()];
+                const dateStr = `${d.getDate()} Tháng ${d.getMonth() + 1}`;
+                const hour = d.getHours().toString().padStart(2, '0');
+                const min = d.getMinutes().toString().padStart(2, '0');
+                return (
+                    <View style={{ alignItems: 'center', marginVertical: 16 }}>
+                        <Text style={{ color: '#BEBEBE', fontSize: 14, fontFamily: 'Mulish-Semibold' }}>
+                            {`${dayStr}, ${dateStr}, lúc ${hour}:${min}`}
+                        </Text>
+                    </View>
+                );
+            }
+            // Logic position grouping
+            const { isFirst, isLast } = getMessageGroupPosition(dataForFlatList, index, isDifferentDay);
+            const isMe = currentUserId && item.sender._id === currentUserId;
+            const showAvatar = !isMe && isFirst;
+            return (
+                <MessageBubble
+                    chat={chat}
+                    message={item}
+                    currentUserId={currentUserId}
+                    customEmojis={customEmojis}
+                    isFirst={isFirst}
+                    isLast={isLast}
+                    showAvatar={showAvatar}
+                    onLongPressIn={handleMessageLongPressIn}
+                    onLongPressOut={handleMessageLongPressOut}
+                    onImagePress={handleImagePress}
+                    messageScaleAnim={messageScaleAnim}
+                    formatMessageTime={formatMessageTime}
+                    getAvatar={getAvatar}
+                    isLatestMessage={item._id === messages[messages.length - 1]?._id}
+                />
+            );
+        },
+        [
+            chat, currentUserId, customEmojis, dataForFlatList,
+            handleMessageLongPressIn, handleMessageLongPressOut,
+            handleImagePress, messageScaleAnim, messages,
+            formatMessageTime, getAvatar, isDifferentDay,
+        ]
+    );
+
+    // Hàm lấy tin nhắn đã ghim
+    const fetchPinnedMessages = async (chatId: string) => {
+        try {
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) return;
+
+            const pinnedRes = await fetch(`${API_BASE_URL}/api/chats/${chatId}/pinned-messages`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const pinnedData = await pinnedRes.json();
+            if (Array.isArray(pinnedData)) {
+                setPinnedMessages(pinnedData);
+            }
+        } catch (error) {
+            console.error('Lỗi khi lấy tin nhắn đã ghim:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (!currentUserId) return;
+
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const authToken = await AsyncStorage.getItem('authToken');
+                if (!authToken) {
+                    setLoading(false);
+                    return;
+                }
+
+                if (routeChatId) {
+                    console.log('Fetching chat data for:', routeChatId);
+
+                    // Lấy thông tin chat
+                    const chatRes = await fetch(`${API_BASE_URL}/api/chats/${routeChatId}`, {
+                        headers: { Authorization: `Bearer ${authToken}` },
+                    });
+
+                    if (!chatRes.ok) {
+                        throw new Error('Failed to fetch chat data');
+                    }
+
+                    const chatData = await chatRes.json();
+                    console.log('Chat data received:', chatData);
+                    setChat(chatData);
+                    chatIdRef.current = routeChatId;
+
+                    // Load tin nhắn từ server
+                    console.log('Loading messages from server');
+                    await loadMessages(routeChatId);
+
+                    // Lấy tin nhắn đã ghim
+                    await fetchPinnedMessages(routeChatId);
+
+                    // Thiết lập Socket.IO
+                    setupSocket(authToken, routeChatId);
+                }
+            } catch (err) {
+                console.error('Error in fetchData:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [chatPartner._id, routeChatId, currentUserId]);
+
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{
+            flex: 1,
+
+        }}>
+
             <ImageBackground
                 source={require('../../assets/chat-background.png')}
-                style={{ flex: 1 }}
+                style={{
+                    flex: 1,
+                    paddingTop: Platform.OS === 'android' ? insets.top : 0,
+                }}
+
             >
-                <SafeAreaView style={{ flex: 1 }}>
+
+                <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
                     <KeyboardAvoidingView
                         style={{ flex: 1 }}
                         behavior="padding"
@@ -1687,15 +1821,17 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                 <View className="flex-1 items-center justify-center">
                                     <Text style={{ fontFamily: 'Inter', fontWeight: 'medium' }}>Đang tải tin nhắn...</Text>
                                 </View>
+                            ) : messages.length === 0 ? (
+                                <View className="flex-1 items-center justify-center">
+                                    <Text style={{ fontFamily: 'Inter', fontWeight: 'medium' }}>Chưa có tin nhắn nào</Text>
+                                </View>
                             ) : (
                                 <FlatList
                                     ref={flatListRef}
-                                        data={dataForFlatList}
+                                            data={dataForFlatList}
                                     inverted
-                                    keyExtractor={(item, index) => item._id || `message-${index}`}
-                                    ListHeaderComponent={() => (
-                                        // Hiển thị typing indicator như một tin nhắn đặc biệt
-                                        // Vì FlatList đã bị đảo ngược nên ListHeaderComponent thực tế ở dưới cùng
+                                            keyExtractor={keyExtractor}
+                                            ListHeaderComponent={() => (
                                         otherTyping ? (
                                             <View className="flex-row justify-start items-end mx-2 mt-4 mb-1">
                                                 <View className="relative mr-1.5">
@@ -1711,75 +1847,41 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                         ) : null
                                     )}
                                     style={{ flex: 1 }}
-                                        renderItem={({ item, index }: { item: Message | any; index: number }) => {
-                                        if (item.type === 'time') {
-                                            // Render block thời gian
-                                            const d = new Date(item.time);
-                                            const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-                                            const dayStr = days[d.getDay()];
-                                            const dateStr = `${d.getDate()} Tháng ${d.getMonth() + 1}`;
-                                            const hour = d.getHours().toString().padStart(2, '0');
-                                            const min = d.getMinutes().toString().padStart(2, '0');
-                                            return (
-                                                <View style={{ alignItems: 'center', marginVertical: 16 }}>
-                                                    <Text style={{ color: '#BEBEBE', fontSize: 14, fontFamily: 'Mulish-Semibold' }}>
-                                                        {`${dayStr}, ${dateStr}, lúc ${hour}:${min}`}
-                                                    </Text>
-                                                </View>
-                                            );
-                                        }
-                                        if (!item._id) return null;
-
-                                        const { isFirst, isLast } = getMessageGroupPosition(
-                                            dataForFlatList,
-                                            index,
-                                            isDifferentDay
-                                        );
-
-                                        const isMe = currentUserId && item.sender._id === currentUserId;
-                                        const showAvatar = !isMe && isFirst;
-                                        return (
-                                            <MessageBubble
-                                                chat={chat}
-                                                message={item}
-                                                currentUserId={currentUserId}
-                                                customEmojis={customEmojis}
-                                                isFirst={isFirst}
-                                                isLast={isLast}
-                                                showAvatar={showAvatar}
-                                                onLongPressIn={handleMessageLongPressIn}
-                                                onLongPressOut={handleMessageLongPressOut}
-                                                onImagePress={handleImagePress}
-                                                messageScaleAnim={messageScaleAnim}
-                                                formatMessageTime={formatMessageTime}
-                                                getAvatar={getAvatar}
-                                                isLatestMessage={item._id === messages[messages.length - 1]?._id}
-                                            />
-                                        );
-                                    }}
+                                            renderItem={renderItem}
                                     contentContainerStyle={{
                                         paddingVertical: 10,
                                         paddingBottom: keyboardVisible ? 10 : (insets.bottom + 50),
                                     }}
-                            />
-                        )}
-                    </View>
+                                            removeClippedSubviews={true}
+                                            maxToRenderPerBatch={10}
+                                            windowSize={10}
+                                            updateCellsBatchingPeriod={50}
+                                            initialNumToRender={15}
+                                            onEndReachedThreshold={0.5}
+                                            onEndReached={handleLoadMore}
+                                            maintainVisibleContentPosition={{
+                                                minIndexForVisible: 0,
+                                                autoscrollToTopThreshold: 10
+                                            }}
+                                />
+                            )}
+                        </View>
 
-                    {/* Input chat */}
-                    <View
-                        style={{
-                            borderRadius: 32,
+                        {/* Input chat */}
+                        <View
+                            style={{
+                                borderRadius: 32,
                                 paddingHorizontal: 6,
-                            paddingVertical: 6,
+                                paddingVertical: 6,
                                 backgroundColor: 'transparent',
                                 width: '90%',
                                 alignSelf: 'center',
-                            minHeight: 40,
-                            paddingBottom: Platform.OS === 'ios' ? 2 : (keyboardVisible ? 2 : insets.bottom),
+                                minHeight: 40,
+                                paddingBottom: Platform.OS === 'ios' ? 2 : (keyboardVisible ? 2 : insets.bottom),
                                 marginBottom: 5,
                                 overflow: 'hidden',
-                        }}
-                    >
+                            }}
+                        >
                             {/* Màu nền tiêu chuẩn - hiển thị khi không có ảnh preview và không có reply */}
                             {!imagesToSend.length && !replyTo && (
                                 <View
@@ -1818,48 +1920,48 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                 <ReplyPreview message={replyTo} onCancel={() => setReplyTo(null)} />
                             )}
 
-                        {/* Dòng preview ảnh (nếu có) */}
-                        {imagesToSend.length > 0 && (
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={{
-                                    alignItems: 'center',
-                                    marginBottom: 8,
-                                    paddingVertical: 4
-                                }}
+                            {/* Dòng preview ảnh (nếu có) */}
+                            {imagesToSend.length > 0 && (
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={{
+                                        alignItems: 'center',
+                                        marginBottom: 8,
+                                        paddingVertical: 4
+                                    }}
                                     style={{ maxHeight: 64, zIndex: 2 }}
-                            >
-                                {imagesToSend.map((img, idx) => (
-                                    <View key={idx} style={{ position: 'relative', marginRight: 8 }}>
-                                        <Image source={{ uri: img.uri }} style={{ width: 48, height: 48, borderRadius: 8 }} />
-                                        <TouchableOpacity
-                                            onPress={() => removeImage(idx)}
-                                            style={{
-                                                position: 'absolute',
-                                                top: -5,
-                                                right: -5,
-                                                backgroundColor: '#fff',
-                                                borderRadius: 10,
-                                                padding: 2,
-                                                zIndex: 3
-                                            }}
-                                        >
-                                            <MaterialIcons name="close" size={16} color="#002855" />
-                                        </TouchableOpacity>
-                                    </View>
-                                ))}
-                            </ScrollView>
-                        )}
+                                >
+                                    {imagesToSend.map((img, idx) => (
+                                        <View key={idx} style={{ position: 'relative', marginRight: 8 }}>
+                                            <Image source={{ uri: img.uri }} style={{ width: 48, height: 48, borderRadius: 8 }} />
+                                            <TouchableOpacity
+                                                onPress={() => removeImage(idx)}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: -5,
+                                                    right: -5,
+                                                    backgroundColor: '#fff',
+                                                    borderRadius: 10,
+                                                    padding: 2,
+                                                    zIndex: 3
+                                                }}
+                                            >
+                                                <MaterialIcons name="close" size={16} color="#002855" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))}
+                                </ScrollView>
+                            )}
 
-                        {/* Dòng chứa TextInput và các nút */}
-                        <View style={{
-                            flexDirection: 'row',
+                            {/* Dòng chứa TextInput và các nút */}
+                            <View style={{
+                                flexDirection: 'row',
                                 alignItems: 'center',
-                            width: '100%',
-                            minHeight: 44,
+                                width: '100%',
+                                minHeight: 44,
                                 zIndex: 2,
-                        }}>
+                            }}>
                                 {/* Nút camera (chụp ảnh) */}
                                 <TouchableOpacity
                                     style={{
@@ -1890,26 +1992,26 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                     }}
                                 >
                                     <Ionicons name="camera" size={22} color="#fff" />
-                            </TouchableOpacity>
+                                </TouchableOpacity>
 
                                 {/* Input tin nhắn */}
-                            <TextInput
-                                value={input}
-                                onChangeText={handleInputChange}
+                                <TextInput
+                                    value={input}
+                                    onChangeText={handleInputChange}
                                     placeholder="Nhập tin nhắn"
-                                style={{
-                                    flex: 1,
-                                    fontSize: 16,
-                                    color: '#002855',
-                                    paddingVertical: 8,
-                                    minHeight: 24,
-                                    backgroundColor: 'transparent',
-                                    fontFamily: 'Mulish-Regular',
-                                }}
-                                multiline={false}
-                                autoFocus={false}
+                                    style={{
+                                        flex: 1,
+                                        fontSize: 16,
+                                        color: '#002855',
+                                        paddingVertical: 8,
+                                        minHeight: 24,
+                                        backgroundColor: 'transparent',
+                                        fontFamily: 'Mulish-Regular',
+                                    }}
+                                    multiline={false}
+                                    autoFocus={false}
                                     onFocus={() => setShowEmojiPicker(false)}
-                            />
+                                />
 
                                 {/* Container cho các nút bên phải */}
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -1955,14 +2057,14 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                                 }}
                                             >
                                                 <Ionicons name="image-outline" size={24} color="#00687F" />
-                                    </TouchableOpacity>
+                                            </TouchableOpacity>
 
                                             {/* Nút đính kèm file */}
                                             <TouchableOpacity style={{ marginHorizontal: 8 }} onPress={handlePickFile}>
                                                 <MaterialIcons name="attach-file" size={24} color="#00687F" />
-                                    </TouchableOpacity>
-                                </>
-                            )}
+                                            </TouchableOpacity>
+                                        </>
+                                    )}
 
                                     {/* Nút gửi chỉ hiển thị khi có text hoặc hình ảnh để gửi */}
                             {(input.trim() !== '' || imagesToSend.length > 0) && (

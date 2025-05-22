@@ -137,6 +137,7 @@ const SignInScreen = () => {
 
                         // Sử dụng context để đăng nhập
                         await login(resData.token, completeUser);
+
                     } else {
                         // Tạo thông tin người dùng mặc định nếu không có
                         userId = `user_${Date.now()}`;

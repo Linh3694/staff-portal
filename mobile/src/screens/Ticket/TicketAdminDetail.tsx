@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -11,6 +11,10 @@ import TicketInformation from './components/TicketInformation';
 import TicketProcessing from './components/TicketProcessing';
 import TicketChat from './components/TicketChat';
 import TicketHistory from './components/TicketHistory';
+import { Modal, FlatList } from 'react-native';
+import SelectModal from '../../components/SelectModal';
+import InputModal from '../../components/InputModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TicketDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TicketAdminDetail'>;
 
@@ -30,6 +34,11 @@ interface Ticket {
     };
 }
 
+interface UserType {
+    _id: string;
+    fullname: string;
+}
+
 const TicketAdminDetail = () => {
     const navigation = useNavigation<TicketDetailScreenNavigationProp>();
     const route = useRoute();
@@ -37,6 +46,14 @@ const TicketAdminDetail = () => {
     const [activeTab, setActiveTab] = useState('information');
     const [ticket, setTicket] = useState<Ticket | null>(null);
     const [loading, setLoading] = useState(true);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [users, setUsers] = useState<UserType[]>([]);
+    const [chosenUser, setChosenUser] = useState<UserType | null>(null);
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+    const [departmentUsers, setDepartmentUsers] = useState<any[]>([]);
+    const [cancelModalVisible, setCancelModalVisible] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         fetchTicketData();
@@ -77,9 +94,10 @@ const TicketAdminDetail = () => {
         switch (activeTab) {
             case 'information':
                 return (
-
-                    <TicketInformation ticketId={ticketId} />
-
+                    <TicketInformation
+                        ticketId={ticketId}
+                        onRefresh={fetchTicketData}
+                    />
                 );
             case 'processing':
                 return (
@@ -132,12 +150,89 @@ const TicketAdminDetail = () => {
         }
     };
 
+    const fetchDepartmentUsers = async () => {
+        try {
+            const token = await AsyncStorage.getItem('authToken');
+            const res = await axios.get(
+                `${API_BASE_URL}/api/users/department/Phòng Công nghệ thông tin`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setDepartmentUsers(res.data.users || []);
+        } catch (err) {
+            console.error('Error fetching department users:', err);
+        }
+    };
+
+    const handleAssignSelectedUser = async (userId: string) => {
+        if (!userId) return;
+        try {
+            setLoading(true);
+            const token = await AsyncStorage.getItem('authToken');
+            await axios.put(
+                `${API_BASE_URL}/api/tickets/${ticketId}`,
+                { assignedTo: userId },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            await fetchTicketData();
+            setModalVisible(false);
+            setSelectedUserId(null);
+        } catch (err) {
+            console.error('Error assigning selected user:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAssignToCurrentUser = async () => {
+        try {
+            setLoading(true);
+            const userId = await AsyncStorage.getItem('userId');
+            console.log('userId', userId);
+            const token = await AsyncStorage.getItem('authToken');
+            await axios.put(
+                `${API_BASE_URL}/api/tickets/${ticketId}`,
+                { assignedTo: userId },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            await fetchTicketData();
+        } catch (error) {
+            console.error('Error assigning ticket:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCancelTicket = async () => {
+        try {
+            setLoading(true);
+            const token = await AsyncStorage.getItem('authToken');
+            await axios.put(
+                `${API_BASE_URL}/api/tickets/${ticketId}`,
+                {
+                    status: 'Cancelled',
+                    cancelReason: cancelReason
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            await fetchTicketData();
+            setCancelModalVisible(false);
+            setCancelReason('');
+        } catch (error) {
+            console.error('Error cancelling ticket:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     if (ticket && ticket.feedback) {
         console.log('Ticket rating:', ticket.feedback.rating);
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <SafeAreaView
+            className="flex-1 bg-white"
+            style={{ paddingTop: Platform.OS === 'android' ? insets.top : 0 }}
+        >
             {/* Header */}
             {loading ? (
                 <View className="p-4">
@@ -171,24 +266,26 @@ const TicketAdminDetail = () => {
                     <View className="px-4 mb-4">
                         <Text className="text-[#E84A37] font-medium text-xl">{ticket.title}</Text>
                     </View>
-
-                    <View className="flex-row justify-between items-center pr-[48%] pl-5 mb-6">
-                        <View className="w-11 h-11 rounded-full bg-green-600 items-center justify-center">
-                            <Ionicons name="checkmark" size={24} color="white" />
+                        <View className="flex-row justify-between items-center pr-[65%] pl-5 mb-6">
+                            <TouchableOpacity onPress={handleAssignToCurrentUser} className="w-11 h-11 rounded-full bg-green-600 items-center justify-center">
+                                <Ionicons name="checkmark" size={24} color="white" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setModalVisible(true);
+                                    fetchDepartmentUsers();
+                                }}
+                                className="w-11 h-11 rounded-full bg-yellow-500 items-center justify-center"
+                            >
+                                <FontAwesome5 name="sync-alt" size={16} color="white" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => setCancelModalVisible(true)}
+                                className="w-11 h-11 rounded-full bg-red-600 items-center justify-center"
+                            >
+                                <Ionicons name="square" size={16} color="white" />
+                            </TouchableOpacity>
                         </View>
-
-                        <View className="w-11 h-11 rounded-full bg-teal-600 items-center justify-center">
-                            <FontAwesome5 name="sync-alt" size={16} color="white" />
-                        </View>
-
-                        <View className="w-11 h-11 rounded-full bg-yellow-500 items-center justify-center">
-                            <FontAwesome5 name="pause" size={16} color="white" />
-                        </View>
-
-                        <View className="w-11 h-11 rounded-full bg-red-600 items-center justify-center">
-                            <Ionicons name="square" size={16} color="white" />
-                        </View>
-                    </View>
                 </View>
             ) : null}
 
@@ -234,6 +331,34 @@ const TicketAdminDetail = () => {
             <View className="flex-1">
                 {renderContent()}
             </View>
+
+            <SelectModal
+                visible={modalVisible}
+                title="Chọn nhân viên"
+                options={departmentUsers}
+                keyExtractor={u => u._id}
+                renderLabel={u => u.fullname}
+                onCancel={() => setModalVisible(false)}
+                onSelect={u => {
+                    setChosenUser(u);
+                    setModalVisible(false);
+                    handleAssignSelectedUser(u._id);
+                }}
+            />
+
+            <InputModal
+                visible={cancelModalVisible}
+                title="Lý do hủy"
+                placeholder="Nhập lý do hủy ticket"
+                value={cancelReason}
+                onChangeText={setCancelReason}
+                onCancel={() => {
+                    setCancelModalVisible(false);
+                    setCancelReason('');
+                }}
+                onConfirm={handleCancelTicket}
+            />
+
         </SafeAreaView>
     );
 };

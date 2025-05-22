@@ -44,7 +44,7 @@ const BottomTabNavigator = () => {
                     ),
                     tabBarLabel: ({ focused }) => tabBarLabel('Ứng dụng', focused),
                 }}
-            />
+            /> 
             <Tab.Screen
                 name={ROUTES.MAIN.CHAT}
                 component={ChatScreen}

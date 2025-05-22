@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { View, Text, SafeAreaView, TextInput, TouchableOpacity, FlatList, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, SafeAreaView, TextInput, TouchableOpacity, FlatList, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -7,6 +7,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TicketScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TicketAdminScreen'>;
 
@@ -44,6 +45,7 @@ const TicketAdminScreen = () => {
     const [loading, setLoading] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('assigned'); // 'assigned' hoặc 'my'
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         const loadUserId = async () => {
@@ -240,8 +242,10 @@ const TicketAdminScreen = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
-
+        <SafeAreaView
+            className="flex-1 bg-white"
+            style={{ paddingTop: Platform.OS === 'android' ? insets.top : 0 }}
+        >
             <View className="w-full flex-row items-center px-4 py-4">
                 <TouchableOpacity onPress={handleGoBack} className="mr-3">
                     <Ionicons name="arrow-back" size={24} color="#000" />

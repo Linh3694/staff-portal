@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Wello",
+    "name": "Wiswork",
     "slug": "workspace",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "web": {
       "favicon": "./src/assets/favicon.png"
     },
@@ -31,7 +31,8 @@
     "splash": {
       "image": "./src/assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "launchAutoHide": false
     },
     "assetBundlePatterns": [
       "**/*"
