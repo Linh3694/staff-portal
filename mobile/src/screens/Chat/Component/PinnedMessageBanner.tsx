@@ -6,14 +6,8 @@ import { API_BASE_URL } from '../../../config/constants';
 import ConfirmModal from '../../../components/ConfirmModal';
 import NotificationModal from '../../../components/NotificationModal';
 import { Message, MessageReaction } from '../../../types/message';
-
-// Hàm lấy avatar cho người dùng
-const getAvatar = (user: { fullname: string; avatarUrl?: string }) => {
-    if (user.avatarUrl) {
-        return `${API_BASE_URL}/uploads/Avatar/${user.avatarUrl}`;
-    }
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}`;
-};
+import Avatar from './Avatar';
+import MessageContent from './MessageContent';
 
 type Props = {
     pinnedMessages: Message[];
@@ -42,17 +36,7 @@ const PinnedMessageBanner = ({ pinnedMessages, onPress, onUnpin }: Props) => {
     // Hàm để hiển thị nội dung phù hợp với loại tin nhắn
     const renderContent = () => {
         if (!message) return null;
-
-        switch (message.type) {
-            case 'image':
-                return <Text style={{ color: '#757575' }}><Ionicons name="image-outline" size={14} color="#757575" /> Hình ảnh</Text>;
-            case 'multiple-images':
-                return <Text style={{ color: '#757575' }}><Ionicons name="images-outline" size={14} color="#757575" /> {message.fileUrls?.length || 0} hình ảnh</Text>;
-            case 'file':
-                return <Text style={{ color: '#757575' }}><Ionicons name="document-outline" size={14} color="#757575" /> Tệp đính kèm</Text>;
-            default:
-                return <Text style={{ color: '#3F4246', fontSize: 15 }} numberOfLines={1}>{message?.content}</Text>;
-        }
+        return <MessageContent message={message} isPreview={true} />;
     };
 
     return (
@@ -107,14 +91,7 @@ const PinnedMessageBanner = ({ pinnedMessages, onPress, onUnpin }: Props) => {
                                 justifyContent: 'center'
                             }}>
                                 {message?.sender && (
-                                    <Image
-                                        source={{ uri: getAvatar(message.sender) }}
-                                        style={{
-                                            width: 32,
-                                            height: 32,
-                                            borderRadius: 9999
-                                        }}
-                                    />
+                                    <Avatar user={message.sender} size={24} statusSize={0} />
                                 )}
                             </View>
                         </View>

@@ -35,11 +35,59 @@ const OnlineStatusContext = createContext<OnlineStatusContextType>({
 
 export const useOnlineStatus = () => useContext(OnlineStatusContext);
 
+// Hàm để lấy trạng thái online từ Redis cache
+const fetchOnlineStatusFromCache = async (userId: string): Promise<{ isOnline: boolean; lastSeen?: Date } | null> => {
+    try {
+        const token = await AsyncStorage.getItem('authToken');
+        if (!token) return null;
+
+        const response = await fetch(`${API_BASE_URL}/api/users/online-status/${userId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        return {
+            isOnline: data.isOnline,
+            lastSeen: data.lastSeen ? new Date(data.lastSeen) : undefined
+        };
+    } catch (error) {
+        console.error('Error fetching online status from cache:', error);
+        return null;
+    }
+};
+
+// Hàm để cập nhật trạng thái online vào Redis cache
+const updateOnlineStatusToCache = async (userId: string, status: { isOnline: boolean; lastSeen?: Date }): Promise<void> => {
+    try {
+        const token = await AsyncStorage.getItem('authToken');
+        if (!token) return;
+
+        await fetch(`${API_BASE_URL}/api/users/online-status/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                isOnline: status.isOnline,
+                lastSeen: status.lastSeen?.toISOString()
+            })
+        });
+    } catch (error) {
+        console.error('Error updating online status to cache:', error);
+    }
+};
+
 export const OnlineStatusProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [onlineUsers, setOnlineUsers] = useState<OnlineStatusMap>({});
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const socketRef = useRef<any>(null);
     const appState = useRef(AppState.currentState);
+    const cacheTimeoutRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
     // Thêm state để theo dõi trạng thái kết nối của socket
     const [isSocketConnected, setIsSocketConnected] = useState(false);
@@ -68,6 +116,34 @@ export const OnlineStatusProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (diffDays === 1) return 'Hôm qua';
 
         return `${lastSeen.getDate()}/${lastSeen.getMonth() + 1}/${lastSeen.getFullYear()}`;
+    };
+
+    // Hàm để cập nhật trạng thái online với cache
+    const updateOnlineStatus = async (userId: string, status: { isOnline: boolean; lastSeen?: Date }) => {
+        // Cập nhật state local
+        setOnlineUsers(prev => ({
+            ...prev,
+            [userId]: status
+        }));
+
+        // Cập nhật cache
+        await updateOnlineStatusToCache(userId, status);
+
+        // Xóa timeout cũ nếu có
+        if (cacheTimeoutRef.current[userId]) {
+            clearTimeout(cacheTimeoutRef.current[userId]);
+        }
+
+        // Set timeout mới để cập nhật cache sau 30 giây
+        cacheTimeoutRef.current[userId] = setTimeout(async () => {
+            const currentStatus = await fetchOnlineStatusFromCache(userId);
+            if (currentStatus) {
+                setOnlineUsers(prev => ({
+                    ...prev,
+                    [userId]: currentStatus
+                }));
+            }
+        }, 30000);
     };
 
     // Hàm để reconnect socket
@@ -159,41 +235,38 @@ export const OnlineStatusProvider: React.FC<{ children: React.ReactNode }> = ({ 
             // Lắng nghe sự kiện user online
             socketRef.current.on('userOnline', ({ userId }: { userId: string }) => {
                 console.log('Global user online:', userId);
-                setOnlineUsers(prev => ({
-                    ...prev,
-                    [userId]: {
-                        isOnline: true,
-                        lastSeen: new Date()
-                    }
-                }));
+                updateOnlineStatus(userId, {
+                    isOnline: true,
+                    lastSeen: new Date()
+                });
             });
 
             // Lắng nghe sự kiện user offline
             socketRef.current.on('userOffline', ({ userId }: { userId: string }) => {
                 console.log('Global user offline:', userId);
-                setOnlineUsers(prev => ({
-                    ...prev,
-                    [userId]: {
-                        isOnline: false,
-                        lastSeen: new Date()
-                    }
-                }));
+                updateOnlineStatus(userId, {
+                    isOnline: false,
+                    lastSeen: new Date()
+                });
             });
 
             // Lắng nghe danh sách user online hiện tại
-            socketRef.current.on('onlineUsers', (users: string[]) => {
+            socketRef.current.on('onlineUsers', async (users: string[]) => {
                 console.log('Received current online users:', users);
 
-                // Reset trạng thái của tất cả người dùng trước
+                // Lấy trạng thái từ cache cho tất cả users
                 const updatedStatus: OnlineStatusMap = {};
-
-                // Cập nhật trạng thái cho người dùng online
-                users.forEach(id => {
-                    updatedStatus[id] = {
-                        isOnline: true,
-                        lastSeen: new Date()
-                    };
-                });
+                for (const id of users) {
+                    const cachedStatus = await fetchOnlineStatusFromCache(id);
+                    if (cachedStatus) {
+                        updatedStatus[id] = cachedStatus;
+                    } else {
+                        updatedStatus[id] = {
+                            isOnline: true,
+                            lastSeen: new Date()
+                        };
+                    }
+                }
 
                 setOnlineUsers(prev => {
                     const newState = { ...prev };
@@ -215,25 +288,19 @@ export const OnlineStatusProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             // Lắng nghe thông tin last seen
             socketRef.current.on('userLastSeen', ({ userId, lastSeen }: { userId: string, lastSeen: string }) => {
-                setOnlineUsers(prev => ({
-                    ...prev,
-                    [userId]: {
-                        isOnline: false,
-                        lastSeen: new Date(lastSeen)
-                    }
-                }));
+                updateOnlineStatus(userId, {
+                    isOnline: false,
+                    lastSeen: new Date(lastSeen)
+                });
             });
 
             // Lắng nghe sự kiện userStatus
             socketRef.current.on('userStatus', ({ userId, status }: { userId: string, status: string }) => {
                 console.log(`User ${userId} status updated to ${status}`);
-                setOnlineUsers(prev => ({
-                    ...prev,
-                    [userId]: {
-                        isOnline: status === 'online',
-                        lastSeen: status === 'offline' ? new Date() : prev[userId]?.lastSeen
-                    }
-                }));
+                updateOnlineStatus(userId, {
+                    isOnline: status === 'online',
+                    lastSeen: status === 'offline' ? new Date() : onlineUsers[userId]?.lastSeen
+                });
             });
 
             isInitialized.current = true;
@@ -300,6 +367,8 @@ export const OnlineStatusProvider: React.FC<{ children: React.ReactNode }> = ({ 
             clearInterval(pingInterval);
             clearInterval(statusRefreshInterval);
             subscription.remove();
+            // Clear tất cả các timeout cache
+            Object.values(cacheTimeoutRef.current).forEach(timeout => clearTimeout(timeout));
         };
     }, [currentUserId]);
 

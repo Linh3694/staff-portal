@@ -5,6 +5,7 @@ import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { Message } from '../../../types/chat';
 import { ReplyPreview } from './ReplyPreview';
+import ImageGrid from './ImageGrid';
 
 interface ChatInputBarProps {
     input: string;
@@ -90,36 +91,11 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
 
             {/* Dòng preview ảnh (nếu có) */}
             {imagesToSend.length > 0 && (
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{
-                        alignItems: 'center',
-                        marginBottom: 8,
-                        paddingVertical: 4
-                    }}
-                    style={{ maxHeight: 64, zIndex: 2 }}
-                >
-                    {imagesToSend.map((img, idx) => (
-                        <View key={idx} style={{ position: 'relative', marginRight: 8 }}>
-                            <Image source={{ uri: img.uri }} style={{ width: 48, height: 48, borderRadius: 8 }} />
-                            <TouchableOpacity
-                                onPress={() => removeImage(idx)}
-                                style={{
-                                    position: 'absolute',
-                                    top: -5,
-                                    right: -5,
-                                    backgroundColor: '#fff',
-                                    borderRadius: 10,
-                                    padding: 2,
-                                    zIndex: 3
-                                }}
-                            >
-                                <MaterialIcons name="close" size={16} color="#002855" />
-                            </TouchableOpacity>
-                        </View>
-                    ))}
-                </ScrollView>
+                <ImageGrid
+                    images={imagesToSend.map(img => img.uri)}
+                    onPress={() => { }}
+                    onLongPress={(index) => removeImage(index)}
+                />
             )}
 
             {/* Dòng chứa TextInput và các nút */}

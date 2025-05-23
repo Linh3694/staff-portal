@@ -30,7 +30,8 @@ import MessageReactionModal from './Component/MessageReactionModal';
 import PinnedMessageBanner from './Component/PinnedMessageBanner';
 import NotificationModal from '../../components/NotificationModal';
 import { Message, Chat } from '../../types/message';
-import { CustomEmoji, NotificationType, ChatDetailParams } from '../../types/chat';
+import { NotificationType, ChatDetailParams } from '../../types/chat';
+import { CustomEmoji } from './Hook/useEmojis';
 import ImageGrid from './Component/ImageGrid';
 import MessageBubble from './Component/MessageBubble';
 import ImageViewerModal from './Component/ImageViewerModal';
@@ -38,6 +39,7 @@ import ForwardMessageSheet from './Component/ForwardMessageSheet';
 import { formatMessageTime, formatMessageDate, getAvatar, isDifferentDay } from '../../utils/messageUtils';
 import MessageStatus from './Component/MessageStatus';
 import { getMessageGroupPosition } from '../../utils/messageGroupUtils';
+import EmojiPicker from './Component/EmojiPicker';
 
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -81,6 +83,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     const [loading, setLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [page, setPage] = useState(1);
     const [isOnline, setIsOnline] = useState(false);
     const [customEmojis, setCustomEmojis] = useState<CustomEmoji[]>([]);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -441,73 +444,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         } catch (error) {
             console.error('Socket setup error:', error);
         }
-    };
-
-    // Component bảng chọn emoji
-    const EmojiPicker = () => {
-        // Nhóm emoji theo category
-        const groupedEmojis = customEmojis.reduce((acc: Record<string, CustomEmoji[]>, emoji) => {
-            if (!acc[emoji.category]) {
-                acc[emoji.category] = [];
-            }
-            acc[emoji.category].push(emoji);
-            return acc;
-        }, {});
-
-        return (
-            <View style={{
-                height: 250,
-                borderTopWidth: 1,
-                borderTopColor: '#E0E0E0',
-                width: '100%'
-            }}>
-
-                <ScrollView>
-                    {Object.entries(groupedEmojis).map(([category, emojis]) => (
-                        <View key={category} style={{ marginBottom: 10 }}>
-                            <Text style={{
-                                padding: 10,
-                                fontWeight: 'bold',
-                                color: '#666'
-                            }}>
-                                Emoji hiện có
-                            </Text>
-                            <View style={{
-                                flexDirection: 'row',
-                                flexWrap: 'wrap',
-                                paddingHorizontal: 5
-                            }}>
-                                {emojis.map((emoji) => (
-                                    <TouchableOpacity
-                                        key={emoji._id}
-                                        style={{
-                                            width: 60,
-                                            height: 60,
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            margin: 5
-                                        }}
-                                        onPress={() => {
-                                            console.log('Đã chọn emoji:', emoji.name, 'code:', emoji.code, 'type:', emoji.type);
-                                            // Gửi emoji này dưới dạng sticker
-                                            handleSendEmoji(emoji);
-                                            // Đóng bảng emoji sau khi chọn
-                                            setShowEmojiPicker(false);
-                                        }}
-                                    >
-                                        <Image
-                                            source={{ uri: `${API_BASE_URL}${emoji.url}` }}
-                                            style={{ width: 48, height: 48 }}
-                                            resizeMode="contain"
-                                        />
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        </View>
-                    ))}
-                </ScrollView>
-            </View>
-        );
     };
 
     // Sửa hàm send message để phát hiện tin nhắn chỉ có emoji duy nhất
@@ -1088,30 +1024,39 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     // Sửa lại hàm handleReactionSelect
     const handleReactionSelect = async (reaction: { code: string; isCustom: boolean }) => {
         if (!selectedMessage) return false;
-
         try {
             const token = await AsyncStorage.getItem('authToken');
-            const response = await fetch(`${API_BASE_URL}/api/chats/message/${selectedMessage._id}/react`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    emojiCode: reaction.code,
-                    isCustom: reaction.isCustom
-                })
-            });
-
-            if (response.ok) {
-                console.log('Đã thêm reaction thành công');
-                return true;
-            } else {
-                console.error('Lỗi khi thêm reaction');
+            const res = await fetch(
+                `${API_BASE_URL}/api/chats/message/${selectedMessage._id}/react`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        emojiCode: reaction.code,
+                        isCustom: reaction.isCustom,
+                    }),
+                }
+            );
+            if (!res.ok) {
+                console.error('Failed to add reaction:', res.status);
                 return false;
             }
+            // Get updated message from server
+            const updatedMessage: Message = await res.json();
+            // Update local state to include new reactions
+            setMessages(prev =>
+                prev.map(msg =>
+                    msg._id === updatedMessage._id ? updatedMessage : msg
+                )
+            );
+            // Close the reaction modal
+            closeReactionModal();
+            return true;
         } catch (error) {
-            console.error('Lỗi khi gửi reaction:', error);
+            console.error('Error sending reaction:', error);
             return false;
         }
     };
@@ -1829,10 +1774,10 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                 <FlatList
                                     ref={flatListRef}
                                             data={dataForFlatList}
-                                    inverted
+                                            inverted
                                             keyExtractor={keyExtractor}
                                             ListHeaderComponent={() => (
-                                        otherTyping ? (
+                                                otherTyping ? (
                                             <View className="flex-row justify-start items-end mx-2 mt-4 mb-1">
                                                 <View className="relative mr-1.5">
                                                     <Image
@@ -1848,7 +1793,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                     )}
                                     style={{ flex: 1 }}
                                             renderItem={renderItem}
-                                    contentContainerStyle={{
+                                            contentContainerStyle={{
                                         paddingVertical: 10,
                                         paddingBottom: keyboardVisible ? 10 : (insets.bottom + 50),
                                     }}
@@ -2077,22 +2022,28 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                         </View>
 
                         {/* Emoji Picker */}
-                        {showEmojiPicker && <EmojiPicker />}
+                        {showEmojiPicker && (
+                            <EmojiPicker
+                                customEmojis={customEmojis}
+                                handleSendEmoji={handleSendEmoji}
+                                setShowEmojiPicker={setShowEmojiPicker}
+                            />
+                        )}
 
                     </KeyboardAvoidingView >
 
             {/* Thêm component ImageViewer vào render */}
                     < ImageViewing
-                images={viewerImages}
-                imageIndex={viewerInitialIndex}
-                visible={viewerVisible}
-                onRequestClose={() => setViewerVisible(false)}
-                swipeToCloseEnabled={true}
-                doubleTapToZoomEnabled={true}
-                presentationStyle="fullScreen"
-                animationType="fade"
-                backgroundColor="rgba(0, 0, 0, 0.95)"
-                HeaderComponent={({ imageIndex }) => (
+                        images={viewerImages}
+                        imageIndex={viewerInitialIndex}
+                        visible={viewerVisible}
+                        onRequestClose={() => setViewerVisible(false)}
+                        swipeToCloseEnabled={true}
+                        doubleTapToZoomEnabled={true}
+                        presentationStyle="fullScreen"
+                        animationType="fade"
+                        backgroundColor="rgba(0, 0, 0, 0.95)"
+                        HeaderComponent={({ imageIndex }) => (
                     <View style={{
                         padding: 16,
                         paddingTop: Platform.OS === 'ios' ? 50 : 16,

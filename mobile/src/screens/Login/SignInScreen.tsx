@@ -158,7 +158,7 @@ const SignInScreen = () => {
                     // Chuyển đến màn hình chính
                     navigation.reset({
                         index: 0,
-                        routes: [{ name: 'Main', params: { screen: ROUTES.MAIN.HOME } }],
+                        routes: [{ name: 'Main', params: { screen: 'Home' } }],
                     });
                 } catch (storageError) {
                     console.error('Lỗi khi lưu thông tin đăng nhập:', storageError);

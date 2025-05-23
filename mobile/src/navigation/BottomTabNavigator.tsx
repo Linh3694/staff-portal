@@ -10,7 +10,6 @@ import MenuIcon from '../assets/menu.svg';
 import ChatIcon from '../assets/chat.svg';
 import NotificationIcon from '../assets/notification.svg';
 import ProfileIcon from '../assets/profile.svg';
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 
 const Tab = createBottomTabNavigator();
 
@@ -20,7 +19,8 @@ const tabBarLabel = (label: string, focused: boolean) => (
 
 const HIDDEN_ROUTES = ['ChatDetail'];
 
-const BottomTabNavigator = () => {
+const BottomTabNavigator = ({ route }: { route: any }) => {
+    const initialRouteName = route?.params?.screen || ROUTES.TABS.HOME;
     return (
         <Tab.Navigator
             screenOptions={{
@@ -32,6 +32,7 @@ const BottomTabNavigator = () => {
                     paddingTop: 8,
                 },
             }}
+            initialRouteName={initialRouteName}
         >
             <Tab.Screen
                 name={ROUTES.MAIN.HOME}

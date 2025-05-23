@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Platform, Dimensions, Modal } from 'react-native';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { API_BASE_URL } from '../../../config/constants';
+import { processImageUrl } from '../Utils/image';
 
 interface ImageViewerModalProps {
     images: { uri: string }[];
@@ -18,7 +19,7 @@ const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
 }) => {
     // Xử lý URL ảnh
     const processedImages = images.map(img => ({
-        url: img.uri.startsWith('http') ? img.uri : `${API_BASE_URL}${img.uri}`
+        url: processImageUrl(img.uri)
     }));
 
     const screenWidth = Dimensions.get('window').width;

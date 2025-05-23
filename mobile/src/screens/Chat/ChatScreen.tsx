@@ -11,6 +11,7 @@ import io from 'socket.io-client';
 import { useOnlineStatus } from '../../context/OnlineStatusContext';
 import { API_BASE_URL } from '../../config/constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Avatar from './Component/Avatar';
 
 interface User {
     _id: string;
@@ -35,13 +36,6 @@ interface Chat {
     lastMessage?: Message;
     updatedAt: string;
 }
-
-const getAvatar = (user: User) => {
-    if (user.avatarUrl) {
-        return `${API_BASE_URL}/uploads/Avatar/${user.avatarUrl}`;
-    }
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}`;
-};
 
 const ChatScreen = () => {
     const [search, setSearch] = useState('');
@@ -153,35 +147,35 @@ const ChatScreen = () => {
         };
     }, [currentUserId]);
 
-    // Fetch chats each time screen is focused
+    // Đặt ngoài useFocusEffect và useEffect
+    const fetchChats = async () => {
+        try {
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) return;
+            const res = await fetch(API_BASE_URL + '/api/chats/list', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            setChats(data);
+        } catch (err) {
+            console.error('Error fetching chats:', err);
+        }
+    };
+
+    // Trong useFocusEffect
     useFocusEffect(
         React.useCallback(() => {
-            if (!currentUserId) return;
-
-            let isActive = true;
-
-            const fetchChats = async () => {
-                try {
-                    const token = await AsyncStorage.getItem('authToken');
-                    if (!token) return;
-                    const res = await fetch(API_BASE_URL + '/api/chats/list', {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-                    const data = await res.json();
-                    if (isActive) setChats(data);
-                } catch (err) {
-                    console.error('Error fetching chats:', err);
-                }
-            };
-
             fetchChats();
-
-            return () => {
-                isActive = false;
-                // keep socket alive; just stop fetches
-            };
-        }, [currentUserId])
+        }, [navigation, currentUserId])
     );
+
+    // Trong useEffect
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            fetchChats();
+        });
+        return unsubscribe;
+    }, [navigation, currentUserId]);
 
     const handleSearch = async (text: string) => {
         try {
@@ -257,10 +251,7 @@ const ChatScreen = () => {
                 navigation.navigate('ChatDetail', { user: item });
             }}
         >
-            <View className="relative">
-                <Image source={{ uri: getAvatar(item) }} className="w-16 h-16 rounded-full bg-gray-200" />
-                <View style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: isUserOnline(item._id) ? 'green' : '#bbb', borderWidth: 2, borderColor: 'white' }} />
-            </View>
+            <Avatar user={item} size={64} statusSize={15} />
             <Text className="mt-1 text-xs text-center w-20 font-medium" numberOfLines={1}>{item.fullname}</Text>
         </TouchableOpacity>
     );
@@ -322,21 +313,18 @@ const ChatScreen = () => {
                 className="flex-row items-center py-3 px-4 border-b border-gray-100"
                 onPress={() => handleChatPress(item, other)}
             >
-                <View className="relative">
-                    <Image source={{ uri: getAvatar(other) }} className="w-14 h-14 rounded-full bg-gray-200" />
-                    <View style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: isUserOnline(other._id) ? 'green' : '#bbb', borderWidth: 2, borderColor: 'white' }} />
-                </View>
+                <Avatar user={other} size={56} statusSize={15} />
                 <View className="flex-1 ml-4">
                     <Text className={`${hasUnreadMessage ? 'font-bold' : 'font-medium'} text-lg`} numberOfLines={1}>{other.fullname}</Text>
                     <View className="flex-row items-center">
                         <Text
-                            className={`${hasUnreadMessage ? 'text-secondary font-bold' : 'text-gray-500 font-medium'} text-base mt-0.5 mr-1`}
+                            className={`${hasUnreadMessage ? 'text-secondary font-bold' : 'text-gray-500 font-medium'} text-base mr-1`}
                             numberOfLines={1}
                             style={{ maxWidth: '70%' }}
                         >
                             {lastMessageContent}
                         </Text>
-                        <Text className="text-xs text-gray-400 font-medium">
+                        <Text className="text-xs text-gray-400 font-medium mt-1">
                             • {isUserOnline(other._id) ? 'Đang hoạt động' : getFormattedLastSeen(other._id)}
                         </Text>
                     </View>

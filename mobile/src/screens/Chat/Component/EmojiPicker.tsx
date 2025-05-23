@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
-import { CustomEmoji } from '../../../types/chat';
+import { CustomEmoji } from '../Hook/useEmojis';
 import { API_BASE_URL } from '../../../config/constants';
 
 interface EmojiPickerProps {
@@ -38,7 +38,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
                             fontWeight: 'bold',
                             color: '#666'
                         }}>
-                            Emoji hiện có
+                            Reactions đã có
                         </Text>
                         <View style={{
                             flexDirection: 'row',
@@ -56,10 +56,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
                                         margin: 5
                                     }}
                                     onPress={() => {
-                                        console.log('Đã chọn emoji:', emoji.name, 'code:', emoji.code, 'type:', emoji.type);
-                                        // Gửi emoji này dưới dạng sticker
                                         handleSendEmoji(emoji);
-                                        // Đóng bảng emoji sau khi chọn
                                         setShowEmojiPicker(false);
                                     }}
                                 >

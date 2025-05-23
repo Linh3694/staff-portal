@@ -4,6 +4,8 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { Message } from '../../../types/chat';
 import { API_BASE_URL } from '../../../config/constants';
+import { processImageUrl } from '../Utils/image';
+import MessageContent from './MessageContent';
 
 interface ReplyPreviewProps {
     message: Message | null;
@@ -16,8 +18,8 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({ message, onCancel })
     const isImage = message.type === 'image';
     const isMultipleImages = message.type === 'multiple-images';
     const isFile = message.type === 'file';
-    const imageUrl = isImage ? (message.fileUrl?.startsWith('http') ? message.fileUrl : `${API_BASE_URL}${message.fileUrl}`) :
-        isMultipleImages && message.fileUrls && message.fileUrls.length > 0 ? (message.fileUrls[0].startsWith('http') ? message.fileUrls[0] : `${API_BASE_URL}${message.fileUrls[0]}`) : null;
+    const imageUrl = isImage ? processImageUrl(message.fileUrl) :
+        isMultipleImages && message.fileUrls && message.fileUrls.length > 0 ? processImageUrl(message.fileUrls[0]) : null;
 
     return (
         <View style={{
@@ -92,9 +94,7 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({ message, onCancel })
                     </View>
                 )}
                 {!isImage && !isMultipleImages && !isFile && (
-                    <Text style={{ color: '#666', fontSize: 14, fontFamily: 'Mulish-Regular' }} numberOfLines={1}>
-                        {message.content}
-                    </Text>
+                    <MessageContent message={message} isPreview={true} />
                 )}
             </View>
 

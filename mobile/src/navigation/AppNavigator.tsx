@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { NavigationContainer } from '@react-navigation/native';
 import BottomTabNavigator from './BottomTabNavigator';
 import WelcomeScreen from '../screens/Login/WelcomeScreen';
 import LoginScreen from '../screens/Login/SignInScreen';
@@ -13,7 +14,6 @@ import ChatInitScreen from '../screens/Chat/ChatInitScreen';
 import TicketAdminDetail from '../screens/Ticket/TicketAdminDetail';
 import TicketGuestDetail from '../screens/Ticket/TicketGuestDetail';
 import { useAuth } from '../context/AuthContext';
-import { CustomHeader } from '../components/CustomHeader';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -47,6 +47,8 @@ export type RootStackParamList = {
     [ROUTES.SCREENS.TICKET_ADMIN]: undefined;
     [ROUTES.SCREENS.TICKET_GUEST]: undefined;
 };
+
+const MainTabWrapper = ({ route }: { route: any }) => <BottomTabNavigator route={route} />;
 
 const AppNavigator = () => {
     const [ticketComponent, setTicketComponent] = useState(() => TicketGuestScreen);
@@ -100,7 +102,6 @@ const AppNavigator = () => {
         return null;
     }
 
-
     return (
         <Stack.Navigator>
             {!isAuthenticated ? (
@@ -122,7 +123,7 @@ const AppNavigator = () => {
                 <>
                     <Stack.Screen
                             name={ROUTES.SCREENS.MAIN}
-                            component={BottomTabNavigator}
+                            component={MainTabWrapper}
                             options={{ headerShown: false }}
                         />
                         <Stack.Screen
@@ -139,10 +140,7 @@ const AppNavigator = () => {
                             name={ROUTES.SCREENS.CHAT_INIT}
                             component={ChatInitScreen}
                             options={{ headerShown: false }}
-
-
                         />
-
                         <Stack.Screen
                             name={ROUTES.SCREENS.TICKET_CREATE}
                             component={TicketCreate}

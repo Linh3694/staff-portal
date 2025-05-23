@@ -10,18 +10,17 @@ import {
     TouchableWithoutFeedback,
     Image,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '../../../config/constants';
+import { Message } from '../../../types/chat';
 import ReplySvg from '../../../assets/reply.svg';
 import ForwardSvg from '../../../assets/forward.svg';
 import CopySvg from '../../../assets/copy.svg';
 import RevokeSvg from '../../../assets/revoke.svg';
 import PinSvg from '../../../assets/pin.svg';
 import PinOffSvg from '../../../assets/pin-off.svg';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import MessageContent from './MessageContent';
+import { useEmojis } from '../Hook/useEmojis';
 
 const { width, height } = Dimensions.get('window');
-
 
 type MessageReactionModalProps = {
     visibleReactionBar: boolean;
@@ -31,28 +30,10 @@ type MessageReactionModalProps = {
     position: { x: number, y: number } | null;
     onReactionSelect: (reaction: { code: string; isCustom: boolean }) => Promise<boolean>;
     onActionSelect: (action: string) => void;
-    selectedMessage?: {
-        content: string;
-        type: string;
-        fileUrls?: string[];
-        sender: {
-            fullname: string;
-        };
-    } | null;
+    selectedMessage?: Message | null;
     onSuccess?: () => void;
     showPinOption?: boolean;
     isPinned?: boolean;
-};
-
-// Thêm type cho CustomEmoji
-type CustomEmoji = {
-    _id: string;
-    code: string;
-    name: string;
-    type: string;
-    url: string;
-    category: string;
-    isDefault: boolean;
 };
 
 const REACTION_CODES = ['clap', 'laugh', 'wow', 'cry', 'heart'];
@@ -96,8 +77,7 @@ const MessageReactionModal = ({
 }: MessageReactionModalProps) => {
     const [fadeAnim] = useState(new Animated.Value(0));
     const [scaleAnim] = useState(new Animated.Value(0.5));
-    const [customEmojis, setCustomEmojis] = useState<CustomEmoji[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { customEmojis, loading: isLoading } = useEmojis();
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [actionBarHeight, setActionBarHeight] = useState(0);
@@ -134,45 +114,8 @@ const MessageReactionModal = ({
         }
     }, [visibleReactionBar, visibleActionBar]);
 
-    useEffect(() => {
-        const fetchEmojis = async () => {
-            try {
-                setIsLoading(true);
-                const token = await AsyncStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/emoji/list`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const data = await response.json();
-                const filteredEmojis = data.filter((emoji: CustomEmoji) =>
-                    REACTION_CODES.includes(emoji.code)
-                );
-                setCustomEmojis(filteredEmojis);
-            } catch (error) {
-                console.error('Lỗi khi lấy emoji:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (visibleReactionBar) {
-            fetchEmojis();
-        }
-    }, [visibleReactionBar]);
-
-    // Thêm vào component để debug
-    useEffect(() => {
-        console.log('CustomEmojis:', customEmojis);
-    }, [customEmojis]);
-
-    // Danh sách emoji reactions
-    const reactions = [
-        { emoji: "👍", isCustom: false },
-        { emoji: "❤️", isCustom: false },
-        { emoji: "😂", isCustom: false },
-        { emoji: "😮", isCustom: false },
-        { emoji: "😢", isCustom: false },
-        { emoji: "🙏", isCustom: false },
-    ];
+    // Reaction bar shows all loaded custom emojis
+    const reactionEmojis = customEmojis;
 
     // Danh sách actions (sử dụng hàm khởi tạo mới với messageType)
     const actions = initializeActions(isPinned, selectedMessage?.type || 'text');
@@ -202,12 +145,12 @@ const MessageReactionModal = ({
     // Tính toán kích thước của các components
     const onReactBarLayout = (event: any) => {
         setReactBarHeight(event.nativeEvent.layout.height);
-        setIsLoading(false);
+        setLoading(false);
     };
 
     const onActionBarLayout = (event: any) => {
         setActionBarHeight(event.nativeEvent.layout.height);
-        setIsLoading(false);
+        setLoading(false);
     };
 
     if ((!visibleReactionBar && !visibleActionBar) || !position) return null;
@@ -231,31 +174,7 @@ const MessageReactionModal = ({
                     {selectedMessage && (
                         <View className="bg-white p-3 rounded-xl max-w-[80%] mb-3 ml-[3%]">
                             <Text className="text-sm font-bold text-[#00687F] mb-1">{selectedMessage.sender.fullname}</Text>
-                            {selectedMessage.type === 'image' && (
-                                <View className="flex-row items-center">
-                                    <Ionicons name="image-outline" size={14} color="#666" style={{ marginRight: 4 }} />
-                                    <Text className="text-base text-[#333]">Hình ảnh</Text>
-                                </View>
-                            )}
-                            {selectedMessage.type === 'multiple-images' && selectedMessage.fileUrls && (
-                                <View className="flex-row items-center">
-                                    <Ionicons name="images-outline" size={14} color="#666" style={{ marginRight: 4 }} />
-                                    <Text className="text-base text-[#333]">
-                                        {selectedMessage.fileUrls.length} hình ảnh
-                                    </Text>
-                                </View>
-                            )}
-                            {selectedMessage.type === 'file' && (
-                                <View className="flex-row items-center">
-                                    <Ionicons name="document-outline" size={14} color="#666" style={{ marginRight: 4 }} />
-                                    <Text className="text-base text-[#333]">Tệp đính kèm</Text>
-                                </View>
-                            )}
-                            {selectedMessage.type === 'text' && (
-                                <Text className="text-base text-[#333]" numberOfLines={1}>
-                                    {selectedMessage.content}
-                                </Text>
-                            )}
+                            <MessageContent message={selectedMessage} isPreview={true} />
                         </View>
                     )}
 
@@ -271,8 +190,8 @@ const MessageReactionModal = ({
                             <View className="flex-row justify-around items-center px-2">
                                 {isLoading ? (
                                     <Text>Đang tải...</Text>
-                                ) : customEmojis.length > 0 ? (
-                                    customEmojis.map((emoji, index) => (
+                                ) : reactionEmojis.length > 0 ? (
+                                    reactionEmojis.map((emoji, index) => (
                                         <TouchableOpacity
                                             key={index}
                                             activeOpacity={0.7}
@@ -293,7 +212,7 @@ const MessageReactionModal = ({
                                             }}
                                         >
                                             <Image
-                                                source={{ uri: `${API_BASE_URL}${emoji.url}` }}
+                                                source={emoji.url}
                                                 className="w-12 h-12"
                                                 resizeMode="contain"
                                             />
@@ -365,7 +284,5 @@ const MessageReactionModal = ({
         </Modal>
     );
 };
-
-
 
 export default MessageReactionModal; 

@@ -16,6 +16,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../../../types/user';
 import { Message } from '../../../types/chat';
 import { API_BASE_URL } from '../../../config/constants';
+import Avatar from './Avatar';
+import MessageContent from './MessageContent';
 
 interface ForwardMessageSheetProps {
     message: Message;
@@ -68,13 +70,6 @@ const ForwardMessageSheet = ({ message, currentUser, onClose, onForward, visible
         }
     };
 
-    const getAvatar = (user: User) => {
-        if (user.avatarUrl) {
-            return `${API_BASE_URL}/uploads/Avatar/${user.avatarUrl}`;
-        }
-        return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}`;
-    };
-
     const renderUserItem = ({ item }: { item: User }) => (
         <TouchableOpacity
             className="items-center justify-center"
@@ -85,10 +80,7 @@ const ForwardMessageSheet = ({ message, currentUser, onClose, onForward, visible
             }}
         >
             <View className="w-fit items-center">
-                <Image
-                    source={{ uri: getAvatar(item) }}
-                    className="w-20 h-20 rounded-full mb-1"
-                />
+                <Avatar user={item} size={60} statusSize={15} />
                 <Text className="text-xs text-center text-gray-900">
                     {item.fullname}
                 </Text>
@@ -201,10 +193,7 @@ const ForwardMessageSheet = ({ message, currentUser, onClose, onForward, visible
                                                 onPress={() => setSelectedUsers(selectedUsers.filter(u => u._id !== user._id))}
                                             >
                                                 <View>
-                                                    <Image
-                                                        source={{ uri: getAvatar(user) }}
-                                                        className="w-20 h-20 rounded-full"
-                                                    />
+                                                    <Avatar user={user} size={60} statusSize={15} />
                                                     <View className="absolute bottom-0 right-0 bg-green-500 w-6 h-6 rounded-full items-center justify-center">
                                                         <MaterialIcons name="check" size={16} color="white" />
                                                     </View>
@@ -263,7 +252,7 @@ const ForwardMessageSheet = ({ message, currentUser, onClose, onForward, visible
                     </View>
                     <View className="flex-row items-center px-4 py-3 mb-[10%] border-t border-gray-200 ">
                         <View className="flex-1 bg-gray-100 rounded-lg px-3 py-2 mr-3">
-                            <Text className="text-base text-gray-800">{message.content}</Text>
+                            <MessageContent message={message} isPreview={true} />
                         </View>
                         <TouchableOpacity
                             onPress={handleForwardMessages}

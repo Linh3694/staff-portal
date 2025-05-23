@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Image, TouchableOpacity, Text, Dimensions, GestureResponderEvent } from 'react-native';
 import { API_BASE_URL } from '../../../config/constants';
+import { processImageUrl } from '../Utils/image';
 
 type ImageGridProps = {
     images: string[];
@@ -13,12 +14,6 @@ const ImageGrid = ({ images, onPress, onLongPress, onPressOut }: ImageGridProps)
     const screenWidth = Dimensions.get('window').width;
     const maxWidth = screenWidth * 0.7; // Chiếm khoảng 70% chiều rộng màn hình
     const gap = 2; // Khoảng cách giữa các ảnh
-
-    // Xử lý URL ảnh
-    const processImageUrl = (url: string) => {
-        if (!url) return '';
-        return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
-    };
 
     const processedImages = images.map(processImageUrl);
 
