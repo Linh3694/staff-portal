@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { NavigationContainer } from '@react-navigation/native';
 import BottomTabNavigator from './BottomTabNavigator';
 import WelcomeScreen from '../screens/Login/WelcomeScreen';
 import LoginScreen from '../screens/Login/SignInScreen';
@@ -13,6 +12,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ChatInitScreen from '../screens/Chat/ChatInitScreen';
 import TicketAdminDetail from '../screens/Ticket/TicketAdminDetail';
 import TicketGuestDetail from '../screens/Ticket/TicketGuestDetail';
+import DevicesScreen from '../screens/Devices/DevicesScreen';
+import DevicesDetailScreen from '../screens/Devices/DevicesDetailScreen';
 import { useAuth } from '../context/AuthContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -46,6 +47,8 @@ export type RootStackParamList = {
     [ROUTES.SCREENS.TICKET]: undefined;
     [ROUTES.SCREENS.TICKET_ADMIN]: undefined;
     [ROUTES.SCREENS.TICKET_GUEST]: undefined;
+    [ROUTES.SCREENS.DEVICES]: undefined;
+    [ROUTES.SCREENS.DEVICE_DETAIL]: { deviceId: string; deviceType: 'laptop' | 'monitor' | 'printer' | 'projector' | 'tool' };
 };
 
 const MainTabWrapper = ({ route }: { route: any }) => <BottomTabNavigator route={route} />;
@@ -103,28 +106,31 @@ const AppNavigator = () => {
     }
 
     return (
-        <Stack.Navigator>
-            {!isAuthenticated ? (
-                // Auth Stack
-                <>
-                    <Stack.Screen
-                        name={ROUTES.SCREENS.WELCOME}
-                        component={WelcomeScreen}
-                        options={{ headerShown: false }}
-                    />
-                    <Stack.Screen
-                        name={ROUTES.SCREENS.LOGIN}
-                        component={LoginScreen}
-                        options={{ headerShown: false }}
-                    />
-                </>
-            ) : (
-                // App Stack
-                <>
-                    <Stack.Screen
+            <Stack.Navigator
+                screenOptions={{
+                    headerShown: false,
+                    animation: 'slide_from_right',
+                }}
+            >
+                {!isAuthenticated ? (
+                    // Auth Stack
+                    <>
+                        <Stack.Screen
+                            name={ROUTES.SCREENS.WELCOME}
+                            component={WelcomeScreen}
+                        />
+                        <Stack.Screen
+                            name={ROUTES.SCREENS.LOGIN}
+                            component={LoginScreen}
+                        />
+                    </>
+                ) : (
+                    // App Stack
+                    <>
+                        <Stack.Screen
                             name={ROUTES.SCREENS.MAIN}
                             component={MainTabWrapper}
-                            options={{ headerShown: false }}
+                            initialParams={{ screen: 'Home' }}
                         />
                         <Stack.Screen
                             name={ROUTES.SCREENS.TICKET}
@@ -156,19 +162,29 @@ const AppNavigator = () => {
                             component={TicketGuestDetail}
                             options={{ headerShown: false }}
                         />
-                    <Stack.Screen
-                        name={ROUTES.SCREENS.TICKET_ADMIN}
-                        component={TicketAdminScreen}
-                        options={{ headerShown: false }}
-                    />
-                    <Stack.Screen
-                        name={ROUTES.SCREENS.TICKET_GUEST}
-                        component={TicketGuestScreen}
-                        options={{ headerShown: false }}
-                    />
-                </>
-            )}
-        </Stack.Navigator>
+                        <Stack.Screen
+                            name={ROUTES.SCREENS.TICKET_ADMIN}
+                            component={TicketAdminScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name={ROUTES.SCREENS.TICKET_GUEST}
+                            component={TicketGuestScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name={ROUTES.SCREENS.DEVICES}
+                            component={DevicesScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name={ROUTES.SCREENS.DEVICE_DETAIL}
+                            component={DevicesDetailScreen}
+                            options={{ headerShown: false }}
+                        />
+                    </>
+                )}
+            </Stack.Navigator>
     );
 };
 

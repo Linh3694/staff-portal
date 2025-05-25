@@ -3,11 +3,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ROUTES } from '../constants/routes';
 import HomeScreen from '../screens/Home/HomeScreen';
 import ChatScreen from '../screens/Chat/ChatScreen';
+import WislifeScreen from '../screens/Wislife/WislifeScreen';
 import NotificationsScreen from '../screens/Notifications/NotificationsScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import { Text, View } from 'react-native';
 import MenuIcon from '../assets/menu.svg';
 import ChatIcon from '../assets/chat.svg';
+import WislifeIcon from '../assets/wislife.svg';
 import NotificationIcon from '../assets/notification.svg';
 import ProfileIcon from '../assets/profile.svg';
 
@@ -59,6 +61,18 @@ const BottomTabNavigator = ({ route }: { route: any }) => {
                 })}
             />
             <Tab.Screen
+                name={ROUTES.MAIN.WISLIFE}
+                component={WislifeScreen}
+                options={{
+                    tabBarIcon: ({ focused }) => (
+                        <View className="items-center">
+                            <WislifeIcon width={28} height={28} />
+                        </View>
+                    ),
+                    tabBarLabel: ({ focused }) => tabBarLabel('Wislife', focused),
+                }}
+            />
+            {/* <Tab.Screen
                 name={ROUTES.MAIN.NOTIFICATIONS}
                 component={NotificationsScreen}
                 options={{
@@ -69,7 +83,7 @@ const BottomTabNavigator = ({ route }: { route: any }) => {
                     ),
                     tabBarLabel: ({ focused }) => tabBarLabel('Thông báo', focused),
                 }}
-            />
+            /> */}
             <Tab.Screen
                 name={ROUTES.MAIN.PROFILE}
                 component={ProfileScreen}

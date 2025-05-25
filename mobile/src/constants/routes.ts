@@ -13,11 +13,15 @@ export const ROUTES = {
         TICKET: 'Ticket',
         TICKET_ADMIN: 'TicketAdmin',
         TICKET_GUEST: 'TicketGuest',
+        DEVICES: 'Devices',
+        DEVICE_DETAIL: 'DeviceDetail',
+        WISLIFE: 'Wislife',
     },
     // Tab names trong bottom navigation
     TABS: {
         HOME: 'Home',
         CHAT: 'Chat',
+        WISLIFE: 'Wislife',
         TICKET: 'Ticket',
         NOTIFICATION: 'Notification',
         PROFILE: 'Profile'
@@ -31,6 +35,7 @@ export const ROUTES = {
     MAIN: {
         HOME: 'Home',
         CHAT: 'Chat',
+        WISLIFE: 'Wislife',
         NOTIFICATIONS: 'Notification',
         PROFILE: 'Profile',
         TICKET: 'Ticket'

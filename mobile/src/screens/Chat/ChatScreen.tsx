@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { View, Text, SafeAreaView, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import debounce from 'lodash.debounce';
@@ -11,7 +11,8 @@ import io from 'socket.io-client';
 import { useOnlineStatus } from '../../context/OnlineStatusContext';
 import { API_BASE_URL } from '../../config/constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Avatar from './Component/Avatar';
+import Avatar from '../../components/Chat/Avatar';
+import { useEmojis } from '../../hooks/useEmojis';
 
 interface User {
     _id: string;
@@ -23,11 +24,12 @@ interface Message {
     _id: string;
     content: string;
     createdAt: string;
-    sender: string;
+    sender: string | { _id: string; fullname: string; avatarUrl?: string };
     readBy: string[];
     type?: string;
     fileUrl?: string;
     fileUrls?: string[];
+    isEmoji?: boolean;
 }
 
 interface Chat {
@@ -45,6 +47,7 @@ const ChatScreen = () => {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [forwardMode, setForwardMode] = useState(false);
     const [messageToForwardId, setMessageToForwardId] = useState<string | null>(null);
+    const [shouldRefresh, setShouldRefresh] = useState(false);
     const { isUserOnline, getFormattedLastSeen } = useOnlineStatus();
     const navigation = useNavigation<NativeStackNavigationProp<ChatStackParamList>>();
     const route = useRoute();
@@ -54,6 +57,62 @@ const ChatScreen = () => {
     };
     const socketRef = useRef<any>(null);
     const insets = useSafeAreaInsets();
+
+    const { customEmojis } = useEmojis();
+
+    // Tạo function để sắp xếp users theo độ ưu tiên:
+    // 1. Users đang online (hiển thị trước)
+    // 2. Users đã có chat gần đây
+    // 3. Sắp xếp theo thời gian tin nhắn cuối cùng (nếu có chat)
+    // 4. Sắp xếp theo tên (nếu cùng trạng thái)
+    const getSortedUsers = useMemo(() => {
+        if (!currentUserId) return users;
+
+        // Lọc bỏ current user khỏi danh sách
+        const filteredUsers = users.filter(user => user._id !== currentUserId);
+
+        // Tạo map để tra cứu nhanh thông tin chat
+        const chatParticipantsMap = new Map();
+        const chatLastMessageMap = new Map();
+        
+        // Kiểm tra chats có tồn tại và là array trước khi forEach
+        if (chats && Array.isArray(chats)) {
+            chats.forEach(chat => {
+                const otherParticipant = chat.participants.find(p => p._id !== currentUserId);
+                if (otherParticipant) {
+                    chatParticipantsMap.set(otherParticipant._id, true);
+                    if (chat.lastMessage) {
+                        chatLastMessageMap.set(otherParticipant._id, new Date(chat.lastMessage.createdAt).getTime());
+                    }
+                }
+            });
+        }
+
+        return filteredUsers.sort((a, b) => {
+            const aIsOnline = isUserOnline(a._id);
+            const bIsOnline = isUserOnline(b._id);
+            const aHasChat = chatParticipantsMap.has(a._id);
+            const bHasChat = chatParticipantsMap.has(b._id);
+            const aLastMessageTime = chatLastMessageMap.get(a._id) || 0;
+            const bLastMessageTime = chatLastMessageMap.get(b._id) || 0;
+
+            // Ưu tiên 1: Users đang online
+            if (aIsOnline && !bIsOnline) return -1;
+            if (!aIsOnline && bIsOnline) return 1;
+
+            // Ưu tiên 2: Users đã có chat
+            if (aHasChat && !bHasChat) return -1;
+            if (!aHasChat && bHasChat) return 1;
+
+            // Ưu tiên 3: Nếu cả hai đều có chat, sắp xếp theo thời gian tin nhắn cuối
+            if (aHasChat && bHasChat) {
+                return bLastMessageTime - aLastMessageTime;
+            }
+
+            // Ưu tiên 4: Sắp xếp theo tên nếu cùng trạng thái
+            return a.fullname.localeCompare(b.fullname);
+        });
+    }, [users, chats, currentUserId, isUserOnline]);
 
     // Check if we're in forwarding mode based on route params
     useEffect(() => {
@@ -136,6 +195,61 @@ const ChatScreen = () => {
                     return [chat, ...prev];
                 });
             });
+
+            // Lắng nghe sự kiện tin nhắn được đọc để cập nhật UI
+            socketRef.current.on('messageRead', (data: { chatId: string, userId: string, timestamp: string }) => {
+                console.log('Message read event received in ChatScreen:', data);
+                setChats(prev => prev.map(chat => {
+                    if (chat._id === data.chatId && chat.lastMessage) {
+                        // Chỉ cập nhật nếu tin nhắn cuối không phải do người đọc gửi
+                        const senderId = typeof chat.lastMessage.sender === 'object' 
+                            ? (chat.lastMessage.sender as any)._id 
+                            : chat.lastMessage.sender;
+                        if (senderId !== data.userId) {
+                            const currentReadBy = chat.lastMessage.readBy || [];
+                            if (!currentReadBy.includes(data.userId)) {
+                                return {
+                                    ...chat,
+                                    lastMessage: {
+                                        ...chat.lastMessage,
+                                        readBy: [...currentReadBy, data.userId]
+                                    }
+                                };
+                            }
+                        }
+                    }
+                    return chat;
+                }));
+            });
+
+            // Lắng nghe sự kiện cập nhật chat để refresh real-time
+            socketRef.current.on('chatUpdated', (updatedChat: Chat) => {
+                console.log('Chat updated event:', updatedChat);
+                setChats(prev => {
+                    const idx = prev.findIndex(c => c._id === updatedChat._id);
+                    if (idx > -1) {
+                        const newArr = [...prev];
+                        newArr[idx] = updatedChat;
+                        return newArr;
+                    }
+                    return prev;
+                });
+            });
+
+            // Lắng nghe sự kiện tin nhắn mới để cập nhật chat list
+            socketRef.current.on('newMessage', (data: { chatId: string, message: Message }) => {
+                console.log('New message event:', data);
+                setChats(prev => prev.map(chat => {
+                    if (chat._id === data.chatId) {
+                        return {
+                            ...chat,
+                            lastMessage: data.message,
+                            updatedAt: data.message.createdAt
+                        };
+                    }
+                    return chat;
+                }));
+            });
         };
 
         setupGlobalSocket();
@@ -147,43 +261,62 @@ const ChatScreen = () => {
         };
     }, [currentUserId]);
 
-    // Đặt ngoài useFocusEffect và useEffect
-    const fetchChats = async () => {
+    // Function để fetch chats với option force refresh
+    const fetchChats = async (forceRefresh = false) => {
         try {
             const token = await AsyncStorage.getItem('authToken');
             if (!token) return;
-            const res = await fetch(API_BASE_URL + '/api/chats/list', {
+            
+            // Thêm timestamp để force refresh nếu cần
+            const url = forceRefresh 
+                ? `${API_BASE_URL}/api/chats/list?t=${Date.now()}`
+                : `${API_BASE_URL}/api/chats/list`;
+                
+            const res = await fetch(url, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
-            setChats(data);
+            // Đảm bảo data là array trước khi set state
+            setChats(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Error fetching chats:', err);
         }
     };
 
-    // Trong useFocusEffect
+    // Refresh chats khi màn hình được focus để cập nhật trạng thái đã đọc
     useFocusEffect(
         React.useCallback(() => {
-            fetchChats();
-        }, [navigation, currentUserId])
+            if (currentUserId) {
+                fetchChats(true); // Force refresh để đảm bảo dữ liệu mới nhất
+            }
+        }, [currentUserId])
     );
 
-    // Trong useEffect
+    // Lắng nghe khi quay lại từ ChatDetail để refresh chats
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
-            fetchChats();
+            if (currentUserId && shouldRefresh) {
+                // Refresh ngay lập tức khi quay lại từ chat
+                fetchChats(true);
+                // Delay để đảm bảo API đã cập nhật trạng thái đọc
+                setTimeout(() => {
+                    fetchChats(true);
+                    setShouldRefresh(false); // Reset flag
+                }, 300);
+            }
         });
         return unsubscribe;
-    }, [navigation, currentUserId]);
+    }, [navigation, currentUserId, shouldRefresh]);
 
     const handleSearch = async (text: string) => {
         try {
             let usersData = [];
             if (text.trim() === "") {
+                // Khi không có search text, fetch tất cả users
                 const usersRes = await fetch(API_BASE_URL + '/api/users');
                 usersData = await usersRes.json();
             } else {
+                // Khi có search text, tìm kiếm users
                 const res = await fetch(`${API_BASE_URL}/api/users/search?query=${encodeURIComponent(text)}`);
                 if (res.ok) {
                     usersData = await res.json();
@@ -193,6 +326,7 @@ const ChatScreen = () => {
             }
             setUsers(usersData);
         } catch (err) {
+            console.error('Error searching users:', err);
             setUsers([]);
         }
     };
@@ -238,23 +372,45 @@ const ChatScreen = () => {
             }
         } else {
             // Normal navigation to chat
+            setShouldRefresh(true); // Set flag để refresh khi quay lại
             hideTabBar();
             navigation.navigate('ChatDetail', { user: other, chatId: chat._id });
         }
     };
 
-    const renderUser = ({ item }: { item: User }) => (
-        <TouchableOpacity
-            className="items-center mr-4 w-20"
-            onPress={() => {
-                hideTabBar();
+    const renderUser = useCallback(({ item }: { item: User }) => {
+        const handleUserPress = () => {
+            // Tìm chat hiện có với user này
+            const existingChat = chats && Array.isArray(chats) ? chats.find(chat => 
+                chat.participants.some(p => p._id === item._id)
+            ) : null;
+            
+            setShouldRefresh(true); // Set flag để refresh khi quay lại
+            hideTabBar();
+            if (existingChat) {
+                // Nếu đã có chat, navigate với chatId
+                navigation.navigate('ChatDetail', { user: item, chatId: existingChat._id });
+            } else {
+                // Nếu chưa có chat, tạo chat mới
                 navigation.navigate('ChatDetail', { user: item });
-            }}
-        >
-            <Avatar user={item} size={64} statusSize={15} />
-            <Text className="mt-1 text-xs text-center w-20 font-medium" numberOfLines={1}>{item.fullname}</Text>
-        </TouchableOpacity>
-    );
+            }
+        };
+
+        return (
+            <TouchableOpacity
+                className="items-center mr-4 w-20"
+                onPress={handleUserPress}
+            >
+                <Avatar user={item} size={64} statusSize={15} />
+                <Text 
+                    className="mt-1 text-xs text-center w-20 font-medium" 
+                    numberOfLines={1}
+                >
+                    {item.fullname}
+                </Text>
+            </TouchableOpacity>
+        );
+    }, [chats, hideTabBar, navigation]);
 
     const renderChat = ({ item, index }: { item: Chat, index: number }) => {
         if (!Array.isArray(item.participants)) {
@@ -279,8 +435,11 @@ const ChatScreen = () => {
         }) : '';
 
         // Kiểm tra xem tin nhắn đã được đọc chưa
+        const lastMessageSenderId = typeof item.lastMessage?.sender === 'object' 
+            ? item.lastMessage.sender._id 
+            : item.lastMessage?.sender;
         const hasUnreadMessage = item.lastMessage &&
-            item.lastMessage.sender !== currentUserId &&
+            lastMessageSenderId !== currentUserId &&
             (!item.lastMessage.readBy || !item.lastMessage.readBy.includes(currentUserId));
 
         // Xử lý nội dung tin nhắn cuối cùng để hiển thị
@@ -302,7 +461,7 @@ const ChatScreen = () => {
             }
 
             // Thêm tiền tố "Bạn: " nếu người gửi là người dùng hiện tại
-            if (item.lastMessage.sender === currentUserId) {
+            if (lastMessageSenderId === currentUserId) {
                 lastMessageContent = `Bạn: ${lastMessageContent}`;
             }
         }
@@ -317,13 +476,32 @@ const ChatScreen = () => {
                 <View className="flex-1 ml-4">
                     <Text className={`${hasUnreadMessage ? 'font-bold' : 'font-medium'} text-lg`} numberOfLines={1}>{other.fullname}</Text>
                     <View className="flex-row items-center">
-                        <Text
-                            className={`${hasUnreadMessage ? 'text-secondary font-bold' : 'text-gray-500 font-medium'} text-base mr-1`}
-                            numberOfLines={1}
-                            style={{ maxWidth: '70%' }}
-                        >
-                            {lastMessageContent}
-                        </Text>
+                        {item.lastMessage?.isEmoji ? (() => {
+                            const emoji = customEmojis.find(e => e.code === item.lastMessage?.content);
+                            return emoji ? (
+                                <Image
+                                    source={emoji.url}
+                                    style={{ width: 20, height: 20, marginRight: 4 }}
+                                    resizeMode="contain"
+                                />
+                            ) : (
+                                <Text
+                                    className={`${hasUnreadMessage ? 'text-secondary font-bold' : 'text-gray-500 font-medium'} text-base mr-1`}
+                                    numberOfLines={1}
+                                    style={{ maxWidth: '70%' }}
+                                >
+                                    {lastMessageContent}
+                                </Text>
+                            );
+                        })() : (
+                            <Text
+                                className={`${hasUnreadMessage ? 'text-secondary font-bold' : 'text-gray-500 font-medium'} text-base mr-1`}
+                                numberOfLines={1}
+                                style={{ maxWidth: '70%' }}
+                            >
+                                {lastMessageContent}
+                            </Text>
+                        )}
                         <Text className="text-xs text-gray-400 font-medium mt-1">
                             • {isUserOnline(other._id) ? 'Đang hoạt động' : getFormattedLastSeen(other._id)}
                         </Text>
@@ -379,14 +557,31 @@ const ChatScreen = () => {
                 </View>
             </View>
             <View className="mt-2">
-                <FlatList
-                    data={users}
-                    horizontal
-                    keyExtractor={item => item._id}
-                    renderItem={renderUser}
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 16 }}
-                />
+                {getSortedUsers.length > 0 ? (
+                    <FlatList
+                        data={getSortedUsers}
+                        horizontal
+                        keyExtractor={item => item._id}
+                        renderItem={renderUser}
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ paddingHorizontal: 16 }}
+                        initialNumToRender={10}
+                        maxToRenderPerBatch={5}
+                        windowSize={10}
+                        removeClippedSubviews={true}
+                        getItemLayout={(data, index) => ({
+                            length: 80, // width của mỗi user item
+                            offset: 80 * index,
+                            index,
+                        })}
+                    />
+                ) : (
+                    <View className="px-4 py-8">
+                        <Text className="text-gray-500 text-center font-medium">
+                            {search.trim() ? 'Không tìm thấy người dùng nào' : 'Đang tải danh sách người dùng...'}
+                        </Text>
+                    </View>
+                )}
             </View>
             <Text className="text-lg font-medium text-gray-900 mt-[5%] ml-[5%]">
                 Trò chuyện

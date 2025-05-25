@@ -27,7 +27,6 @@ const ProfileScreen = () => {
 
     const handleLogout = async () => {
         await logout();
-        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     };
 
     const handleEnableBiometric = () => {

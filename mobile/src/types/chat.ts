@@ -1,4 +1,5 @@
 import type { User } from '../navigation/AppNavigator';
+import { ImageSourcePropType } from 'react-native';
 
 export type NotificationType = 'success' | 'error';
 
@@ -55,7 +56,7 @@ export interface CustomEmoji {
     _id: string;
     name: string;
     code: string;
-    url: string;
+    url: string | ImageSourcePropType;
     type: string;
     category: string;
 } 

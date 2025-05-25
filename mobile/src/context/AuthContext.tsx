@@ -67,6 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             await AsyncStorage.setItem('userId', userData._id);
                             await AsyncStorage.setItem('userFullname', userData.fullname);
                             await AsyncStorage.setItem('userRole', userData.role || 'user');
+                            await AsyncStorage.setItem('userJobTitle', userData.jobTitle || 'N/A');
                             setLoading(false);
                             return true;
                         }

@@ -1,7 +1,11 @@
-import React, { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useLayoutEffect, useCallback, useMemo, memo } from 'react';
+// @ts-ignore
 import { View, Text, TextInput, FlatList, TouchableOpacity, Image, KeyboardAvoidingView, SafeAreaView, Linking, Alert, ActionSheetIOS, ScrollView, Dimensions, Modal, StatusBar, PanResponder, GestureResponderEvent, Keyboard, ImageBackground, Animated, Pressable, Clipboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LayoutAnimation, Platform, UIManager } from 'react-native';
+// @ts-ignore
+import { Platform, UIManager } from 'react-native';
+// @ts-ignore
+import { LayoutAnimation } from 'react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
 // Enable LayoutAnimation on Android
 
@@ -21,25 +25,28 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useOnlineStatus } from '../../context/OnlineStatusContext';
 import { Video, ResizeMode } from 'expo-av';
 import ImageViewing from 'react-native-image-viewing';
+// @ts-ignore
 import { AppState, AppStateStatus } from 'react-native';
 import { API_BASE_URL } from '../../config/constants';
 import { ROUTES } from '../../constants/routes';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import MessageReactionModal from './Component/MessageReactionModal';
-import PinnedMessageBanner from './Component/PinnedMessageBanner';
+import MessageReactionModal from '../../components/Chat/MessageReactionModal';
+import PinnedMessageBanner from '../../components/Chat/PinnedMessageBanner';
 import NotificationModal from '../../components/NotificationModal';
 import { Message, Chat } from '../../types/message';
 import { NotificationType, ChatDetailParams } from '../../types/chat';
-import { CustomEmoji } from './Hook/useEmojis';
-import ImageGrid from './Component/ImageGrid';
-import MessageBubble from './Component/MessageBubble';
-import ImageViewerModal from './Component/ImageViewerModal';
-import ForwardMessageSheet from './Component/ForwardMessageSheet';
+import { CustomEmoji } from '../../hooks/useEmojis';
+import ImageGrid from '../../components/Chat/ImageGrid';
+import MessageBubble from '../../components/Chat/MessageBubble';
+import ImageViewerModal from '../../components/Chat/ImageViewerModal';
+import ForwardMessageSheet from '../../components/Chat/ForwardMessageSheet';
 import { formatMessageTime, formatMessageDate, getAvatar, isDifferentDay } from '../../utils/messageUtils';
-import MessageStatus from './Component/MessageStatus';
+import MessageStatus from '../../components/Chat/MessageStatus';
 import { getMessageGroupPosition } from '../../utils/messageGroupUtils';
-import EmojiPicker from './Component/EmojiPicker';
+import EmojiPicker from '../../components/Chat/EmojiPicker';
+import { useEmojis } from '../../hooks/useEmojis';
+import ConfirmModal from '../../components/ConfirmModal';
 
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -47,7 +54,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 
-const TypingIndicator = () => {
+const TypingIndicator = memo(() => {
     const [dots, setDots] = useState('.');
 
     useEffect(() => {
@@ -58,15 +65,53 @@ const TypingIndicator = () => {
                 if (prev === '.') return '..';
                 return '.';
             });
-        }, 300);
+        }, 400); // Slightly slower animation for better UX
 
         return () => clearInterval(interval);
     }, []);
 
     return (
-        <Text style={{ color: '#4A4A4A', fontSize: 12, fontStyle: 'italic' }}>đang soạn tin {dots} </Text>
+        <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center',
+            paddingHorizontal: 8,
+            paddingVertical: 4
+        }}>
+            <View style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: '#4A4A4A',
+                marginRight: 4,
+                opacity: dots.length >= 1 ? 1 : 0.3
+            }} />
+            <View style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: '#4A4A4A',
+                marginRight: 4,
+                opacity: dots.length >= 2 ? 1 : 0.3
+            }} />
+            <View style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: '#4A4A4A',
+                marginRight: 8,
+                opacity: dots.length >= 3 ? 1 : 0.3
+            }} />
+            <Text style={{ 
+                color: '#4A4A4A', 
+                fontSize: 12, 
+                fontStyle: 'italic',
+                fontFamily: 'Mulish-Italic'
+            }}>
+                đang soạn tin...
+            </Text>
+        </View>
     );
-};
+});
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChatDetail'>;
 
@@ -85,7 +130,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
     const [page, setPage] = useState(1);
     const [isOnline, setIsOnline] = useState(false);
-    const [customEmojis, setCustomEmojis] = useState<CustomEmoji[]>([]);
+    const { customEmojis, loading: emojisLoading } = useEmojis();
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
     const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
@@ -99,7 +144,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     const insets = useSafeAreaInsets();
     const { isUserOnline, getFormattedLastSeen } = useOnlineStatus();
     const [otherTyping, setOtherTyping] = useState(false);
-    let typingTimeout = useRef<NodeJS.Timeout | null>(null);
+    let typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [imagesToSend, setImagesToSend] = useState<any[]>([]);
     const bottomSheetHeight = 60 + (insets.bottom || 10);
     const [viewerVisible, setViewerVisible] = useState(false);
@@ -110,9 +155,11 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const [showReactionModal, setShowReactionModal] = useState(false);
     const [reactionModalPosition, setReactionModalPosition] = useState<{ x: number, y: number } | null>(null);
-    const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const messageScaleAnim = useRef(new Animated.Value(1)).current;
     const [replyTo, setReplyTo] = useState<Message | null>(null);
+    // State to hold an emoji selected for sending
+    const [selectedEmoji, setSelectedEmoji] = useState<CustomEmoji | null>(null);
     // Thêm state cho tính năng ghim tin nhắn
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
     const [notification, setNotification] = useState<{
@@ -126,27 +173,46 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     });
     const [showForwardSheet, setShowForwardSheet] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
+    const [messageToRevoke, setMessageToRevoke] = useState<any>(null);
 
-    // Hàm lưu tin nhắn vào AsyncStorage
-    const saveMessagesToStorage = async (chatId: string, messages: Message[]) => {
-        try {
-            const key = `chat_messages_${chatId}`;
-            await AsyncStorage.setItem(key, JSON.stringify(messages));
-            console.log('Saved messages to storage:', messages.length); // Thêm log
-        } catch (error) {
-            console.error('Error saving messages to storage:', error);
+    // Batched storage operations
+    const saveMessagesQueue = useRef<Map<string, Message[]>>(new Map());
+    const saveMessagesTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    
+    // Hàm lưu tin nhắn vào AsyncStorage với batching
+    const saveMessagesToStorage = useCallback(async (chatId: string, messages: Message[]) => {
+        // Add to queue
+        saveMessagesQueue.current.set(chatId, messages);
+        
+        // Clear existing timeout
+        if (saveMessagesTimeout.current) {
+            clearTimeout(saveMessagesTimeout.current);
         }
-    };
+        
+        // Batch save operations
+        saveMessagesTimeout.current = setTimeout(async () => {
+            try {
+                const promises = Array.from(saveMessagesQueue.current.entries()).map(([id, msgs]) => {
+                    const key = `chat_messages_${id}`;
+                    return AsyncStorage.setItem(key, JSON.stringify(msgs));
+                });
+                
+                await Promise.all(promises);
+                saveMessagesQueue.current.clear();
+            } catch (error) {
+                console.error('Error saving messages to storage:', error);
+            }
+        }, 1000); // Batch operations every 1 second
+    }, []);
 
     // Hàm lấy tin nhắn từ AsyncStorage
     const loadMessagesFromStorage = async (chatId: string) => {
         try {
             const key = `chat_messages_${chatId}`;
             const stored = await AsyncStorage.getItem(key);
-            console.log('Loading from storage, found data:', !!stored); // Thêm log
             if (stored) {
                 const messages = JSON.parse(stored) as Message[];
-                console.log('Loaded messages from storage:', messages.length); // Thêm log
                 return messages;
             }
         } catch (error) {
@@ -155,49 +221,150 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         return [];
     };
 
+
+
     // Hàm load tin nhắn từ server
     const loadMessages = async (chatId: string, pageNum: number = 1, append: boolean = false) => {
         try {
             const token = await AsyncStorage.getItem('authToken');
-            if (!token) return;
+            if (!token) {
+                console.error('No auth token found');
+                return;
+            }
+
+            if (append && isLoadingMore) {
+                console.log('Already loading more messages, skipping...');
+                return;
+            }
 
             setIsLoadingMore(true);
-            console.log('Loading messages for chat:', chatId);
+            
+            // Gọi API với pagination
+            const url = `${API_BASE_URL}/api/chats/messages/${chatId}?page=${pageNum}&limit=20`;
+            console.log(`Loading messages: ${url}`);
 
-            const response = await fetch(
-                `${API_BASE_URL}/api/chats/messages/${chatId}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` }
+            const response = await fetch(url, {
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
-            );
+            });
+
+            console.log(`Response status: ${response.status}`);
 
             if (response.ok) {
+                const contentType = response.headers.get('content-type');                
+                if (!contentType || !contentType.includes('application/json')) {
+                    const textResponse = await response.text();
+                    console.error('Expected JSON but got:', textResponse.substring(0, 200));
+                    throw new Error('Server returned non-JSON response');
+                }
+                
                 const data = await response.json();
-                console.log('API Response:', data);
+                console.log('Received data:', {
+                    success: data.success,
+                    messagesCount: data.messages?.length,
+                    pagination: data.pagination
+                });
 
-                if (!Array.isArray(data)) {
-                    console.error('Invalid response format:', data);
-                    return;
+                // Kiểm tra cấu trúc response - ưu tiên cấu trúc mới
+                let messages = [];
+                let hasMore = false;
+                
+                if (data && typeof data === 'object' && data.success === true && Array.isArray(data.messages)) {
+                    // Cấu trúc response mới với pagination
+                    messages = data.messages;
+                    hasMore = data.pagination?.hasMore || false;
+                    console.log(`New format: ${messages.length} messages, hasMore: ${hasMore}`);
+                } else if (Array.isArray(data)) {
+                    // Cấu trúc response cũ - trả về trực tiếp array
+                    messages = data;
+                    hasMore = messages.length >= 20;
+                    console.log(`Old format: ${messages.length} messages, hasMore: ${hasMore}`);
+                } else {
+                    // Nếu không có tin nhắn nào, set empty array
+                    messages = [];
+                    hasMore = false;
+                    console.log('No messages found');
+                }
+                
+                setHasMoreMessages(hasMore);
+
+                // Validate messages structure
+                const validMessages = messages.filter(msg => 
+                    msg && msg._id && msg.sender && msg.createdAt
+                );
+
+                if (validMessages.length !== messages.length) {
+                    console.warn(`Filtered out ${messages.length - validMessages.length} invalid messages`);
                 }
 
                 // Sắp xếp tin nhắn theo thời gian
-                const sortedMessages = data.sort(
+                const sortedMessages = validMessages.sort(
                     (a: Message, b: Message) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
                 );
 
-                console.log('Sorted messages:', sortedMessages.length);
+                if (append) {
+                    // Thêm tin nhắn cũ vào đầu danh sách, tránh duplicate
+                    setMessages(prevMessages => {
+                        const existingIds = new Set(prevMessages.map(msg => msg._id));
+                        const newMessages = sortedMessages.filter(msg => !existingIds.has(msg._id));
+                        console.log(`Appending ${newMessages.length} new messages to existing ${prevMessages.length}`);
+                        return [...newMessages, ...prevMessages];
+                    });
+                } else {
+                    console.log(`Setting ${sortedMessages.length} messages`);
+                    setMessages(sortedMessages);
+                }
 
-                setMessages(sortedMessages);
-                setHasMoreMessages(false); // Tạm thời tắt load more
-
-                // Lưu vào storage
-                await saveMessagesToStorage(chatId, sortedMessages);
+                // Lưu vào storage (chỉ lưu khi không append để tránh duplicate)
+                if (!append && sortedMessages.length > 0) {
+                    await saveMessagesToStorage(chatId, sortedMessages);
+                }
             } else {
                 const errorText = await response.text();
-                console.error('API Error:', errorText);
+                console.error(`API Error ${response.status}:`, errorText);
+                
+                // Fallback: load từ storage nếu API thất bại và không phải append
+                if (!append) {
+                    try {
+                        console.log('Attempting to load from storage...');
+                        const storedMessages = await loadMessagesFromStorage(chatId);
+                        if (storedMessages.length > 0) {
+                            console.log(`Loaded ${storedMessages.length} messages from storage`);
+                            setMessages(storedMessages);
+                            setHasMoreMessages(false);
+                        } else {
+                            console.log('No messages in storage');
+                            setMessages([]);
+                        }
+                    } catch (storageError) {
+                        console.error('Error loading from storage:', storageError);
+                        setMessages([]);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error loading messages:', error);
+
+            // Fallback: load từ storage nếu API thất bại và không phải append
+            if (!append) {
+                try {
+                    console.log('Attempting to load from storage after error...');
+                    const storedMessages = await loadMessagesFromStorage(chatId);
+                    if (storedMessages.length > 0) {
+                        console.log(`Loaded ${storedMessages.length} messages from storage after error`);
+                        setMessages(storedMessages);
+                        setHasMoreMessages(false);
+                    } else {
+                        console.log('No messages in storage after error');
+                        setMessages([]);
+                    }
+                } catch (storageError) {
+                    console.error('Error loading from storage after error:', storageError);
+                    setMessages([]);
+                }
+            }
         } finally {
             setIsLoadingMore(false);
         }
@@ -205,33 +372,54 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
     // Xử lý load more khi scroll lên trên
     const handleLoadMore = () => {
-        if (!isLoadingMore && hasMoreMessages && chat?._id) {
-            const nextPage = page + 1;
-            setPage(nextPage);
-            loadMessages(chat._id, nextPage, true);
+        console.log('handleLoadMore called:', {
+            isLoadingMore,
+            hasMoreMessages,
+            chatId: chat?._id,
+            currentPage: page
+        });
+
+        if (isLoadingMore) {
+            console.log('Already loading, skipping...');
+            return;
         }
+
+        if (!hasMoreMessages) {
+            console.log('No more messages to load');
+            return;
+        }
+
+        if (!chat?._id) {
+            console.log('No chat ID available');
+            return;
+        }
+
+        const nextPage = page + 1;
+        console.log(`Loading page ${nextPage}`);
+        setPage(nextPage);
+        loadMessages(chat._id, nextPage, true);
     };
 
     // Focus & blur handlers for tracking when screen is active/inactive
     useEffect(() => {
         const unsubscribeFocus = navigation.addListener('focus', () => {
-            console.log('ChatDetail screen focused');
             setIsScreenActive(true);
 
-            // Mark messages as read when screen comes into focus
-            if (currentUserId && chatIdRef.current) {
-                const fetchToken = async () => {
-                    const token = await AsyncStorage.getItem('authToken');
-                    if (token) {
-                        markMessagesAsRead(chatIdRef.current, currentUserId, token);
-                    }
-                };
-                fetchToken();
-            }
+            // Mark messages as read when screen comes into focus với delay nhỏ
+            setTimeout(() => {
+                if (currentUserId && chatIdRef.current) {
+                    const fetchToken = async () => {
+                        const token = await AsyncStorage.getItem('authToken');
+                        if (token) {
+                            markMessagesAsRead(chatIdRef.current, currentUserId, token);
+                        }
+                    };
+                    fetchToken();
+                }
+            }, 500);
         });
 
         const unsubscribeBlur = navigation.addListener('blur', () => {
-            console.log('ChatDetail screen blurred');
             setIsScreenActive(false);
         });
 
@@ -263,7 +451,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                         setCurrentUserId(userId);
                     }
                 } catch (err) {
-                    console.log('Error fetching current user:', err);
+                    console.error('Error fetching current user:', err);
                 }
             }
         };
@@ -279,7 +467,9 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     }, [navigation]);
 
     useEffect(() => {
-        if (!currentUserId) return;
+        if (!currentUserId) {
+            return;
+        }
 
         const fetchData = async () => {
             setLoading(true);
@@ -291,8 +481,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 }
 
                 if (routeChatId) {
-                    console.log('Fetching chat data for:', routeChatId);
-
                     // Lấy thông tin chat
                     const chatRes = await fetch(`${API_BASE_URL}/api/chats/${routeChatId}`, {
                         headers: { Authorization: `Bearer ${authToken}` },
@@ -303,12 +491,10 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     }
 
                     const chatData = await chatRes.json();
-                    console.log('Chat data received:', chatData);
                     setChat(chatData);
                     chatIdRef.current = routeChatId;
 
                     // Load tin nhắn từ server
-                    console.log('Loading messages from server');
                     await loadMessages(routeChatId);
 
                     // Lấy tin nhắn đã ghim
@@ -333,7 +519,30 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         try {
             const timestamp = new Date().toISOString();
 
-            // Sử dụng API mới để đánh dấu tất cả tin nhắn đã đọc
+            // Cập nhật UI ngay lập tức để responsive hơn
+            setMessages(prevMessages =>
+                prevMessages.map(msg => {
+                    if (msg.sender._id !== userId && (!msg.readBy || !msg.readBy.includes(userId))) {
+                        return {
+                            ...msg,
+                            readBy: [...(msg.readBy || []), userId]
+                        };
+                    }
+                    return msg;
+                })
+            );
+
+            // Gửi thông báo qua socket ngay lập tức
+            if (socketRef.current && socketRef.current.connected) {
+                console.log('Emitting messageRead event for chat:', chatId);
+                socketRef.current.emit('messageRead', {
+                    userId: userId,
+                    chatId: chatId,
+                    timestamp: timestamp
+                });
+            }
+
+            // Sau đó gọi API để đồng bộ với server
             const response = await fetch(`${API_BASE_URL}/api/chats/read-all/${chatId}`, {
                 method: 'PUT',
                 headers: {
@@ -343,29 +552,9 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 body: JSON.stringify({ timestamp })
             });
 
-            if (response.ok) {
-                // Cập nhật state tin nhắn
-                setMessages(prevMessages =>
-                    prevMessages.map(msg => {
-                        if (msg.sender._id !== userId && (!msg.readBy || !msg.readBy.includes(userId))) {
-                            return {
-                                ...msg,
-                                readBy: [...(msg.readBy || []), userId]
-                            };
-                        }
-                        return msg;
-                    })
-                );
-
-                // Gửi thông báo qua socket rằng tin nhắn đã được đọc
-                if (socketRef.current && socketRef.current.connected) {
-                    console.log('Emitting messageRead event for chat:', chatId);
-                    socketRef.current.emit('messageRead', {
-                        userId: userId,
-                        chatId: chatId,
-                        timestamp: timestamp
-                    });
-                }
+            if (!response.ok) {
+                console.error('Failed to mark messages as read on server');
+                // Nếu API thất bại, có thể rollback UI state ở đây nếu cần
             }
         } catch (error) {
             console.error('Error marking messages as read:', error);
@@ -388,14 +577,35 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             // Join vào phòng chat
             socket.emit('joinChat', chatId);
 
-            // Lắng nghe tin nhắn mới
+            // Lắng nghe tin nhắn mới với batching và typing reset
+            const messageUpdateQueue = new Set<string>();
+            let messageUpdateTimeout: ReturnType<typeof setTimeout> | null = null;
+            
             socket.on('receiveMessage', (newMessage: Message) => {
-                console.log('Received new message:', newMessage);
+                console.log('Received new message:', {
+                    messageId: newMessage._id,
+                    senderId: newMessage.sender._id,
+                    content: newMessage.content?.substring(0, 50),
+                    type: newMessage.type,
+                    chatId: newMessage.chat || 'unknown'
+                });
+                
+                // Reset typing indicator khi nhận tin nhắn mới từ người đang typing
+                if (newMessage.sender._id === chatPartner._id) {
+                    console.log('Resetting typing indicator for partner');
+                    setOtherTyping(false);
+                }
+                
+                // Cập nhật tin nhắn ngay lập tức thay vì batching để responsive hơn
                 setMessages(prev => {
                     // Kiểm tra tin nhắn đã tồn tại chưa
                     const exists = prev.some(msg => msg._id === newMessage._id);
-                    if (exists) return prev;
+                    if (exists) {
+                        console.log('Message already exists, skipping');
+                        return prev;
+                    }
 
+                    console.log(`Adding new message to ${prev.length} existing messages`);
                     // Thêm tin nhắn mới và sắp xếp lại
                     const updatedMessages = [...prev, newMessage].sort(
                         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -405,11 +615,24 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     saveMessagesToStorage(chatId, updatedMessages);
                     return updatedMessages;
                 });
+
+                // Tự động đánh dấu đã đọc nếu screen đang active và tin nhắn không phải từ mình
+                if (isScreenActive && newMessage.sender._id !== currentUserId) {
+                    console.log('Auto-marking message as read');
+                    setTimeout(async () => {
+                        const token = await AsyncStorage.getItem('authToken');
+                        if (token && currentUserId) {
+                            markMessagesAsRead(chatId, currentUserId, token);
+                        }
+                    }, 1000); // Delay 1 giây để đảm bảo user đã thấy tin nhắn
+                }
             });
 
             // Lắng nghe trạng thái đã đọc
             socket.on('messageRead', ({ userId, chatId: updatedChatId }) => {
+                console.log('Received messageRead event:', { userId, chatId: updatedChatId });
                 if (updatedChatId === chatId) {
+                    // Cập nhật UI ngay lập tức
                     setMessages(prev => prev.map(msg => ({
                         ...msg,
                         readBy: msg.readBy?.includes(userId) ? msg.readBy : [...(msg.readBy || []), userId]
@@ -446,55 +669,50 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         }
     };
 
-    // Sửa hàm send message để phát hiện tin nhắn chỉ có emoji duy nhất
-    const sendMessage = async () => {
-        if (!input.trim() || !chat) return;
+    // ===================================================
+    // Gửi tin nhắn – hỗ trợ gửi emoji custom trực tiếp
+    // ===================================================
+    const sendMessage = async (emojiParam?: CustomEmoji) => {
+        if ((!input.trim() && !emojiParam) || !chat) return;
+
         const token = await AsyncStorage.getItem('authToken');
+        if (!token) return;
 
-        // Xử lý nội dung tin nhắn, thay thế mã emoji tùy chỉnh nếu có
-        let content = input.trim();
-        const emojiPattern = /\[(.*?)\]/g;
-        const matches = content.match(emojiPattern);
-
-        if (matches) {
-            matches.forEach(match => {
-                const emojiName = match.slice(1, -1); // Loại bỏ dấu [ và ]
-                const emoji = customEmojis.find(e => e.name === emojiName);
-                if (emoji) {
-                    content = content.replace(match, emoji.code);
-                }
-            });
-        }
-
-        // Kiểm tra xem đây có phải là một emoji duy nhất không
-        const isEmojiOnly = isSingleEmoji(content);
-
-        // Xóa input trước để UI phản hồi nhanh hơn
-        setInput('');
-
-        // Xóa replyTo sau khi gửi
         const replyToMessage = replyTo;
         setReplyTo(null);
 
-        try {
-            // Nếu là tin nhắn reply, sử dụng API khác
-            let url = `${API_BASE_URL}/api/chats/message`;
-            let body: any = {
-                chatId: chat._id,
-                content,
-                type: 'text',
-                isEmoji: isEmojiOnly,
-            };
+        let content = input.trim();
+        let url = `${API_BASE_URL}/api/chats/message`;
+        let body: any = {
+            chatId: chat._id,
+            content,
+            type: 'text',
+        };
 
-            // Nếu đang reply tin nhắn
-            if (replyToMessage) {
-                url = `${API_BASE_URL}/api/chats/message/reply`;
-                body = {
-                    ...body,
-                    replyToId: replyToMessage._id
-                };
+        if (emojiParam) {
+            // Nếu là emoji custom (có _id là ObjectId)
+            if (emojiParam._id && emojiParam._id.length === 24) {
+                body.isEmoji   = true;
+                body.emojiId   = emojiParam._id;
+                body.emojiType = emojiParam.type;
+                body.emojiName = emojiParam.name;
+                body.emojiUrl  = emojiParam.url;
+                body.content   = ''; // custom emoji không cần text
+            } else {
+                // Nếu là emoji unicode, chỉ gửi content là ký tự emoji, KHÔNG set isEmoji
+                body.content = emojiParam.code;
             }
+        }
 
+        // Trường hợp reply
+        if (replyToMessage) {
+            url = `${API_BASE_URL}/api/chats/message/reply`;
+            body.replyToId = replyToMessage._id;
+        }
+
+        try {
+            // DEBUG: log request details
+            console.log('Posting to:', url, 'body:', body);
             const res = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -504,27 +722,46 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 body: JSON.stringify(body),
             });
 
-            const newMessage = await res.json();
-            console.log('Gửi tin nhắn mới:', newMessage);
+            // Tránh lỗi parse JSON khi server trả HTML/text
+            if (!res.ok) {
+                const errText = await res.text();
+                console.error('Failed to send message:', res.status, errText);
+                Alert.alert('Lỗi gửi tin nhắn', `Server trả về ${res.status}: ${errText}`);
+                return;
+            }
 
-            // Thêm tin nhắn vào state trước khi nhận từ socket để hiển thị ngay lập tức
+            const newMessage = await res.json();
+            console.log('Sent new message:', newMessage);
+
             if (newMessage && newMessage._id) {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setMessages(prevMessages => {
-                    // Kiểm tra tin nhắn đã tồn tại chưa
-                    const exists = prevMessages.some(m => m._id === newMessage._id);
-                    return exists ? prevMessages : [...prevMessages, newMessage];
+                // Use more performant animation config
+                LayoutAnimation.configureNext({
+                    duration: 200,
+                    create: {
+                        type: LayoutAnimation.Types.easeInEaseOut,
+                        property: LayoutAnimation.Properties.opacity,
+                    },
+                    update: {
+                        type: LayoutAnimation.Types.easeInEaseOut,
+                    },
                 });
+                
+                setMessages(prev => {
+                    const exists = prev.some(m => m._id === newMessage._id);
+                    return exists ? prev : [...prev, newMessage];
+                });
+                setInput('');
             }
         } catch (error) {
             console.error('Error sending message:', error);
-            // Nếu có lỗi, hiển thị lại input
+            Alert.alert('Lỗi gửi tin nhắn', (error as Error).message);
+            // Khôi phục input & replyTo nếu gửi thất bại
             setInput(content);
-            // Khôi phục replyTo nếu bị lỗi
             setReplyTo(replyToMessage);
         }
     };
 
+    // Optimized real-time online/offline status tracking
     useEffect(() => {
         if (!socketRef.current || !chat?._id) return;
 
@@ -533,6 +770,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             console.log('User online event received:', userId, 'comparing with:', chatPartner._id);
             if (userId === chatPartner._id) {
                 console.log('Setting other user to online');
+                // Update online status immediately via context
+                // The useOnlineStatus hook will handle the state update
             }
         };
 
@@ -546,9 +785,9 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             }
         };
 
-        // Xử lý sự kiện userStatus từ server
-        const handleUserStatus = ({ userId, status }: { userId: string, status: string }) => {
-            console.log('User status received:', userId, status, 'comparing with:', chatPartner._id);
+        // Xử lý sự kiện userStatus từ server với heartbeat
+        const handleUserStatus = ({ userId, status, lastSeen }: { userId: string, status: string, lastSeen?: string }) => {
+            console.log('User status received:', userId, status, 'lastSeen:', lastSeen, 'comparing with:', chatPartner._id);
             if (userId === chatPartner._id) {
                 console.log('Setting other user status to:', status);
                 // Khi người dùng offline, đảm bảo trạng thái typing cũng bị reset
@@ -556,6 +795,12 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     setOtherTyping(false);
                 }
             }
+        };
+
+        // Heartbeat để duy trì kết nối và cập nhật status
+        const handleHeartbeat = ({ onlineUsers }: { onlineUsers: string[] }) => {
+            // Server gửi danh sách user online, cập nhật ngay lập tức
+            console.log('Heartbeat received, online users:', onlineUsers);
         };
 
         // Kiểm tra trạng thái online ngay khi kết nối
@@ -566,50 +811,94 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         socketRef.current.on('userOnline', handleUserOnline);
         socketRef.current.on('userOffline', handleUserOffline);
         socketRef.current.on('userStatus', handleUserStatus);
+        socketRef.current.on('heartbeat', handleHeartbeat);
 
-        // Thông báo mình online
+        // Thông báo mình online với heartbeat
         if (currentUserId) {
             console.log('Emitting userOnline for', currentUserId, 'in chat', chat._id);
             socketRef.current.emit('userOnline', { userId: currentUserId, chatId: chat._id });
+            
+            // Kiểm tra ngay lập tức trạng thái của chat partner
+            setTimeout(() => {
+                socketRef.current.emit('checkUserStatus', { userId: chatPartner._id });
+            }, 1000);
         }
 
-        // Kiểm tra trạng thái online mỗi 20 giây
-        const statusCheckInterval = setInterval(() => {
+        // Heartbeat mỗi 10 giây thay vì 20 giây để realtime hơn
+        const heartbeatInterval = setInterval(() => {
             if (socketRef.current && socketRef.current.connected) {
+                // Gửi heartbeat để duy trì kết nối
+                socketRef.current.emit('heartbeat', { 
+                    userId: currentUserId, 
+                    chatId: chat._id,
+                    timestamp: Date.now()
+                });
+                
+                // Kiểm tra status của chat partner
                 socketRef.current.emit('checkUserStatus', { userId: chatPartner._id });
-                // Đồng thời cập nhật trạng thái online của mình
-                if (currentUserId) {
-                    socketRef.current.emit('userOnline', { userId: currentUserId, chatId: chat._id });
-                }
             }
-        }, 20000);
+        }, 5000); // Giảm từ 10 giây xuống 5 giây để responsive hơn
+
+        // Ping server mỗi 5 giây để đảm bảo kết nối
+        const pingInterval = setInterval(() => {
+            if (socketRef.current && socketRef.current.connected) {
+                socketRef.current.emit('ping', { 
+                    userId: currentUserId,
+                    timestamp: Date.now()
+                });
+            }
+        }, 5000);
 
         return () => {
-            socketRef.current.off('userOnline', handleUserOnline);
-            socketRef.current.off('userOffline', handleUserOffline);
-            socketRef.current.off('userStatus', handleUserStatus);
-            clearInterval(statusCheckInterval);
+            socketRef.current?.off('userOnline', handleUserOnline);
+            socketRef.current?.off('userOffline', handleUserOffline);
+            socketRef.current?.off('userStatus', handleUserStatus);
+            socketRef.current?.off('heartbeat', handleHeartbeat);
+            clearInterval(heartbeatInterval);
+            clearInterval(pingInterval);
         };
-    }, [chatPartner._id, currentUserId, chat?._id, socketRef.current]);
+    }, [chatPartner._id, currentUserId, chat?._id]);
 
+    // Optimized typing indicator with auto-reset
     useEffect(() => {
         if (!socketRef.current || !chat?._id) return;
 
+        let typingResetTimeout: ReturnType<typeof setTimeout> | null = null;
+
         // Hàm xử lý sự kiện người dùng đang nhập
-        const handleTyping = ({ userId }: { userId: string }) => {
-            console.log('User typing event received:', userId, 'comparing with:', chatPartner._id);
-            if (userId === chatPartner._id) {
+        const handleTyping = ({ userId, chatId }: { userId: string, chatId: string }) => {
+            console.log('User typing event received:', userId, 'in chat:', chatId, 'comparing with:', chatPartner._id);
+            
+            // Chỉ xử lý typing event cho chat hiện tại
+            if (chatId === chat._id && userId === chatPartner._id) {
                 console.log('Setting typing indicator to true');
                 setOtherTyping(true);
+                
+                // Auto-reset typing indicator after 5 seconds (fallback)
+                if (typingResetTimeout) {
+                    clearTimeout(typingResetTimeout);
+                }
+                typingResetTimeout = setTimeout(() => {
+                    console.log('Auto-resetting typing indicator');
+                    setOtherTyping(false);
+                }, 5000);
             }
         };
 
         // Hàm xử lý sự kiện người dùng ngừng nhập
-        const handleStopTyping = ({ userId }: { userId: string }) => {
-            console.log('User stop typing event received:', userId, 'comparing with:', chatPartner._id);
-            if (userId === chatPartner._id) {
+        const handleStopTyping = ({ userId, chatId }: { userId: string, chatId: string }) => {
+            console.log('User stop typing event received:', userId, 'in chat:', chatId, 'comparing with:', chatPartner._id);
+            
+            // Chỉ xử lý stop typing event cho chat hiện tại
+            if (chatId === chat._id && userId === chatPartner._id) {
                 console.log('Setting typing indicator to false');
                 setOtherTyping(false);
+                
+                // Clear auto-reset timeout
+                if (typingResetTimeout) {
+                    clearTimeout(typingResetTimeout);
+                    typingResetTimeout = null;
+                }
             }
         };
 
@@ -618,38 +907,50 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         socketRef.current.on('userStopTyping', handleStopTyping);
 
         return () => {
-            socketRef.current.off('userTyping', handleTyping);
-            socketRef.current.off('userStopTyping', handleStopTyping);
+            if (typingResetTimeout) {
+                clearTimeout(typingResetTimeout);
+            }
+            socketRef.current?.off('userTyping', handleTyping);
+            socketRef.current?.off('userStopTyping', handleStopTyping);
         };
-    }, [chatPartner._id, chat?._id, socketRef.current]);
+    }, [chatPartner._id, chat?._id]);
 
-    const handleInputChange = (text: string) => {
+    // Debounced typing handler
+    const debouncedTypingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    
+    const handleInputChange = useCallback((text: string) => {
         setInput(text);
-        // Chỉ gửi typing event khi thực sự đang nhập (text không rỗng)
-        if (socketRef.current && chat && chat._id && currentUserId && text.trim() !== '') {
-            console.log('Emitting typing event for user', currentUserId, 'in chat', chat._id);
-            socketRef.current.emit('typing', { chatId: chat._id, userId: currentUserId });
-
-            // Thiết lập timeout để gửi sự kiện stopTyping
-            if (typingTimeout.current) {
-                clearTimeout(typingTimeout.current);
-            }
-
-            typingTimeout.current = setTimeout(() => {
-                if (socketRef.current && chat && chat._id && currentUserId) {
-                    console.log('Emitting stop typing event for user', currentUserId);
-                    socketRef.current.emit('stopTyping', { chatId: chat._id, userId: currentUserId });
+        
+        if (!socketRef.current || !chat?._id || !currentUserId) return;
+        
+        // Clear previous debounced call
+        if (debouncedTypingRef.current) {
+            clearTimeout(debouncedTypingRef.current);
+        }
+        
+        // Debounce typing events to reduce socket calls
+        debouncedTypingRef.current = setTimeout(() => {
+            if (text.trim() !== '') {
+                socketRef.current?.emit('typing', { chatId: chat._id, userId: currentUserId });
+                
+                // Clear existing stop typing timeout
+                if (typingTimeout.current) {
+                    clearTimeout(typingTimeout.current);
                 }
-            }, 3000); // Tăng thời gian lên 3 giây để giảm số lượng event và tránh hiệu ứng nhấp nháy
-        }
-        // Nếu input rỗng thì ngừng typing ngay lập tức
-        else if (socketRef.current && chat && chat._id && currentUserId && text.trim() === '') {
-            if (typingTimeout.current) {
-                clearTimeout(typingTimeout.current);
+                
+                // Set stop typing timeout
+                typingTimeout.current = setTimeout(() => {
+                    socketRef.current?.emit('stopTyping', { chatId: chat._id, userId: currentUserId });
+                }, 3000);
+            } else {
+                // Stop typing immediately if input is empty
+                if (typingTimeout.current) {
+                    clearTimeout(typingTimeout.current);
+                }
+                socketRef.current?.emit('stopTyping', { chatId: chat._id, userId: currentUserId });
             }
-            socketRef.current.emit('stopTyping', { chatId: chat._id, userId: currentUserId });
-        }
-    };
+        }, 300); // Debounce typing events by 300ms
+    }, [chat?._id, currentUserId]);
 
     // Hàm upload file/ảnh lên server
     const uploadAttachment = async (file: any, type: 'image' | 'file') => {
@@ -855,10 +1156,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             console.log('Server response for multiple images upload:', newMessage);
 
             if (newMessage && newMessage._id) {
-                console.log('New multiple images message has ID:', newMessage._id);
-                console.log('Message type:', newMessage.type);
-                console.log('FileUrls:', newMessage.fileUrls);
-
                 LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 setMessages(prevMessages => {
                     const exists = prevMessages.some(m => m._id === newMessage._id);
@@ -890,7 +1187,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         if (Platform.OS === 'ios' || Platform.OS === 'android') {
             subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
                 if (nextAppState === 'active' && isScreenActive && currentUserId && chat?._id) {
-                    console.log('App has come to the foreground while in ChatDetail!');
 
                     // Đánh dấu tin nhắn là đã đọc khi quay lại từ background
                     const markAsRead = async () => {
@@ -931,7 +1227,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     const fullChatData = await response.json();
                     // Cập nhật thông tin chat với danh sách participants đầy đủ
                     setChat(fullChatData);
-                    console.log('Fetched full chat info with participants:', fullChatData.participants);
                 }
             } catch (error) {
                 console.error('Error fetching full chat info:', error);
@@ -1080,48 +1375,15 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
             return (
                 <Image
-                    source={{ uri: `${API_BASE_URL}${emoji.url}` }}
-                    style={{ width: 20, height: 20 }}
+                    source={emoji.url}
+                    style={{ width: 24, height: 24, marginRight: 20, marginBottom: 12 }}
                     resizeMode="contain"
                 />
             );
         }
     };
 
-    // Thêm useEffect để lấy danh sách emoji
-    useEffect(() => {
-        const fetchEmojis = async () => {
-            try {
-                const token = await AsyncStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/api/emoji/list`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const data = await response.json();
-                console.log('Đã lấy được', data.length, 'emoji từ server');
-
-                // Log một số emoji đầu tiên để kiểm tra
-                if (data.length > 0) {
-                    const sampleEmojis = data.slice(0, 3).map((emoji: CustomEmoji) => ({
-                        code: emoji.code,
-                        name: emoji.name,
-                        type: emoji.type
-                    }));
-                    console.log('Mẫu emoji:', sampleEmojis);
-                }
-
-                setCustomEmojis(data);
-            } catch (error) {
-                console.error('Lỗi khi lấy emoji:', error);
-            }
-        };
-
-        fetchEmojis();
-
-        // Lấy lại danh sách emoji sau mỗi 5 phút
-        const refreshInterval = setInterval(fetchEmojis, 300000);
-
-        return () => clearInterval(refreshInterval);
-    }, []);
+    
 
     // Sửa lại hàm xử lý action
     const handleActionSelect = (action: string) => {
@@ -1151,58 +1413,16 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 handleUnpinMessage(selectedMessage._id);
                 break;
             default:
-                console.log('Action chưa được xử lý:', action);
                 break;
         }
     };
 
-    // Thêm hàm để gửi emoji được chọn từ danh sách emoji
+    // Handle selecting an emoji and delegate to sendMessage
     const handleSendEmoji = async (emoji: CustomEmoji) => {
         if (!chat) return;
-        const token = await AsyncStorage.getItem('authToken');
-
-        try {
-            console.log('Gửi emoji với thông tin:', {
-                code: emoji.code,
-                name: emoji.name,
-                emojiType: emoji.type,
-                url: emoji.url
-            });
-
-            const res = await fetch(`${API_BASE_URL}/api/chats/message`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    chatId: chat._id,
-                    content: emoji.code,
-                    type: 'text', // Phải sử dụng type hợp lệ theo schema tin nhắn
-                    isEmoji: true, // Thêm trường để đánh dấu đây là emoji
-                    emojiId: emoji._id,
-                    emojiType: emoji.type, // Lưu type của emoji (gif) vào trường riêng
-                    emojiName: emoji.name, // Thêm tên emoji
-                    emojiUrl: emoji.url // Thêm URL của emoji
-                }),
-            });
-
-            const newMessage = await res.json();
-            console.log('Gửi emoji sticker:', newMessage);
-
-            // Thêm tin nhắn vào state
-            if (newMessage && newMessage._id) {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setMessages(prevMessages => {
-                    // Kiểm tra tin nhắn đã tồn tại chưa
-                    const exists = prevMessages.some(m => m._id === newMessage._id);
-                    return exists ? prevMessages : [...prevMessages, newMessage];
-                });
-            }
-        } catch (error) {
-            console.error('Error sending emoji:', error);
-        }
-    };
+        setShowEmojiPicker(false);        // đóng picker
+        await sendMessage(emoji);         // truyền emoji vào hàm gửi
+      };
 
     // Thêm hàm xử lý tin nhắn ghim
     const handlePinMessage = async (messageId: string) => {
@@ -1217,7 +1437,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
             if (response.ok) {
                 const pinnedMessage = await response.json();
-                console.log('Đã ghim tin nhắn:', pinnedMessage);
 
                 // Lấy lại toàn bộ danh sách tin nhắn đã ghim
                 if (chatIdRef.current) {
@@ -1278,7 +1497,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             });
 
             if (response.ok) {
-                console.log('Đã bỏ ghim tin nhắn:', messageId);
 
                 // Cập nhật trạng thái isPinned trong danh sách tin nhắn
                 setMessages(prev => prev.map(msg =>
@@ -1359,19 +1577,21 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 position: 'relative'
             }}>
                 {/* Thêm BlurView */}
-                <BlurView
-                    intensity={8}
-                    tint="default"
-                    style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        borderTopLeftRadius: 16,
-                        borderTopRightRadius: 16,
-                    }}
-                />
+                <View style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    borderTopLeftRadius: 16,
+                    borderTopRightRadius: 16,
+                    overflow: 'hidden'
+                }}>
+                    <BlurView
+                        intensity={8}
+                        tint="default"
+                    />
+                </View>
 
                 <View style={{
                     width: 3,
@@ -1457,34 +1677,32 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         }
     };
 
-    // Tạo mảng mới có cả message và time separator
-    const messagesWithTime: any[] = [];
-    for (let i = 0; i < messages.length; i++) {
-        const item = messages[i];
-        const prevMsg = messages[i - 1];
-        const isPrevSameSender = prevMsg?.sender?._id === item.sender._id;
-        const isDifferentDay = prevMsg?.createdAt && (new Date(item.createdAt).toDateString() !== new Date(prevMsg.createdAt).toDateString());
-        const timeGap = prevMsg?.createdAt ? (new Date(item.createdAt).getTime() - new Date(prevMsg.createdAt).getTime()) : null;
-        const showTime = !prevMsg?.createdAt || isDifferentDay || (!!timeGap && timeGap > 10 * 60 * 1000);
-        if (showTime) {
-            messagesWithTime.push({
-                type: 'time',
-                time: item.createdAt,
-                _id: `time-${item.createdAt}-${item._id}` // Thêm message ID vào key để đảm bảo unique
-            });
+    // Memoize processed messages data
+    const processedMessages = useMemo(() => {
+        const messagesWithTime: any[] = [];
+        for (let i = 0; i < messages.length; i++) {
+            const item = messages[i];
+            const prevMsg = messages[i - 1];
+            const isDifferentDay = prevMsg?.createdAt && (new Date(item.createdAt).toDateString() !== new Date(prevMsg.createdAt).toDateString());
+            const timeGap = prevMsg?.createdAt ? (new Date(item.createdAt).getTime() - new Date(prevMsg.createdAt).getTime()) : null;
+            const showTime = !prevMsg?.createdAt || isDifferentDay || (!!timeGap && timeGap > 10 * 60 * 1000);
+            
+            if (showTime) {
+                messagesWithTime.push({
+                    type: 'time',
+                    time: item.createdAt,
+                    _id: `time-${item.createdAt}-${item._id}`
+                });
+            }
+            messagesWithTime.push(item);
         }
-        messagesWithTime.push(item);
-    }
+        const processed = [...messagesWithTime].reverse();
+        return processed;
+    }, [messages]);
 
-    // FlatList sẽ hiển thị mảng đảo ngược (mới → cũ)
-    const dataForFlatList = [...messagesWithTime].reverse();
-
-    // Stable key extractor
+    // Memoized key extractor
     const keyExtractor = useCallback((item: Message | any) => {
-        if (item.type === 'time') {
-            return item._id;
-        }
-        return item._id;
+        return item.type === 'time' ? item._id : item._id;
     }, []);
 
     // Thêm hàm xử lý chuyển tiếp tin nhắn
@@ -1582,11 +1800,10 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         setViewerVisible(true);
     };
 
-    // Memoized renderItem để FlatList không phải tái tạo hàm mỗi lần
+    // Optimized renderItem with better memoization
     const renderItem = useCallback(
         ({ item, index }: { item: Message | any; index: number }) => {
             if (item.type === 'time') {
-                // Giữ nguyên logic render time separator hiện tại
                 const d = new Date(item.time);
                 const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
                 const dayStr = days[d.getDay()];
@@ -1601,10 +1818,11 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     </View>
                 );
             }
-            // Logic position grouping
-            const { isFirst, isLast } = getMessageGroupPosition(dataForFlatList, index, isDifferentDay);
+            
+            const { isFirst, isLast } = getMessageGroupPosition(processedMessages, index, isDifferentDay);
             const isMe = currentUserId && item.sender._id === currentUserId;
             const showAvatar = !isMe && isFirst;
+            
             return (
                 <MessageBubble
                     chat={chat}
@@ -1625,7 +1843,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
             );
         },
         [
-            chat, currentUserId, customEmojis, dataForFlatList,
+            chat, currentUserId, customEmojis, processedMessages,
             handleMessageLongPressIn, handleMessageLongPressOut,
             handleImagePress, messageScaleAnim, messages,
             formatMessageTime, getAvatar, isDifferentDay,
@@ -1663,7 +1881,6 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 }
 
                 if (routeChatId) {
-                    console.log('Fetching chat data for:', routeChatId);
 
                     // Lấy thông tin chat
                     const chatRes = await fetch(`${API_BASE_URL}/api/chats/${routeChatId}`, {
@@ -1675,12 +1892,10 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                     }
 
                     const chatData = await chatRes.json();
-                    console.log('Chat data received:', chatData);
                     setChat(chatData);
                     chatIdRef.current = routeChatId;
 
                     // Load tin nhắn từ server
-                    console.log('Loading messages from server');
                     await loadMessages(routeChatId);
 
                     // Lấy tin nhắn đã ghim
@@ -1697,7 +1912,92 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         };
 
         fetchData();
+
+        // Cleanup function
+        return () => {
+            // Clear all timeouts
+            if (typingTimeout.current) {
+                clearTimeout(typingTimeout.current);
+            }
+            if (debouncedTypingRef.current) {
+                clearTimeout(debouncedTypingRef.current);
+            }
+            if (saveMessagesTimeout.current) {
+                clearTimeout(saveMessagesTimeout.current);
+            }
+            if (longPressTimeoutRef.current) {
+                clearTimeout(longPressTimeoutRef.current);
+            }
+
+            // Disconnect socket
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
+        };
     }, [chatPartner._id, routeChatId, currentUserId]);
+
+    // Thêm hàm xử lý yêu cầu thu hồi
+    const handleRequestRevoke = (message: any) => {
+        setMessageToRevoke(message);
+        setShowRevokeConfirm(true);
+    };
+
+    // Hàm xác nhận thu hồi tin nhắn (FE mock, chưa gọi BE)
+    const handleConfirmRevoke = async () => {
+        if (!messageToRevoke) return;
+        
+        try {
+            const authToken = await AsyncStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/api/chats/message/${messageToRevoke._id}/revoke`, {
+                method: 'DELETE',
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+            });
+
+            // Thêm log chi tiết
+            const responseText = await response.text();
+
+            if (!response.ok) {
+                throw new Error('Failed to revoke message');
+            }
+
+            // Cập nhật local state
+            setMessages(prev => prev.map(msg =>
+                msg._id === messageToRevoke._id
+                    ? { 
+                        ...msg, 
+                        isRevoked: true, 
+                        content: '',
+                        fileUrl: undefined,
+                        fileUrls: undefined,
+                        fileName: undefined,
+                        fileSize: undefined,
+                        emojiUrl: undefined,
+                        emojiType: undefined,
+                        emojiId: undefined,
+                        isEmoji: false
+                    }
+                    : msg
+            ));
+
+            setShowRevokeConfirm(false);
+            setMessageToRevoke(null);
+            setNotification({
+                visible: true,
+                type: 'success',
+                message: 'Đã thu hồi tin nhắn'
+            });
+        } catch (error) {
+            console.error('Error revoking message:', error);
+            setNotification({
+                visible: true,
+                type: 'error',
+                message: 'Không thể thu hồi tin nhắn'
+            });
+        }
+    };
 
     return (
         <View style={{
@@ -1744,12 +2044,19 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                                     }}
                                 />
                             </View>
-                            <View style={{ justifyContent: 'center' }}>
+                            <View style={{ justifyContent: 'center', flex: 1 }}>
                                 <Text className="font-bold text-lg" style={{ marginBottom: 0 }}>{chatPartner.fullname}</Text>
                                 <Text style={{ fontSize: 12, color: '#444', fontFamily: 'Inter', fontWeight: 'medium' }}>
-                                    {isUserOnline(chatPartner._id) ? 'Đang hoạt động' : getFormattedLastSeen(chatPartner._id)}
+                                    {otherTyping 
+                                        ? 'đang soạn tin...' 
+                                        : (isUserOnline(chatPartner._id) ? 'Đang hoạt động' : getFormattedLastSeen(chatPartner._id))
+                                    }
                                 </Text>
                             </View>
+                            
+
+                            
+
                         </View>
 
                         {/* Hiển thị banner tin nhắn ghim */}
@@ -1769,45 +2076,65 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                             ) : messages.length === 0 ? (
                                 <View className="flex-1 items-center justify-center">
                                     <Text style={{ fontFamily: 'Inter', fontWeight: 'medium' }}>Chưa có tin nhắn nào</Text>
+                                    <Text style={{ fontFamily: 'Inter', fontSize: 12, color: '#666', marginTop: 4 }}>
+                                        Hãy gửi tin nhắn đầu tiên để bắt đầu cuộc trò chuyện
+                                    </Text>
                                 </View>
                             ) : (
                                 <FlatList
                                     ref={flatListRef}
-                                            data={dataForFlatList}
-                                            inverted
-                                            keyExtractor={keyExtractor}
-                                            ListHeaderComponent={() => (
-                                                otherTyping ? (
-                                            <View className="flex-row justify-start items-end mx-2 mt-4 mb-1">
-                                                <View className="relative mr-1.5">
-                                                    <Image
-                                                        source={{ uri: getAvatar(chatPartner) }}
-                                                        className="w-8 h-8 rounded-full"
-                                                    />
+                                    data={processedMessages}
+                                    inverted
+                                    keyExtractor={keyExtractor}
+                                    ListHeaderComponent={() => (
+                                        <>
+                                            {otherTyping ? (
+                                                <View className="flex-row justify-start items-end mx-2 mt-4 mb-1">
+                                                    <View className="relative mr-1.5">
+                                                        <Image
+                                                            source={{ uri: getAvatar(chatPartner) }}
+                                                            className="w-8 h-8 rounded-full"
+                                                        />
+                                                    </View>
+                                                    <View className="bg-[#F5F5ED] rounded-2xl py-2 px-4 flex-row items-center">
+                                                        <TypingIndicator />
+                                                    </View>
                                                 </View>
-                                                <View className="bg-[#F5F5ED] rounded-2xl py-2 px-4 flex-row items-center">
-                                                    <TypingIndicator />
+                                            ) : null}
+                                            {isLoadingMore && (
+                                                <View style={{ padding: 10, alignItems: 'center' }}>
+                                                    <Text style={{ 
+                                                        fontFamily: 'Inter', 
+                                                        fontSize: 12, 
+                                                        color: '#666' 
+                                                    }}>
+                                                        Đang tải thêm tin nhắn...
+                                                    </Text>
                                                 </View>
-                                            </View>
-                                        ) : null
+                                            )}
+                                        </>
                                     )}
                                     style={{ flex: 1 }}
-                                            renderItem={renderItem}
-                                            contentContainerStyle={{
+                                    renderItem={renderItem}
+                                    contentContainerStyle={{
                                         paddingVertical: 10,
                                         paddingBottom: keyboardVisible ? 10 : (insets.bottom + 50),
                                     }}
-                                            removeClippedSubviews={true}
-                                            maxToRenderPerBatch={10}
-                                            windowSize={10}
-                                            updateCellsBatchingPeriod={50}
-                                            initialNumToRender={15}
-                                            onEndReachedThreshold={0.5}
-                                            onEndReached={handleLoadMore}
-                                            maintainVisibleContentPosition={{
-                                                minIndexForVisible: 0,
-                                                autoscrollToTopThreshold: 10
-                                            }}
+                                    removeClippedSubviews={true}
+                                    maxToRenderPerBatch={20}
+                                    windowSize={21}
+                                    updateCellsBatchingPeriod={100}
+                                    initialNumToRender={25}
+                                    onEndReachedThreshold={0.1}
+                                    onEndReached={handleLoadMore}
+                                    legacyImplementation={false}
+                                    onScrollToIndexFailed={(info) => {
+                                        console.warn('ScrollToIndex failed:', info);
+                                        // Fallback: scroll to end
+                                        setTimeout(() => {
+                                            flatListRef.current?.scrollToEnd({ animated: true });
+                                        }, 100);
+                                    }}
                                 />
                             )}
                         </View>
@@ -1845,19 +2172,21 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
                             {/* BlurView - hiển thị khi có ảnh preview hoặc có reply */}
                             {(imagesToSend.length > 0 || replyTo) && (
-                                <BlurView
-                                    intensity={8}
-                                    tint="default"
-                                    style={{
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        right: 0,
-                                        bottom: 0,
-                                        borderRadius: 32,
-                                        zIndex: 0,
-                                    }}
-                                />
+                                <View style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    borderRadius: 32,
+                                    zIndex: 0,
+                                    overflow: 'hidden'
+                                }}>
+                                    <BlurView
+                                        intensity={8}
+                                        tint="default"
+                                    />
+                                </View>
                             )}
 
                             {/* Preview tin nhắn đang trả lời */}
@@ -2078,6 +2407,8 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                         onActionSelect={handleActionSelect}
                         selectedMessage={selectedMessage}
                         onSuccess={refreshMessages}
+                        currentUserId={currentUserId}
+                        onRequestRevoke={handleRequestRevoke}
                     />
 
                     {forwardMessage && currentUserId && currentUser && (
@@ -2100,6 +2431,17 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
                 type={notification.type}
                 message={notification.message}
                 onClose={() => setNotification(prev => ({ ...prev, visible: false }))}
+            />
+            {/* Modal xác nhận thu hồi */}
+            <ConfirmModal
+                visible={showRevokeConfirm}
+                title="Thu hồi tin nhắn"
+                message="Bạn có chắc chắn muốn thu hồi tin nhắn này?"
+                onCancel={() => {
+                    setShowRevokeConfirm(false);
+                    setMessageToRevoke(null);
+                }}
+                onConfirm={handleConfirmRevoke}
             />
         </View>
     );

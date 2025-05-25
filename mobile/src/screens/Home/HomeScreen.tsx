@@ -64,9 +64,13 @@ const HomeScreen = () => {
         }
     };
 
+    const navigateToDevices = () => {
+        navigation.navigate(ROUTES.SCREENS.DEVICES);
+    };
+
     const menuItems = [
         { id: 1, title: 'Ticket', component: TicketIcon, description: 'Ứng dụng Ticket', onPress: navigateToTicket },
-        { id: 2, title: 'Devices', component: DevicesIcon, description: 'Quản lý thiết bị', onPress: () => { } },
+        { id: 2, title: 'Devices', component: DevicesIcon, description: 'Quản lý thiết bị', onPress: navigateToDevices },
         { id: 3, title: 'Document', component: DocumentIcon, description: 'Quản lý tài liệu', onPress: () => { } },
         { id: 4, title: 'Library', component: LibraryIcon, description: 'Quản lý thư viện', onPress: () => { } },
     ];

@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { typography } from '../../theme/typography';
-import { useMicrosoftLogin } from './useMicrosoftLogin';
+import { useMicrosoftLogin } from '../../hooks/useMicrosoftLogin';
 import MicrosoftIcon from '../../assets/microsoft.svg';
 import VisibilityIcon from '../../assets/visibility.svg';
 import WarningIcon from '../../assets/warning.svg';
@@ -132,7 +132,11 @@ const SignInScreen = () => {
                             ...user,
                             _id: userId,
                             fullname: userFullname,
-                            role: userRole
+                            role: userRole,
+                            jobTitle: user.jobTitle || 'N/A',
+                            department: user.department || 'N/A',
+                            avatar: user.avatar || 'https://via.placeholder.com/150',
+                            needProfileUpdate: user.needProfileUpdate || false,
                         };
 
                         // Sử dụng context để đăng nhập

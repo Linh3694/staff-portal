@@ -1,5 +1,6 @@
 import { User } from '../navigation/AppNavigator';
 import { API_BASE_URL } from '../config/constants';
+import { getAvatar } from './avatar';
 
 export const formatMessageTime = (timestamp: string): string => {
     const messageDate = new Date(timestamp);
@@ -37,16 +38,14 @@ export const formatMessageDate = (timestamp: string): string => {
     return `Thứ ${messageDate.getDay() + 1}, ${day} tháng ${month}`;
 };
 
-export const getAvatar = (user: User) => {
-    if (user.avatarUrl) {
-        return `${API_BASE_URL}/uploads/Avatar/${user.avatarUrl}`;
-    }
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}`;
-};
+
 
 // Kiểm tra 2 tin nhắn có khác ngày không
 export const isDifferentDay = (timestamp1: string, timestamp2: string): boolean => {
     const date1 = new Date(timestamp1);
     const date2 = new Date(timestamp2);
     return date1.toDateString() !== date2.toDateString();
-}; 
+};
+
+// Re-export getAvatar function for backward compatibility
+export { getAvatar }; 

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMicrosoftLogin } from './useMicrosoftLogin';
+import { useMicrosoftLogin } from '../../hooks/useMicrosoftLogin';
 import MicrosoftIcon from '../../assets/microsoft.svg';
 import { ROUTES } from '../../constants/routes';
 import { API_BASE_URL } from '../../config/constants';

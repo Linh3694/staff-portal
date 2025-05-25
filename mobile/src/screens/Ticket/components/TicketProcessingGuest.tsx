@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../../config/constants';
 import { AntDesign, FontAwesome } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
+import { getAvatar } from '../../../utils/avatar';
 
 interface TicketProcessingGuestProps {
     ticketId: string;
@@ -36,6 +37,7 @@ interface Ticket {
         fullname: string;
         avatarUrl?: string;
         jobTitle?: string;
+        rating?: number;
     };
     cancellationReason?: string;
     feedback?: Feedback;
@@ -282,19 +284,11 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
                     {ticket.assignedTo ? (
                         <View className="flex-row">
                             <View className="w-20 h-20 rounded-full mr-5 overflow-hidden bg-gray-200">
-                                {ticket.assignedTo.avatarUrl ? (
-                                    <Image 
-                                        source={{ uri: `${API_BASE_URL}/uploads/Avatar/${ticket.assignedTo.avatarUrl}` }}
-                                        className="w-full h-full"
-                                        resizeMode="cover"
-                                    />
-                                ) : (
-                                    <View className="w-full h-full items-center justify-center bg-gray-300">
-                                        <Text className="text-gray-600 text-xl font-bold">
-                                            {ticket.assignedTo.fullname?.charAt(0)}
-                                        </Text>
-                                    </View>
-                                )}
+                                <Image 
+                                    source={{ uri: getAvatar(ticket.assignedTo) }}
+                                    className="w-full h-full"
+                                    resizeMode="cover"
+                                />
                             </View>
                             <View className="flex-1">
                                 <Text className="font-bold text-base">{ticket.assignedTo.fullname}</Text>
@@ -333,19 +327,11 @@ const TicketProcessingGuest: React.FC<TicketProcessingGuestProps> = ({ ticketId 
                         {ticket.assignedTo ? (
                             <View className="flex-row">
                                 <View className="w-20 h-20 rounded-full mr-5 overflow-hidden bg-gray-200">
-                                    {ticket.assignedTo.avatarUrl ? (
-                                        <Image
-                                            source={{ uri: `${API_BASE_URL}/uploads/Avatar/${ticket.assignedTo.avatarUrl}` }}
-                                            className="w-full h-full"
-                                            resizeMode="cover"
-                                        />
-                                    ) : (
-                                        <View className="w-full h-full items-center justify-center bg-gray-300">
-                                            <Text className="text-gray-600 text-xl font-bold">
-                                                {ticket.assignedTo.fullname?.charAt(0)}
-                                            </Text>
-                                        </View>
-                                    )}
+                                    <Image
+                                        source={{ uri: getAvatar(ticket.assignedTo) }}
+                                        className="w-full h-full"
+                                        resizeMode="cover"
+                                    />
                                 </View>
                                 <View className="flex-1">
                                     <Text className="font-bold text-base">{ticket.assignedTo.fullname}</Text>

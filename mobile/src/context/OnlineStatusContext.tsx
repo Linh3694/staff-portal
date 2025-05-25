@@ -324,7 +324,7 @@ export const OnlineStatusProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 // Thử reconnect nếu không connected và app đang active
                 reconnectSocket();
             }
-        }, 30000); // Ping mỗi 30 giây
+        }, 10000); // Giảm từ 30 giây xuống 10 giây để responsive hơn
 
         // Thiết lập sự kiện khi app chuyển vào background hoặc foreground
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -353,12 +353,12 @@ export const OnlineStatusProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Đăng ký event listener cho app state
         const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-        // Tự động kiểm tra lại trạng thái online mỗi phút
+        // Tự động kiểm tra lại trạng thái online mỗi 20 giây thay vì 60 giây
         const statusRefreshInterval = setInterval(() => {
             if (socketRef.current && socketRef.current.connected) {
                 socketRef.current.emit('getUsersOnlineStatus');
             }
-        }, 60000);
+        }, 20000);
 
         return () => {
             if (socketRef.current) {
