@@ -44,7 +44,7 @@ const TicketAdminScreen = () => {
     const [showRoleFilters, setShowRoleFilters] = useState(false);
     const [loading, setLoading] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState('assigned'); // 'assigned' hoặc 'my'
+    const [activeTab, setActiveTab] = useState('all'); // 'all' hoặc 'assigned'
     const insets = useSafeAreaInsets();
 
     useEffect(() => {
@@ -57,7 +57,7 @@ const TicketAdminScreen = () => {
 
     useEffect(() => {
         fetchTickets();
-    }, [filterStatus, filterRole]);
+    }, [filterStatus, filterRole, activeTab]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -90,13 +90,17 @@ const TicketAdminScreen = () => {
             }
 
             // Logic lọc theo tab
-            if (activeTab === 'my' && userId) {
+            if (activeTab === 'assigned' && userId) {
                 params.append('userTickets', userId);
             }
 
             if (params.toString()) {
                 url += `?${params.toString()}`;
             }
+
+            console.log('API URL:', url);
+            console.log('Active Tab:', activeTab);
+            console.log('User ID:', userId);
 
             const res = await axios.get(url, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -259,12 +263,12 @@ const TicketAdminScreen = () => {
             <View className="flex-row px-4 pt-2 pb-5">
                 <View className="flex-1 items-center">
                     <TouchableOpacity
-                        onPress={() => toggleTab('my')}
+                        onPress={() => toggleTab('all')}
                     >
-                        <Text className={`text-center ${activeTab === 'my' ? 'text-[#002855] font-bold' : 'text-gray-500'}`}>
+                        <Text className={`text-center ${activeTab === 'all' ? 'text-[#002855] font-bold' : 'text-gray-500'}`}>
                             Tất cả Ticket
                         </Text>
-                        {activeTab === 'my' && (
+                        {activeTab === 'all' && (
                             <View className="h-0.5 bg-[#002855] mt-2" />
                         )}
                     </TouchableOpacity>

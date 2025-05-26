@@ -15,6 +15,7 @@ export const ROUTES = {
         TICKET_GUEST: 'TicketGuest',
         DEVICES: 'Devices',
         DEVICE_DETAIL: 'DeviceDetail',
+        DEVICE_ASSIGNMENT_HISTORY: 'DeviceAssignmentHistory',
         WISLIFE: 'Wislife',
     },
     // Tab names trong bottom navigation

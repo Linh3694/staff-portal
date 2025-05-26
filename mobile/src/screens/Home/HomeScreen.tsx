@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+// @ts-ignore
 import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, StyleSheet, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaskedView from '@react-native-masked-view/masked-view';
@@ -13,6 +14,7 @@ import DevicesIcon from '../../assets/devices-icon.svg';
 import DocumentIcon from '../../assets/document-icon.svg';
 import LibraryIcon from '../../assets/library-icon.svg';
 import PolygonIcon from '../../assets/polygon.svg';
+import attendanceService from '../../services/attendanceService';
 // Define type cho navigation
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, typeof ROUTES.SCREENS.MAIN>;
 
@@ -20,6 +22,9 @@ const HomeScreen = () => {
     const navigation = useNavigation<HomeScreenNavigationProp>();
     const [fullName, setFullName] = useState('');
     const [userRole, setUserRole] = useState('');
+    const [checkInTime, setCheckInTime] = useState('--:--');
+    const [checkOutTime, setCheckOutTime] = useState('--:--');
+    const [employeeCode, setEmployeeCode] = useState('');
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -29,14 +34,57 @@ const HomeScreen = () => {
                     const user = JSON.parse(userData);
                     setFullName(user.fullname || '');
                     setUserRole(user.role || '');
+                    setEmployeeCode(user.employeeCode || '');
                 }
+                console.log('User Code:', employeeCode);
             } catch (e) {
                 setFullName('');
                 setUserRole('');
+                setEmployeeCode('');
             }
         };
         fetchUser();
     }, []);
+
+    // Fetch attendance data khi có employeeCode
+    useEffect(() => {
+        const fetchTodayAttendance = async () => {
+            if (!employeeCode) {
+                console.log('No employeeCode available');
+                return;
+            }
+
+            try {
+                console.log('Fetching attendance for employee:', employeeCode);
+                const attendanceData = await attendanceService.getTodayAttendance(employeeCode);
+                if (attendanceData) {
+                    // Lấy thời gian check in và check out từ dữ liệu attendance
+                    const formattedCheckIn = attendanceService.formatTime(attendanceData.checkInTime);
+                    const formattedCheckOut = attendanceService.formatTime(attendanceData.checkOutTime);
+
+                    setCheckInTime(formattedCheckIn);
+                    setCheckOutTime(formattedCheckOut);
+
+                    console.log('Found attendance data:', {
+                        checkInTime: formattedCheckIn,
+                        checkOutTime: formattedCheckOut,
+                        totalCheckIns: attendanceData.totalCheckIns
+                    });
+                } else {
+                    // Nếu chưa có dữ liệu attendance hôm nay
+                    console.log('No attendance data found for today');
+                    setCheckInTime('--:--');
+                    setCheckOutTime('--:--');
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy dữ liệu chấm công:', error);
+                setCheckInTime('--:--');
+                setCheckOutTime('--:--');
+            }
+        };
+
+        fetchTodayAttendance();
+    }, [employeeCode]);
 
     const navigateToTicket = async () => {
         try {
@@ -149,8 +197,8 @@ const HomeScreen = () => {
                     <View className="w-full px-5 mt-6">
                         {/* Time labels */}
                         <View className="flex-row justify-between">
-                            <Text className="text-base font-semibold text-teal-700 left-[5%]">7h30</Text>
-                            <Text className="text-base font-semibold text-teal-700 right-[3%]">12h30</Text>
+                            <Text className="text-base font-semibold text-teal-700 left-[5%]">{checkInTime}</Text>
+                            <Text className="text-base font-semibold text-teal-700 right-[3%]">{checkOutTime}</Text>
                         </View>
                         {/* Timeline bar with markers */}
                         <View className="relative h-1 bg-gray-200 rounded-full my-2">

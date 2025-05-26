@@ -467,9 +467,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
     }, [navigation]);
 
     useEffect(() => {
-        if (!currentUserId) {
-            return;
-        }
+        if (!currentUserId) return;
 
         const fetchData = async () => {
             setLoading(true);
@@ -502,6 +500,39 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
 
                     // Thiết lập Socket.IO
                     setupSocket(authToken, routeChatId);
+                } else {
+                    // Trường hợp không có chatId - tạo chat mới hoặc tìm chat hiện có
+                    try {
+                        const createChatRes = await fetch(`${API_BASE_URL}/api/chats/createOrGet`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${authToken}`
+                            },
+                            body: JSON.stringify({
+                                participantId: chatPartner._id
+                            })
+                        });
+
+                        if (createChatRes.ok) {
+                            const chatData = await createChatRes.json();
+                            setChat(chatData);
+                            chatIdRef.current = chatData._id;
+
+                            // Load tin nhắn từ server (nếu có)
+                            await loadMessages(chatData._id);
+
+                            // Lấy tin nhắn đã ghim
+                            await fetchPinnedMessages(chatData._id);
+
+                            // Thiết lập Socket.IO
+                            setupSocket(authToken, chatData._id);
+                        } else {
+                            console.error('Failed to create/get chat');
+                        }
+                    } catch (createError) {
+                        console.error('Error creating chat:', createError);
+                    }
                 }
             } catch (err) {
                 console.error('Error in fetchData:', err);
@@ -511,6 +542,29 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         };
 
         fetchData();
+
+        // Cleanup function
+        return () => {
+            // Clear all timeouts
+            if (typingTimeout.current) {
+                clearTimeout(typingTimeout.current);
+            }
+            if (debouncedTypingRef.current) {
+                clearTimeout(debouncedTypingRef.current);
+            }
+            if (saveMessagesTimeout.current) {
+                clearTimeout(saveMessagesTimeout.current);
+            }
+            if (longPressTimeoutRef.current) {
+                clearTimeout(longPressTimeoutRef.current);
+            }
+
+            // Disconnect socket
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
+        };
     }, [chatPartner._id, routeChatId, currentUserId]);
 
     const markMessagesAsRead = async (chatId: string | null, userId: string, token: string) => {
@@ -1868,74 +1922,7 @@ const ChatDetailScreen = ({ route, navigation }: Props) => {
         }
     };
 
-    useEffect(() => {
-        if (!currentUserId) return;
 
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const authToken = await AsyncStorage.getItem('authToken');
-                if (!authToken) {
-                    setLoading(false);
-                    return;
-                }
-
-                if (routeChatId) {
-
-                    // Lấy thông tin chat
-                    const chatRes = await fetch(`${API_BASE_URL}/api/chats/${routeChatId}`, {
-                        headers: { Authorization: `Bearer ${authToken}` },
-                    });
-
-                    if (!chatRes.ok) {
-                        throw new Error('Failed to fetch chat data');
-                    }
-
-                    const chatData = await chatRes.json();
-                    setChat(chatData);
-                    chatIdRef.current = routeChatId;
-
-                    // Load tin nhắn từ server
-                    await loadMessages(routeChatId);
-
-                    // Lấy tin nhắn đã ghim
-                    await fetchPinnedMessages(routeChatId);
-
-                    // Thiết lập Socket.IO
-                    setupSocket(authToken, routeChatId);
-                }
-            } catch (err) {
-                console.error('Error in fetchData:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-
-        // Cleanup function
-        return () => {
-            // Clear all timeouts
-            if (typingTimeout.current) {
-                clearTimeout(typingTimeout.current);
-            }
-            if (debouncedTypingRef.current) {
-                clearTimeout(debouncedTypingRef.current);
-            }
-            if (saveMessagesTimeout.current) {
-                clearTimeout(saveMessagesTimeout.current);
-            }
-            if (longPressTimeoutRef.current) {
-                clearTimeout(longPressTimeoutRef.current);
-            }
-
-            // Disconnect socket
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-                socketRef.current = null;
-            }
-        };
-    }, [chatPartner._id, routeChatId, currentUserId]);
 
     // Thêm hàm xử lý yêu cầu thu hồi
     const handleRequestRevoke = (message: any) => {

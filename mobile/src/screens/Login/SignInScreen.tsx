@@ -137,6 +137,7 @@ const SignInScreen = () => {
                             department: user.department || 'N/A',
                             avatar: user.avatar || 'https://via.placeholder.com/150',
                             needProfileUpdate: user.needProfileUpdate || false,
+                            employeeCode: user.employeeCode || 'N/A',
                         };
 
                         // Sử dụng context để đăng nhập

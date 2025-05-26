@@ -14,6 +14,7 @@ import TicketAdminDetail from '../screens/Ticket/TicketAdminDetail';
 import TicketGuestDetail from '../screens/Ticket/TicketGuestDetail';
 import DevicesScreen from '../screens/Devices/DevicesScreen';
 import DevicesDetailScreen from '../screens/Devices/DevicesDetailScreen';
+import DeviceAssignmentHistoryScreen from '../screens/Devices/DeviceAssignmentHistoryScreen';
 import { useAuth } from '../context/AuthContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -49,6 +50,7 @@ export type RootStackParamList = {
     [ROUTES.SCREENS.TICKET_GUEST]: undefined;
     [ROUTES.SCREENS.DEVICES]: undefined;
     [ROUTES.SCREENS.DEVICE_DETAIL]: { deviceId: string; deviceType: 'laptop' | 'monitor' | 'printer' | 'projector' | 'tool' };
+    [ROUTES.SCREENS.DEVICE_ASSIGNMENT_HISTORY]: { deviceId: string; deviceType: 'laptop' | 'monitor' | 'printer' | 'projector' | 'tool'; deviceName: string };
 };
 
 const MainTabWrapper = ({ route }: { route: any }) => <BottomTabNavigator route={route} />;
@@ -180,6 +182,11 @@ const AppNavigator = () => {
                         <Stack.Screen
                             name={ROUTES.SCREENS.DEVICE_DETAIL}
                             component={DevicesDetailScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                            name={ROUTES.SCREENS.DEVICE_ASSIGNMENT_HISTORY}
+                            component={DeviceAssignmentHistoryScreen}
                             options={{ headerShown: false }}
                         />
                     </>

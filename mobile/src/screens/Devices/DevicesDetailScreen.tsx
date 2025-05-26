@@ -15,7 +15,19 @@ import { RootStackParamList } from '../../navigation/AppNavigator';
 import { ROUTES } from '../../constants/routes';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Device, DeviceType } from '../../types/devices';
-// import deviceService from '../../services/deviceService';
+import deviceService from '../../services/deviceService';
+import InputModal from '../../components/InputModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../config/constants';
+import { Image } from 'react-native';
+import { getAvatar } from '../../utils/avatar';
+import RevokeModal from '../../components/RevokeModal';
+import AssignModal from '../../components/AssignModal';
+import ReportBrokenModal from '../../components/ReportBrokenModal';
+import RevokeIcon from '../../assets/revoke-devices.svg'
+import AssignIcon from '../../assets/assign-devices.svg'
+import BrokenIcon from '../../assets/broken-devices.svg'
+
 
 type DeviceDetailScreenRouteProp = RouteProp<RootStackParamList, typeof ROUTES.SCREENS.DEVICE_DETAIL>;
 type DeviceDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, typeof ROUTES.SCREENS.DEVICE_DETAIL>;
@@ -43,6 +55,13 @@ const DevicesDetailScreen = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedLogTab, setSelectedLogTab] = useState<'all' | 'maintenance' | 'software'>('all');
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [editSpecValue, setEditSpecValue] = useState('');
+    const [editSpecKey, setEditSpecKey] = useState('');
+    const [editSpecLabel, setEditSpecLabel] = useState('');
+    const [revokeModalVisible, setRevokeModalVisible] = useState(false);
+    const [assignModalVisible, setAssignModalVisible] = useState(false);
+    const [reportBrokenModalVisible, setReportBrokenModalVisible] = useState(false);
 
     useEffect(() => {
         fetchDeviceDetail();
@@ -52,42 +71,12 @@ const DevicesDetailScreen = () => {
     const fetchDeviceDetail = async () => {
         try {
             setLoading(true);
-            // TODO: Implement deviceService.getDeviceById(deviceId)
-            // const response = await deviceService.getDeviceById(deviceId);
-            // setDevice(response.device);
-            
-            // Mock data for now
-            const mockDevice: Device = {
-                _id: deviceId,
-                name: 'HP Pavilion 14-ce3026TU',
-                manufacturer: 'HP',
-                serial: 'HP123456789',
-                releaseYear: 2020,
-                status: 'Active',
-                type: deviceType === 'laptop' ? 'Laptop' : 'Desktop',
-                specs: {
-                    processor: 'Core i5-1035G1',
-                    ram: '8GB',
-                    storage: '240GB SSD',
-                    display: '14 inch'
-                },
-                assigned: [{
-                    _id: '1',
-                    fullname: 'Hà Văn Cường',
-                    department: 'Phòng Công Nghệ Thông Tin',
-                    jobTitle: 'Nhân viên'
-                }],
-                assignmentHistory: [],
-                room: {
-                    _id: '1',
-                    name: 'Phòng IT',
-                    location: ['Tầng 3', 'Tòa A']
-                },
-                createdAt: '2024-01-01',
-                updatedAt: '2024-12-20'
-            } as Device;
-            
-            setDevice(mockDevice);
+            const response = await deviceService.getDeviceById(deviceType, deviceId);
+            if (response) {
+                setDevice(response);
+            } else {
+                Alert.alert('Lỗi', 'Không tìm thấy thông tin thiết bị');
+            }
         } catch (error) {
             console.error('Error fetching device detail:', error);
             Alert.alert('Lỗi', 'Không thể tải thông tin thiết bị');
@@ -98,53 +87,12 @@ const DevicesDetailScreen = () => {
 
     const fetchDeviceLogs = async () => {
         try {
-            // TODO: Implement deviceService.getDeviceLogs(deviceId)
-            // const response = await deviceService.getDeviceLogs(deviceId);
-            // setLogs(response.logs);
-
-            // Mock data for now
-            const mockLogs: DeviceLog[] = [
-                {
-                    _id: '1',
-                    type: 'maintenance',
-                    title: 'Cập nhật Windows',
-                    description: 'Máy giật lag, cài lại Win cho mượt',
-                    date: '2024-12-20T11:37:16.000Z',
-                    user: {
-                        fullname: 'Hà Văn Cường',
-                        department: 'IT'
-                    },
-                    status: 'completed'
-                },
-                {
-                    _id: '2',
-                    type: 'maintenance',
-                    title: 'Cập nhật Windows',
-                    description: 'Máy giật lag, cài lại Win cho mượt',
-                    date: '2024-12-20T11:37:16.000Z',
-                    user: {
-                        fullname: 'Hà Văn Cường',
-                        department: 'IT'
-                    },
-                    status: 'completed'
-                },
-                {
-                    _id: '3',
-                    type: 'software',
-                    title: 'Cài đặt phần mềm',
-                    description: 'Cài đặt Office 365 và các phần mềm cần thiết',
-                    date: '2024-12-15T09:30:00.000Z',
-                    user: {
-                        fullname: 'Hà Văn Cường',
-                        department: 'IT'
-                    },
-                    status: 'completed'
-                }
-            ];
-            
-            setLogs(mockLogs);
+            const response = await deviceService.getDeviceLogs(deviceType, deviceId);
+            setLogs(response || []);
         } catch (error) {
             console.error('Error fetching device logs:', error);
+            // Nếu lỗi, set logs thành mảng rỗng
+            setLogs([]);
         }
     };
 
@@ -173,7 +121,7 @@ const DevicesDetailScreen = () => {
             case 'Active': return 'Đang sử dụng';
             case 'Standby': return 'Sẵn sàng';
             case 'Broken': return 'Hỏng';
-            case 'PendingDocumentation': return 'Chờ xử lý';
+            case 'PendingDocumentation': return 'Thiếu biên bản';
             default: return 'Không xác định';
         }
     };
@@ -206,17 +154,361 @@ const DevicesDetailScreen = () => {
         return logs.filter(log => log.type === selectedLogTab);
     };
 
-    const renderSpecCard = (icon: string, label: string, value: string, color: string = '#F05023') => (
-        <View className="bg-white rounded-xl p-4 items-center flex-1 mx-1">
+    const getAssignedByUser = () => {
+        if (!device?.assignmentHistory || device.assignmentHistory.length === 0) {
+            return 'Không xác định';
+        }
+
+        // Tìm record đang mở (chưa có endDate) trong assignmentHistory
+        const openRecord = device.assignmentHistory.find((hist: any) => !hist.endDate);
+
+        if (openRecord && openRecord.assignedBy) {
+            return openRecord.assignedBy.fullname || 'Không xác định';
+        }
+
+        // Fallback: lấy record mới nhất có assignedBy
+        const latestRecordWithAssignedBy = device.assignmentHistory
+            .filter((hist: any) => hist.assignedBy)
+            .sort((a: any, b: any) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
+
+        if (latestRecordWithAssignedBy && latestRecordWithAssignedBy.assignedBy) {
+            return latestRecordWithAssignedBy.assignedBy.fullname || 'Không xác định';
+        }
+
+        return 'Không xác định';
+    };
+
+    const getCurrentUser = () => {
+        if (!device?.assignmentHistory || device.assignmentHistory.length === 0) {
+            return null;
+        }
+
+        // Tìm record đang mở (chưa có endDate) trong assignmentHistory
+        const openRecord = device.assignmentHistory.find((hist: any) => !hist.endDate);
+
+        if (openRecord && openRecord.user) {
+            return {
+                _id: openRecord.user._id || '',
+                fullname: openRecord.userName || openRecord.user.fullname || 'Không xác định',
+                department: openRecord.user.department || 'Không xác định',
+                jobTitle: openRecord.jobTitle || openRecord.user.jobTitle || 'Không xác định',
+                avatarUrl: openRecord.user.avatarUrl
+            };
+        }
+
+        // Fallback: người dùng từ assigned array (nếu có)
+        if (device.assigned && device.assigned.length > 0) {
+            const latestAssigned = device.assigned[device.assigned.length - 1];
+            return {
+                _id: latestAssigned._id || '',
+                fullname: latestAssigned.fullname || 'Không xác định',
+                department: latestAssigned.department || 'Không xác định',
+                jobTitle: latestAssigned.jobTitle || 'Không xác định',
+                avatarUrl: latestAssigned.avatarUrl
+            };
+        }
+
+        return null;
+    };
+
+    const getAssignmentStartDate = () => {
+        if (!device?.assignmentHistory || device.assignmentHistory.length === 0) {
+            return null;
+        }
+
+        // Tìm record đang mở (chưa có endDate) trong assignmentHistory
+        const openRecord = device.assignmentHistory.find((hist: any) => !hist.endDate);
+
+        if (openRecord && openRecord.startDate) {
+            return openRecord.startDate;
+        }
+
+        return null;
+    };
+
+    const formatAssignmentDuration = () => {
+        const startDate = getAssignmentStartDate();
+        if (!startDate) {
+            return 'Chưa có thông tin';
+        }
+
+        const start = new Date(startDate);
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        const startDateFormatted = `${start.getDate().toString().padStart(2, '0')}/${(start.getMonth() + 1).toString().padStart(2, '0')}/${start.getFullYear()}`;
+
+        if (diffDays === 1) {
+            return `${startDateFormatted} đến nay (1 ngày)`;
+        } else if (diffDays < 30) {
+            return `${startDateFormatted} - nay (${diffDays} ngày)`;
+        } else if (diffDays < 365) {
+            const months = Math.floor(diffDays / 30);
+            return `${startDateFormatted} → nay (${months} tháng)`;
+        } else {
+            const years = Math.floor(diffDays / 365);
+            return `${startDateFormatted} → nay (${years} năm)`;
+        }
+    };
+
+    const handleViewAssignmentHistory = () => {
+        navigation.navigate(ROUTES.SCREENS.DEVICE_ASSIGNMENT_HISTORY, {
+            deviceId: device!._id,
+            deviceType: deviceType,
+            deviceName: device!.name
+        });
+    };
+
+    const handleRevokeDevice = async (reasons: string[]) => {
+        try {
+            if (!device) return;
+
+            await deviceService.revokeDevice(deviceType, device._id, {
+                reasons,
+                status: 'Standby'
+            });
+
+            // Refresh device data
+            await fetchDeviceDetail();
+
+            Alert.alert('Thành công', 'Thu hồi thiết bị thành công!');
+        } catch (error) {
+            console.error('Error revoking device:', error);
+            throw error; // Re-throw để RevokeModal xử lý
+        }
+    };
+
+    const handleAssignDevice = async (userId: string, notes?: string) => {
+        try {
+            if (!device) return;
+
+            const token = await AsyncStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/api/${deviceType}s/${device._id}/assign`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    newUserId: userId,
+                    notes: notes
+                })
+            });
+
+            if (response.ok) {
+                await fetchDeviceDetail();
+                Alert.alert('Thành công', 'Cấp phát thiết bị thành công!');
+            } else {
+                const error = await response.json();
+                Alert.alert('Lỗi', error.message || 'Không thể cấp phát thiết bị');
+            }
+        } catch (error) {
+            console.error('Error assigning device:', error);
+            throw error;
+        }
+    };
+
+    const handleReportBroken = async (reason: string) => {
+        try {
+            if (!device) return;
+
+            const token = await AsyncStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/api/${deviceType}s/${device._id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    status: 'Broken',
+                    brokenReason: reason
+                })
+            });
+
+            if (response.ok) {
+                await fetchDeviceDetail();
+                Alert.alert('Thành công', 'Báo hỏng thiết bị thành công!');
+            } else {
+                const error = await response.json();
+                Alert.alert('Lỗi', error.message || 'Không thể báo hỏng thiết bị');
+            }
+        } catch (error) {
+            console.error('Error reporting broken device:', error);
+            throw error;
+        }
+    };
+
+    const handleUploadDocument = () => {
+        // TODO: Implement document upload functionality
+        Alert.alert('Chức năng đang phát triển', 'Tính năng cập nhật biên bản sẽ được bổ sung trong phiên bản tiếp theo.');
+    };
+
+    const handleDisposeDevice = async () => {
+        if (!device) return;
+
+        Alert.alert(
+            'Xác nhận thanh lý',
+            `Bạn có chắc chắn muốn thanh lý thiết bị "${device.name}"? Thao tác này không thể hoàn tác.`,
+            [
+                {
+                    text: 'Hủy',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Thanh lý',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('authToken');
+                            const response = await fetch(`${API_BASE_URL}/api/${deviceType}s/${device._id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json',
+                                }
+                            });
+
+                            if (response.ok) {
+                                Alert.alert('Thành công', 'Thiết bị đã được thanh lý thành công!', [
+                                    {
+                                        text: 'OK',
+                                        onPress: () => navigation.goBack()
+                                    }
+                                ]);
+                            } else {
+                                const error = await response.json();
+                                Alert.alert('Lỗi', error.message || 'Không thể thanh lý thiết bị');
+                            }
+                        } catch (error) {
+                            console.error('Error disposing device:', error);
+                            Alert.alert('Lỗi', 'Có lỗi xảy ra khi thanh lý thiết bị');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleRestoreDevice = async () => {
+        if (!device) return;
+
+        Alert.alert(
+            'Xác nhận phục hồi',
+            `Bạn có muốn phục hồi thiết bị "${device.name}" về trạng thái chờ cấp phát?`,
+            [
+                {
+                    text: 'Hủy',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Phục hồi',
+                    onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('authToken');
+                            const response = await fetch(`${API_BASE_URL}/api/${deviceType}s/${device._id}/status`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    status: 'Standby'
+                                })
+                            });
+
+                            if (response.ok) {
+                                await fetchDeviceDetail();
+                                Alert.alert('Thành công', 'Thiết bị đã được phục hồi thành công!');
+                            } else {
+                                const error = await response.json();
+                                Alert.alert('Lỗi', error.message || 'Không thể phục hồi thiết bị');
+                            }
+                        } catch (error) {
+                            console.error('Error restoring device:', error);
+                            Alert.alert('Lỗi', 'Có lỗi xảy ra khi phục hồi thiết bị');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const canRevokeDevice = () => {
+        return device &&
+            device.assigned &&
+            device.assigned.length > 0 &&
+            device.status === 'Active';
+    };
+
+    const handleEditSpec = (specKey: string, currentValue: string, label: string) => {
+        setEditSpecKey(specKey);
+        setEditSpecValue(currentValue);
+        setEditSpecLabel(label);
+        setEditModalVisible(true);
+    };
+
+    const handleSaveSpec = async () => {
+        if (!device) return;
+
+        try {
+            let payload: any = {};
+
+            if (['processor', 'ram', 'storage', 'display'].includes(editSpecKey)) {
+                // Đảm bảo device.specs tồn tại trước khi cập nhật
+                payload.specs = {
+                    ...device.specs,
+                    [editSpecKey]: editSpecValue
+                };
+            } else {
+                payload[editSpecKey] = editSpecKey === 'releaseYear' ? parseInt(editSpecValue) : editSpecValue;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/api/laptops/${device._id}/specs`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const updatedDevice = await response.json();
+                setDevice(updatedDevice);
+                setEditModalVisible(false);
+                Alert.alert('Thành công', 'Cập nhật thông số thành công!');
+            } else {
+                Alert.alert('Lỗi', 'Không thể cập nhật thông số!');
+            }
+        } catch (error) {
+            console.error('Error updating spec:', error);
+            Alert.alert('Lỗi', 'Có lỗi xảy ra khi cập nhật!');
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditModalVisible(false);
+        setEditSpecValue('');
+        setEditSpecKey('');
+        setEditSpecLabel('');
+    };
+
+    const renderSpecCard = (icon: string, label: string, value: string, specKey: string, color: string = '#F05023') => (
+        <TouchableOpacity
+            className="bg-gray-100 rounded-2xl ml-2 p-3 items-center"
+            style={{ width: 100, minWidth: 100 }}
+            onPress={() => handleEditSpec(specKey, value, label)}
+        >
             <View 
                 className="w-8 h-8 rounded-lg items-center justify-center mb-2"
                 style={{ backgroundColor: color }}
             >
                 <MaterialCommunityIcons name={icon as any} size={16} color="white" />
             </View>
-            <Text className="text-xs text-gray-500 text-center mb-1">{label}</Text>
-            <Text className="text-sm font-semibold text-gray-800 text-center">{value}</Text>
-        </View>
+            <Text className="text-sm text-gray-500 text-center mb-1" numberOfLines={1}>{label}</Text>
+            <Text className="text-base font-semibold text-gray-800 text-center" numberOfLines={2}>{value}</Text>
+        </TouchableOpacity>
     );
 
     const renderLogItem = (log: DeviceLog) => (
@@ -237,10 +529,10 @@ const DevicesDetailScreen = () => {
             </Text>
             
             <View className="flex-row justify-between items-center">
-                <Text className="text-xs text-gray-500">
+                <Text className="text-xs text-white font-medium">
                     {formatDateTime(log.date)}
                 </Text>
-                <Text className="text-xs text-gray-600 font-medium">
+                <Text className="text-xs text-white font-medium">
                     {log.user.fullname}
                 </Text>
             </View>
@@ -280,16 +572,97 @@ const DevicesDetailScreen = () => {
     return (
         <SafeAreaView className="flex-1 bg-white">
             {/* Header */}
-            <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
+            <View className="flex-row items-center justify-between px-5 pt-4 pb-1">
+                <View className="flex-1">
+                    <Text className="text-2xl font-bold text-primary" numberOfLines={1}>
+                        {device.name}
+                    </Text>
+                </View>
+
                 <TouchableOpacity onPress={handleGoBack} className="p-1">
-                    <Ionicons name="arrow-back" size={24} color="#002855" />
+                    <Text className="text-2xl font-bold text-primary">x</Text>
                 </TouchableOpacity>
-                <Text className="text-lg font-semibold text-primary" numberOfLines={1}>
-                    {device.name}
-                </Text>
-                <TouchableOpacity className="p-1">
-                    <Ionicons name="ellipsis-horizontal" size={24} color="#002855" />
-                </TouchableOpacity>
+            </View>
+            <View className="px-5 pb-4">
+                <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center">
+                        <View
+                            className="w-3 h-3 rounded-full mr-2"
+                            style={{ backgroundColor: getStatusColor(device.status) }}
+                        />
+                        <Text className="text-lg font-medium" style={{ color: getStatusColor(device.status) }}>
+                            {getStatusLabel(device.status)}
+                        </Text>
+                    </View>
+                </View>
+            </View>
+
+            {/* Action Buttons Based on Device Status */}
+            <View className="flex-row items-start px-5 py-3 gap-4 bg-white mb-4">
+                {/* Standby Status: Cấp phát và Báo hỏng */}
+                {device.status === 'Standby' && (
+                    <>
+                        <TouchableOpacity
+                            onPress={() => setAssignModalVisible(true)}
+                            className="w-12 h-12 rounded-full bg-[#3FA83B] items-center justify-center"
+
+                        >
+                            <AssignIcon width={40} height={40} fill="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setReportBrokenModalVisible(true)}
+                            className="w-12 h-12 rounded-full bg-[#EF4444] items-center justify-center"
+                        >
+                            <BrokenIcon width={24} height={24} fill="white" />
+                        </TouchableOpacity>
+                    </>
+                )}
+
+                {/* PendingDocumentation Status: Cập nhật biên bản */}
+                {device.status === 'PendingDocumentation' && (
+                    <TouchableOpacity
+                        onPress={handleUploadDocument}
+                        className="w-12 h-12 rounded-full bg-[#002855] items-center justify-center"
+                    >
+                        <MaterialCommunityIcons name="file-document" size={24} color="white" />
+                    </TouchableOpacity>
+                )}
+
+                {/* Active Status: Thu hồi và Báo hỏng */}
+                {device.status === 'Active' && (
+                    <>
+                        <TouchableOpacity
+                            onPress={() => setRevokeModalVisible(true)}
+                            className="w-12 h-12 rounded-full bg-[#EAA300] items-center justify-center"
+                        >
+                            <RevokeIcon width={24} height={24} fill="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setReportBrokenModalVisible(true)}
+                            className="w-12 h-12 rounded-full bg-[#EF4444] items-center justify-center"
+                        >
+                            <BrokenIcon width={24} height={24} fill="white" />
+                        </TouchableOpacity>
+                    </>
+                )}
+
+                {/* Broken Status: Thanh lý và Phục hồi */}
+                {device.status === 'Broken' && (
+                    <>
+                        <TouchableOpacity
+                            onPress={handleDisposeDevice}
+                            className="w-12 h-12 rounded-full bg-red-600 items-center justify-center"
+                        >
+                            <MaterialCommunityIcons name="delete-forever" size={24} color="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={handleRestoreDevice}
+                            className="w-12 h-12 rounded-full bg-green-600 items-center justify-center"
+                        >
+                            <MaterialCommunityIcons name="restore" size={24} color="white" />
+                        </TouchableOpacity>
+                    </>
+                )}
             </View>
 
             <ScrollView 
@@ -304,83 +677,68 @@ const DevicesDetailScreen = () => {
                     />
                 }
             >
-                {/* Status */}
-                <View className="px-5 py-4">
-                    <View className="flex-row items-center">
-                        <View 
-                            className="w-3 h-3 rounded-full mr-2"
-                            style={{ backgroundColor: getStatusColor(device.status) }}
-                        />
-                        <Text className="text-base font-medium" style={{ color: getStatusColor(device.status) }}>
-                            {getStatusLabel(device.status)}
-                        </Text>
-                    </View>
-                </View>
 
-                {/* Device Icon */}
-                <View className="px-5 mb-4">
-                    <View className="flex-row items-center">
-                        <View className="bg-[#F05023] p-3 rounded-full mr-4">
-                            <MaterialCommunityIcons 
-                                name={getDeviceIcon(deviceType)} 
-                                size={24} 
-                                color="white" 
-                            />
-                        </View>
-                        <View className="flex-1">
-                            <Text className="text-xl font-bold text-gray-800">
-                                {device.name}
-                            </Text>
-                            <Text className="text-sm text-gray-600">
-                                {device.manufacturer} {device.releaseYear && `• ${device.releaseYear}`}
-                            </Text>
-                        </View>
+                {/* Specs - chỉ hiển thị khi có ít nhất một thông số */}
+                {((device.specs?.processor && device.specs.processor.trim() !== '') ||
+                    (device.specs?.ram && device.specs.ram.trim() !== '') ||
+                    (device.specs?.storage && device.specs.storage.trim() !== '') ||
+                    (device.specs?.display && device.specs.display.trim() !== '') ||
+                    (device.releaseYear && device.releaseYear > 0) ||
+                    (device.manufacturer && device.manufacturer.trim() !== '')) && (
+                        <View className="px-2 mb-6">
+                            <ScrollView
+                                horizontal={true}
+                                showsHorizontalScrollIndicator={false}
+                                className="flex-1"
+                                contentContainerStyle={{ paddingHorizontal: 5 }}
+                            >
+                                <View className="flex-row space-x-3">
+                                    {(device.specs?.processor && device.specs.processor.trim() !== '') && renderSpecCard('cpu-64-bit', 'CPU', device.specs.processor, 'processor')}
+                                    {(device.specs?.ram && device.specs.ram.trim() !== '') && renderSpecCard('memory', 'Bộ nhớ', device.specs.ram, 'ram')}
+                                    {(device.specs?.storage && device.specs.storage.trim() !== '') && renderSpecCard('harddisk', 'Ổ cứng', device.specs.storage, 'storage')}
+                                    {(device.specs?.display && device.specs.display.trim() !== '') && renderSpecCard('monitor', 'Màn hình', device.specs.display, 'display')}
+                                    {(device.releaseYear && device.releaseYear > 0) && renderSpecCard('calendar', 'Năm sản xuất', device.releaseYear.toString(), 'releaseYear')}
+                                    {(device.manufacturer && device.manufacturer.trim() !== '') && renderSpecCard('wrench', 'Hãng sản xuất', device.manufacturer, 'manufacturer')}
+                                </View>
+                        </ScrollView>
                     </View>
-                </View>
-
-                {/* Specs */}
-                <View className="px-5 mb-6">
-                    <View className="flex-row -mx-1">
-                        {device.specs.processor && renderSpecCard('cpu-64-bit', 'RAM', device.specs.processor)}
-                        {device.specs.ram && renderSpecCard('memory', 'Bộ nhớ', device.specs.ram)}
-                        {device.specs.storage && renderSpecCard('harddisk', 'Màn hình', device.specs.storage)}
-                        {device.specs.display && renderSpecCard('monitor', 'Network', device.specs.display)}
-                    </View>
-                </View>
+                    )}
 
                 {/* Assignment Info */}
                 <View className="px-5 mb-6">
                     <View className="flex-row justify-between items-center mb-4">
                         <Text className="text-lg font-semibold text-gray-800">Thông tin bàn giao</Text>
-                        <TouchableOpacity>
+                        <TouchableOpacity onPress={handleViewAssignmentHistory}>
                             <Text className="text-[#F05023] font-medium">Xem tất cả</Text>
                         </TouchableOpacity>
                     </View>
-                    
                     <View className="bg-[#002855] rounded-xl p-4">
                         <View className="flex-row items-center mb-3">
-                            <View className="w-12 h-12 bg-gray-300 rounded-full mr-3 items-center justify-center">
-                                <Text className="text-lg font-bold text-gray-600">
-                                    {device.assigned[0]?.fullname.charAt(0) || '?'}
-                                </Text>
-                            </View>
-                            <View className="flex-1">
+                            <Image
+                                source={{ uri: getAvatar(getCurrentUser()) }}
+                                className="w-12 h-12 rounded-full mr-3"
+                            />
+                            <View className="flex-1 gap-1">
                                 <Text className="text-white font-semibold text-base">
-                                    {device.assigned[0]?.fullname || 'Chưa phân công'}
+                                    {getCurrentUser()?.fullname || 'Chưa phân công'}
                                 </Text>
-                                <Text className="text-gray-300 text-sm">
-                                    {device.assigned[0]?.department || 'Không xác định'}
+                                <Text className="text-[#BEBEBE] text-sm">
+                                    {getCurrentUser()?.jobTitle || 'Không xác định'}
+                                </Text>
+                                <Text className="text-white text-sm">
+                                    {formatAssignmentDuration()}
                                 </Text>
                             </View>
                             <TouchableOpacity className="p-2">
-                                <MaterialCommunityIcons name="file-document-outline" size={20} color="white" />
+                                <MaterialCommunityIcons name="file-document-outline" size={24} color="white" />
                             </TouchableOpacity>
                         </View>
                         
-                        <View className="border-t border-gray-600 pt-3">
-                            <Text className="text-gray-300 text-sm">
-                                Người bàn giao: {device.assigned[0]?.fullname || 'Hà Văn Cường'}
+                        <View className="border-t border-gray-600 pt-3 space-y-2">
+                            <Text className="text-white text-sm">
+                                Người bàn giao: {getAssignedByUser()}
                             </Text>
+
                         </View>
                     </View>
                 </View>
@@ -437,6 +795,40 @@ const DevicesDetailScreen = () => {
             <TouchableOpacity className="absolute bottom-8 right-5 w-14 h-14 rounded-full bg-[#F05023] items-center justify-center shadow-lg">
                 <Ionicons name="add" size={24} color="#fff" />
             </TouchableOpacity>
+
+            {/* Edit Spec Modal */}
+            <InputModal
+                visible={editModalVisible}
+                title={`Chỉnh sửa ${editSpecLabel}`}
+                placeholder={`Nhập ${editSpecLabel.toLowerCase()}...`}
+                value={editSpecValue}
+                onChangeText={setEditSpecValue}
+                onCancel={handleCancelEdit}
+                onConfirm={handleSaveSpec}
+            />
+
+            {/* Modals */}
+            <RevokeModal
+                visible={revokeModalVisible}
+                onClose={() => setRevokeModalVisible(false)}
+                onConfirm={handleRevokeDevice}
+                deviceName={device?.name || ''}
+                currentUserName={getCurrentUser()?.fullname || 'Không xác định'}
+            />
+
+            <AssignModal
+                visible={assignModalVisible}
+                onClose={() => setAssignModalVisible(false)}
+                onConfirm={handleAssignDevice}
+                deviceName={device?.name || ''}
+            />
+
+            <ReportBrokenModal
+                visible={reportBrokenModalVisible}
+                onClose={() => setReportBrokenModalVisible(false)}
+                onConfirm={handleReportBroken}
+                deviceName={device?.name || ''}
+            />
         </SafeAreaView>
     );
 };

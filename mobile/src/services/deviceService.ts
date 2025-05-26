@@ -263,6 +263,137 @@ class DeviceService {
     const data = await response.json();
     return data;
   }
+
+  // Get device logs
+  async getDeviceLogs(deviceType: DeviceType, deviceId: string): Promise<any[]> {
+    const headers = await this.getAuthHeaders();
+    let endpoint = '';
+
+    switch (deviceType) {
+      case 'laptop':
+        endpoint = `/api/laptops/${deviceId}/logs`;
+        break;
+      case 'monitor':
+        endpoint = `/api/monitors/${deviceId}/logs`;
+        break;
+      case 'printer':
+        endpoint = `/api/printers/${deviceId}/logs`;
+        break;
+      case 'projector':
+        endpoint = `/api/projectors/${deviceId}/logs`;
+        break;
+      case 'tool':
+        endpoint = `/api/tools/${deviceId}/logs`;
+        break;
+      default:
+        return [];
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, { headers });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Nếu endpoint chưa tồn tại, trả về mảng rỗng
+          return [];
+        }
+        throw new Error(`Failed to fetch ${deviceType} logs`);
+      }
+
+      const data = await response.json();
+      return data.logs || data || [];
+    } catch (error) {
+      console.error('Error fetching device logs:', error);
+      // Trả về mảng rỗng nếu API chưa sẵn sàng
+      return [];
+    }
+  }
+
+  // Create device log
+  async createDeviceLog(deviceType: DeviceType, deviceId: string, logData: {
+    type: 'maintenance' | 'software' | 'assignment' | 'general';
+    title: string;
+    description: string;
+  }): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    let endpoint = '';
+
+    switch (deviceType) {
+      case 'laptop':
+        endpoint = `/api/laptops/${deviceId}/logs`;
+        break;
+      case 'monitor':
+        endpoint = `/api/monitors/${deviceId}/logs`;
+        break;
+      case 'printer':
+        endpoint = `/api/printers/${deviceId}/logs`;
+        break;
+      case 'projector':
+        endpoint = `/api/projectors/${deviceId}/logs`;
+        break;
+      case 'tool':
+        endpoint = `/api/tools/${deviceId}/logs`;
+        break;
+      default:
+        throw new Error('Invalid device type');
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(logData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create ${deviceType} log`);
+    }
+
+    const data = await response.json();
+    return data;
+  }
+
+  // Revoke device
+  async revokeDevice(deviceType: DeviceType, deviceId: string, revokeData: {
+    reasons: string[];
+    status?: string;
+  }): Promise<Device> {
+    const headers = await this.getAuthHeaders();
+    let endpoint = '';
+
+    switch (deviceType) {
+      case 'laptop':
+        endpoint = `/api/laptops/${deviceId}/revoke`;
+        break;
+      case 'monitor':
+        endpoint = `/api/monitors/${deviceId}/revoke`;
+        break;
+      case 'printer':
+        endpoint = `/api/printers/${deviceId}/revoke`;
+        break;
+      case 'projector':
+        endpoint = `/api/projectors/${deviceId}/revoke`;
+        break;
+      case 'tool':
+        endpoint = `/api/tools/${deviceId}/revoke`;
+        break;
+      default:
+        throw new Error('Invalid device type');
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(revokeData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to revoke device');
+    }
+
+    const result = await response.json();
+    return result.laptop || result.monitor || result.printer || result.projector || result.tool;
+  }
 }
 
 export default new DeviceService(); 
