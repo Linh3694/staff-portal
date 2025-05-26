@@ -11,6 +11,8 @@ router.post("/upload-excel", upload.single("file"),
     awardRecordController.uploadExcelStudents);
 router.post("/upload-excel-classes", upload.single("file"),
     awardRecordController.uploadExcelClasses);
+router.post("/upload-excel-records", upload.single("file"),
+    awardRecordController.uploadExcelRecords);
 
 router.get("/:id", awardRecordController.getAwardRecordById);
 router.post("/", awardRecordController.createAwardRecord);

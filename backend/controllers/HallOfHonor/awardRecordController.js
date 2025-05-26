@@ -602,4 +602,64 @@ exports.uploadExcelClasses = async (req, res) => {
   }
 };
 
+// Xử lý upload file Excel cho RecordModal (note/activity format)
+exports.uploadExcelRecords = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Vui lòng tải lên file Excel" });
+    }
+
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = xlsx.utils.sheet_to_json(worksheet);
+
+    if (!data || data.length === 0) {
+      return res.status(400).json({ message: "File Excel không có dữ liệu" });
+    }
+
+    const students = data.map((row) => ({
+      student: row["StudentCode"],
+      note: (row["Note"] || row["Ghi chú"] || "").toString().trim(),
+      noteEng: (row["NoteEng"] || row["Ghi chú (EN)"] || "").toString().trim(),
+      activity: row["Activity"] ? 
+        row["Activity"].toString().split(",").map(a => a.trim()).filter(Boolean) : [],
+      activityEng: row["ActivityEng"] ? 
+        row["ActivityEng"].toString().split(",").map(a => a.trim()).filter(Boolean) : [],
+    }));
+
+    // Remove duplicate student codes within the uploaded file itself
+    const seenIds = new Set();
+    const uniqueStudents = students.filter((s) => {
+      const id = s.student?.toString();
+      if (!id || seenIds.has(id)) return false;
+      seenIds.add(id);
+      return true;
+    });
+
+    // Validate dữ liệu - chỉ cần StudentCode và Note
+    const invalidStudents = uniqueStudents.filter(
+      (s) => !s.student || !s.note.trim()
+    );
+    if (invalidStudents.length > 0) {
+      return res.status(400).json({
+        message: `Có ${invalidStudents.length} dòng thiếu StudentCode hoặc Note`,
+        invalidRows: invalidStudents
+      });
+    }
+
+    return res.status(200).json({
+      message: "Đọc file thành công",
+      students: uniqueStudents,
+      totalStudents: uniqueStudents.length
+    });
+
+  } catch (error) {
+    console.error("Error processing Excel file:", error);
+    return res.status(400).json({
+      message: "Có lỗi xảy ra khi xử lý file Excel",
+      error: error.message
+    });
+  }
+};
+
 

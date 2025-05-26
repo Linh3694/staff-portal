@@ -442,7 +442,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
       formData.append("subAwardLabel", subAwardLabel);
 
       const response = await axios.post(
-        `${API_URL}/award-records/upload-excel`,
+        `${API_URL}/award-records/upload-excel`, // Endpoint cho exam/score format
         formData,
         {
           headers: {
@@ -507,7 +507,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
         setShowPreview(true);
       }
     } catch (error) {
-      console.error("Excel upload (students) error:", error.response || error);
+      console.error("Excel upload (exam/score format) error:", error.response || error);
       alert(
         error.response?.data?.message ||
           "Có lỗi xảy ra khi tải file. Vui lòng thử lại!"
