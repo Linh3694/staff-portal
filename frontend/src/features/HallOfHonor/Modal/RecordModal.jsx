@@ -539,7 +539,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
       formData.append("subAwardLabel", subAwardLabel);
 
       const response = await axios.post(
-        `${API_URL}/award-records/upload-excel`,
+        `${API_URL}/award-records/upload-excel-records`,
         formData,
         {
           headers: {
@@ -573,12 +573,15 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
           if (fileStudentIds.has(sid)) return;
           fileStudentIds.add(sid);
 
-          // Validate note present
+          // Validate note present (required field)
           if (!stu.note || !stu.note.trim()) return;
 
           validStudents.push({
-            ...stu,
             student: sid, // store the actual ObjectId
+            note: stu.note,
+            noteEng: stu.noteEng || "",
+            activity: Array.isArray(stu.activity) ? stu.activity : [],
+            activityEng: Array.isArray(stu.activityEng) ? stu.activityEng : [],
           });
         });
 
@@ -601,7 +604,7 @@ const RecordModal = ({ visible, onClose, categoryId }) => {
         setShowPreview(true);
       }
     } catch (error) {
-      console.error("Excel upload (students) error:", error.response || error);
+      console.error("Excel upload (records with notes/activities) error:", error.response || error);
       alert(
         error.response?.data?.message ||
           "Có lỗi xảy ra khi tải file. Vui lòng thử lại!"
