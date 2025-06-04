@@ -602,9 +602,6 @@ const MonitorProductCard = ({
         //// Thông tin monitor
         monitorName: monitorData.name || "Không xác định",
         monitorSerial: monitorData.serial,
-        monitorProcessor: monitorData.specs.processor,
-        monitorRam: monitorData.specs.ram,
-        monitorStorage: monitorData.specs.storage,
         monitorreleaseYear: monitorData.releaseYear,
         notes: notes || "Không có ghi chú.",
       });
