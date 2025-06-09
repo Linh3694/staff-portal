@@ -9,12 +9,11 @@ import Record2Modal from "./Modal/Record2Modal";
 
 function HallOfFameAdminPage() {
   const [activeTab, setActiveTab] = useState("categories");
-  const [showCreateModal, setShowCreateModal] = useState(false); // Thêm state mới
-  const [newCategoryName, setNewCategoryName] = useState(""); // Thêm state cho tên mới
-  const [newCategoryNameEng, setNewCategoryNameEng] = useState(""); // Thêm state cho tên tiếng Anh
+  const [showCreateModal, setShowCreateModal] = useState(false); 
+  const [newCategoryName, setNewCategoryName] = useState(""); 
+  const [newCategoryNameEng, setNewCategoryNameEng] = useState(""); 
   const [selectedSubAwardSchoolYear, setSelectedSubAwardSchoolYear] =
     useState("");
-  // Thêm useEffect để thay đổi title
   useEffect(() => {
     document.title = "Quản lý Hall of Fame | Wellspring";
     // Cleanup function để reset title khi unmount
