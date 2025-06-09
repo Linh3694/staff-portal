@@ -13,13 +13,24 @@ if (!fs.existsSync(uploadPath)) {
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage }); // Đây là phần quan trọng
 
+// Hàm sanitize tên file
+const sanitizeFileName = (originalName) => {
+  // Bỏ dấu tiếng Việt
+  let temp = originalName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // Thay space thành underscore
+  temp = temp.replace(/\s+/g, "_");
+  // Bỏ các ký tự đặc biệt không mong muốn, chỉ giữ lại chữ, số, dấu gạch dưới và dấu chấm
+  temp = temp.replace(/[^a-zA-Z0-9_.-]/g, "");
+  return temp;
+};
+
 const processFile = (req, res, next) => {
   if (!req.file) {
     return res.status(400).json({ message: "Không có file được tải lên!" });
   }
 
-  // Lấy thông tin username từ body
-  const username = req.body.username || "Unknown";
+  // Lấy thông tin username từ body và sanitize
+  const username = sanitizeFileName(req.body.username || "Unknown");
   const formattedDate = moment().format("YYYY-MM-DD");
   const fileExtension = path.extname(req.file.originalname);
   const newFileName = `BBBG-${username}-${formattedDate}${fileExtension}`;

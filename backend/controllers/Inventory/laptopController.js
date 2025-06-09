@@ -534,13 +534,7 @@ exports.searchLaptops = async (req, res) => {
   }
 };
 
-const sanitizeFileName = (originalName) => {
-  // Ví dụ function remove dấu + thay space -> '_'
-  let temp = originalName.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // bỏ dấu
-  temp = temp.replace(/\s+/g, "_"); // chuyển dấu cách -> _
-  // Loại bỏ ký tự đặc biệt... v.v. tuỳ ý
-  return temp;
-};
+
 
 exports.uploadHandoverReport = async (req, res) => {
   console.log("📤 Dữ liệu nhận được từ frontend:", req.body);
@@ -553,17 +547,10 @@ exports.uploadHandoverReport = async (req, res) => {
 
     console.log("✅ Trong Controller - username nhận được:", username);
 
-     const originalFileName = path.basename(req.file.path); 
-    // => "BBBG-Nguyễn Hải Linh-2025-03-10.pdf"
-
-    // sanitize
-    const sanitizedName = sanitizeFileName(originalFileName);
-    // => "BBBG-Nguyen_Hai_Linh-2025-03-10.pdf"
-
-    // Đổi tên file trên ổ cứng 
-    const oldPath = path.join(__dirname, "../uploads/Handovers", originalFileName);
-    const newPath = path.join(__dirname, "../uploads/Handovers", sanitizedName);
-    fs.renameSync(oldPath, newPath);
+    // Lấy tên file từ req.file.path (middleware đã set sẵn)
+    // req.file.path = "/uploads/Handovers/BBBG-username-date.pdf"
+    const fileName = path.basename(req.file.path);
+    console.log("✅ Tên file đã được middleware xử lý:", fileName);
 
     const laptop = await Laptop.findById(laptopId);
     if (!laptop) {
@@ -584,13 +571,13 @@ exports.uploadHandoverReport = async (req, res) => {
       laptop.assignmentHistory.push({
         user: new mongoose.Types.ObjectId(userId),
         startDate: new Date(),
-        document: originalFileName,
+        document: fileName,
       });
 
       currentAssignment = laptop.assignmentHistory[laptop.assignmentHistory.length - 1];
     } else {
       console.log("🔄 Cập nhật lịch sử bàn giao hiện tại.");
-      currentAssignment.document = sanitizedName;
+      currentAssignment.document = fileName;
     }
 
     laptop.status = "Active";
@@ -609,7 +596,8 @@ exports.uploadHandoverReport = async (req, res) => {
 // Endpoint để trả file PDF
 exports.getHandoverReport = async (req, res) => {
   const { filename } = req.params;
-  const filePath = path.join(__dirname, "../uploads/Handovers", filename);
+  // Sửa đường dẫn đúng: từ controllers/Inventory lên 2 cấp để về backend, rồi vào uploads
+  const filePath = path.join(__dirname, "../../uploads/Handovers", filename);
 
   // Kiểm tra file có tồn tại không
   if (!fs.existsSync(filePath)) {

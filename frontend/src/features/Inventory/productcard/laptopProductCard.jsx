@@ -196,7 +196,6 @@ const LaptopProductCard = ({
         }
       );
       const updatedLaptop = response.data;
-
       // Cập nhật state
       setLocalLaptop(updatedLaptop);
       setLocalStatus("Standby");

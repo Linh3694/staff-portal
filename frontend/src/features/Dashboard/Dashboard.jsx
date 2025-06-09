@@ -158,6 +158,7 @@ const Dashboard = () => {
     const fetchCurrentUser = async () => {
       try {
         const token = localStorage.getItem("authToken");
+        console.log(token);
         const response = await fetch(`${API_URL}/users/me`, {
           headers: {
             "Content-Type": "application/json",
