@@ -96,7 +96,6 @@ function HallOfFameAdminPage() {
   // Thêm useEffect mới để fetch lại records khi selectedSubAward thay đổi
   useEffect(() => {
     if (selectedSubAward && editingCategory) {
-      console.log("Selected subAward changed, fetching records...");
       fetchRecordsBySubAward(selectedSubAward);
     }
   }, [selectedSubAward, editingCategory]);
@@ -108,7 +107,6 @@ function HallOfFameAdminPage() {
       editingCategory &&
       (studentsList.length > 0 || classesList.length > 0)
     ) {
-      console.log("Students or Classes list updated, refreshing records...");
       fetchRecordsBySubAward(selectedSubAward);
     }
   }, [studentsList, classesList]);
@@ -116,7 +114,6 @@ function HallOfFameAdminPage() {
   // Thêm useEffect mới để theo dõi selectedCategoryForRecord
   useEffect(() => {
     if (selectedCategoryForRecord) {
-      console.log("Selected category for record:", selectedCategoryForRecord);
       setEditingCategory(selectedCategoryForRecord._id);
     }
   }, [selectedCategoryForRecord]);
@@ -225,7 +222,8 @@ function HallOfFameAdminPage() {
     if (customSubAwards.length > 0) {
       computedSubAwards.push(
         ...customSubAwards.filter(
-          sub => sub.type === "custom" || sub.type === "custom_with_description"
+          (sub) =>
+            sub.type === "custom" || sub.type === "custom_with_description"
         )
       );
     }
@@ -372,10 +370,13 @@ function HallOfFameAdminPage() {
 
     // Lưu danh sách Custom SubAwards (bao gồm cả custom và custom_with_description)
     const existingCustomSubs = cat.subAwards
-      .filter((sub) => sub.type === "custom" || sub.type === "custom_with_description")
+      .filter(
+        (sub) => sub.type === "custom" || sub.type === "custom_with_description"
+      )
       .map((sub, idx) => ({
         ...sub,
-        priority: sub.priority != null && sub.priority > 0 ? sub.priority : idx + 1,
+        priority:
+          sub.priority != null && sub.priority > 0 ? sub.priority : idx + 1,
       }));
     setCustomSubAwards(existingCustomSubs);
 
@@ -414,8 +415,6 @@ function HallOfFameAdminPage() {
     if (!subAward || !editingCategory) return;
 
     try {
-      console.log("Fetching records for:", { subAward, editingCategory });
-
       // Fetch records với params đầy đủ
       const res = await axios.get(`${API_URL}/award-records`, {
         params: {
@@ -427,9 +426,6 @@ function HallOfFameAdminPage() {
           subAwardMonth: subAward.month || 0,
         },
       });
-
-      console.log("Received records:", res.data);
-
       // Xử lý và populate dữ liệu
       const processedRecords = (res.data || [])
         .map((record) => {
@@ -512,27 +508,9 @@ function HallOfFameAdminPage() {
             String(subAward.schoolYear || "") &&
           (record.subAward.semester || 0) === (subAward.semester || 0) &&
           (record.subAward.month || 0) === (subAward.month || 0);
-
-        console.log("Record match check:", {
-          recordId: record._id,
-          match,
-          conditions: {
-            categoryMatch: record.awardCategory._id === editingCategory,
-            labelMatch: record.subAward.label === subAward.label,
-            typeMatch: record.subAward.type === subAward.type,
-            yearMatch:
-              String(record.subAward.schoolYear || "") ===
-              String(subAward.schoolYear || ""),
-            semesterMatch:
-              (record.subAward.semester || 0) === (subAward.semester || 0),
-            monthMatch: (record.subAward.month || 0) === (subAward.month || 0),
-          },
-        });
-
         return match;
       });
 
-      console.log("Final filtered records:", filteredRecords);
       setSelectedSubAwardRecords(filteredRecords);
     } catch (error) {
       console.error("Error fetching records by sub-award:", error);

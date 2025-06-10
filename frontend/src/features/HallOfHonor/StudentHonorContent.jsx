@@ -449,11 +449,12 @@ const StudentHonorContent = ({
 
   // Hàm mở modal khi click vào 1 học sinh
   const handleOpenModal = (record, student) => {
-    console.log("Navigate to:", `/hall-of-honor/detail/${categoryName}/student/${record._id}/${student.student?._id}`);
     setModalRecord(record);
     setModalStudent(student);
     setShowModal(true);
-    navigate(`/hall-of-honor/detail/${categoryName}/student/${record._id}/${student.student?._id}`);
+    navigate(
+      `/hall-of-honor/detail/${categoryName}/student/${record._id}/${student.student?._id}`
+    );
   };
 
   // Hàm đóng modal
