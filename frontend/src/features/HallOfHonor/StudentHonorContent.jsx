@@ -74,7 +74,14 @@ const StudentHonorContent = ({
     setModalRecord(foundRecord);
     setModalStudent(foundStudent);
     setShowModal(true);
-  }, [recordIdParam, studentIdParam, records, isLoadingRecords, categoryName, navigate]);
+  }, [
+    recordIdParam,
+    studentIdParam,
+    records,
+    isLoadingRecords,
+    categoryName,
+    navigate,
+  ]);
 
   const fetchCategories = async () => {
     try {
@@ -483,7 +490,18 @@ const StudentHonorContent = ({
       } else {
         // VD: January & February
         const monthNames = [
-          "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
         ];
         const months = nums.map((n) => monthNames[Number(n) - 1]);
         return `${categoryName} - ${months.join(" & ")} - ${t("schoolYearSC", "School Year")} ${schoolYearLabel}`;
@@ -521,9 +539,21 @@ const StudentHonorContent = ({
 
   const getSubAwardLabelForFilter = (sub) => {
     const nums = sub.label.match(/\d+/g) || [];
-    if (i18n.language === "vi") return nums.map((n) => `Tháng ${n}`).join(" & ");
+    if (i18n.language === "vi")
+      return nums.map((n) => `Tháng ${n}`).join(" & ");
     const monthNames = [
-      "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
     return nums.map((n) => monthNames[Number(n) - 1]).join(" & ");
   };
@@ -553,8 +583,8 @@ const StudentHonorContent = ({
                   ? "text-[50px] font-[Metropolis]"
                   : "text-[70px] font-black font-[Metropolis]"
                 : idx === 0
-                ? "text-[70px] font-black font-[Metropolis]"
-                : "text-[50px] font-[Metropolis]";
+                  ? "text-[70px] font-black font-[Metropolis]"
+                  : "text-[50px] font-[Metropolis]";
 
             return (
               <div key={idx} className={textSize}>
@@ -595,8 +625,8 @@ const StudentHonorContent = ({
                         ? "lg:text-[52px] text-[18px]"
                         : "lg:text-[70px] text-[20px] font-extrabold"
                       : idx === 0
-                      ? "lg:text-[70px] text-[20px] font-extrabold"
-                      : "lg:text-[52px] text-[18px] ";
+                        ? "lg:text-[70px] text-[20px] font-extrabold"
+                        : "lg:text-[52px] text-[18px] ";
 
                   return (
                     <div key={idx} className={textSize}>
@@ -625,8 +655,8 @@ const StudentHonorContent = ({
             {tab === "year"
               ? t("schoolYear", "Năm học")
               : tab === "semester"
-              ? t("semester", "Học kì")
-              : t("month", "Tháng")}
+                ? t("semester", "Học kì")
+                : t("month", "Tháng")}
           </button>
         ))}
       </div>
@@ -818,7 +848,10 @@ const StudentHonorContent = ({
       )}
       {/* Modal hiển thị chi tiết khi click vào 1 học sinh */}
       {showModal && modalStudent && modalRecord && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50" onClick={handleCloseModal}>
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50"
+          onClick={handleCloseModal}
+        >
           <div
             className="lg:w-[980px] md:w-[80%] w-[95%] h-auto rounded-[20px] lg:py-20 lg:px-20 py-5 relative shadow-lg"
             style={{
@@ -830,7 +863,7 @@ const StudentHonorContent = ({
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Bố cục chia làm 2 phần: Ảnh bên trái - Thông tin bên phải */}
             <div className="flex flex-col lg:flex-row lg:space-x-6 space-y-6 lg:space-y-0 ">

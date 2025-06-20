@@ -14,7 +14,8 @@ import { useSearchParams } from "react-router-dom";
 function HallOfFamePublicPage() {
   const { category, recordId, studentId, classId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [showCategoryNameInHeader, setShowCategoryNameInHeader] = useState(false);
+  const [showCategoryNameInHeader, setShowCategoryNameInHeader] =
+    useState(false);
   const [records, setRecords] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalRecord, setModalRecord] = useState(null);
@@ -47,7 +48,7 @@ function HallOfFamePublicPage() {
       case "wisers-effort":
         return "67b5a98b4c93fbb31475ad56";
       case "standardized-test":
-        return "6822ac896c9cd6eb0dadecb5";  
+        return "6822ac896c9cd6eb0dadecb5";
       default:
         return null;
     }
@@ -93,7 +94,12 @@ function HallOfFamePublicPage() {
       return;
     }
 
-    navigate(`/hall-of-honor/detail/${categoryName}`, { replace: true });
+    // Sử dụng setTimeout để đảm bảo state đã được cập nhật hoàn toàn
+    const timeoutId = setTimeout(() => {
+      navigate(`/hall-of-honor/detail/${categoryName}`, { replace: true });
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [selectedCategoryId, navigate, recordId, studentId, classId]);
 
   useEffect(() => {
@@ -140,9 +146,11 @@ function HallOfFamePublicPage() {
     if (recordId && (studentId || classId)) {
       // Tìm record và student/class tương ứng
       if (studentId) {
-        const record = records.find(r => r._id === recordId);
+        const record = records.find((r) => r._id === recordId);
         if (record) {
-          const student = record.students.find(s => s.student?._id === studentId);
+          const student = record.students.find(
+            (s) => s.student?._id === studentId
+          );
           if (student) {
             setModalRecord(record);
             setModalStudent(student);
@@ -150,9 +158,11 @@ function HallOfFamePublicPage() {
           }
         }
       } else if (classId) {
-        const record = records.find(r => r._id === recordId);
+        const record = records.find((r) => r._id === recordId);
         if (record) {
-          const classInfo = record.awardClasses.find(c => c.classInfo?._id === classId);
+          const classInfo = record.awardClasses.find(
+            (c) => c.classInfo?._id === classId
+          );
           if (classInfo) {
             setModalRecord(record);
             setModalClass(classInfo);
@@ -163,8 +173,7 @@ function HallOfFamePublicPage() {
     }
   }, [recordId, studentId, classId, records]);
 
- 
-    const categoryName = getCategoryNameFromId(selectedCategoryId);
+  const categoryName = getCategoryNameFromId(selectedCategoryId);
 
   // --- Chọn component hiển thị theo danh mục ---
   const renderMainContent = () => {
@@ -218,21 +227,30 @@ function HallOfFamePublicPage() {
             setSearchParams={setSearchParams}
           />
         );
-      
+
       // Thành tích các bài thi chuẩn hóa
       case "6822ac896c9cd6eb0dadecb5":
         return (
           <StandardizedTestAchievements
             categoryId={selectedCategoryId}
-            categoryName={categoryName} 
+            categoryName={categoryName}
             recordIdParam={recordId}
             studentIdParam={studentId}
             setSearchParams={setSearchParams}
           />
         );
-      
+
       // TODO: thêm các case khác nếu có các component riêng cho danh mục khác.
       default:
+        // Nếu selectedCategoryId là null, hiển thị loading
+        if (!selectedCategoryId) {
+          return (
+            <div className="p-10 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F05023] mx-auto mb-4"></div>
+              <p>{t("loading", "Đang tải...")}</p>
+            </div>
+          );
+        }
         return (
           <div className="p-10">
             {t("noInterface", "Chưa có giao diện cho danh mục này.")}

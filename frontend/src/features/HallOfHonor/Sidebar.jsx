@@ -141,9 +141,12 @@ const Sidebar = ({
                   if (!hasSubcategories) {
                     if (isCatEnabled) {
                       setSelectedCategoryId(fixedCat.id);
-                      if (window.innerWidth < 1600) {
-                        closeSidebar && closeSidebar();
-                      }
+                      // Delay việc đóng sidebar để đảm bảo state được cập nhật trước
+                      setTimeout(() => {
+                        if (window.innerWidth < 1600) {
+                          closeSidebar && closeSidebar();
+                        }
+                      }, 100);
                     }
                   } else {
                     // Với catalogue có subcategories, chỉ toggle dropdown
@@ -185,9 +188,12 @@ const Sidebar = ({
                         onClick={() => {
                           if (isSubEnabled) {
                             setSelectedCategoryId(sub.id);
-                            if (window.innerWidth < 1600) {
-                              closeSidebar && closeSidebar();
-                            }
+                            // Delay việc đóng sidebar để đảm bảo state được cập nhật trước
+                            setTimeout(() => {
+                              if (window.innerWidth < 1600) {
+                                closeSidebar && closeSidebar();
+                              }
+                            }, 100);
                           }
                         }}
                       >

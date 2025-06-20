@@ -13,7 +13,12 @@ import { useNavigate } from "react-router-dom";
 import { BiSolidQuoteLeft } from "react-icons/bi";
 import { FaAngleDown, FaAngleRight } from "react-icons/fa6";
 
-const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentIdParam }) => {
+const ScholarShipContent = ({
+  categoryId,
+  categoryName,
+  recordIdParam,
+  studentIdParam,
+}) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
@@ -33,8 +38,6 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
   const [modalRecord, setModalRecord] = useState(null); // record được chọn
   const [modalStudent, setModalStudent] = useState(null); // student được chọn
   const [openLevel, setOpenLevel] = useState(null);
-
-  
 
   // Tự động mở modal khi URL chứa recordId & studentId (sau khi states đã khởi tạo)
   useEffect(() => {
@@ -296,7 +299,9 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
     setModalRecord(record);
     setModalStudent(student);
     setShowModal(true);
-    navigate(`/hall-of-honor/detail/${categoryName}/student/${record._id}/${student.student?._id}`);
+    navigate(
+      `/hall-of-honor/detail/${categoryName}/student/${record._id}/${student.student?._id}`
+    );
   };
 
   const handleCloseModal = () => {
@@ -309,9 +314,9 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
   // Hàm trả về label của danh hiệu (subAward custom)
   const getSubAwardLabel = (record) => {
     if (!record?.subAward) return "";
-      if (record.subAward.type === "custom") {
-        return record.subAward.label;
-      }
+    if (record.subAward.type === "custom") {
+      return record.subAward.label;
+    }
     return "";
   };
 
@@ -351,8 +356,8 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
                   ? "text-[50px] font-[Metropolis]"
                   : "text-[70px] font-black font-[Metropolis]"
                 : idx === 0
-                ? "text-[70px] font-black font-[Metropolis]"
-                : "text-[50px] font-[Metropolis]";
+                  ? "text-[70px] font-black font-[Metropolis]"
+                  : "text-[50px] font-[Metropolis]";
 
             return (
               <div key={idx} className={textSize}>
@@ -393,8 +398,8 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
                         ? "lg:text-[52px] text-[18px]"
                         : "lg:text-[70px] text-[20px] font-extrabold"
                       : idx === 0
-                      ? "lg:text-[70px] text-[20px] font-extrabold"
-                      : "lg:text-[52px] text-[18px] ";
+                        ? "lg:text-[70px] text-[20px] font-extrabold"
+                        : "lg:text-[52px] text-[18px] ";
 
                   return (
                     <div key={idx} className={textSize}>
@@ -515,9 +520,15 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
       })}
       {/* Modal hiển thị chi tiết khi click vào 1 học sinh */}
       {showModal && modalStudent && modalRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={handleCloseModal}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={handleCloseModal}
+        >
           {/* Desktop Version */}
-          <div className="hidden xl:flex relative md:w-[60%] w-[70%] max-w-[1200px] px-10 py-10 rounded-xl max-h-[90vh] items-stretch overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div
+            className="hidden xl:flex relative md:w-[60%] w-[70%] max-w-[1200px] px-10 py-10 rounded-xl max-h-[90vh] items-stretch overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <img
               src="/halloffame/scholarship.svg"
               alt="Modal Background"
@@ -573,7 +584,7 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
                 {modalStudent.student?.name?.toUpperCase()}
               </div>
               <div className="w-full xl:text-base text-sm font-semibold text-[#F9D16F] my-3">
-                Lớp{" "}
+                {t("classLabel", "Lớp")}{" "}
                 {modalStudent.currentClass?.name ||
                   modalStudent.currentClass?.className ||
                   t("noClass", "Chưa cập nhật lớp")}
@@ -605,7 +616,10 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
           </div>
 
           {/* Mobile Version */}
-          <div className="flex xl:hidden flex-col relative w-[90%] max-h-[90%] px-4 py-8 rounded-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div
+            className="flex xl:hidden flex-col relative w-[90%] max-h-[90%] px-4 py-8 rounded-xl overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <img
               src="/halloffame/scholarship-mobile.svg"
               alt="Modal Background (mobile)"
@@ -657,7 +671,7 @@ const ScholarShipContent = ({ categoryId, categoryName, recordIdParam, studentId
                   {modalStudent.student?.name?.toUpperCase()}
                 </div>
                 <div className="text-sm font-semibold text-[#F9D16F]">
-                  Lớp{" "}
+                  {t("classLabel", "Lớp")}{" "}
                   {modalStudent.currentClass?.name ||
                     modalStudent.currentClass?.className ||
                     t("noClass", "Chưa cập nhật lớp")}
