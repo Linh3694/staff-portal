@@ -76,7 +76,7 @@ const LaptopProductCard = ({
   // Thêm state cho modal xác nhận thu hồi
   const [showRevokeModal, setShowRevokeModal] = useState(false);
   const [revokeReasons, setRevokeReasons] = useState([]);
-  // Thêm state “localLaptopStatus” để tạm giữ status hiển thị
+  // Thêm state "localLaptopStatus" để tạm giữ status hiển thị
   const [localStatus, setLocalStatus] = useState(laptopData.status);
   const [localLaptop, setLocalLaptop] = useState(laptopData);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -135,7 +135,7 @@ const LaptopProductCard = ({
     return response.data;
   };
 
-  // Xác nhận “bàn giao”
+  // Xác nhận "bàn giao"
   const handleConfirmAssign = async () => {
     if (!selectedUser || !notes.trim()) {
       toast.error("Vui lòng nhập thông tin hợp lệ trước khi bàn giao!");
@@ -340,7 +340,7 @@ const LaptopProductCard = ({
   // -----------------------------------------------------
   // 1) TÁCH LOGIC CHỈNH SỬA SPECS
   // -----------------------------------------------------
-  // Bấm “chỉnh sửa” (processor / ram / storage / display / releaseYear)
+  // Bấm "chỉnh sửa" (processor / ram / storage / display / releaseYear)
   const handleEditSpec = (field, currentValue) => {
     setEditField(field);
     setEditValue(currentValue || "");
@@ -397,7 +397,7 @@ const LaptopProductCard = ({
       });
   };
 
-  // Hủy chế độ sửa “activity”
+  // Hủy chế độ sửa "activity"
   const handleCancelEdit = () => {
     setEditField(null);
     setEditValue("");
@@ -409,8 +409,17 @@ const LaptopProductCard = ({
       return;
     }
 
+    // 🔧 FIX: Validate filename format
+    if (!filename.toLowerCase().endsWith(".pdf")) {
+      toast.error("Chỉ hỗ trợ xem file PDF!");
+      return;
+    }
+
     const fileUrl = `${API_URL}/laptops/handover/${filename}`;
     const token = localStorage.getItem("authToken");
+
+    // 🔧 FIX: Thêm loading state
+    const toastId = toast.loading("Đang tải file biên bản...");
 
     try {
       const response = await fetch(fileUrl, {
@@ -430,12 +439,27 @@ const LaptopProductCard = ({
 
       window.open(blobUrl, "_blank");
 
+      // 🔧 FIX: Thông báo thành công
+      toast.update(toastId, {
+        render: "Đã mở file biên bản!",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
+
       setTimeout(() => {
         window.URL.revokeObjectURL(blobUrl);
       }, 10000); // Thu hồi URL sau 10 giây
     } catch (error) {
       console.error("Lỗi khi xem file:", error);
-      toast.error("Không thể xem file biên bản!");
+
+      // 🔧 FIX: Cải thiện thông báo lỗi
+      toast.update(toastId, {
+        render: "Không thể xem file biên bản. Vui lòng thử lại!",
+        type: "error",
+        isLoading: false,
+        autoClose: 5000,
+      });
     }
   };
 
@@ -463,6 +487,7 @@ const LaptopProductCard = ({
         );
         return;
       }
+
       // 4. Lấy ngày hiện tại
       const today = new Date();
       const formattedDate = `${today.getDate().toString().padStart(2, "0")}/${(
@@ -471,7 +496,15 @@ const LaptopProductCard = ({
         .toString()
         .padStart(2, "0")}/${today.getFullYear()}`;
 
-      // 4. Gán dữ liệu động vào file mẫu
+      // 🔧 FIX: Tìm record hiện tại (chưa có endDate) thay vì lấy index [0]
+      const currentRecord = laptopData?.assignmentHistory?.find(
+        (hist) => !hist.endDate
+      );
+
+      // 🔧 FIX: Xử lý an toàn cho specs
+      const specs = laptopData?.specs || {};
+
+      // 5. Gán dữ liệu động vào file mẫu
       doc.setData({
         today: formattedDate, // Ngày hiện tại
         //// Thông tin người dùng
@@ -480,23 +513,29 @@ const LaptopProductCard = ({
         nextUser: currentHolder.user?.fullname || "Không xác định",
         nextUserTitle: currentHolder.user?.jobTitle || "Không xác định",
         //// Thông tin laptop
-        laptopName: laptopData.name || "Không xác định",
-        laptopSerial: laptopData.serial,
-        laptopProcessor: laptopData.specs.processor,
-        laptopRam: laptopData.specs.ram,
-        laptopStorage: laptopData.specs.storage,
-        laptopreleaseYear: laptopData.releaseYear,
-        notes: laptopData.assignmentHistory[0].notes || "Không có ghi chú.",
+        laptopName: laptopData?.name || "Không xác định",
+        laptopSerial: laptopData?.serial || "Không xác định",
+        laptopProcessor: specs.processor || "Không xác định",
+        laptopRam: specs.ram || "Không xác định",
+        laptopStorage: specs.storage || "Không xác định",
+        laptopreleaseYear: laptopData?.releaseYear || "Không xác định",
+        // 🔧 FIX: Lấy notes từ record hiện tại, không phải index [0]
+        notes: currentRecord?.notes || "Không có ghi chú.",
       });
 
-      // 5. Render tài liệu
+      // 6. Render tài liệu
       doc.render();
 
-      // 6. Tạo file output
+      // 7. Tạo file output
       const output = doc.getZip().generate({ type: "blob" });
       saveAs(output, "handover_form.docx");
+
+      // 🔧 FIX: Thông báo thành công
+      toast.success("Tạo biên bản thành công!");
     } catch (error) {
       console.error("Error generating document:", error);
+      // 🔧 FIX: Thông báo lỗi cho người dùng
+      toast.error("Lỗi khi tạo biên bản. Vui lòng thử lại!");
     }
   };
   const handleFileUpload = (e) => {
@@ -790,22 +829,23 @@ const LaptopProductCard = ({
     }
   };
 
-  const handleViewReport = () => {
+  // 🔧 FIX: Gộp logic xem/tải file để tránh trùng lặp
+  const handleViewOrDownloadReport = (action = "view") => {
     if (!lastInspection?.documentUrl) {
-      toast.error("Không có file biên bản được tải lên!");
+      const actionText = action === "view" ? "xem" : "tải về";
+      toast.error(`Không có biên bản kiểm tra để ${actionText}!`);
       return;
     }
+
     const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
-    window.open(fileUrl, "_blank"); // Mở file trong tab mới
+    window.open(fileUrl, "_blank");
+
+    const actionText = action === "view" ? "mở" : "tải xuống";
+    toast.success(`Đã ${actionText} biên bản kiểm tra!`);
   };
-  const handleDownloadReport = () => {
-    if (!lastInspection?.documentUrl) {
-      toast.error("Không có biên bản kiểm tra để tải về!");
-      return;
-    }
-    const fileUrl = `${BASE_URL}${lastInspection.documentUrl}`;
-    window.open(fileUrl, "_blank"); // Mở tab mới để tải xuống file
-  };
+
+  const handleViewReport = () => handleViewOrDownloadReport("view");
+  const handleDownloadReport = () => handleViewOrDownloadReport("download");
 
   // Hàm xử lý upload file PDF biên bản đã được scan (sau khi in và ký)
   const handleFileUploadInspect = (e) => {
@@ -1041,7 +1081,7 @@ const LaptopProductCard = ({
     loadActivities();
   }, [localLaptop]);
 
-  // 11) Nếu người dùng chọn “Máy hỏng” trong lý do thu hồi, chuyển sang Broken, ngược lại Standby
+  // 11) Nếu người dùng chọn "Máy hỏng" trong lý do thu hồi, chuyển sang Broken, ngược lại Standby
   useEffect(() => {
     if (revokeReasons.includes("Máy hỏng")) {
       setLocalStatus("Broken");
