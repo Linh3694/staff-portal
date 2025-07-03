@@ -30,6 +30,7 @@ import {
 } from "react-icons/io5";
 import Inspect from "../inspect/inspect";
 import { API_URL, BASE_URL } from "../../../core/config"; // import từ file config
+import { useAuth } from "../../../shared/contexts/AuthContext"; // 🔧 FIX: Import useAuth hook
 
 const LaptopProductCard = ({
   laptopData,
@@ -39,6 +40,9 @@ const LaptopProductCard = ({
   fetchLaptopDetails,
   onUpdateLaptop,
 }) => {
+  // 🔧 FIX: Sử dụng AuthContext để lấy thông tin user
+  const { user: currentUser } = useAuth();
+
   const [activeTab, setActiveTab] = useState("repairs");
   const [repairs, setRepairs] = useState([]); // Quản lý danh sách sửa chữa cục bộ
   // Dữ liệu tạm để thêm/sửa repair/update
@@ -152,7 +156,7 @@ const LaptopProductCard = ({
       setLocalLaptop(updatedLaptop); // Đồng bộ dữ liệu cục bộ
       setCurrentHolder({
         user: selectedUser,
-        assignedBy: JSON.parse(localStorage.getItem("currentUser")),
+        assignedBy: currentUser,
         startDate: new Date().toISOString(),
       });
       onUpdateLaptop(updatedLaptop); // Đồng bộ với danh sách cha
@@ -478,8 +482,6 @@ const LaptopProductCard = ({
         paragraphLoop: true,
         linebreaks: true,
       });
-
-      const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
 
       if (!currentUser?.fullname || !currentHolder.user?.fullname) {
         toast.error(
