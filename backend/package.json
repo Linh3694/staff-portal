@@ -42,15 +42,11 @@
     "nodemailer": "^6.10.0",
     "passport": "^0.7.0",
     "passport-azure-ad": "^4.3.5",
-    "react-select": "^5.8.3",
-    "react-switch": "^7.1.0",
     "redis": "^5.1.0",
     "sharp": "^0.33.5",
     "simple-oauth2": "^5.1.0",
     "socket.io": "^4.8.1",
-    "swiper": "^11.2.1",
-    "uuid": "^11.1.0",
-    "xlsx": "^0.18.5"
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.9",
