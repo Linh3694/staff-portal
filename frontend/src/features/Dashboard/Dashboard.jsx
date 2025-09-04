@@ -3,25 +3,16 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 // Import các component nội dung (điều chỉnh đường dẫn nếu cần)
-import StudentClass from "../Management/student/studentClass";
-import StudentSchoolYear from "../Management/student/studentSchoolYear";
-import StudentStudent from "../Management/student/studentStudent";
 import UserTable from "../Management/UserTable";
 import Profile from "../Profile/Profile";
 import Sidebar from "./Sidebar";
-import DocumentTable from "../Documentation/DocumentTable";
-import DocumentDashboard from "../Documentation/DocumentDashboard";
 import FlippageAdmin from "../FlipPage/flippage-admin";
-import RecruitmentAdmin from "../Recruitment/recruitment-admin";
 import { API_URL, BASE_URL } from "../../core/config";
 
 const urlToMenu = {
-  documents: "Quản lý tài liệu",
   flippageadmin: "Phần mềm lật trang",
   profile: "Hồ sơ cá nhân",
   users: "Quản lý người dùng",
-  students: "Quản lý học sinh",
-  recruitment: "Quản lý tuyển dụng",
 };
 
 const Dashboard = () => {
@@ -52,17 +43,7 @@ const Dashboard = () => {
   const [isSidebarHovered, setIsSidebarHovered] = useState(false); // NEW
 
   // Định nghĩa cấu hình các tab cho một số mục
-  const tabMapping = {
-    "Quản lý học sinh": [
-      { label: "Quản lý Năm học", param: "school-year" },
-      { label: "Quản lý Lớp", param: "class" },
-      { label: "Quản lý Học Sinh", param: "student" },
-    ],
-    "Quản lý tài liệu": [
-      { label: "Tài liệu", param: "document" },
-      { label: "Báo cáo", param: "report" },
-    ],
-  };
+  const tabMapping = {};
 
   useEffect(() => {
     document.title = "360 Wisers | Hà Nội";
@@ -150,17 +131,8 @@ const Dashboard = () => {
       case "Quản lý người dùng":
         return <UserTable />;
 
-      case "Quản lý học sinh":
-        if (activeTab === "school-year") return <StudentSchoolYear />;
-        if (activeTab === "class") return <StudentClass />;
-        if (activeTab === "student") return <StudentStudent />;
-        break;
-
       case "Phần mềm lật trang":
         return <FlippageAdmin currentUser={currentUser} />;
-
-      case "Quản lý tuyển dụng":
-        return <RecruitmentAdmin currentUser={currentUser} />;
 
       case "Hồ sơ cá nhân":
         return (
@@ -168,11 +140,6 @@ const Dashboard = () => {
             <Profile userId={currentUser.id} onBack={() => {}} />
           </div>
         );
-
-      case "Quản lý tài liệu":
-        if (activeTab === "document") return <DocumentTable />;
-        if (activeTab === "report") return <DocumentDashboard />;
-        break;
 
       default:
         return (
