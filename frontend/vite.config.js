@@ -32,9 +32,8 @@ export default defineConfig({
           // Tách vendor chunks để tối ưu memory
           vendor: ['react', 'react-dom'],
           router: ['react-router-dom'],
-          ui: ['lucide-react', 'react-icons'],
-          utils: ['axios', 'date-fns', 'dayjs'],
-          charts: ['apexcharts', 'chart.js', 'react-apexcharts'],
+          ui: ['react-icons'],
+          utils: ['axios', 'dayjs'],
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
@@ -53,6 +52,9 @@ export default defineConfig({
   define: {
     'process.env': process.env,
     global: {}
+  },
+  optimizeDeps: {
+    include: ['axios']
   },
   esbuild: {
     loader: "jsx",
