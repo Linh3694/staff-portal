@@ -34,6 +34,29 @@ function FlipViewPage() {
   const oldDimensionsRef = useRef({ width: 550, height: 650 });
 
   useEffect(() => {
+    // Kiểm tra xem path hiện tại có phải là route cụ thể không
+    const currentPath = window.location.pathname;
+
+    // Danh sách các route cụ thể không nên được xử lý như custom name
+    const specificRoutes = [
+      '/login',
+      '/auth/microsoft/success',
+      '/dashboard',
+      '/not-authorized'
+    ];
+
+    // Kiểm tra nếu path bắt đầu bằng dashboard (cho nested routes)
+    const isDashboardRoute = currentPath.startsWith('/dashboard');
+
+    // Kiểm tra nếu path là route cụ thể hoặc chỉ là root path
+    const isSpecificRoute = specificRoutes.includes(currentPath) || isDashboardRoute || currentPath === '/';
+
+    if (isSpecificRoute) {
+      console.log(`🚫 Path "${currentPath}" là route cụ thể, chuyển hướng về login`);
+      navigate("/login");
+      return;
+    }
+
     if (!customName) {
       console.error("❌ Lỗi: Không tìm thấy customName trong URL");
       navigate("/login");

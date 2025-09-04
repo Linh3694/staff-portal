@@ -91,7 +91,7 @@ function AppContent() {
         {/* Custom name pages - must be last to not conflict with other routes */}
         <Route path="/:customName" element={<FlipViewPage />} />
 
-        {/* Default route */}
+        {/* Catch all other routes and redirect to login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
