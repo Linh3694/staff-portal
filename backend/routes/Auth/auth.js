@@ -6,7 +6,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { check, validationResult } = require("express-validator");
 const mongoose = require("mongoose");
-const { validateToken } = require("../../middleware/validateToken");
+const validateToken = require("../../middleware/validateToken");
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Kết nối MongoDB thành công!'))
