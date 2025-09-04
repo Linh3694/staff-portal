@@ -12,11 +12,24 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import FlipViewPage from "./features/FlipPage/FlipViewPage";
-import { AuthProvider } from "./shared/contexts/AuthContext";
+import { AuthProvider, useAuth } from "./shared/contexts/AuthContext";
 
-// Simple auth check
+// Enhanced auth check using AuthContext
 function RequireAuth({ children }) {
-  const isAuthenticated = !!localStorage.getItem("authToken");
+  const { isAuthenticated, loading } = useAuth();
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang kiểm tra xác thực...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -24,11 +37,65 @@ function RequireAuth({ children }) {
 }
 
 function PublicRoute({ children }) {
-  const isAuthenticated = !!localStorage.getItem("authToken");
+  const { isAuthenticated, loading } = useAuth();
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;
+}
+
+// Component wrapper để sử dụng AuthContext trong routing
+function AppContent() {
+  return (
+    <Router>
+      <Routes>
+        {/* Login - public route */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+
+        {/* Microsoft Auth Success */}
+        <Route
+          path="/auth/microsoft/success"
+          element={<MicrosoftAuthSuccess />}
+        />
+
+        {/* Dashboard - requires authentication */}
+        <Route
+          path="/dashboard/*"
+          element={
+            <RequireAuth>
+              <Dashboard />
+            </RequireAuth>
+          }
+        />
+
+        {/* Custom name pages - must be last to not conflict with other routes */}
+        <Route path="/:customName" element={<FlipViewPage />} />
+
+        {/* Default route */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Router>
+  );
 }
 
 function App() {
@@ -43,41 +110,7 @@ function App() {
           closeOnClick
           rtl={false}
         />
-        <Router>
-          <Routes>
-            {/* Flip page viewer - public access */}
-            <Route path="/:customName" element={<FlipViewPage />} />
-
-            {/* Login */}
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <LoginPage />
-                </PublicRoute>
-              }
-            />
-
-            {/* Microsoft Auth Success */}
-            <Route
-              path="/auth/microsoft/success"
-              element={<MicrosoftAuthSuccess />}
-            />
-
-            {/* Dashboard - requires authentication */}
-            <Route
-              path="/dashboard/*"
-              element={
-                <RequireAuth>
-                  <Dashboard />
-                </RequireAuth>
-              }
-            />
-
-            {/* Default route */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </Router>
+        <AppContent />
       </div>
     </AuthProvider>
   );
