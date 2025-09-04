@@ -297,7 +297,7 @@ function FlipViewPage() {
     >
       <div>
         <img
-          src="/pdf/wellspring-logo.png"
+          src="/wellspring-logo.png"
           alt="Wellspring Logo"
           className="absolute top-4 left-2 w-48 sm:w-32 md:w-[240px]"
         />

@@ -6,6 +6,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { check, validationResult } = require("express-validator");
 const mongoose = require("mongoose");
+const { validateToken } = require("../../middleware/validateToken");
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Kết nối MongoDB thành công!'))
@@ -175,6 +176,41 @@ router.post("/verify-name", async (req, res) => {
   } catch (error) {
     console.error("⚠️ Lỗi xác thực tên:", error);
     return res.status(500).json({ success: false, message: "Lỗi server!" });
+  }
+});
+
+// GET /users - Lấy thông tin user profile
+router.get("/users", validateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Người dùng không tồn tại"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user: {
+        _id: user._id,
+        fullname: user.fullname || "N/A",
+        email: user.email || "N/A",
+        role: user.role || "user",
+        avatar: user.avatar || "https://via.placeholder.com/150",
+        needProfileUpdate: user.needProfileUpdate || false,
+        employeeCode: user.employeeCode || null,
+        department: user.department || null,
+        jobTitle: user.jobTitle || null
+      }
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin user:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server"
+    });
   }
 });
 

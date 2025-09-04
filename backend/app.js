@@ -55,9 +55,10 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Định tuyến - chỉ giữ lại authentication và flippage
+// Định tuyến - authentication, flippage và user routes
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", authMicrosoftRoutes);
+app.use("/api", authRoutes); // Để route /users có thể truy cập được
 app.use("/api/flippage", pdfRoutes);
 
 // Route mặc định

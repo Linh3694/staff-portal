@@ -2,11 +2,16 @@ import React, { useState } from "react";
 import "react-toastify/dist/ReactToastify.css";
 import { API_URL } from "../../core/config";
 import { ReactTyped } from "react-typed";
+import { useAuth } from "../../shared/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleMicrosoftLogin = () => {
     window.location.href = `${API_URL}/auth/microsoft`;
@@ -31,32 +36,22 @@ const LoginPage = () => {
     }
 
     setError("");
+    setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const result = await login(email, password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.errors && data.errors.length > 0) {
-          setError(data.errors[0].msg);
-        } else {
-          setError(data.message || "Đăng nhập thất bại!");
-        }
+      if (result.success) {
+        // Login thành công, navigate đến dashboard
+        navigate("/dashboard");
       } else {
-        // Lưu token và thông tin role, sau đó chuyển hướng nếu đăng nhập thành công
-        localStorage.setItem("authToken", data.token);
-        localStorage.setItem("role", data.user.role);
-        window.location.href = "/dashboard"; // Cập nhật đường dẫn theo yêu cầu
+        // Login thất bại, hiển thị lỗi
+        setError(result.error || "Đăng nhập thất bại!");
       }
     } catch (err) {
       setError("Đã xảy ra lỗi. Vui lòng thử lại sau!");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,9 +103,10 @@ const LoginPage = () => {
 
             <button
               onClick={handleLogin}
-              className="w-full bg-[#002855] text-white py-3 font-bold rounded-full hover:bg-[#1a3a5e] transition-all"
+              disabled={loading}
+              className="w-full bg-[#002855] text-white py-3 font-bold rounded-full hover:bg-[#1a3a5e] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Đăng nhập
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
 
             {error && <div className="text-sm mb-4 text-red-500">{error}</div>}
