@@ -7,18 +7,13 @@ import StudentClass from "../Management/student/studentClass";
 import StudentSchoolYear from "../Management/student/studentSchoolYear";
 import StudentStudent from "../Management/student/studentStudent";
 import UserTable from "../Management/UserTable";
-import RoomTable from "../Management/RoomTable";
 import Profile from "../Profile/Profile";
 import Sidebar from "./Sidebar";
 import DocumentTable from "../Documentation/DocumentTable";
 import DocumentDashboard from "../Documentation/DocumentDashboard";
 import FlippageAdmin from "../FlipPage/flippage-admin";
 import RecruitmentAdmin from "../Recruitment/recruitment-admin";
-import HallOfFameAdminPage from "../HallOfHonor/HallOfFameAdminPage";
 import { API_URL, BASE_URL } from "../../core/config";
-import LibraryReport from "../Library/libraryReport";
-import LibraryData from "../Library/libraryData";
-import LibraryManagement from "../Library/libraryManagement";
 
 const urlToMenu = {
   documents: "Quản lý tài liệu",
@@ -26,10 +21,7 @@ const urlToMenu = {
   profile: "Hồ sơ cá nhân",
   users: "Quản lý người dùng",
   students: "Quản lý học sinh",
-  rooms: "Quản lý phòng học",
   recruitment: "Quản lý tuyển dụng",
-  halloffame: "Quản lý vinh danh",
-  library: "Quản lý Thư viện",
 };
 
 const Dashboard = () => {
@@ -65,11 +57,6 @@ const Dashboard = () => {
       { label: "Quản lý Năm học", param: "school-year" },
       { label: "Quản lý Lớp", param: "class" },
       { label: "Quản lý Học Sinh", param: "student" },
-    ],
-    "Quản lý Thư viện": [
-      { label: "Quản lý dữ liệu", param: "library-data" },
-      { label: "Quản lý Sách", param: "library-books" },
-      { label: "Báo Cáo", param: "library-report" },
     ],
     "Quản lý tài liệu": [
       { label: "Tài liệu", param: "document" },
@@ -169,23 +156,11 @@ const Dashboard = () => {
         if (activeTab === "student") return <StudentStudent />;
         break;
 
-      case "Quản lý phòng học":
-        return <RoomTable />;
-
-      case "Quản lý Thư viện":
-        if (activeTab === "library-data") return <LibraryData />;
-        if (activeTab === "library-books") return <LibraryManagement />;
-        if (activeTab === "library-report") return <LibraryReport />;
-        break;
-
       case "Phần mềm lật trang":
         return <FlippageAdmin currentUser={currentUser} />;
 
       case "Quản lý tuyển dụng":
         return <RecruitmentAdmin currentUser={currentUser} />;
-
-      case "Quản lý vinh danh":
-        return <HallOfFameAdminPage currentUser={currentUser} />;
 
       case "Hồ sơ cá nhân":
         return (

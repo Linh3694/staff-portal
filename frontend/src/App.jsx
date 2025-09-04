@@ -15,12 +15,7 @@ import "./App.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./core/i18n";
 import FlipViewPage from "./features/FlipPage/FlipViewPage";
-import HallofFame from "./features/HallOfHonor/HallOfFame-homepage";
-import HallOfFamePublicPage from "./features/HallOfHonor/HallOfFame-detail";
-import Library from "./features/Library/Library";
 import { AuthProvider } from "./shared/contexts/AuthContext";
-
-
 
 function PublicRoute({ children }) {
   const isAuthenticated = !!localStorage.getItem("authToken");
@@ -45,8 +40,6 @@ function PublicRoute({ children }) {
   return children;
 }
 
-
-
 // RequireAuth: Chỉ cho phép truy cập các trang bảo vệ nếu đã đăng nhập (và nếu cần, có role hợp lệ)
 function RequireAuth({ children, allowedRoles }) {
   const location = useLocation();
@@ -63,9 +56,6 @@ function RequireAuth({ children, allowedRoles }) {
 
   return children;
 }
-
-
-
 
 function App() {
   const [isEventAuthenticated, setIsEventAuthenticated] = useState(false);
@@ -94,15 +84,6 @@ function App() {
         />
         <Router>
           <Routes>
-            <Route path="/hall-of-honor" element={<HallofFame />} />
-            <Route path="/hall-of-honor/detail/:category" element={<HallOfFamePublicPage />} />
-            <Route path="/hall-of-honor/detail/:category/student/:recordId/:studentId" element={<HallOfFamePublicPage />} />
-            <Route path="/hall-of-honor/detail/:category/class/:recordId/:classId" element={<HallOfFamePublicPage />} />
-            <Route
-              path="/hall-of-honor/detail"
-              element={<Navigate to="/hall-of-honor/detail/scholarship-talent" replace />}
-            />
-            <Route path="/library" element={<Library />} />
             <Route path="/:customName" element={<FlipViewPage />} />
             {/* Trang Login */}
             <Route
