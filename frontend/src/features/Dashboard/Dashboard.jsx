@@ -3,15 +3,6 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 // Import các component nội dung (điều chỉnh đường dẫn nếu cần)
-import LaptopTable from "../Inventory/LaptopTable";
-import MonitorTable from "../Inventory/MonitorTable";
-import PrinterTable from "../Inventory/PrinterTable";
-import ProjectorTable from "../Inventory/ProjectorTable";
-import ToolTable from "../Inventory/ToolTable";
-import Ticket from "../Ticket/Ticket";
-import TicketTeam from "../Ticket/TicketTeam";
-import TicketAdminTable from "../Ticket/TicketAdminTable";
-import EmailIntegration from "../Ticket/EmailIntegration";
 import StudentClass from "../Management/student/studentClass";
 import StudentSchoolYear from "../Management/student/studentSchoolYear";
 import StudentStudent from "../Management/student/studentStudent";
@@ -25,20 +16,11 @@ import FlippageAdmin from "../FlipPage/flippage-admin";
 import RecruitmentAdmin from "../Recruitment/recruitment-admin";
 import HallOfFameAdminPage from "../HallOfHonor/HallOfFameAdminPage";
 import { API_URL, BASE_URL } from "../../core/config";
-import DashboardInventory from "../Inventory/dashboard";
-import BusRoutes from "../Bus/BusRoutes";
-import BusTrips from "../Bus/BusTrips";
-import BusVehicles from "../Bus/BusVehicles";
-import BusDashboard from "../Bus/BusDashboard";
 import LibraryReport from "../Library/libraryReport";
 import LibraryData from "../Library/libraryData";
 import LibraryManagement from "../Library/libraryManagement";
-import Admission from "../Admission/homepage";
 
 const urlToMenu = {
-  devices: "Quản lý thiết bị",
-  ticket: "Tickets",
-  ticketsadmin: "Quản lý Tickets",
   documents: "Quản lý tài liệu",
   flippageadmin: "Phần mềm lật trang",
   profile: "Hồ sơ cá nhân",
@@ -47,9 +29,7 @@ const urlToMenu = {
   rooms: "Quản lý phòng học",
   recruitment: "Quản lý tuyển dụng",
   halloffame: "Quản lý vinh danh",
-  bus: "Quản lý Bus",
   library: "Quản lý Thư viện",
-  admission: "Tuyển sinh",
 };
 
 const Dashboard = () => {
@@ -70,7 +50,7 @@ const Dashboard = () => {
   // --- State của Sidebar: menu chính và submenu được chọn
   // Mặc định mở nhóm "Workspace" và submenu đầu tiên là "Quản lý thiết bị"
   const [selectedMainMenu, setSelectedMainMenu] = useState("Workspace");
-  const [selectedSubMenu, setSelectedSubMenu] = useState("Tickets");
+  const [selectedSubMenu, setSelectedSubMenu] = useState("Quản lý tài liệu");
 
   // --- State cho các tab con (cho các mục có nhiều tab, ví dụ: Quản lý thiết bị, Quản lý tickets)
   const [activeTab, setActiveTab] = useState("");
@@ -81,25 +61,6 @@ const Dashboard = () => {
 
   // Định nghĩa cấu hình các tab cho một số mục
   const tabMapping = {
-    "Quản lý thiết bị": [
-      { label: "Dashboard", param: "dashboard" },
-      { label: "Laptop || Desktop", param: "laptop" },
-      { label: "Màn hình", param: "monitor" },
-      { label: "Máy in", param: "printer" },
-      { label: "Thiết bị trình chiếu", param: "projector" },
-      { label: "Khác", param: "other" },
-    ],
-    "Quản lý Tickets": [
-      { label: "Ticket lists", param: "ticket-lists" },
-      { label: "Teams", param: "teams" },
-      { label: "Reports", param: "reports" },
-    ],
-    "Quản lý Bus": [
-      { label: "Giám sát", param: "dashboard" },
-      { label: "Danh danh tuyến", param: "routes" },
-      { label: "Danh sách xe", param: "vehicles" },
-      { label: "Danh sách lịch trình", param: "trips" },
-    ],
     "Quản lý học sinh": [
       { label: "Quản lý Năm học", param: "school-year" },
       { label: "Quản lý Lớp", param: "class" },
@@ -135,8 +96,8 @@ const Dashboard = () => {
     if (mainKey && urlToMenu[mainKey]) {
       setSelectedSubMenu(urlToMenu[mainKey]);
     } else {
-      // Nếu không map được => submenu rỗng
-      setSelectedSubMenu("Tickets");
+      // Nếu không map được => submenu mặc định
+      setSelectedSubMenu("Quản lý tài liệu");
     }
 
     // Nếu URL có param
@@ -199,24 +160,6 @@ const Dashboard = () => {
   // --- Hàm render nội dung chính dựa theo mục (submenu) và tab con đang được chọn
   const renderContent = () => {
     switch (selectedSubMenu) {
-      case "Quản lý thiết bị":
-        if (activeTab === "dashboard") return <DashboardInventory />;
-        if (activeTab === "laptop") return <LaptopTable />;
-        if (activeTab === "monitor") return <MonitorTable />;
-        if (activeTab === "printer") return <PrinterTable />;
-        if (activeTab === "projector") return <ProjectorTable />;
-        if (activeTab === "other") return <ToolTable />;
-        break;
-
-      case "Quản lý Tickets":
-        if (activeTab === "ticket-lists")
-          return <TicketAdminTable currentUser={currentUser} />;
-        if (activeTab === "teams")
-          return <TicketTeam currentUser={currentUser} />;
-        if (activeTab === "reports")
-          return <EmailIntegration currentUser={currentUser} />;
-        break;
-
       case "Quản lý người dùng":
         return <UserTable />;
 
@@ -237,20 +180,12 @@ const Dashboard = () => {
 
       case "Phần mềm lật trang":
         return <FlippageAdmin currentUser={currentUser} />;
-      case "Tuyển sinh":
-        return <Admission currentUser={currentUser} />;
-      case "Tickets":
-        return <Ticket currentUser={currentUser} />;
+
       case "Quản lý tuyển dụng":
         return <RecruitmentAdmin currentUser={currentUser} />;
+
       case "Quản lý vinh danh":
         return <HallOfFameAdminPage currentUser={currentUser} />;
-      case "Quản lý Bus":
-        if (activeTab === "dashboard") return <BusDashboard />;
-        if (activeTab === "routes") return <BusRoutes />;
-        if (activeTab === "vehicles") return <BusVehicles />;
-        if (activeTab === "trips") return <BusTrips />;
-        break;
 
       case "Hồ sơ cá nhân":
         return (
@@ -258,15 +193,17 @@ const Dashboard = () => {
             <Profile userId={currentUser.id} onBack={() => {}} />
           </div>
         );
+
       case "Quản lý tài liệu":
         if (activeTab === "document") return <DocumentTable />;
         if (activeTab === "report") return <DocumentDashboard />;
         break;
+
       default:
         return (
           <div>
             <h2 className="text-2xl font-semibold mb-4 text-[#002147]">
-              Welcome
+              Welcome to Dashboard
             </h2>
             <p>Vui lòng chọn một mục từ sidebar.</p>
           </div>

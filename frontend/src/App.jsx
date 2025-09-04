@@ -13,15 +13,11 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
 import "./core/i18n";
 import FlipViewPage from "./features/FlipPage/FlipViewPage";
 import HallofFame from "./features/HallOfHonor/HallOfFame-homepage";
 import HallOfFamePublicPage from "./features/HallOfHonor/HallOfFame-detail";
 import Library from "./features/Library/Library";
-import Admission from "./features/Admission/Admission";
-import LoginAdmission from "./features/Auth/LoginAdmission";
 import { AuthProvider } from "./shared/contexts/AuthContext";
 
 
@@ -70,17 +66,6 @@ function RequireAuth({ children, allowedRoles }) {
 
 
 
-// RequireAdmissionAuth: Kiểm tra đăng nhập đặc biệt cho trang Admission
-function RequireAdmissionAuth({ children }) {
-  const location = useLocation();
-  const isAdmissionAuthenticated = !!localStorage.getItem("admissionAuth");
-
-  if (!isAdmissionAuthenticated) {
-    return <Navigate to="/login-admission" state={{ from: location }} replace />;
-  }
-
-  return children;
-}
 
 function App() {
   const [isEventAuthenticated, setIsEventAuthenticated] = useState(false);
@@ -117,15 +102,6 @@ function App() {
               path="/hall-of-honor/detail"
               element={<Navigate to="/hall-of-honor/detail/scholarship-talent" replace />}
             />
-            <Route 
-              path="/admission" 
-              element={
-                <RequireAdmissionAuth>
-                  <Admission />
-                </RequireAdmissionAuth>
-              } 
-            />
-            <Route path="/login-admission" element={<LoginAdmission />} />
             <Route path="/library" element={<Library />} />
             <Route path="/:customName" element={<FlipViewPage />} />
             {/* Trang Login */}

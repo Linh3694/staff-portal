@@ -33,7 +33,7 @@ export default defineConfig({
           vendor: ['react', 'react-dom'],
           router: ['react-router-dom'],
           ui: ['lucide-react', 'react-icons'],
-          utils: ['lodash', 'axios', 'date-fns', 'dayjs'],
+          utils: ['axios', 'date-fns', 'dayjs'],
           charts: ['apexcharts', 'chart.js', 'react-apexcharts'],
         },
         chunkFileNames: 'assets/[name]-[hash].js',
