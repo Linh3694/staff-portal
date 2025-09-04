@@ -32,7 +32,7 @@ function MicrosoftAuthSuccess() {
         return; // stop further processing
       }
 
-      localStorage.setItem("authToken", token);
+      Storage.setItem("authToken", token);
       localStorage.setItem("role", userRole);
 
       // Kiểm tra nếu user đến từ mobile
