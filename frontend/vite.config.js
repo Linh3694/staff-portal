@@ -32,7 +32,7 @@ export default defineConfig({
           // Tách vendor chunks để tối ưu memory
           vendor: ['react', 'react-dom'],
           router: ['react-router-dom'],
-          ui: ['@heroicons/react', 'lucide-react', 'react-icons'],
+          ui: ['lucide-react', 'react-icons'],
           utils: ['lodash', 'axios', 'date-fns', 'dayjs'],
           charts: ['apexcharts', 'chart.js', 'react-apexcharts'],
         },
