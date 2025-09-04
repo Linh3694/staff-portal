@@ -550,12 +550,7 @@ function FlippageAdmin({ currentUser }) {
                       {file.clickCount || 0}
                     </p>
                   </td>
-                  <td className="border-white/0 py-3 pr-4 flex items-center gap-3">
-                    <img
-                      src={`${BASE_URL}/uploads/Avatar/${file.uploader?.avatar}`}
-                      alt="Avatar"
-                      className="w-8 h-8 rounded-full border object-cover object-top"
-                    />
+                  <td className="border-white/0 py-3 pr-4">
                     <div>
                       <p className="text-sm font-bold text-navy-700">
                         {file.uploader?.fullname || "Unknown"}
